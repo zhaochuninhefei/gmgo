@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
 type pkcs8 struct { // Duplicated from x509 package

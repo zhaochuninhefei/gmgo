@@ -12,7 +12,7 @@ import (
 	"errors"
 	"math/big"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
 func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (*sm2.PrivateKey, error) {

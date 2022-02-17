@@ -25,7 +25,7 @@ import (
 	"io"
 	"math/big"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 
 	"golang.org/x/crypto/curve25519"
 )

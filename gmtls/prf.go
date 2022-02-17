@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"hash"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm3"
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
 // Split a premaster secret in two as specified in RFC 4346, section 5.

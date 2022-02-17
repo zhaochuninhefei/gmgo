@@ -29,8 +29,8 @@ import (
 	"strings"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
-	X "gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	X "gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 // Server returns a new TLS server side connection

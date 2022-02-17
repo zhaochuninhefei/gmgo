@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 // A Conn represents a secured connection.

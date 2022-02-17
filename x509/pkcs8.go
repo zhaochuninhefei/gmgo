@@ -32,7 +32,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
 /*

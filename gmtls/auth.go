@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
 // pickSignatureAlgorithm selects a signature algorithm that is compatible with

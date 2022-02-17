@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 type clientHandshakeStateGM struct {

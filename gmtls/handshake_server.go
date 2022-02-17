@@ -25,7 +25,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 // serverHandshakeState contains details of a server handshake in progress.

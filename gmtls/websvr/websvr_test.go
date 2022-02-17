@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
 const (

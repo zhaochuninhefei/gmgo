@@ -40,9 +40,9 @@ import (
 	"strconv"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm3"
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )

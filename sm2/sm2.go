@@ -27,7 +27,7 @@ import (
 	"io"
 	"math/big"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm3"
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
 var (

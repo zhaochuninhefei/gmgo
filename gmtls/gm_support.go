@@ -15,10 +15,10 @@ import (
 	"strings"
 	"sync"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm3"
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm4"
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
+	"gitee.com/zhaochuninhefei/gmgo/sm4"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 const VersionGMSSL = 0x0101 // GM/T 0024-2014

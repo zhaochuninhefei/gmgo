@@ -22,8 +22,8 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/sm2"
-	x "gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	x "gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 var (

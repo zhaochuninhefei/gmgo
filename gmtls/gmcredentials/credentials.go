@@ -22,8 +22,8 @@ import (
 	"net"
 	"strings"
 
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/gmtls"
-	"gitee.com/zhaochuninhefei/gm-zc/gm-zc-go/x509"
+	"gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/credentials"
 )

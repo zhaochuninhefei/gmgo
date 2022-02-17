@@ -1,4 +1,4 @@
-module gitee.com/zhaochuninhefei/gm-zc/gm-zc-go
+module gitee.com/zhaochuninhefei/gmgo
 
 go 1.17
 
