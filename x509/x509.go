@@ -23,6 +23,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -35,8 +36,10 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"io/ioutil"
 	"math/big"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -1901,6 +1904,95 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 //
 // All keys types that are implemented via crypto.Signer are supported (This
 // includes *rsa.PublicKey and *ecdsa.PublicKey.)
+// TODO CreateCertificate -> CreateCertificateFromReader
+func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, pub, priv interface{}) (cert []byte, err error) {
+	key, ok := priv.(crypto.Signer)
+	if !ok {
+		return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
+	}
+
+	if template.SerialNumber == nil {
+		return nil, errors.New("x509: no SerialNumber given")
+	}
+
+	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
+	if err != nil {
+		return nil, err
+	}
+
+	publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	asn1Issuer, err := subjectBytes(parent)
+	if err != nil {
+		return
+	}
+
+	asn1Subject, err := subjectBytes(template)
+	if err != nil {
+		return
+	}
+
+	if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
+		template.AuthorityKeyId = parent.SubjectKeyId
+	}
+
+	extensions, err := buildExtensions(template)
+	if err != nil {
+		return
+	}
+	encodedPublicKey := asn1.BitString{BitLength: len(publicKeyBytes) * 8, Bytes: publicKeyBytes}
+	c := tbsCertificate{
+		Version:            2,
+		SerialNumber:       template.SerialNumber,
+		SignatureAlgorithm: signatureAlgorithm,
+		Issuer:             asn1.RawValue{FullBytes: asn1Issuer},
+		Validity:           validity{template.NotBefore.UTC(), template.NotAfter.UTC()},
+		Subject:            asn1.RawValue{FullBytes: asn1Subject},
+		PublicKey:          publicKeyInfo{nil, publicKeyAlgorithm, encodedPublicKey},
+		Extensions:         extensions,
+	}
+
+	tbsCertContents, err := asn1.Marshal(c)
+	if err != nil {
+		return
+	}
+
+	c.Raw = tbsCertContents
+
+	digest := tbsCertContents
+	switch template.SignatureAlgorithm {
+	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256:
+		break
+	default:
+		h := hashFunc.New()
+		h.Write(tbsCertContents)
+		digest = h.Sum(nil)
+	}
+
+	var signerOpts crypto.SignerOpts
+	signerOpts = hashFunc
+	if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
+		signerOpts = &rsa.PSSOptions{
+			SaltLength: rsa.PSSSaltLengthEqualsHash,
+			Hash:       crypto.Hash(hashFunc),
+		}
+	}
+
+	var signature []byte
+	signature, err = key.Sign(rand, digest, signerOpts)
+	if err != nil {
+		return
+	}
+	return asn1.Marshal(certificate{
+		nil,
+		c,
+		signatureAlgorithm,
+		asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
+	})
+}
 
 // pemCRLPrefix is the magic string that indicates that we have a PEM encoded
 // CRL.
@@ -2461,4 +2553,107 @@ func (c *Certificate) FromX509Certificate(x509Cert *x509.Certificate) {
 	for _, val := range x509Cert.ExtKeyUsage {
 		c.ExtKeyUsage = append(c.ExtKeyUsage, ExtKeyUsage(val))
 	}
+}
+
+func ReadCertificateRequestFromMem(data []byte) (*CertificateRequest, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("failed to decode certificate request")
+	}
+	return ParseCertificateRequest(block.Bytes)
+}
+
+// TODO ReadCertificateRequestFromPem -> ReadCertificateRequestFromPemFile
+func ReadCertificateRequestFromPemFile(FileName string) (*CertificateRequest, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadCertificateRequestFromMem(data)
+}
+
+func CreateCertificateRequestToMem(template *CertificateRequest, privKey *sm2.PrivateKey) ([]byte, error) {
+	der, err := CreateCertificateRequest(rand.Reader, template, privKey)
+	if err != nil {
+		return nil, err
+	}
+	block := &pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: der,
+	}
+	return pem.EncodeToMemory(block), nil
+}
+
+// TODO CreateCertificateRequestToPem -> CreateCertificateRequestToPemFile
+func CreateCertificateRequestToPemFile(FileName string, template *CertificateRequest,
+	privKey *sm2.PrivateKey) (bool, error) {
+	der, err := CreateCertificateRequest(rand.Reader, template, privKey)
+	if err != nil {
+		return false, err
+	}
+	block := &pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: der,
+	}
+	file, err := os.Create(FileName)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func ReadCertificateFromMem(data []byte) (*Certificate, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("failed to decode certificate request")
+	}
+	return ParseCertificate(block.Bytes)
+}
+
+// TODO ReadCertificateFromPem -> ReadCertificateFromPemFile
+func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadCertificateFromMem(data)
+}
+
+func CreateCertificateToMem(template, parent *Certificate, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) ([]byte, error) {
+	der, err := CreateCertificateFromReader(rand.Reader, template, parent, pubKey, privKey)
+	if err != nil {
+		return nil, err
+	}
+	block := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: der,
+	}
+	return pem.EncodeToMemory(block), nil
+}
+
+// TODO CreateCertificateToPem -> CreateCertificateToPemFile
+func CreateCertificateToPemFile(FileName string, template, parent *Certificate, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) (bool, error) {
+	der, err := CreateCertificateFromReader(rand.Reader, template, parent, pubKey, privKey)
+	if err != nil {
+		return false, err
+	}
+	block := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: der,
+	}
+	file, err := os.Create(FileName)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
