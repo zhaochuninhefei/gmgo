@@ -137,7 +137,8 @@ func parseECPrivateKey(namedCurveOID *asn1.ObjectIdentifier, der []byte) (key *e
 
 	return priv, nil
 }
-func marshalPKCS8PrivateKey(key interface{}) (der []byte, err error) {
+
+func MarshalPKCS8PrivateKey(key interface{}) (der []byte, err error) {
 	var privKey pkcs8
 	switch key := key.(type) {
 	case *rsa.PrivateKey:
@@ -177,6 +178,7 @@ func marshalPKCS8PrivateKey(key interface{}) (der []byte, err error) {
 	}
 	return asn1.Marshal(privKey)
 }
+
 func MarshalECPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
 	oid, ok := oidFromNamedCurve(key.Curve)
 	if !ok {
@@ -185,6 +187,7 @@ func MarshalECPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
 
 	return MarshalPrivateKey(key, oid)
 }
+
 func MarshalPrivateKey(key *sm2.PrivateKey, oid asn1.ObjectIdentifier) ([]byte, error) {
 	privateKeyBytes := key.D.Bytes()
 	paddedPrivateKey := make([]byte, (key.Curve.Params().N.BitLen()+7)/8)
