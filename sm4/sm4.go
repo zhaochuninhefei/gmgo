@@ -274,6 +274,9 @@ func pkcs7Padding(src []byte) []byte {
 
 func pkcs7UnPadding(src []byte) ([]byte, error) {
 	length := len(src)
+	if length == 0 {
+		return nil, errors.New("Invalid pkcs7 padding (len(padtext) == 0)")
+	}
 	unpadding := int(src[length-1])
 	if unpadding > BlockSize || unpadding == 0 {
 		return nil, errors.New("Invalid pkcs7 padding (unpadding > BlockSize || unpadding == 0)")
@@ -311,7 +314,7 @@ func Sm4Cbc(key []byte, in []byte, mode bool) (out []byte, err error) {
 	out = make([]byte, len(inData))
 	c, err := NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if mode {
 		for i := 0; i < len(inData)/16; i++ {
@@ -348,7 +351,7 @@ func Sm4Ecb(key []byte, in []byte, mode bool) (out []byte, err error) {
 	out = make([]byte, len(inData))
 	c, err := NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if mode {
 		for i := 0; i < len(inData)/16; i++ {
@@ -387,7 +390,7 @@ func Sm4CFB(key []byte, in []byte, mode bool) (out []byte, err error) {
 	out = make([]byte, len(inData))
 	c, err := NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	K := make([]byte, BlockSize)
@@ -446,7 +449,7 @@ func Sm4OFB(key []byte, in []byte, mode bool) (out []byte, err error) {
 	out = make([]byte, len(inData))
 	c, err := NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	K := make([]byte, BlockSize)

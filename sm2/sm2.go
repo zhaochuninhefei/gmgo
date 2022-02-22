@@ -27,6 +27,8 @@ import (
 	"io"
 	"math/big"
 
+	"golang.org/x/crypto/cryptobyte"
+	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
@@ -46,9 +48,6 @@ type PrivateKey struct {
 	D *big.Int
 }
 
-type sm2Signature struct {
-	R, S *big.Int
-}
 type sm2Cipher struct {
 	XCoordinate *big.Int
 	YCoordinate *big.Int
@@ -71,16 +70,28 @@ func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerO
 	if err != nil {
 		return nil, err
 	}
-	return asn1.Marshal(sm2Signature{r, s})
+	var b cryptobyte.Builder
+	b.AddASN1(cbasn1.SEQUENCE, func(b *cryptobyte.Builder) {
+		b.AddASN1BigInt(r)
+		b.AddASN1BigInt(s)
+	})
+	return b.Bytes()
 }
 
-func (pub *PublicKey) Verify(msg []byte, sign []byte) bool {
-	var sm2Sign sm2Signature
-	_, err := asn1.Unmarshal(sign, &sm2Sign)
-	if err != nil {
+func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
+	var (
+		r, s  = &big.Int{}, &big.Int{}
+		inner cryptobyte.String
+	)
+	input := cryptobyte.String(sig)
+	if !input.ReadASN1(&inner, cbasn1.SEQUENCE) ||
+		!input.Empty() ||
+		!inner.ReadASN1Integer(r) ||
+		!inner.ReadASN1Integer(s) ||
+		!inner.Empty() {
 		return false
 	}
-	return Sm2Verify(pub, msg, default_uid, sm2Sign.R, sm2Sign.S)
+	return Sm2Verify(pub, msg, default_uid, r, s)
 }
 
 func (pub *PublicKey) Sm3Digest(msg, uid []byte) ([]byte, error) {

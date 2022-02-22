@@ -45,13 +45,13 @@ func TestSm2(t *testing.T) {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
 	}
 	fmt.Printf("clear text = %s\n", d1)
-	d2, err :=Encrypt(pub,msg, rand.Reader,C1C2C3)
+	d2, err := Encrypt(pub, msg, rand.Reader, C1C2C3)
 	if err != nil {
 		fmt.Printf("Error: failed to encrypt %s: %v\n", msg, err)
 		return
 	}
 	// fmt.Printf("Cipher text = %v\n", d0)
-	d3, err := Decrypt(priv,d2,C1C2C3)
+	d3, err := Decrypt(priv, d2, C1C2C3)
 	if err != nil {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
 	}
@@ -67,7 +67,7 @@ func TestSm2(t *testing.T) {
 		t.Fatal(err)
 	}
 	signdata, _ := ioutil.ReadFile("TestResult")
-	ok := priv.Verify(msg, signdata) // 密钥验证
+	ok := priv.PublicKey.Verify(msg, signdata) // 密钥验证
 	if ok != true {
 		fmt.Printf("Verify error\n")
 	} else {
@@ -96,7 +96,7 @@ func BenchmarkSM2(t *testing.B) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		priv.Verify(msg, sign) // 密钥验证
+		priv.PublicKey.Verify(msg, sign) // 密钥验证
 	}
 }
 

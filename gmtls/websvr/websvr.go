@@ -67,6 +67,35 @@ func loadAutoSwitchConfig() (*gmtls.Config, error) {
 	return gmtls.NewBasicAutoSwitchConfig(&sigCert, &encCert, &rsaKeypair)
 }
 
+// 双向身份认证 服务端配置
+func loadServerMutualTLCPAuthConfig() (*gmtls.Config, error) {
+	// 签名密钥对/证书 和 加密密钥对/证书
+	sigCert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	encCert, err := gmtls.LoadX509KeyPair(sm2EncCertPath, sm2EncKeyPath)
+	if err != nil {
+		return nil, err
+
+	}
+
+	// 信任的根证书
+	certPool := x509.NewCertPool()
+	cacert, err := ioutil.ReadFile(SM2CaCertPath)
+	if err != nil {
+		return nil, err
+	}
+	certPool.AppendCertsFromPEM(cacert)
+
+	return &gmtls.Config{
+		GMSupport:    gmtls.NewGMSupport(),
+		Certificates: []gmtls.Certificate{sigCert, encCert},
+		ClientCAs:    certPool,
+		ClientAuth:   gmtls.RequireAndVerifyClientCert,
+	}, nil
+}
+
 // 要求客户端身份认证
 func loadAutoSwitchConfigClientAuth() (*gmtls.Config, error) {
 	config, err := loadAutoSwitchConfig()
