@@ -1,5 +1,5 @@
 # gmgo
-基于tjfoc国密算法库`tjfoc/gmsm@v1.4.1`实现部分扩展。
+基于tjfoc国密算法库`tjfoc/gmsm`的`2.0`版本实现部分扩展。
 
 - go package： `gitee.com/zhaochuninhefei/gmgo`
 
