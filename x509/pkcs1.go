@@ -16,11 +16,18 @@ limitations under the License.
 package x509
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/asn1"
 	"errors"
+	"fmt"
 	"math/big"
+
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
+
+const ecPrivKeyVersion = 1
 
 // pkcs1PrivateKey is a structure which mirrors the PKCS#1 ASN.1 for an RSA private key.
 type pkcs1PrivateKey struct {
@@ -129,4 +136,96 @@ func MarshalPKCS1PrivateKey(key *rsa.PrivateKey) []byte {
 type rsaPublicKey struct {
 	N *big.Int
 	E int
+}
+
+// parseECPrivateKey parses an ASN.1 Elliptic Curve Private Key Structure.
+// The OID for the named curve may be provided from another source (such as
+// the PKCS8 container) - if it is provided then use this instead of the OID
+// that may exist in the EC private key structure.
+func parseECPrivateKey(namedCurveOID *asn1.ObjectIdentifier, der []byte) (key interface{}, err error) {
+	var privKey ecPrivateKey
+	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
+		return nil, errors.New("x509: failed to parse EC private key: " + err.Error())
+	}
+	if privKey.Version != ecPrivKeyVersion {
+		return nil, fmt.Errorf("x509: unknown EC private key version %d", privKey.Version)
+	}
+
+	var curve elliptic.Curve
+	if namedCurveOID != nil {
+		curve = namedCurveFromOID(*namedCurveOID)
+	} else {
+		curve = namedCurveFromOID(privKey.NamedCurveOID)
+	}
+	if curve == nil {
+		return nil, errors.New("x509: unknown elliptic curve")
+	}
+
+	k := new(big.Int).SetBytes(privKey.PrivateKey)
+	curveOrder := curve.Params().N
+	if k.Cmp(curveOrder) >= 0 {
+		return nil, errors.New("x509: invalid elliptic curve private key value")
+	}
+
+	switch curve {
+	case sm2.P256Sm2():
+		k := new(big.Int).SetBytes(privKey.PrivateKey)
+		curveOrder := curve.Params().N
+		if k.Cmp(curveOrder) >= 0 {
+			return nil, errors.New("x509: invalid elliptic curve private key value")
+		}
+		priv := new(sm2.PrivateKey)
+		priv.Curve = curve
+		priv.D = k
+
+		privateKey := make([]byte, (curveOrder.BitLen()+7)/8)
+
+		// Some private keys have leading zero padding. This is invalid
+		// according to [SEC1], but this code will ignore it.
+		for len(privKey.PrivateKey) > len(privateKey) {
+			if privKey.PrivateKey[0] != 0 {
+				return nil, errors.New("x509: invalid private key length")
+			}
+			privKey.PrivateKey = privKey.PrivateKey[1:]
+		}
+
+		// Some private keys remove all leading zeros, this is also invalid
+		// according to [SEC1] but since OpenSSL used to do this, we ignore
+		// this too.
+		copy(privateKey[len(privateKey)-len(privKey.PrivateKey):], privKey.PrivateKey)
+		priv.X, priv.Y = curve.ScalarBaseMult(privateKey)
+
+		return priv, nil
+
+	case elliptic.P224(), elliptic.P256(), elliptic.P384(), elliptic.P521():
+		k := new(big.Int).SetBytes(privKey.PrivateKey)
+		curveOrder := curve.Params().N
+		if k.Cmp(curveOrder) >= 0 {
+			return nil, errors.New("x509: invalid elliptic curve private key value")
+		}
+		priv := new(ecdsa.PrivateKey)
+		priv.Curve = curve
+		priv.D = k
+
+		privateKey := make([]byte, (curveOrder.BitLen()+7)/8)
+
+		// Some private keys have leading zero padding. This is invalid
+		// according to [SEC1], but this code will ignore it.
+		for len(privKey.PrivateKey) > len(privateKey) {
+			if privKey.PrivateKey[0] != 0 {
+				return nil, errors.New("x509: invalid private key length")
+			}
+			privKey.PrivateKey = privKey.PrivateKey[1:]
+		}
+
+		// Some private keys remove all leading zeros, this is also invalid
+		// according to [SEC1] but since OpenSSL used to do this, we ignore
+		// this too.
+		copy(privateKey[len(privateKey)-len(privKey.PrivateKey):], privKey.PrivateKey)
+		priv.X, priv.Y = curve.ScalarBaseMult(privateKey)
+
+		return priv, nil
+	default:
+		return nil, errors.New("x509: invalid private key curve param")
+	}
 }

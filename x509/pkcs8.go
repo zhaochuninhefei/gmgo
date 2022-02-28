@@ -29,6 +29,7 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"hash"
 	"io/ioutil"
 	"math/big"
@@ -54,8 +55,9 @@ var (
 
 	oidAES128CBC = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 2}
 	oidAES256CBC = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42}
-
-	oidSM2 = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
+	// TODO SM2算法标识不是ECC算法标识
+	// oidSM2 = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
+	oidSM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
 )
 
 // reference to https://www.rfc-editor.org/rfc/rfc5958.txt
@@ -63,6 +65,39 @@ type PrivateKeyInfo struct {
 	Version             int // v1 or v2
 	PrivateKeyAlgorithm []asn1.ObjectIdentifier
 	PrivateKey          []byte
+}
+
+// ParsePKCS8PrivateKey parses an unencrypted, PKCS#8 private key.
+// See RFC 5208.
+func ParsePKCS8PrivateKey2(der []byte) (key interface{}, err error) {
+	var privKey pkcs8
+	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
+		return nil, err
+	}
+	switch {
+
+	case privKey.Algo.Algorithm.Equal(oidPublicKeyRSA):
+		key, err = ParsePKCS1PrivateKey(privKey.PrivateKey)
+		if err != nil {
+			return nil, errors.New("x509: failed to parse RSA private key embedded in PKCS#8: " + err.Error())
+		}
+		return key, nil
+
+	case privKey.Algo.Algorithm.Equal(oidPublicKeyECDSA), privKey.Algo.Algorithm.Equal(oidPublicKeySM2):
+		bytes := privKey.Algo.Parameters.FullBytes
+		namedCurveOID := new(asn1.ObjectIdentifier)
+		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {
+			namedCurveOID = nil
+		}
+		key, err = parseECPrivateKey(namedCurveOID, privKey.PrivateKey)
+		if err != nil {
+			return nil, errors.New("x509: failed to parse EC private key embedded in PKCS#8: " + err.Error())
+		}
+		return key, nil
+
+	default:
+		return nil, fmt.Errorf("x509: PKCS#8 wrapping contained private key with unknown algorithm: %v", privKey.Algo.Algorithm)
+	}
 }
 
 // reference to https://www.rfc-editor.org/rfc/rfc5958.txt
@@ -107,6 +142,8 @@ type sm2PrivateKey struct {
 	NamedCurveOID asn1.ObjectIdentifier `asn1:"optional,explicit,tag:0"`
 	PublicKey     asn1.BitString        `asn1:"optional,explicit,tag:1"`
 }
+
+type ecPrivateKey sm2PrivateKey
 
 type pkcs8 struct {
 	Version    int
@@ -360,6 +397,11 @@ func MarshalSm2EcryptedPrivateKey(PrivKey *sm2.PrivateKey, pwd []byte) ([]byte, 
 		encryptedKey,
 	}
 	return asn1.Marshal(encryptedPkey)
+}
+
+// MarshalECPrivateKey marshals an EC private key into ASN.1, DER format.
+func MarshalECPrivateKey(key interface{}) ([]byte, error) {
+	return MarshalSm2PrivateKey(key.(*sm2.PrivateKey), nil)
 }
 
 func MarshalSm2PrivateKey(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {

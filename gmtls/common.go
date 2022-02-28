@@ -974,6 +974,9 @@ func initDefaultCipherSuites() {
 		TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		// TODO 添加国密定义
+		GMTLS_SM2_WITH_SM4_SM3,
+		GMTLS_ECDHE_SM2_WITH_SM4_SM3,
 	}
 
 	varDefaultCipherSuites = make([]uint16, 0, len(cipherSuites))

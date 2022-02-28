@@ -7,7 +7,6 @@ package gmtls
 import (
 	"bytes"
 	"crypto"
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/asn1"
 	"errors"
@@ -382,7 +381,7 @@ func (ka *eccKeyAgreementGM) processServerKeyExchange(config *Config, clientHell
 	digest := ka.hashForServerKeyExchange(clientHello.random, serverHello.random, ka.encipherCert.Raw)
 
 	//verify
-	pubKey, _ := cert.PublicKey.(*ecdsa.PublicKey)
+	pubKey, _ := cert.PublicKey.(*sm2.PublicKey)
 	if pubKey.Curve != sm2.P256Sm2() {
 		return errors.New("tls: sm2 signing requires a sm2 public key")
 	}
@@ -431,7 +430,7 @@ func (ka *eccKeyAgreementGM) generateClientKeyExchange(config *Config, clientHel
 	if err != nil {
 		return nil, nil, err
 	}
-	pubKey := ka.encipherCert.PublicKey.(*ecdsa.PublicKey)
+	pubKey := ka.encipherCert.PublicKey.(*sm2.PublicKey)
 	sm2PubKey := &sm2.PublicKey{Curve: pubKey.Curve, X: pubKey.X, Y: pubKey.Y}
 	encrypted, err := sm2.Encrypt(sm2PubKey, preMasterSecret, config.rand(), sm2.C1C3C2)
 	if err != nil {

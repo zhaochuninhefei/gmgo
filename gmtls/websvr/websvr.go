@@ -2,11 +2,11 @@ package websvr
 
 import (
 	"crypto/tls"
-	x "crypto/x509"
+	"crypto/x509"
 	"io/ioutil"
 
 	"gitee.com/zhaochuninhefei/gmgo/gmtls"
-	"gitee.com/zhaochuninhefei/gmgo/x509"
+	gx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 const (
@@ -81,7 +81,7 @@ func loadServerMutualTLCPAuthConfig() (*gmtls.Config, error) {
 	}
 
 	// 信任的根证书
-	certPool := x509.NewCertPool()
+	certPool := gx509.NewCertPool()
 	cacert, err := ioutil.ReadFile(SM2CaCertPath)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func loadAutoSwitchConfigClientAuth() (*gmtls.Config, error) {
 // 获取 客户端服务端双向身份认证 配置
 func bothAuthConfig() (*gmtls.Config, error) {
 	// 信任的根证书
-	certPool := x509.NewCertPool()
+	certPool := gx509.NewCertPool()
 	cacert, err := ioutil.ReadFile(SM2CaCertPath)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func bothAuthConfig() (*gmtls.Config, error) {
 // 获取 单向身份认证（只认证服务端） 配置
 func singleSideAuthConfig() (*gmtls.Config, error) {
 	// 信任的根证书
-	certPool := x509.NewCertPool()
+	certPool := gx509.NewCertPool()
 	cacert, err := ioutil.ReadFile(SM2CaCertPath)
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func singleSideAuthConfig() (*gmtls.Config, error) {
 // 获取 客户端服务端双向身份认证 配置
 func rsaBothAuthConfig() (*tls.Config, error) {
 	// 信任的根证书
-	certPool := x.NewCertPool()
+	certPool := x509.NewCertPool()
 	cacert, err := ioutil.ReadFile(RSACaCertPath)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func rsaBothAuthConfig() (*tls.Config, error) {
 // 获取 单向身份认证（只认证服务端） 配置
 func rsaSingleSideAuthConfig() (*tls.Config, error) {
 	// 信任的根证书
-	certPool := x.NewCertPool()
+	certPool := x509.NewCertPool()
 	cacert, err := ioutil.ReadFile(RSACaCertPath)
 	if err != nil {
 		return nil, err

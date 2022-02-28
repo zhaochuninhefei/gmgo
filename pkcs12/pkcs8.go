@@ -80,7 +80,7 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {
 			namedCurveOID = nil
 		}
-		key, err = parseECPrivateKey(namedCurveOID, privKey.PrivateKey)
+		key, err = ParseECPrivateKey(namedCurveOID, privKey.PrivateKey)
 		if err != nil {
 			return nil, errors.New("x509: failed to parse EC private key embedded in PKCS#8: " + err.Error())
 		}
@@ -90,7 +90,8 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 		return nil, fmt.Errorf("x509: PKCS#8 wrapping contained private key with unknown algorithm: %v", privKey.Algo.Algorithm)
 	}
 }
-func parseECPrivateKey(namedCurveOID *asn1.ObjectIdentifier, der []byte) (key *ecdsa.PrivateKey, err error) {
+
+func ParseECPrivateKey(namedCurveOID *asn1.ObjectIdentifier, der []byte) (key *ecdsa.PrivateKey, err error) {
 	var privKey ecPrivateKey
 	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
 		return nil, errors.New("x509: failed to parse EC private key: " + err.Error())

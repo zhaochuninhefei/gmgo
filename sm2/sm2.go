@@ -27,9 +27,9 @@ import (
 	"io"
 	"math/big"
 
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 	"golang.org/x/crypto/cryptobyte"
 	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
-	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
 var (
@@ -134,6 +134,7 @@ func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, 
 
 //****************************************************************************//
 
+// SM2签名
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	digest, err := priv.PublicKey.Sm3Digest(msg, uid)
 	if err != nil {
@@ -146,13 +147,16 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 		return nil, nil, errZeroParam
 	}
 	var k *big.Int
-	for { // 调整算法细节以实现SM2
+	// SM2签名实现
+	for {
 		for {
+			// 生成随机数小k
 			k, err = randFieldElement(c, random)
 			if err != nil {
 				r = nil
 				return
 			}
+			// 计算与基点的乘积K=kG，K点的x轴坐标Kx对椭圆曲线阶n的模Kx(mod n)为r： r = Kx (mod n)
 			r, _ = priv.Curve.ScalarBaseMult(k.Bytes())
 			r.Add(r, e)
 			r.Mod(r, N)
@@ -163,6 +167,7 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 			}
 
 		}
+		// 计算k基于曲线阶的乘法逆元k-1(mod n)， s=k-1(h+kAr)(mod n)
 		rD := new(big.Int).Mul(priv.D, r)
 		s = new(big.Int).Sub(k, rD)
 		d1 := new(big.Int).Add(priv.D, one)
@@ -175,6 +180,8 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 	}
 	return
 }
+
+// SM2验签
 func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 	c := pub.Curve
 	N := c.Params().N

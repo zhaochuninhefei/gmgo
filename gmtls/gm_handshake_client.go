@@ -240,11 +240,13 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 			if opts.Roots == nil {
 				opts.Roots = x509.NewCertPool()
 			}
-
+			// TODO 是否需要修改CA根证书的获取逻辑？
+			// `gmtls/gm_support.go`的getCAs函数目前直接返回nil
 			for _, rootca := range getCAs() {
 				opts.Roots.AddCert(rootca)
 			}
 			for i, cert := range certs {
+				// TODO 为何跳过第一张证书？
 				if i == 0 {
 					continue
 				}
