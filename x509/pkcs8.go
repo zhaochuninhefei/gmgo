@@ -55,8 +55,7 @@ var (
 
 	oidAES128CBC = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 2}
 	oidAES256CBC = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42}
-	// TODO SM2算法标识不是ECC算法标识
-	// oidSM2 = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
+	// SM2算法标识定义，参考国密标准`GMT 0006-2012 密码应用标识规范.pdf`
 	oidSM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
 )
 
@@ -219,7 +218,8 @@ func MarshalSm2PublicKey(key *sm2.PublicKey) ([]byte, error) {
 	algo.Parameters.Class = 0
 	algo.Parameters.Tag = 6
 	algo.Parameters.IsCompound = false
-	algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45} // asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})
+	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出
+	algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
 	r.Algo = algo
 	r.BitString = asn1.BitString{Bytes: elliptic.Marshal(key.Curve, key.X, key.Y)}
 	return asn1.Marshal(r)
@@ -331,7 +331,8 @@ func MarshalSm2UnecryptedPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
 	algo.Parameters.Class = 0
 	algo.Parameters.Tag = 6
 	algo.Parameters.IsCompound = false
-	algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45} // asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})
+	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出
+	algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
 	priv.Version = 1
 	priv.NamedCurveOID = oidNamedCurveP256SM2
 	priv.PublicKey = asn1.BitString{Bytes: elliptic.Marshal(key.Curve, key.X, key.Y)}

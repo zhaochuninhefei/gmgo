@@ -54,8 +54,9 @@ var (
 	oidAttributeContentType   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3}
 	oidAttributeMessageDigest = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4}
 	oidAttributeSigningTime   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 5}
-	oidSM3withSM2             = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 501}
-	oidDSASM2                 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301, 1}
+	// SM2相关算法标识定义，参考国密标准`GMT 0006-2012 密码应用标识规范.pdf`
+	oidSM3withSM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 501}
+	oidDSASM2     = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301, 1}
 )
 
 type signedData struct {
@@ -997,8 +998,6 @@ func encryptKey(key []byte, recipient *Certificate) ([]byte, error) {
 	return nil, ErrPKCS7UnsupportedAlgorithm
 }
 
-
-
 func PKCS7EncryptSM2(content []byte, recipients []*Certificate, mode int) ([]byte, error) {
 	var eci *encryptedContentInfo
 	var key []byte
@@ -1061,7 +1060,6 @@ func PKCS7EncryptSM2(content []byte, recipients []*Certificate, mode int) ([]byt
 
 	return asn1.Marshal(wrapper)
 }
-
 
 func encryptKeySM2(key []byte, recipient *Certificate, mode int) ([]byte, error) {
 	if pub := recipient.PublicKey.(*ecdsa.PublicKey); pub != nil {
