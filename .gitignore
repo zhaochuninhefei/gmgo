@@ -18,3 +18,4 @@ bin-release/
 # information for Eclipse / Flash Builder.
 .vscode/settings.json
 bk_API使用说明.md
+bk_CHANGELOG.md
