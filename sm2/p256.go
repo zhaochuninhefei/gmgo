@@ -66,7 +66,7 @@ const (
 func initP256Sm2() {
 	sm2P256.CurveParams = &elliptic.CurveParams{Name: "SM2-P-256"} // sm2
 	A, _ := new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC", 16)
-	//SM2椭	椭 圆 曲 线 公 钥 密 码 算 法 推 荐 曲 线 参 数
+	//SM2椭圆曲线公钥密码算法推荐曲线参数
 	sm2P256.P, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF", 16)
 	sm2P256.N, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123", 16)
 	sm2P256.B, _ = new(big.Int).SetString("28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93", 16)
@@ -500,10 +500,10 @@ func sm2P256PointAdd(x1, y1, z1, x2, y2, z2, x3, y3, z3 *sm2P256FieldElement) {
 // (x3, y3, z3) = (x1, y1, z1)- (x2, y2, z2)
 func sm2P256PointSub(x1, y1, z1, x2, y2, z2, x3, y3, z3 *sm2P256FieldElement) {
 	var u1, u2, z22, z12, z23, z13, s1, s2, h, h2, r, r2, tm sm2P256FieldElement
-	y:=sm2P256ToBig(y2)
-	zero:=new(big.Int).SetInt64(0)
-	y.Sub(zero,y)
-	sm2P256FromBig(y2,y)
+	y := sm2P256ToBig(y2)
+	zero := new(big.Int).SetInt64(0)
+	y.Sub(zero, y)
+	sm2P256FromBig(y2, y)
 
 	if sm2P256ToBig(z1).Sign() == 0 {
 		sm2P256Dup(x3, x2)
@@ -814,7 +814,6 @@ func sm2P256ReduceCarry(a *sm2P256FieldElement, carry uint32) {
 	a[7] += sm2P256Carry[carry*9+7]
 }
 
-
 func sm2P256ReduceDegree(a *sm2P256FieldElement, b *sm2P256LargeFieldElement) {
 	var tmp [18]uint32
 	var carry, x, xMask uint32
@@ -1064,7 +1063,7 @@ func WNafReversed(wnaf []int8) []int8 {
 	return wnafRev
 }
 func sm2GenrateWNaf(b []byte) []int8 {
-	n:= new(big.Int).SetBytes(b)
+	n := new(big.Int).SetBytes(b)
 	var k *big.Int
 	if n.Cmp(sm2P256.N) >= 0 {
 		n.Mod(n, sm2P256.N)
@@ -1113,8 +1112,8 @@ func boolToUint(b bool) uint {
 	}
 	return 0
 }
-func abs(a int8) uint32{
-	if a<0 {
+func abs(a int8) uint32 {
+	if a < 0 {
 		return uint32(-a)
 	}
 	return uint32(a)
@@ -1146,13 +1145,13 @@ func sm2P256ScalarMult(xOut, yOut, zOut, x, y *sm2P256FieldElement, scalar []int
 	}
 	nIsInfinityMask = ^uint32(0)
 	var zeroes int16
-	for i := 0; i<len(scalar); i++ {
-		if scalar[i] ==0{
+	for i := 0; i < len(scalar); i++ {
+		if scalar[i] == 0 {
 			zeroes++
 			continue
 		}
-		if(zeroes>0){
-			for  ;zeroes>0;zeroes-- {
+		if zeroes > 0 {
+			for ; zeroes > 0; zeroes-- {
 				sm2P256PointDouble(xOut, yOut, zOut, xOut, yOut, zOut)
 			}
 		}
@@ -1174,8 +1173,8 @@ func sm2P256ScalarMult(xOut, yOut, zOut, x, y *sm2P256FieldElement, scalar []int
 		sm2P256CopyConditional(zOut, &tz, mask)
 		nIsInfinityMask &^= pIsNoninfiniteMask
 	}
-	if(zeroes>0){
-		for  ;zeroes>0;zeroes-- {
+	if zeroes > 0 {
+		for ; zeroes > 0; zeroes-- {
 			sm2P256PointDouble(xOut, yOut, zOut, xOut, yOut, zOut)
 		}
 	}

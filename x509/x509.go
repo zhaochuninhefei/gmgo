@@ -45,7 +45,6 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
-
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
@@ -251,8 +250,8 @@ const (
 	SHA3_512                   // import golang.org/x/crypto/sha3
 	SHA512_224                 // import crypto/sha512
 	SHA512_256                 // import crypto/sha512
-	SM3
-	maxHash
+	SM3                        // 16
+	maxHash                    // 17
 )
 
 var digestSizes = []uint8{
