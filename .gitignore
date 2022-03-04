@@ -17,3 +17,4 @@ bin-release/
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
 .vscode/settings.json
+bk_API使用说明.md
