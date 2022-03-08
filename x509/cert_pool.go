@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
-	"sync"
 )
 
 // Possible certificate files; stop after finding one.
@@ -55,20 +54,20 @@ var certDirectories = []string{
 	"/system/etc/security/cacerts", // Android
 }
 
-var (
-	once           sync.Once
-	systemRoots    *CertPool
-	systemRootsErr error
-)
+// var (
+// 	once           sync.Once
+// 	systemRoots    *CertPool
+// 	systemRootsErr error
+// )
 
-func systemRootsPool() *CertPool {
-	once.Do(initSystemRoots)
-	return systemRoots
-}
+// func systemRootsPool() *CertPool {
+// 	once.Do(initSystemRoots)
+// 	return systemRoots
+// }
 
-func initSystemRoots() {
-	systemRoots, systemRootsErr = loadSystemRoots()
-}
+// func initSystemRoots() {
+// 	systemRoots, systemRootsErr = loadSystemRoots()
+// }
 
 func (c *Certificate) systemVerify(opts *VerifyOptions) (chains [][]*Certificate, err error) {
 	return nil, nil

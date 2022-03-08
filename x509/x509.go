@@ -88,6 +88,19 @@ func ParsePKIXPublicKey(derBytes []byte) (pub interface{}, err error) {
 
 func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorithm pkix.AlgorithmIdentifier, err error) {
 	switch pub := pub.(type) {
+	case *sm2.PublicKey:
+		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		oid, ok := oidFromNamedCurve(pub.Curve)
+		if !ok {
+			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported SM2 curve")
+		}
+		publicKeyAlgorithm.Algorithm = oidPublicKeySM2
+		var paramBytes []byte
+		paramBytes, err = asn1.Marshal(oid)
+		if err != nil {
+			return
+		}
+		publicKeyAlgorithm.Parameters.FullBytes = paramBytes
 	case *rsa.PublicKey:
 		publicKeyBytes, err = asn1.Marshal(rsaPublicKey{
 			N: pub.N,
@@ -109,19 +122,6 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported elliptic curve")
 		}
 		publicKeyAlgorithm.Algorithm = oidPublicKeyECDSA
-		var paramBytes []byte
-		paramBytes, err = asn1.Marshal(oid)
-		if err != nil {
-			return
-		}
-		publicKeyAlgorithm.Parameters.FullBytes = paramBytes
-	case *sm2.PublicKey:
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
-		oid, ok := oidFromNamedCurve(pub.Curve)
-		if !ok {
-			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported SM2 curve")
-		}
-		publicKeyAlgorithm.Algorithm = oidPublicKeySM2
 		var paramBytes []byte
 		paramBytes, err = asn1.Marshal(oid)
 		if err != nil {
@@ -206,8 +206,7 @@ type authKeyId struct {
 	Id []byte `asn1:"optional,tag:0"`
 }
 
-type SignatureAlgorithm int
-
+// 重写Hash相关定义，用来代替`crypto.Hash`
 type Hash uint
 
 func init() {
@@ -312,6 +311,8 @@ func RegisterHash(h Hash, f func() hash.Hash) {
 	hashes[h] = f
 }
 
+type SignatureAlgorithm int
+
 const (
 	UnknownSignatureAlgorithm SignatureAlgorithm = iota
 	MD2WithRSA
@@ -344,31 +345,36 @@ func (algo SignatureAlgorithm) isRSAPSS() bool {
 	}
 }
 
-var algoName = [...]string{
-	MD2WithRSA:  "MD2-RSA",
-	MD5WithRSA:  "MD5-RSA",
-	SHA1WithRSA: "SHA1-RSA",
-	//	SM3WithRSA:       "SM3-RSA", reserve
-	SHA256WithRSA:    "SHA256-RSA",
-	SHA384WithRSA:    "SHA384-RSA",
-	SHA512WithRSA:    "SHA512-RSA",
-	SHA256WithRSAPSS: "SHA256-RSAPSS",
-	SHA384WithRSAPSS: "SHA384-RSAPSS",
-	SHA512WithRSAPSS: "SHA512-RSAPSS",
-	DSAWithSHA1:      "DSA-SHA1",
-	DSAWithSHA256:    "DSA-SHA256",
-	ECDSAWithSHA1:    "ECDSA-SHA1",
-	ECDSAWithSHA256:  "ECDSA-SHA256",
-	ECDSAWithSHA384:  "ECDSA-SHA384",
-	ECDSAWithSHA512:  "ECDSA-SHA512",
-	SM2WithSM3:       "SM2-SM3",
-	SM2WithSHA1:      "SM2-SHA1",
-	SM2WithSHA256:    "SM2-SHA256",
-}
+// var algoName = [...]string{
+// 	MD2WithRSA:  "MD2-RSA",
+// 	MD5WithRSA:  "MD5-RSA",
+// 	SHA1WithRSA: "SHA1-RSA",
+// 	//	SM3WithRSA:       "SM3-RSA", reserve
+// 	SHA256WithRSA:    "SHA256-RSA",
+// 	SHA384WithRSA:    "SHA384-RSA",
+// 	SHA512WithRSA:    "SHA512-RSA",
+// 	SHA256WithRSAPSS: "SHA256-RSAPSS",
+// 	SHA384WithRSAPSS: "SHA384-RSAPSS",
+// 	SHA512WithRSAPSS: "SHA512-RSAPSS",
+// 	DSAWithSHA1:      "DSA-SHA1",
+// 	DSAWithSHA256:    "DSA-SHA256",
+// 	ECDSAWithSHA1:    "ECDSA-SHA1",
+// 	ECDSAWithSHA256:  "ECDSA-SHA256",
+// 	ECDSAWithSHA384:  "ECDSA-SHA384",
+// 	ECDSAWithSHA512:  "ECDSA-SHA512",
+// 	SM2WithSM3:       "SM2-SM3",
+// 	SM2WithSHA1:      "SM2-SHA1",
+// 	SM2WithSHA256:    "SM2-SHA256",
+// }
 
 func (algo SignatureAlgorithm) String() string {
-	if 0 < algo && int(algo) < len(algoName) {
-		return algoName[algo]
+	// if 0 < algo && int(algo) < len(algoName) {
+	// 	return algoName[algo]
+	// }
+	for _, details := range signatureAlgorithmDetails {
+		if details.algo == algo {
+			return details.name
+		}
 	}
 	return strconv.Itoa(int(algo))
 }
@@ -482,31 +488,31 @@ var (
 
 var signatureAlgorithmDetails = []struct {
 	algo       SignatureAlgorithm
+	name       string
 	oid        asn1.ObjectIdentifier
 	pubKeyAlgo PublicKeyAlgorithm
 	hash       Hash
 }{
-	{MD2WithRSA, oidSignatureMD2WithRSA, RSA, Hash(0) /* no value for MD2 */},
-	{MD5WithRSA, oidSignatureMD5WithRSA, RSA, MD5},
-	{SHA1WithRSA, oidSignatureSHA1WithRSA, RSA, SHA1},
-	{SHA1WithRSA, oidISOSignatureSHA1WithRSA, RSA, SHA1},
-	{SHA256WithRSA, oidSignatureSHA256WithRSA, RSA, SHA256},
-	{SHA384WithRSA, oidSignatureSHA384WithRSA, RSA, SHA384},
-	{SHA512WithRSA, oidSignatureSHA512WithRSA, RSA, SHA512},
-	{SHA256WithRSAPSS, oidSignatureRSAPSS, RSA, SHA256},
-	{SHA384WithRSAPSS, oidSignatureRSAPSS, RSA, SHA384},
-	{SHA512WithRSAPSS, oidSignatureRSAPSS, RSA, SHA512},
-	{DSAWithSHA1, oidSignatureDSAWithSHA1, DSA, SHA1},
-	{DSAWithSHA256, oidSignatureDSAWithSHA256, DSA, SHA256},
-	{ECDSAWithSHA1, oidSignatureECDSAWithSHA1, ECDSA, SHA1},
-	{ECDSAWithSHA256, oidSignatureECDSAWithSHA256, ECDSA, SHA256},
-	{ECDSAWithSHA384, oidSignatureECDSAWithSHA384, ECDSA, SHA384},
-	{ECDSAWithSHA512, oidSignatureECDSAWithSHA512, ECDSA, SHA512},
+	{MD2WithRSA, "MD2-RSA", oidSignatureMD2WithRSA, RSA, Hash(0) /* no value for MD2 */},
+	{MD5WithRSA, "MD5-RSA", oidSignatureMD5WithRSA, RSA, MD5},
+	{SHA1WithRSA, "SHA1-RSA", oidSignatureSHA1WithRSA, RSA, SHA1},
+	{SHA1WithRSA, "SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, SHA1},
+	{SHA256WithRSA, "SHA256-RSA", oidSignatureSHA256WithRSA, RSA, SHA256},
+	{SHA384WithRSA, "SHA384-RSA", oidSignatureSHA384WithRSA, RSA, SHA384},
+	{SHA512WithRSA, "SHA512-RSA", oidSignatureSHA512WithRSA, RSA, SHA512},
+	{SHA256WithRSAPSS, "SHA256-RSAPSS", oidSignatureRSAPSS, RSA, SHA256},
+	{SHA384WithRSAPSS, "SHA384-RSAPSS", oidSignatureRSAPSS, RSA, SHA384},
+	{SHA512WithRSAPSS, "SHA512-RSAPSS", oidSignatureRSAPSS, RSA, SHA512},
+	{DSAWithSHA1, "DSA-SHA1", oidSignatureDSAWithSHA1, DSA, SHA1},
+	{DSAWithSHA256, "DSA-SHA256", oidSignatureDSAWithSHA256, DSA, SHA256},
+	{ECDSAWithSHA1, "ECDSA-SHA1", oidSignatureECDSAWithSHA1, ECDSA, SHA1},
+	{ECDSAWithSHA256, "ECDSA-SHA256", oidSignatureECDSAWithSHA256, ECDSA, SHA256},
+	{ECDSAWithSHA384, "ECDSA-SHA384", oidSignatureECDSAWithSHA384, ECDSA, SHA384},
+	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, SHA512},
 	// TODO 添加SM2相关签名算法定义
-	{SM2WithSM3, oidSignatureSM2WithSM3, SM2, SM3},
-	{SM2WithSHA1, oidSignatureSM2WithSHA1, SM2, SHA1},
-	{SM2WithSHA256, oidSignatureSM2WithSHA256, SM2, SHA256},
-	//	{SM3WithRSA, oidSignatureSM3WithRSA, RSA, SM3},
+	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, SM2, SM3},
+	{SM2WithSHA1, "SM2-SHA1", oidSignatureSM2WithSHA1, SM2, SHA1},
+	{SM2WithSHA256, "SM2-SHA256", oidSignatureSM2WithSHA256, SM2, SHA256},
 }
 
 // pssParameters reflects the parameters in an AlgorithmIdentifier that
@@ -570,8 +576,10 @@ func rsaPSSParameters(hashFunc Hash) asn1.RawValue {
 	return asn1.RawValue{FullBytes: serialized}
 }
 
+// 根据pkix.AlgorithmIdentifier获取签名算法
 func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm {
 	if !ai.Algorithm.Equal(oidSignatureRSAPSS) {
+		// 国密签名算法走该分支
 		for _, details := range signatureAlgorithmDetails {
 			if ai.Algorithm.Equal(details.oid) {
 				return details.algo
@@ -643,6 +651,7 @@ var (
 	oidPublicKeySM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
 )
 
+// 根据oid获取对应的公钥算法
 func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm {
 	switch {
 	case oid.Equal(oidPublicKeySM2):
@@ -678,10 +687,11 @@ var (
 	oidNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
 	oidNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
 	oidNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
-	// SM2算法标识 参考`GMT 0006-2012 密码应用标识规范.pdf`的`附录A 商用密码领域中的相关oID定义`
+	// SM2椭圆曲线参数标识 没有查到，用SM2算法标识代替
 	oidNamedCurveP256SM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
 )
 
+// 根据oid获取对应的椭圆曲线参数
 func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
 	switch {
 	case oid.Equal(oidNamedCurveP256SM2):
@@ -698,6 +708,7 @@ func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
 	return nil
 }
 
+// 根据椭圆曲线参数获取对应的oid
 func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 	switch curve {
 	case elliptic.P224():
@@ -912,7 +923,14 @@ func (ConstraintViolationError) Error() string {
 }
 
 func (c *Certificate) Equal(other *Certificate) bool {
+	if c == nil || other == nil {
+		return c == other
+	}
 	return bytes.Equal(c.Raw, other.Raw)
+}
+
+func (c *Certificate) hasSANExtension() bool {
+	return oidInExtensions(oidExtensionSubjectAltName, c.Extensions)
 }
 
 // Entrust have a broken root certificate (CN=Entrust.net Certification
@@ -996,6 +1014,23 @@ func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
 // c's public key.
 func (c *Certificate) CheckSignature(algo SignatureAlgorithm, signed, signature []byte) error {
 	return checkSignature(algo, signed, signature, c.PublicKey)
+}
+
+func (c *Certificate) hasNameConstraints() bool {
+	return oidInExtensions(oidExtensionNameConstraints, c.Extensions)
+}
+
+func (c *Certificate) getSANExtension() []byte {
+	for _, e := range c.Extensions {
+		if e.Id.Equal(oidExtensionSubjectAltName) {
+			return e.Value
+		}
+	}
+	return nil
+}
+
+func signaturePublicKeyAlgoMismatchError(expectedPubKeyAlgo PublicKeyAlgorithm, pubKey interface{}) error {
+	return fmt.Errorf("x509: signature algorithm specifies an %s public key, but have public key of type %T", expectedPubKeyAlgo.String(), pubKey)
 }
 
 // CheckSignature verifies that signature is a valid signature over signed from
@@ -1598,7 +1633,7 @@ func ParseCertificate(asn1Data []byte) (*Certificate, error) {
 	return parseCertificate(&cert)
 }
 
-//优化性能获取cert公钥类型
+// 从asn1的字节数组中获取公钥算法
 func GetPubKeyTypeFromCert(asn1Data []byte) (PublicKeyAlgorithm, error) {
 	var cert certificate
 	rest, err := asn1.Unmarshal(asn1Data, &cert)
@@ -2209,12 +2244,12 @@ func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, 
 
 	asn1Issuer, err := subjectBytes(parent)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	asn1Subject, err := subjectBytes(template)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
@@ -2267,14 +2302,19 @@ func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, 
 	var signature []byte
 	signature, err = key.Sign(rand, digest, signerOpts)
 	if err != nil {
-		return
+		return nil, err
 	}
-	return asn1.Marshal(certificate{
+
+	signedCert, err := asn1.Marshal(certificate{
 		nil,
 		c,
 		signatureAlgorithm,
 		asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
 	})
+	if err != nil {
+		return nil, err
+	}
+	return signedCert, nil
 }
 
 // pemCRLPrefix is the magic string that indicates that we have a PEM encoded
@@ -2358,6 +2398,8 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	}
 
 	digest := tbsCertListContents
+	// TODO 这里更严谨的逻辑是判断 signatureAlgorithm.Algorithm 是否等于 oidSignatureSM2WithSM3
+	// 但直接用 hashFunc 是否是 SM3 的判断目前也足够了，因为目前只有SM2WithSM3的签名算法使用了SM3
 	switch hashFunc {
 	case SM3:
 		break
