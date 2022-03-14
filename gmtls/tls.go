@@ -17,6 +17,7 @@ limitations under the License.
 package gmtls
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
@@ -104,14 +105,18 @@ func (timeoutError) Temporary() bool { return true }
 // DialWithDialer interprets a nil configuration as equivalent to the zero
 // configuration; see the documentation of Config for the defaults.
 func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*Conn, error) {
+	return dial(context.Background(), dialer, network, addr, config)
+}
+
+func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, config *Config) (*Conn, error) {
 	// We want the Timeout and Deadline values from dialer to cover the
 	// whole process: TCP connection and TLS handshake. This means that we
 	// also need to start our own timers now.
-	timeout := dialer.Timeout
+	timeout := netDialer.Timeout
 
-	if !dialer.Deadline.IsZero() {
-		//		deadlineTimeout := time.Until(dialer.Deadline)
-		deadlineTimeout := dialer.Deadline.Sub(time.Now()) // support go before 1.8
+	if !netDialer.Deadline.IsZero() {
+		deadlineTimeout := time.Until(netDialer.Deadline)
+		// deadlineTimeout := netDialer.Deadline.Sub(time.Now()) // support go before 1.8
 		if timeout == 0 || deadlineTimeout < timeout {
 			timeout = deadlineTimeout
 		}
@@ -126,7 +131,7 @@ func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*
 		})
 	}
 
-	rawConn, err := dialer.Dial(network, addr)
+	rawConn, err := netDialer.Dial(network, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +182,57 @@ func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*
 // for the defaults.
 func Dial(network, addr string, config *Config) (*Conn, error) {
 	return DialWithDialer(new(net.Dialer), network, addr, config)
+}
+
+// Dialer dials TLS connections given a configuration and a Dialer for the
+// underlying connection.
+type Dialer struct {
+	// NetDialer is the optional dialer to use for the TLS connections'
+	// underlying TCP connections.
+	// A nil NetDialer is equivalent to the net.Dialer zero value.
+	NetDialer *net.Dialer
+
+	// Config is the TLS configuration to use for new connections.
+	// A nil configuration is equivalent to the zero
+	// configuration; see the documentation of Config for the
+	// defaults.
+	Config *Config
+}
+
+// Dial connects to the given network address and initiates a TLS
+// handshake, returning the resulting TLS connection.
+//
+// The returned Conn, if any, will always be of type *Conn.
+//
+// Dial uses context.Background internally; to specify the context,
+// use DialContext.
+func (d *Dialer) Dial(network, addr string) (net.Conn, error) {
+	return d.DialContext(context.Background(), network, addr)
+}
+
+func (d *Dialer) netDialer() *net.Dialer {
+	if d.NetDialer != nil {
+		return d.NetDialer
+	}
+	return new(net.Dialer)
+}
+
+// DialContext connects to the given network address and initiates a TLS
+// handshake, returning the resulting TLS connection.
+//
+// The provided Context must be non-nil. If the context expires before
+// the connection is complete, an error is returned. Once successfully
+// connected, any expiration of the context will not affect the
+// connection.
+//
+// The returned Conn, if any, will always be of type *Conn.
+func (d *Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	c, err := dial(ctx, d.netDialer(), network, addr, d.Config)
+	if err != nil {
+		// Don't return c (a typed nil) in an interface.
+		return nil, err
+	}
+	return c, nil
 }
 
 // LoadX509KeyPair reads and parses a public/private key pair from a pair

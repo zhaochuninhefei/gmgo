@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 // pickSignatureAlgorithm selects a signature algorithm that is compatible with
@@ -33,7 +34,7 @@ import (
 //
 // The returned SignatureScheme codepoint is only meaningful for TLS 1.2,
 // previous TLS versions have a fixed hash function.
-func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []SignatureScheme, tlsVersion uint16) (sigAlg SignatureScheme, sigType uint8, hashFunc crypto.Hash, err error) {
+func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []SignatureScheme, tlsVersion uint16) (sigAlg SignatureScheme, sigType uint8, hashFunc x509.Hash, err error) {
 	if tlsVersion < VersionTLS12 || len(peerSigAlgs) == 0 {
 		// For TLS 1.1 and before, the signature algorithm could not be
 		// negotiated and the hash is fixed based on the signature type.
@@ -43,14 +44,15 @@ func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []S
 		switch pubkey.(type) {
 		case *rsa.PublicKey:
 			if tlsVersion < VersionTLS12 {
-				return 0, signaturePKCS1v15, crypto.MD5SHA1, nil
+				return 0, signaturePKCS1v15, x509.MD5SHA1, nil
 			} else {
-				return PKCS1WithSHA1, signaturePKCS1v15, crypto.SHA1, nil
+				return PKCS1WithSHA1, signaturePKCS1v15, x509.SHA1, nil
 			}
 		case *ecdsa.PublicKey:
-			return ECDSAWithSHA1, signatureECDSA, crypto.SHA1, nil
+			return ECDSAWithSHA1, signatureECDSA, x509.SHA1, nil
 		case *sm2.PublicKey:
-			return SM2WITHSM3, signatureSM2, crypto.SHA1, nil
+			// TODO SHA1 是否应该修改为 SM3
+			return SM2WITHSM3, signatureSM2, x509.SM3, nil
 		default:
 			return 0, 0, 0, fmt.Errorf("tls: unsupported public key: %T", pubkey)
 		}
@@ -86,7 +88,7 @@ func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []S
 
 // verifyHandshakeSignature verifies a signature against pre-hashed handshake
 // contents.
-func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc crypto.Hash, digest, sig []byte) error {
+func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc x509.Hash, digest, sig []byte) error {
 	switch sigType {
 	case signatureECDSA:
 		pubKey, ok := pubkey.(*ecdsa.PublicKey)
@@ -117,7 +119,7 @@ func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc c
 		if !ok {
 			return errors.New("tls: RSA signing requires a RSA public key")
 		}
-		if err := rsa.VerifyPKCS1v15(pubKey, hashFunc, digest, sig); err != nil {
+		if err := rsa.VerifyPKCS1v15(pubKey, hashFunc.HashFunc(), digest, sig); err != nil {
 			return err
 		}
 	case signatureRSAPSS:
@@ -126,7 +128,7 @@ func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc c
 			return errors.New("tls: RSA signing requires a RSA public key")
 		}
 		signOpts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash}
-		if err := rsa.VerifyPSS(pubKey, hashFunc, digest, sig, signOpts); err != nil {
+		if err := rsa.VerifyPSS(pubKey, hashFunc.HashFunc(), digest, sig, signOpts); err != nil {
 			return err
 		}
 	case signatureSM2:

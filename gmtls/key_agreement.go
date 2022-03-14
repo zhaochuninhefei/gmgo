@@ -123,7 +123,7 @@ func md5SHA1Hash(slices [][]byte) []byte {
 // hashForServerKeyExchange hashes the given slices and returns their digest
 // using the given hash function (for >= TLS 1.2) or using a default based on
 // the sigType (for earlier TLS versions).
-func hashForServerKeyExchange(sigType uint8, hashFunc crypto.Hash, version uint16, slices ...[]byte) ([]byte, error) {
+func hashForServerKeyExchange(sigType uint8, hashFunc x509.Hash, version uint16, slices ...[]byte) ([]byte, error) {
 	if version >= VersionTLS12 {
 		h := hashFunc.New()
 		for _, slice := range slices {
@@ -242,7 +242,7 @@ NextCandidate:
 
 	signOpts := crypto.SignerOpts(hashFunc)
 	if sigType == signatureRSAPSS {
-		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: hashFunc}
+		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: hashFunc.HashFunc()}
 	}
 	sig, err := priv.Sign(config.rand(), digest, signOpts)
 	if err != nil {

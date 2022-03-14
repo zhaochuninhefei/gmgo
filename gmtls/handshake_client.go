@@ -529,7 +529,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		}
 		signOpts := crypto.SignerOpts(hashFunc)
 		if sigType == signatureRSAPSS {
-			signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: hashFunc}
+			signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: hashFunc.HashFunc()}
 		}
 		certVerify.signature, err = key.Sign(c.config.rand(), digest, signOpts)
 		if err != nil {

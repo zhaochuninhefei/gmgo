@@ -461,7 +461,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 			for i := range m.supportedSignatureAlgorithms {
 				m.supportedSignatureAlgorithms[i] = SignatureScheme(d[0])<<8 | SignatureScheme(d[1])
 				d = d[2:]
-			
+
 			}
 		case extensionRenegotiationInfo:
 			if length == 0 {
@@ -1205,9 +1205,9 @@ type certificateRequestMsg struct {
 	// 1.2.
 	hasSignatureAndHash bool
 
-	certificateTypes       []byte
+	certificateTypes             []byte
 	supportedSignatureAlgorithms []SignatureScheme
-	certificateAuthorities [][]byte
+	certificateAuthorities       [][]byte
 }
 
 func (m *certificateRequestMsg) equal(i interface{}) bool {
@@ -1236,7 +1236,7 @@ func (m *certificateRequestMsg) marshal() (x []byte) {
 	length += casLength
 
 	if m.hasSignatureAndHash {
-		length += 2 +2*len(m.supportedSignatureAlgorithms)
+		length += 2 + 2*len(m.supportedSignatureAlgorithms)
 	}
 
 	x = make([]byte, 4+length)
@@ -1356,7 +1356,7 @@ func (m *certificateRequestMsg) unmarshal(data []byte) bool {
 type certificateVerifyMsg struct {
 	raw                 []byte
 	hasSignatureAndHash bool
-	signatureAlgorithm    SignatureScheme
+	signatureAlgorithm  SignatureScheme
 	signature           []byte
 }
 
@@ -1553,7 +1553,7 @@ func eqByteSlices(x, y [][]byte) bool {
 	return true
 }
 
-func  eqSignatureAlgorithms(x, y []SignatureScheme) bool  {
+func eqSignatureAlgorithms(x, y []SignatureScheme) bool {
 	if len(x) != len(y) {
 		return false
 	}

@@ -27,6 +27,7 @@ import (
 	"hash"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 // Split a premaster secret in two as specified in RFC 4346, section 5.
@@ -204,20 +205,23 @@ func keysFromMasterSecret(version uint16, suite *cipherSuite, masterSecret, clie
 
 // lookupTLSHash looks up the corresponding crypto.Hash for a given
 // TLS hash identifier.
-func lookupTLSHash(signatureAlgorithm SignatureScheme) (crypto.Hash, error) {
+func lookupTLSHash(signatureAlgorithm SignatureScheme) (x509.Hash, error) {
 	switch signatureAlgorithm {
 	case PKCS1WithSHA1, ECDSAWithSHA1:
-		return crypto.SHA1, nil
+		return x509.SHA1, nil
 	case PKCS1WithSHA256, PSSWithSHA256, ECDSAWithP256AndSHA256:
-		return crypto.SHA256, nil
+		return x509.SHA256, nil
 	case PKCS1WithSHA384, PSSWithSHA384, ECDSAWithP384AndSHA384:
-		return crypto.SHA384, nil
+		return x509.SHA384, nil
 	case PKCS1WithSHA512, PSSWithSHA512, ECDSAWithP521AndSHA512:
-		return crypto.SHA512, nil
+		return x509.SHA512, nil
+	case SM2WITHSM3:
+		return x509.SM3, nil
 	default:
 		return 0, fmt.Errorf("tls: unsupported signature algorithm: %#04x", signatureAlgorithm)
 	}
 }
+
 func newFinishedHash(version uint16, cipherSuite *cipherSuite) finishedHash {
 	var buffer []byte
 	if version == VersionSSL30 || version >= VersionTLS12 {
@@ -343,7 +347,7 @@ func (h finishedHash) serverSum(masterSecret []byte) []byte {
 
 // hashForClientCertificate returns a digest, hash function, and TLS 1.2 hash
 // id suitable for signing by a TLS client certificate.
-func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg crypto.Hash, masterSecret []byte) ([]byte, error) {
+func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg x509.Hash, masterSecret []byte) ([]byte, error) {
 	if (h.version == VersionSSL30 || h.version >= VersionTLS12) && h.buffer == nil {
 		panic("a handshake hash for a client-certificate was requested after discarding the handshake buffer")
 	}

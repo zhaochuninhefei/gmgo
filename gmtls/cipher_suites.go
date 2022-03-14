@@ -401,10 +401,10 @@ const (
 	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256   uint16 = 0xcca8
 	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 uint16 = 0xcca9
 
-	// TLS 1.3 cipher suites.
-	TLS_AES_128_GCM_SHA256       uint16 = 0x1301
-	TLS_AES_256_GCM_SHA384       uint16 = 0x1302
-	TLS_CHACHA20_POLY1305_SHA256 uint16 = 0x1303
+	// // TLS 1.3 cipher suites.
+	// TLS_AES_128_GCM_SHA256       uint16 = 0x1301
+	// TLS_AES_256_GCM_SHA384       uint16 = 0x1302
+	// TLS_CHACHA20_POLY1305_SHA256 uint16 = 0x1303
 
 	// TLS_FALLBACK_SCSV isn't a standard cipher suite but an indicator
 	// that the client is doing version fallback. See
@@ -431,7 +431,7 @@ type CipherSuite17 struct {
 var (
 	supportedUpToTLS12 = []uint16{VersionTLS10, VersionTLS11, VersionTLS12}
 	supportedOnlyTLS12 = []uint16{VersionTLS12}
-	supportedOnlyTLS13 = []uint16{VersionTLS13}
+	// supportedOnlyTLS13 = []uint16{VersionTLS13}
 )
 
 // CipherSuites returns a list of cipher suites currently implemented by this
@@ -448,9 +448,9 @@ func CipherSuites() []*CipherSuite17 {
 		{TLS_RSA_WITH_AES_128_GCM_SHA256, "TLS_RSA_WITH_AES_128_GCM_SHA256", supportedOnlyTLS12, false},
 		{TLS_RSA_WITH_AES_256_GCM_SHA384, "TLS_RSA_WITH_AES_256_GCM_SHA384", supportedOnlyTLS12, false},
 
-		{TLS_AES_128_GCM_SHA256, "TLS_AES_128_GCM_SHA256", supportedOnlyTLS13, false},
-		{TLS_AES_256_GCM_SHA384, "TLS_AES_256_GCM_SHA384", supportedOnlyTLS13, false},
-		{TLS_CHACHA20_POLY1305_SHA256, "TLS_CHACHA20_POLY1305_SHA256", supportedOnlyTLS13, false},
+		// {TLS_AES_128_GCM_SHA256, "TLS_AES_128_GCM_SHA256", supportedOnlyTLS13, false},
+		// {TLS_AES_256_GCM_SHA384, "TLS_AES_256_GCM_SHA384", supportedOnlyTLS13, false},
+		// {TLS_CHACHA20_POLY1305_SHA256, "TLS_CHACHA20_POLY1305_SHA256", supportedOnlyTLS13, false},
 
 		{TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", supportedUpToTLS12, false},
 		{TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", supportedUpToTLS12, false},
