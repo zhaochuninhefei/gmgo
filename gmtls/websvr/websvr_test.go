@@ -17,7 +17,7 @@ import (
 const (
 	// rsaCertPath = "certs/rsa_sign.cer"
 	// rsaKeyPath  = "certs/rsa_sign_key.pem"
-	rsaCacertPath = "certs/rsa_CA.cer"
+	// rsaCacertPath = "certs/rsa_CA.cer"
 	// sm2SignCertPath = "certs/sm2_sign_cert.cer"
 	// sm2SignKeyPath  = "certs/sm2_sign_key.pem"
 	// sm2EncCertPath  = "certs/sm2_enc_cert.cer"
@@ -29,7 +29,7 @@ const (
 
 func ServerRun() {
 	//config, err := loadRsaConfig()
-	//config, err := loadSM2Config()
+	// config, err := loadSM2Config()
 	config, err := loadAutoSwitchConfig()
 	//config, err:=loadAutoSwitchConfigClientAuth()
 	if err != nil {
@@ -91,7 +91,7 @@ func gmClientRun() {
 		log.Fatal(err)
 	}
 	certPool.AppendCertsFromPEM(cacert)
-	cert, err := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+	cert, _ := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
 
 	config := &gmtls.Config{
 		GMSupport:    &gmtls.GMSupport{},
@@ -132,7 +132,7 @@ func gmGCMClientRun() {
 		log.Fatal(err)
 	}
 	certPool.AppendCertsFromPEM(cacert)
-	cert, err := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+	cert, _ := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
 
 	config := &gmtls.Config{
 		GMSupport:    &gmtls.GMSupport{},
@@ -176,5 +176,5 @@ func Test_tls(t *testing.T) {
 	<-end
 	go gmGCMClientRun()
 	<-end
-
+	fmt.Println("Test_tls over.")
 }

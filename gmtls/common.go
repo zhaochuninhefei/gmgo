@@ -151,6 +151,7 @@ const (
 // the code advertises as supported in a TLS 1.2 ClientHello and in a TLS 1.2
 // CertificateRequest. The two fields are merged to match with TLS 1.3.
 // Note that in TLS 1.2, the ECDSA algorithms are not constrained to P-256, etc.
+// TODO 是否需要增加SM2WithSM3?
 var supportedSignatureAlgorithms = []SignatureScheme{
 	PKCS1WithSHA256,
 	ECDSAWithP256AndSHA256,

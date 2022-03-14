@@ -200,8 +200,8 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 				c.sendAlert(alertBadCertificate)
 				return errors.New("tls: failed to parse certificate from server: " + err.Error())
 			}
-
-			pubKey, _ := cert.PublicKey.(*ecdsa.PublicKey)
+			// TODO ecdsa -> sm2
+			pubKey, _ := cert.PublicKey.(*sm2.PublicKey)
 			if pubKey.Curve != sm2.P256Sm2() {
 				c.sendAlert(alertUnsupportedCertificate)
 				return fmt.Errorf("tls: pubkey type of cert is error, expect sm2.publicKey")

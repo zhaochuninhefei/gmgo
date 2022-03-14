@@ -1073,7 +1073,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 			return errors.New("x509: sm2 signature contained zero or negative values")
 		}
 		//add liuhy signed ? = fnHash() tjfoc
-		if !sm2.Verify(pub, signed, sm2Sig.R, sm2Sig.S) {
+		if !sm2.Sm2Verify(pub, signed, nil, sm2Sig.R, sm2Sig.S) {
 			return errors.New("x509: sm2 verification failure")
 		}
 		return
