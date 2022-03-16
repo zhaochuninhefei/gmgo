@@ -51,14 +51,17 @@ func loadSM2Config() (*gmtls.Config, error) {
 
 // 切换GMSSL/TSL
 func loadAutoSwitchConfig() (*gmtls.Config, error) {
+	// 读取rsa证书与私钥，作为普通tls场景的服务器证书用
 	rsaKeypair, err := gmtls.LoadX509KeyPair(rsaCertPath, rsaKeyPath)
 	if err != nil {
 		return nil, err
 	}
+	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
 	sigCert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
 	if err != nil {
 		return nil, err
 	}
+	// 读取sm2Enc证书与私钥，作为国密tls场景的密钥交换证书用
 	encCert, err := gmtls.LoadX509KeyPair(sm2EncCertPath, sm2EncKeyPath)
 	if err != nil {
 		return nil, err

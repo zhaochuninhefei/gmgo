@@ -8,6 +8,7 @@ package gmtls
 //
 // return: 最基础的Config对象
 func NewBasicAutoSwitchConfig(sm2SigCert, sm2EncCert, stdCert *Certificate) (*Config, error) {
+	// 根据ClientHelloInfo中支持的协议，返回服务端证书
 	fncGetSignCertKeypair := func(info *ClientHelloInfo) (*Certificate, error) {
 		gmFlag := false
 		// 检查支持协议中是否包含GMSSL
@@ -25,6 +26,7 @@ func NewBasicAutoSwitchConfig(sm2SigCert, sm2EncCert, stdCert *Certificate) (*Co
 		}
 	}
 
+	// 返回密钥交换证书，这里固定为sm2的加密证书
 	fncGetEncCertKeypair := func(info *ClientHelloInfo) (*Certificate, error) {
 		return sm2EncCert, nil
 	}

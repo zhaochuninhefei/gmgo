@@ -108,6 +108,7 @@ func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*
 	return dial(context.Background(), dialer, network, addr, config)
 }
 
+// 客户端拨号
 func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, config *Config) (*Conn, error) {
 	// We want the Timeout and Deadline values from dialer to cover the
 	// whole process: TCP connection and TLS handshake. This means that we
@@ -131,6 +132,7 @@ func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, conf
 		})
 	}
 
+	// 拨号获得网络连接
 	rawConn, err := netDialer.Dial(network, addr)
 	if err != nil {
 		return nil, err
@@ -154,8 +156,10 @@ func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, conf
 		config = c
 	}
 
+	// 创建tls连接
 	conn := Client(rawConn, config)
 
+	// 执行tls握手
 	if timeout == 0 {
 		err = conn.Handshake()
 	} else {

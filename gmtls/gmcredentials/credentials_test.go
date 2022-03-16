@@ -107,7 +107,7 @@ func echoTest(c echo.EchoClient) {
 	fmt.Printf("%s\n", r.Result)
 }
 
-func Test(t *testing.T) {
+func Test_credentials(t *testing.T) {
 	end = make(chan bool, 64)
 	go serverRun()
 	time.Sleep(1000000)

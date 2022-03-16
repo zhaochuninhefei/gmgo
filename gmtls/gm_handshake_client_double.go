@@ -30,20 +30,26 @@ type clientHandshakeStateGM struct {
 	session      *ClientSessionState
 }
 
+// 创建国密ClientHello
 func makeClientHelloGM(config *Config) (*clientHelloMsg, error) {
 	if len(config.ServerName) == 0 && !config.InsecureSkipVerify {
 		return nil, errors.New("tls: either ServerName or InsecureSkipVerify must be specified in the tls.Config")
 	}
 
 	hello := &clientHelloMsg{
-		vers:               config.GMSupport.GetVersion(),
+		// tls协议版本 : VersionGMSSL
+		vers: config.GMSupport.GetVersion(),
+		// 压缩方法列表
 		compressionMethods: []uint8{compressionNone},
-		random:             make([]byte, 32),
-		serverName:         hostnameInSNI(config.ServerName),
+		// ClientRadom 后续计算主密钥时使用
+		random:     make([]byte, 32),
+		serverName: hostnameInSNI(config.ServerName),
 	}
+	// 定义客户端密码套件列表
 	possibleCipherSuites := getCipherSuites(config)
 	hello.cipherSuites = make([]uint16, 0, len(possibleCipherSuites))
 
+	// 将gmtls支持的国密密码套件补充进来
 NextCipherSuite:
 	for _, suiteId := range possibleCipherSuites {
 		for _, suite := range config.GMSupport.cipherSuites() {
@@ -55,6 +61,7 @@ NextCipherSuite:
 		}
 	}
 
+	// 填充ClientRandom
 	_, err := io.ReadFull(config.rand(), hello.random)
 	if err != nil {
 		return nil, errors.New("tls: short read from Rand: " + err.Error())
@@ -63,41 +70,51 @@ NextCipherSuite:
 	return hello, nil
 }
 
+// 由客户端发起的握手
 // Does the handshake, either a full one or resumes old session.
 // Requires hs.c, hs.hello, and, optionally, hs.session to be set.
 func (hs *clientHandshakeStateGM) handshake() error {
 	c := hs.c
 
 	// send ClientHello
+	// 向tls连接写入 ClientHello
+	// fmt.Println("------ debug用 : 客户端向tls连接写入 ClientHello")
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
 
+	// 等待服务端返回握手消息
 	msg, err := c.readHandshake()
 	if err != nil {
 		return err
 	}
 
+	// 首次返回的握手信息应该是 ServerHello
 	var ok bool
 	if hs.serverHello, ok = msg.(*serverHelloMsg); !ok {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(hs.serverHello, msg)
 	}
+	// fmt.Println("------ debug用 : 客户端接收到 ServerHello")
 
+	// 匹配tls协议
 	if hs.serverHello.vers != VersionGMSSL {
 		hs.c.sendAlert(alertProtocolVersion)
 		return fmt.Errorf("tls: server selected unsupported protocol version %x, while expecting %x", hs.serverHello.vers, VersionGMSSL)
 	}
 
+	// 匹配密码套件
 	if err = hs.pickCipherSuite(); err != nil {
 		return err
 	}
 
+	// 检查 ServerHello
 	isResume, err := hs.processServerHello()
 	if err != nil {
 		return err
 	}
 
+	// 创建Finished
 	hs.finishedHash = newFinishedHashGM(hs.suite)
 
 	// No signatures of the handshake are needed in a resumption.
@@ -107,7 +124,7 @@ func (hs *clientHandshakeStateGM) handshake() error {
 	if isResume || (len(c.config.Certificates) == 0 && c.config.GetClientCertificate == nil) {
 		hs.finishedHash.discardHandshakeBuffer()
 	}
-
+	// 向finished写入ClientHello与ServerHello
 	hs.finishedHash.Write(hs.hello.marshal())
 	hs.finishedHash.Write(hs.serverHello.marshal())
 
@@ -130,12 +147,15 @@ func (hs *clientHandshakeStateGM) handshake() error {
 			return err
 		}
 	} else {
+		// 执行完整握手
 		if err := hs.doFullHandshake(); err != nil {
 			return err
 		}
+		// 创建会话密钥
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
+		// 发送finished
 		if err := hs.sendFinished(c.clientFinished[:]); err != nil {
 			return err
 		}
@@ -146,6 +166,7 @@ func (hs *clientHandshakeStateGM) handshake() error {
 		if err := hs.readSessionTicket(); err != nil {
 			return err
 		}
+		// 读取服务端finished
 		if err := hs.readFinished(c.serverFinished[:]); err != nil {
 			return err
 		}
@@ -158,6 +179,7 @@ func (hs *clientHandshakeStateGM) handshake() error {
 	return nil
 }
 
+// 匹配密码套件
 func (hs *clientHandshakeStateGM) pickCipherSuite() error {
 	if hs.suite = mutualCipherSuiteGM(hs.hello.cipherSuites, hs.serverHello.cipherSuite); hs.suite == nil {
 		hs.c.sendAlert(alertHandshakeFailure)
@@ -168,18 +190,22 @@ func (hs *clientHandshakeStateGM) pickCipherSuite() error {
 	return nil
 }
 
+// 接收到ServerHello之后执行完整握手
 func (hs *clientHandshakeStateGM) doFullHandshake() error {
 	c := hs.c
 
+	// 从连接读取下一条握手信息
 	msg, err := c.readHandshake()
 	if err != nil {
 		return err
 	}
+	// ServerHello之后应该是 ServerCertificate
 	certMsg, ok := msg.(*certificateMsg)
 	if !ok || len(certMsg.certificates) == 0 {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(certMsg, msg)
 	}
+	// fmt.Println("------ debug用 : 客户端接收到 ServerCertificate")
 
 	// mod by syl only one cert
 	// Thanks to dual certificates mechanism, length of certificates in GMT0024 must great than 2
@@ -187,7 +213,7 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 		c.sendAlert(alertInsufficientSecurity)
 		return fmt.Errorf("tls: length of certificates in GMT0024 must great than 2")
 	}
-
+	// 在finished中写入ServerCertificate
 	hs.finishedHash.Write(certMsg.marshal())
 
 	if c.handshakes == 0 {
@@ -200,8 +226,10 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 				c.sendAlert(alertBadCertificate)
 				return errors.New("tls: failed to parse certificate from server: " + err.Error())
 			}
+			// 检查证书公钥类型是否sm2
 			// TODO ecdsa -> sm2
 			pubKey, _ := cert.PublicKey.(*sm2.PublicKey)
+			// 直接检查公钥的椭圆曲线参数是否匹配sm2
 			if pubKey.Curve != sm2.P256Sm2() {
 				c.sendAlert(alertUnsupportedCertificate)
 				return fmt.Errorf("tls: pubkey type of cert is error, expect sm2.publicKey")
@@ -209,6 +237,7 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 
 			//cert[0] is for signature while cert[1] is for encipher, refer to  GMT0024
 			//check key usage
+			// 服务端证书的第一个是签名证书，第二个是密码协商用证书。
 			switch i {
 			case 0:
 				if cert.KeyUsage == 0 || (cert.KeyUsage&(x509.KeyUsageDigitalSignature|cert.KeyUsage&x509.KeyUsageContentCommitment)) == 0 {
@@ -225,6 +254,7 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 			certs[i] = cert
 		}
 
+		// 对服务端证书做验签
 		if !c.config.InsecureSkipVerify {
 			opts := x509.VerifyOptions{
 				Roots:         c.config.RootCAs,
@@ -284,6 +314,7 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 		}
 	}
 
+	// 获取下一条握手信息，这里应该是 ServerKeyExchange
 	msg, err = c.readHandshake()
 	if err != nil {
 		return err
@@ -296,31 +327,38 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 
 	skx, ok := msg.(*serverKeyExchangeMsg)
 	if ok {
+		// fmt.Println("------ debug用 : 客户端接收到 ServerKeyExchange")
+		// 将ServerKeyExchange写入finished
 		hs.finishedHash.Write(skx.marshal())
+		// 检查ServerKeyExchange 这里好像是检查签名之类的处理。 具体实现代码位置 : gmtls/gm_key_agreement.go
 		err = keyAgreement.processServerKeyExchange(c.config, hs.hello, hs.serverHello, c.peerCertificates[0], skx)
 		if err != nil {
 			c.sendAlert(alertUnexpectedMessage)
 			return err
 		}
 
+		// 读取下一条握手信息，这里可能是 ServerHelloDone 或 CertificateRequest
 		msg, err = c.readHandshake()
 		if err != nil {
 			return err
 		}
 	}
 
+	// 如果刚刚收到的握手消息是 CertificateRequest
 	var chainToSend *Certificate
 	var certRequested bool
 	certReq, ok := msg.(*certificateRequestMsgGM)
 	if ok {
+		// fmt.Println("------ debug用 : 客户端接收到 CertificateRequest")
 		certRequested = true
+		// 将CertificateRequest写入finished
 		hs.finishedHash.Write(certReq.marshal())
-
+		// 根据 CertificateRequest 创建客户端证书链
 		if chainToSend, err = hs.getCertificate(certReq); err != nil {
 			c.sendAlert(alertInternalError)
 			return err
 		}
-
+		// 读取下一条握手信息，这里是 ServerHelloDone
 		msg, err = c.readHandshake()
 		if err != nil {
 			return err
@@ -332,55 +370,69 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(shd, msg)
 	}
+	// fmt.Println("------ debug用 : 客户端接收到 ServerHelloDone")
+	// 将ServerHelloDone写入finished
 	hs.finishedHash.Write(shd.marshal())
 
 	// If the server requested a certificate then we have to send a
 	// Certificate message, even if it's empty because we don't have a
 	// certificate to send.
+	// 如果服务端请求客户端证书，这里需要先发送客户端证书链
 	if certRequested {
 		certMsg = new(certificateMsg)
 		certMsg.certificates = chainToSend.Certificate
+		// 将客户端发送的 Certificate 写入finished
 		hs.finishedHash.Write(certMsg.marshal())
+		// 发送 客户端 Certificate
+		// fmt.Println("------ debug用 : 客户端发送 Certificate")
 		if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 			return err
 		}
 	}
 
+	// 计算预主密钥 preMasterSecret ，并创建 ClientKeyExchange ，代码位于: gmtls/gm_key_agreement.go
 	preMasterSecret, ckx, err := keyAgreement.generateClientKeyExchange(c.config, hs.hello, c.peerCertificates[1])
 	if err != nil {
 		c.sendAlert(alertInternalError)
 		return err
 	}
 	if ckx != nil {
+		// 向finished写入 ClientKeyExchange
 		hs.finishedHash.Write(ckx.marshal())
+		// 发送 ClientKeyExchange
+		// fmt.Println("------ debug用 : 客户端发送 ClientKeyExchange")
 		if _, err := c.writeRecord(recordTypeHandshake, ckx.marshal()); err != nil {
 			return err
 		}
 	}
 
+	// 如果发送了客户端证书，这里就需要发送客户端证书的 CertificateVerify
 	if chainToSend != nil && len(chainToSend.Certificate) > 0 {
 		certVerify := &certificateVerifyMsg{}
-
+		// 获取客户端证书私钥
 		key, ok := chainToSend.PrivateKey.(crypto.Signer)
 		if !ok {
 			c.sendAlert(alertInternalError)
 			return fmt.Errorf("tls: client certificate private key of type %T does not implement crypto.Signer", chainToSend.PrivateKey)
 		}
-
+		// 计算签名内容摘要 TODO 这里是否需要补充sm2的特殊对应: sm2的签名不需要实现计算摘要值。
 		digest := hs.finishedHash.client.Sum(nil)
-
+		// 签名
 		certVerify.signature, err = key.Sign(c.config.rand(), digest, nil)
 		if err != nil {
 			c.sendAlert(alertInternalError)
 			return err
 		}
-
+		// 将 CertificateVerify 写入finished
 		hs.finishedHash.Write(certVerify.marshal())
+		// 发送 CertificateVerify
+		// fmt.Println("------ debug用 : 客户端发送 CertificateVerify")
 		if _, err := c.writeRecord(recordTypeHandshake, certVerify.marshal()); err != nil {
 			return err
 		}
 	}
 
+	// 计算主密钥
 	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.hello.random, hs.serverHello.random)
 	if err := c.config.writeKeyLog(hs.hello.random, hs.masterSecret); err != nil {
 		c.sendAlert(alertInternalError)
@@ -392,9 +444,14 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 	return nil
 }
 
+// 根据主密钥创建会话密钥
 func (hs *clientHandshakeStateGM) establishKeys() error {
 	c := hs.c
 
+	// 根据主密钥创建本次会话使用的相关密钥: clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV
+	// clientMAC, serverMAC : 对消息块进行散列认证的key
+	// clientKey, serverKey : 对消息块进行对称加密的key
+	// clientIV, serverIV : 对消息块进行对称加密的初始化向量
 	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.hello.random, hs.serverHello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 	var clientCipher, serverCipher interface{}
@@ -421,6 +478,7 @@ func (hs *clientHandshakeStateGM) serverResumedSession() bool {
 		bytes.Equal(hs.serverHello.sessionId, hs.hello.sessionId)
 }
 
+// 检查ServerHello
 func (hs *clientHandshakeStateGM) processServerHello() (bool, error) {
 	c := hs.c
 
@@ -497,10 +555,12 @@ func (hs *clientHandshakeStateGM) processServerHello() (bool, error) {
 func (hs *clientHandshakeStateGM) readFinished(out []byte) error {
 	c := hs.c
 
+	// 读取服务端 ChangeCipherSpec
 	c.readRecord(recordTypeChangeCipherSpec)
 	if c.in.err != nil {
 		return c.in.err
 	}
+	// fmt.Println("------ debug用 : 客户端接受到 ChangeCipherSpec")
 
 	msg, err := c.readHandshake()
 	if err != nil {
@@ -511,6 +571,7 @@ func (hs *clientHandshakeStateGM) readFinished(out []byte) error {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(serverFinished, msg)
 	}
+	// fmt.Println("------ debug用 : 客户端接受到 serverFinished")
 
 	verify := hs.finishedHash.serverSum(hs.masterSecret)
 	if len(verify) != len(serverFinished.verifyData) ||
@@ -552,9 +613,11 @@ func (hs *clientHandshakeStateGM) readSessionTicket() error {
 	return nil
 }
 
+// 发送 Finished
 func (hs *clientHandshakeStateGM) sendFinished(out []byte) error {
 	c := hs.c
-
+	// 先发送 ChangeCipherSpec 告诉服务端，之后的通信使用协商好的会话密钥
+	// fmt.Println("------ debug用 : 客户端发送 ChangeCipherSpec")
 	if _, err := c.writeRecord(recordTypeChangeCipherSpec, []byte{1}); err != nil {
 		return err
 	}
@@ -574,6 +637,8 @@ func (hs *clientHandshakeStateGM) sendFinished(out []byte) error {
 	finished := new(finishedMsg)
 	finished.verifyData = hs.finishedHash.clientSum(hs.masterSecret)
 	hs.finishedHash.Write(finished.marshal())
+	// 发送 Finished
+	// fmt.Println("------ debug用 : 客户端发送 Finished")
 	if _, err := c.writeRecord(recordTypeHandshake, finished.marshal()); err != nil {
 		return err
 	}

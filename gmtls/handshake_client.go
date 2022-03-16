@@ -116,7 +116,9 @@ func (c *Conn) clientHandshake() error {
 	var hello *clientHelloMsg
 	var err error
 	if c.config.GMSupport != nil {
+		// 重置tls协议版本
 		c.vers = VersionGMSSL
+		// 创建国密ClientHello
 		hello, err = makeClientHelloGM(c.config)
 	} else {
 		hello, err = makeClientHello(c.config)
@@ -140,6 +142,7 @@ func (c *Conn) clientHandshake() error {
 		hello.ticketSupported = true
 	}
 
+	// 会话恢复相关处理
 	// Session resumption is not allowed if renegotiating because
 	// renegotiation is primarily used to allow a client to send a client
 	// certificate, which would be skipped if session resumption occurred.
@@ -179,11 +182,13 @@ func (c *Conn) clientHandshake() error {
 	}
 
 	if c.config.GMSupport != nil {
+		// 定义国密握手状态
 		hs := &clientHandshakeStateGM{
 			c:       c,
 			hello:   hello,
 			session: session,
 		}
+		// 发起握手
 		if err = hs.handshake(); err != nil {
 			return err
 		}

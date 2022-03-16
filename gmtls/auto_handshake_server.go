@@ -20,6 +20,7 @@ func (c *Conn) serverHandshakeAutoSwitch() error {
 	// encrypt the tickets with.
 	c.config.serverInitOnce.Do(func() { c.config.serverInit(nil) })
 
+	// 服务端接收 ClientHello
 	msg, err := c.readHandshake()
 	if err != nil {
 		return err
@@ -30,11 +31,9 @@ func (c *Conn) serverHandshakeAutoSwitch() error {
 		_ = c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError("Client Hello Msg", msg)
 	}
+	// fmt.Println("------ debug用 : 服务端接收到 ClientHello")
 
-	//
-	// 根据客户端Hello消息的版本选择使用的
-	// GMSSL协议 或 TLS 协议
-	//
+	// 根据ClientHello的版本选择GMSSL协议 或 TLS 协议
 	switch clientHello.vers {
 	case VersionGMSSL:
 		// 构造 国密SSL握手 状态上下文
@@ -42,7 +41,7 @@ func (c *Conn) serverHandshakeAutoSwitch() error {
 			c:           c,
 			clientHello: clientHello,
 		}
-		// 处理读取到 客户端Hello 消息
+		// 处理 ClientHello
 		isResume, err := processClientHelloGM(c, hs)
 		if err != nil {
 			return err
@@ -255,12 +254,15 @@ func runServerHandshakeGM(c *Conn, hs *serverHandshakeStateGM, isResume bool) er
 	} else {
 		// The client didn't include a session ticket, or it wasn't
 		// valid so we do a full handshake.
+		// 执行完整握手流程
 		if err := hs.doFullHandshake(); err != nil {
 			return err
 		}
+		// 创建会话密钥
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
+		// 读取客户端的 Finished 消息
 		if err := hs.readFinished(c.clientFinished[:]); err != nil {
 			return err
 		}
@@ -269,6 +271,7 @@ func runServerHandshakeGM(c *Conn, hs *serverHandshakeStateGM, isResume bool) er
 		if err := hs.sendSessionTicket(); err != nil {
 			return err
 		}
+		// 发送服务端 Finished
 		if err := hs.sendFinished(nil); err != nil {
 			return err
 		}

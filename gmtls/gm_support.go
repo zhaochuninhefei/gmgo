@@ -114,14 +114,16 @@ const (
 	GMTLS_ECDHE_SM4_CBC_SM3      uint16 = 0xe011
 	GMTLS_ECDHE_SM4_GCM_SM3      uint16 = 0xe051
 	GMTLS_SM2_WITH_SM4_SM3       uint16 = 0xe013
-	GMTLS_ECC_SM4_CBC_SM3        uint16 = 0xe013
-	GMTLS_ECC_SM4_GCM_SM3        uint16 = 0xe053
-	GMTLS_IBSDH_WITH_SM4_SM3     uint16 = 0xe015
-	GMTLS_IBC_WITH_SM4_SM3       uint16 = 0xe017
-	GMTLS_RSA_WITH_SM4_SM3       uint16 = 0xe019
-	GMTLS_RSA_WITH_SM4_SHA1      uint16 = 0xe01a
+	// 国密密码套件，ECC是椭圆曲线密码学(Elliptic Curve Cryptography)的缩写，在gmtls里就是sm2。
+	GMTLS_ECC_SM4_CBC_SM3    uint16 = 0xe013
+	GMTLS_ECC_SM4_GCM_SM3    uint16 = 0xe053
+	GMTLS_IBSDH_WITH_SM4_SM3 uint16 = 0xe015
+	GMTLS_IBC_WITH_SM4_SM3   uint16 = 0xe017
+	GMTLS_RSA_WITH_SM4_SM3   uint16 = 0xe019
+	GMTLS_RSA_WITH_SM4_SHA1  uint16 = 0xe01a
 )
 
+// 定义gmtls支持的国密密码套件
 var gmCipherSuites = []*cipherSuite{
 	{GMTLS_ECC_SM4_CBC_SM3, 16, 32, 16, eccGMKA, suiteECDSA, cipherSM4, macSM3, nil},
 	{GMTLS_ECC_SM4_GCM_SM3, 16, 0, 4, eccGMKA, suiteECDSA, nil, nil, aeadSM4GCM},
@@ -154,9 +156,15 @@ func aeadSM4GCM(key []byte, nonce []byte) cipher.AEAD {
 	return ret
 }
 
+// 获取客户端密码套件列表
 func getCipherSuites(c *Config) []uint16 {
 	s := c.CipherSuites
 	if s == nil {
+		// 默认密码套件列表
+		// ECC是椭圆曲线密码学(Elliptic Curve Cryptography)的缩写，在gmtls里就是SM2。
+		// 第一个套件 GMTLS_ECC_SM4_CBC_SM3 即使用SM2作为密码交换的非对称算法，
+		// SM4的CBC模式作为会话通信消息块的对称加密算法，
+		// SM3作为会话通信消息块的认证算法。
 		s = []uint16{
 			GMTLS_ECC_SM4_CBC_SM3,
 			GMTLS_ECC_SM4_GCM_SM3,

@@ -579,6 +579,7 @@ func (c *Conn) newRecordHeaderError(conn net.Conn, msg string) (err RecordHeader
 // readRecord reads the next TLS record from the connection
 // and updates the record layer state.
 func (c *Conn) readRecord(want recordType) error {
+	// fmt.Println("------ debug用 : Conn的readRecord开始等待消息 : ", want)
 	// Caller must be in sync with connection:
 	// handshake data if handshake not yet completed,
 	// else application data.
@@ -1144,12 +1145,17 @@ func (c *Conn) handleRenegotiation() error {
 // Read can be made to time out and return a net.Error with Timeout() == true
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (c *Conn) Read(b []byte) (n int, err error) {
+	// fmt.Println("------ debug用 : Conn的Read被调用。。。")
+	// 服务端 listener 启动后，当有客户端发起请求时，服务端Conn上的Read方法会被触发。
+	// 从而进入服务端的握手程序。
 	if err = c.Handshake(); err != nil {
+		// fmt.Println("------ debug用 : Conn的Read中，c.Handshake()发生错误")
 		return
 	}
 	if len(b) == 0 {
 		// Put this after Handshake, in case people were calling
 		// Read(nil) for the side effect of the Handshake.
+		// fmt.Println("------ debug用 : Conn的Read中，收到的消息是空")
 		return
 	}
 
@@ -1161,6 +1167,7 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 	const maxConsecutiveEmptyRecords = 100
 	for emptyRecordCount := 0; emptyRecordCount <= maxConsecutiveEmptyRecords; emptyRecordCount++ {
 		for c.input == nil && c.in.err == nil {
+			// fmt.Println("------ debug用 : Conn的Read中接收conn消息 1。。。")
 			if err := c.readRecord(recordTypeApplicationData); err != nil {
 				// Soft error, like EAGAIN
 				return 0, err
@@ -1197,6 +1204,7 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 		if ri := c.rawInput; ri != nil &&
 			n != 0 && err == nil &&
 			c.input == nil && len(ri.data) > 0 && recordType(ri.data[0]) == recordTypeAlert {
+			// fmt.Println("------ debug用 : Conn的Read中接收conn消息 2。。。")
 			if recErr := c.readRecord(recordTypeApplicationData); recErr != nil {
 				err = recErr // will be io.EOF on closeNotify
 			}
@@ -1273,6 +1281,7 @@ func (c *Conn) closeNotify() error {
 // protocol if it has not yet been run.
 // Most uses of this package need not call Handshake
 // explicitly: the first Read or Write will call it automatically.
+// 服务端与客户端的握手程序入口
 func (c *Conn) Handshake() error {
 	c.handshakeMutex.Lock()
 	defer c.handshakeMutex.Unlock()
@@ -1288,15 +1297,20 @@ func (c *Conn) Handshake() error {
 	defer c.in.Unlock()
 
 	if c.isClient {
+		// 执行客户端握手
+		// fmt.Println("------ debug用 : 执行客户端握手。。。")
 		c.handshakeErr = c.clientHandshake()
 	} else {
 		if c.config.GMSupport == nil {
+			// fmt.Println("------ debug用 : 执行服务端握手，TLS Only。。。")
 			// TLS Only
 			c.handshakeErr = c.serverHandshake()
 		} else if c.config.GMSupport.IsAutoSwitchMode() {
+			// fmt.Println("------ debug用 : 执行服务端握手，GMSSL/TLS Auto switch。。。")
 			//  GMSSL/TLS Auto switch
 			c.handshakeErr = c.serverHandshakeAutoSwitch()
 		} else {
+			// fmt.Println("------ debug用 : 执行服务端握手，GMSSL Only。。。")
 			// GMSSL Only
 			c.handshakeErr = c.serverHandshakeGM()
 		}
