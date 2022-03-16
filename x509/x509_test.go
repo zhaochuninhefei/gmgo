@@ -32,24 +32,31 @@ import (
 )
 
 func TestX509(t *testing.T) {
-	priv, err := sm2.GenerateKey(nil) // 生成密钥对
+	// 生成sm2密钥对
+	// priv, err := sm2.GenerateKey(nil)
+	priv, err := sm2.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
-	privPem, err := WritePrivateKeyToPem(priv, nil) // 生成密钥文件
+	// 生成私钥文件字节流
+	privPem, err := WritePrivateKeyToPem(priv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pubKey, _ := priv.Public().(*sm2.PublicKey)
-	pubkeyPem, err := WritePublicKeyToPem(pubKey)       // 生成公钥文件
-	privKey, err := ReadPrivateKeyFromPem(privPem, nil) // 读取密钥
+	// 生成公钥文件字节流
+	pubkeyPem, _ := WritePublicKeyToPem(pubKey)
+	// 读取私钥
+	privKey, err := ReadPrivateKeyFromPem(privPem, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pubKey, err = ReadPublicKeyFromPem(pubkeyPem) // 读取公钥
+	// 读取公钥
+	pubKey, err = ReadPublicKeyFromPem(pubkeyPem)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 定义证书申请模板
 	templateReq := CertificateRequest{
 		Subject: pkix.Name{
 			CommonName:   "test.example.com",
@@ -58,14 +65,17 @@ func TestX509(t *testing.T) {
 		//		SignatureAlgorithm: ECDSAWithSHA256,
 		SignatureAlgorithm: SM2WithSM3,
 	}
+	// 创建证书申请pem字节流并签名
 	reqPem, err := CreateCertificateRequestToPem(&templateReq, privKey)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 从pem读取证书申请
 	req, err := ReadCertificateRequestFromPem(reqPem)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 检查证书申请的签名
 	err = req.CheckSignature()
 	if err != nil {
 		t.Fatalf("Request CheckSignature error:%v", err)
@@ -76,6 +86,7 @@ func TestX509(t *testing.T) {
 	testUnknownExtKeyUsage := []asn1.ObjectIdentifier{[]int{1, 2, 3}, []int{2, 59, 1}}
 	extraExtensionData := []byte("extra extension")
 	commonName := "test.example.com"
+	// 定义证书模板
 	template := Certificate{
 		// SerialNumber is negative to ensure that negative
 		// values are parsed. This is due to the prevalence of
@@ -99,7 +110,7 @@ func TestX509(t *testing.T) {
 			},
 		},
 		NotBefore: time.Now(),
-		NotAfter:  time.Date(2021, time.October, 10, 12, 1, 1, 1, time.UTC),
+		NotAfter:  time.Date(2032, time.December, 31, 23, 59, 59, 1, time.UTC),
 
 		//		SignatureAlgorithm: ECDSAWithSHA256,
 		SignatureAlgorithm: SM2WithSM3,
@@ -139,14 +150,17 @@ func TestX509(t *testing.T) {
 		},
 	}
 	pubKey, _ = priv.Public().(*sm2.PublicKey)
+	// 创建证书pem字节流
 	certpem, err := CreateCertificateToPem(&template, &template, pubKey, privKey)
 	if err != nil {
 		t.Fatal("failed to create cert file")
 	}
+	// 读取证书pem
 	cert, err := ReadCertificateFromPem(certpem)
 	if err != nil {
 		t.Fatal("failed to read cert file")
 	}
+	// 检查证书签名
 	err = cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
 	if err != nil {
 		t.Fatal(err)
@@ -154,6 +168,10 @@ func TestX509(t *testing.T) {
 		fmt.Printf("CheckSignature ok\n")
 	}
 }
+
+// TODO 添加对以下函数的测试:
+// CreateCertificateRequestToMem 、 CreateCertificateRequestToPemFile
+// CreateCertificateToMem 、 CreateCertificateToPemFile
 
 func TestCreateRevocationList(t *testing.T) {
 	priv, err := sm2.GenerateKey(nil) // 生成密钥对

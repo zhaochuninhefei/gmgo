@@ -38,14 +38,16 @@ var (
 	C1C2C3      = 1
 )
 
+// SM2公钥结构体
 type PublicKey struct {
-	elliptic.Curve
-	X, Y *big.Int
+	elliptic.Curve          // 椭圆曲线
+	X, Y           *big.Int // 公钥座标
 }
 
+// SM2私钥结构体
 type PrivateKey struct {
-	PublicKey
-	D *big.Int
+	PublicKey          // 公钥
+	D         *big.Int // 私钥，[1,n-1]区间的随机数
 }
 
 type sm2Cipher struct {

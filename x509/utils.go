@@ -67,7 +67,7 @@ func WritePublicKeyToPem(key *sm2.PublicKey) ([]byte, error) {
 	return certPem, nil
 }
 
-//DHex是sm2私钥的真正关键数值
+// 读取16进制的数字D作为私钥，Dhex是sm2私钥的16进制字符串，对应sm2.PrivateKey.D
 func ReadPrivateKeyFromHex(Dhex string) (*sm2.PrivateKey, error) {
 	c := sm2.P256Sm2()
 	d, err := hex.DecodeString(Dhex)
