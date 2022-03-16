@@ -318,18 +318,24 @@ func Sm4Cbc(key []byte, in []byte, mode bool) (out []byte, err error) {
 		return nil, err
 	}
 	if mode {
+		// 加密
 		for i := 0; i < len(inData)/16; i++ {
+			// 本组明文和IV做异或运算
 			in_tmp := xor(inData[i*16:i*16+16], iv)
 			out_tmp := make([]byte, 16)
+			// 异或结果加密
 			c.Encrypt(out_tmp, in_tmp)
 			copy(out[i*16:i*16+16], out_tmp)
 			iv = out_tmp
 		}
 	} else {
+		// 解密
 		for i := 0; i < len(inData)/16; i++ {
 			in_tmp := inData[i*16 : i*16+16]
 			out_tmp := make([]byte, 16)
+			// 本组密文解密
 			c.Decrypt(out_tmp, in_tmp)
+			// 解密结果与IV做异或运算
 			out_tmp = xor(out_tmp, iv)
 			copy(out[i*16:i*16+16], out_tmp)
 			iv = in_tmp
@@ -357,9 +363,11 @@ func Sm4Ecb(key []byte, in []byte, mode bool) (out []byte, err error) {
 		return nil, err
 	}
 	if mode {
+		// 加密
 		for i := 0; i < len(inData)/16; i++ {
 			in_tmp := inData[i*16 : i*16+16]
 			out_tmp := make([]byte, 16)
+			// 本组明文加密
 			c.Encrypt(out_tmp, in_tmp)
 			copy(out[i*16:i*16+16], out_tmp)
 		}
@@ -367,6 +375,7 @@ func Sm4Ecb(key []byte, in []byte, mode bool) (out []byte, err error) {
 		for i := 0; i < len(inData)/16; i++ {
 			in_tmp := inData[i*16 : i*16+16]
 			out_tmp := make([]byte, 16)
+			// 本组密文解密
 			c.Decrypt(out_tmp, in_tmp)
 			copy(out[i*16:i*16+16], out_tmp)
 		}
@@ -401,32 +410,42 @@ func Sm4CFB(key []byte, in []byte, mode bool) (out []byte, err error) {
 	K := make([]byte, BlockSize)
 	cipherBlock := make([]byte, BlockSize)
 	plainBlock := make([]byte, BlockSize)
-	if mode { //加密
+	if mode {
+		//加密
 		for i := 0; i < len(inData)/16; i++ {
 			if i == 0 {
+				// 计算首组密钥
 				c.Encrypt(K, IV)
+				// 本组明文与本组密钥做异或运算
 				cipherBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 				copy(out[i*16:i*16+16], cipherBlock)
 				//copy(cipherBlock,out_tmp)
 				continue
 			}
+			// 利用前一组明文加密结果计算本组密钥
 			c.Encrypt(K, cipherBlock)
+			// 本组明文与本组密钥做异或运算
 			cipherBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 			copy(out[i*16:i*16+16], cipherBlock)
 			//copy(cipherBlock,out_tmp)
 		}
 
-	} else { //解密
+	} else {
+		//解密
 		var i int = 0
 		for ; i < len(inData)/16; i++ {
 			if i == 0 {
-				c.Encrypt(K, IV)                                      //这里是加密，而不是调用解密方法Decrypt
-				plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16]) //获取明文分组
+				// 计算首组密钥
+				c.Encrypt(K, IV)
+				// 本组密文与密钥做异或运算
+				plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 				copy(out[i*16:i*16+16], plainBlock)
 				continue
 			}
+			// 计算本组密钥
 			c.Encrypt(K, inData[(i-1)*16:(i-1)*16+16])
-			plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16]) //获取明文分组
+			// 本组密文与密钥做异或运算
+			plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 			copy(out[i*16:i*16+16], plainBlock)
 
 		}
@@ -463,32 +482,42 @@ func Sm4OFB(key []byte, in []byte, mode bool) (out []byte, err error) {
 	cipherBlock := make([]byte, BlockSize)
 	plainBlock := make([]byte, BlockSize)
 	shiftIV := make([]byte, BlockSize)
-	if mode { //加密
+	if mode {
+		//加密
 		for i := 0; i < len(inData)/16; i++ {
 			if i == 0 {
+				// 计算首组密钥
 				c.Encrypt(K, IV)
+				// 本组明文与密钥做异或运算
 				cipherBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 				copy(out[i*16:i*16+16], cipherBlock)
 				copy(shiftIV, K[:BlockSize])
 				continue
 			}
+			// 利用前一组密钥计算本组密钥
 			c.Encrypt(K, shiftIV)
+			// 本组明文与密钥做异或运算
 			cipherBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 			copy(out[i*16:i*16+16], cipherBlock)
 			copy(shiftIV, K[:BlockSize])
 		}
 
-	} else { //解密
+	} else {
+		//解密
 		for i := 0; i < len(inData)/16; i++ {
 			if i == 0 {
-				c.Encrypt(K, IV)                                      //这里是加密，而不是调用解密方法Decrypt
-				plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16]) //获取明文分组
+				// 计算首组密钥
+				c.Encrypt(K, IV)
+				// 本组密文与密钥做异或运算
+				plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 				copy(out[i*16:i*16+16], plainBlock)
 				copy(shiftIV, K[:BlockSize])
 				continue
 			}
+			// 利用前一组密钥计算本组密钥
 			c.Encrypt(K, shiftIV)
-			plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16]) //获取明文分组
+			// 本组密文与密钥做异或运算
+			plainBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
 			copy(out[i*16:i*16+16], plainBlock)
 			copy(shiftIV, K[:BlockSize])
 		}

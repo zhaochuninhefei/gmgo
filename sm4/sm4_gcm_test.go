@@ -35,9 +35,9 @@ func TestSM4GCM(t *testing.T) {
 	fmt.Printf("iv16进制 : %x\n", IV)
 	fmt.Printf("iv字符串 : %s\n", IV)
 
-	// 定义数据，16字节
+	// 定义数据，长度必须是16字节的倍数
 	// data := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
-	data := []byte("天行健1234567")
+	data := []byte("天行健君子以自强不息12")
 	fmt.Printf("data字节数组 : %v\n", data)
 	fmt.Printf("data十六进制 : %x\n", data)
 	fmt.Printf("data字符串 : %s\n", data)
