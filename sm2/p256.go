@@ -90,6 +90,7 @@ func (curve sm2P256Curve) Params() *elliptic.CurveParams {
 }
 
 // y^2 = x^3 + ax + b
+// 判断给定的X,Y座标是否在sm2P256Curve曲线上
 func (curve sm2P256Curve) IsOnCurve(X, Y *big.Int) bool {
 	var a, x, y, y2, x3 sm2P256FieldElement
 

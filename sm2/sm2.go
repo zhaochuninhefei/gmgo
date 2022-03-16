@@ -94,6 +94,7 @@ func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 	return Sm2Verify(pub, msg, default_uid, r, s)
 }
 
+// 对签名内容进行SM3摘要计算，摘要计算前混入sm2椭圆曲线部分参数与公钥并预散列一次。
 func (pub *PublicKey) Sm3Digest(msg, uid []byte) ([]byte, error) {
 	if len(uid) == 0 {
 		uid = default_uid
@@ -113,10 +114,13 @@ func (pub *PublicKey) Sm3Digest(msg, uid []byte) ([]byte, error) {
 }
 
 //****************************Encryption algorithm****************************//
+
+// sm2加密，C1C3C2，asn1编码
 func (pub *PublicKey) EncryptAsn1(data []byte, random io.Reader) ([]byte, error) {
 	return EncryptAsn1(pub, data, random)
 }
 
+// sm2解密，C1C3C2，asn1解码
 func (priv *PrivateKey) DecryptAsn1(data []byte) ([]byte, error) {
 	return DecryptAsn1(priv, data)
 }
@@ -136,6 +140,7 @@ func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, 
 
 // SM2签名
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
+	// 对签名内容进行摘要计算
 	digest, err := priv.PublicKey.Sm3Digest(msg, uid)
 	if err != nil {
 		return nil, nil, err
@@ -150,15 +155,18 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 	// SM2签名实现
 	for {
 		for {
-			// 生成随机数小k
+			// 生成随机数k
 			k, err = randFieldElement(c, random)
 			if err != nil {
 				r = nil
 				return
 			}
-			// 计算与基点的乘积K=kG，K点的x轴坐标Kx对椭圆曲线阶n的模Kx(mod n)为r： r = Kx (mod n)
+			// 计算P = k*G，返回值的x赋予了r
 			r, _ = priv.Curve.ScalarBaseMult(k.Bytes())
+			// 计算 r = (e + P(x)) mod n
+			// e + P(x)
 			r.Add(r, e)
+			// (e + P(x)) mod n
 			r.Mod(r, N)
 			if r.Sign() != 0 {
 				if t := new(big.Int).Add(r, k); t.Cmp(N) != 0 {
@@ -167,12 +175,18 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 			}
 
 		}
-		// 计算k基于曲线阶的乘法逆元k-1(mod n)， s=k-1(h+kAr)(mod n)
+		// 计算 s = (((1 + d)^-1) (k-rd)) mod n
+		// rd
 		rD := new(big.Int).Mul(priv.D, r)
+		// k - rd
 		s = new(big.Int).Sub(k, rD)
+		// 1 + d
 		d1 := new(big.Int).Add(priv.D, one)
+		// (1 + d)^-1
 		d1Inv := new(big.Int).ModInverse(d1, N)
+		// ((1 + d)^-1) × (k-rd)
 		s.Mul(s, d1Inv)
+		// (((1 + d)^-1) (k-rd)) mod n
 		s.Mod(s, N)
 		if s.Sign() != 0 {
 			break
@@ -195,26 +209,34 @@ func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 	if len(uid) == 0 {
 		uid = default_uid
 	}
+	// 获取za: sm3(ENTLA || IDA || a || b || xG || yG || xA || yA)
 	za, err := ZA(pub, uid)
 	if err != nil {
 		return false
 	}
+	// 混合za与签名内容明文，并做sm3摘要
 	e, err := msgHash(za, msg)
 	if err != nil {
 		return false
 	}
+	// 计算 t = (r + s) mod n
 	t := new(big.Int).Add(r, s)
 	t.Mod(t, N)
 	if t.Sign() == 0 {
 		return false
 	}
 	var x *big.Int
+	// 计算 s*G
 	x1, y1 := c.ScalarBaseMult(s.Bytes())
+	// 计算 t*pub
 	x2, y2 := c.ScalarMult(pub.X, pub.Y, t.Bytes())
+	// 计算 s*G + t*pub 结果只要x轴座标
 	x, _ = c.Add(x1, y1, x2, y2)
-
+	// 计算 e + x
 	x.Add(x, e)
+	// 计算 R = (e + x) mod n
 	x.Mod(x, N)
+	// 判断 R == r
 	return x.Cmp(r) == 0
 }
 
@@ -226,57 +248,60 @@ func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 	e, err := msgHash(za, msg)
 	hash=e.getBytes()
 */
-func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
-	c := pub.Curve
-	N := c.Params().N
+// 并非sm2验签
+// func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
+// 	c := pub.Curve
+// 	N := c.Params().N
 
-	if r.Sign() <= 0 || s.Sign() <= 0 {
-		return false
-	}
-	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
-		return false
-	}
+// 	if r.Sign() <= 0 || s.Sign() <= 0 {
+// 		return false
+// 	}
+// 	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
+// 		return false
+// 	}
 
-	// 调整算法细节以实现SM2
-	t := new(big.Int).Add(r, s)
-	t.Mod(t, N)
-	if t.Sign() == 0 {
-		return false
-	}
+// 	// 调整算法细节以实现SM2
+// 	t := new(big.Int).Add(r, s)
+// 	t.Mod(t, N)
+// 	if t.Sign() == 0 {
+// 		return false
+// 	}
 
-	var x *big.Int
-	x1, y1 := c.ScalarBaseMult(s.Bytes())
-	x2, y2 := c.ScalarMult(pub.X, pub.Y, t.Bytes())
-	x, _ = c.Add(x1, y1, x2, y2)
+// 	var x *big.Int
+// 	x1, y1 := c.ScalarBaseMult(s.Bytes())
+// 	x2, y2 := c.ScalarMult(pub.X, pub.Y, t.Bytes())
+// 	x, _ = c.Add(x1, y1, x2, y2)
 
-	e := new(big.Int).SetBytes(hash)
-	x.Add(x, e)
-	x.Mod(x, N)
-	return x.Cmp(r) == 0
-}
+// 	e := new(big.Int).SetBytes(hash)
+// 	x.Add(x, e)
+// 	x.Mod(x, N)
+// 	return x.Cmp(r) == 0
+// }
 
-/*
- * sm2密文结构如下:
- *  x
- *  y
- *  hash
- *  CipherText
- */
+// sm2非对称加密，支持C1C3C2(mode = 0)与C1C2C3(mode = 1)两种模式，默认使用C1C3C2模式。
+// 不同的模式表示不同的密文结构，其中C1C2C3的意义：
+// C1 : sm2椭圆曲线上的某个点，每次加密得到的点不一样
+// C2 : 密文
+// C3 : 明文加盐后的摘要
 func Encrypt(pub *PublicKey, data []byte, random io.Reader, mode int) ([]byte, error) {
 	length := len(data)
 	for {
 		c := []byte{}
 		curve := pub.Curve
+		// 获取随机数k
 		k, err := randFieldElement(curve, random)
 		if err != nil {
 			return nil, err
 		}
+		// 计算点C1 = k*G ，因为k是随机数，所以C1每次加密都是随机的
 		x1, y1 := curve.ScalarBaseMult(k.Bytes())
+		// 计算点(x2,y2) = k*pub，利用公钥计算出一个随机的点P
 		x2, y2 := curve.ScalarMult(pub.X, pub.Y, k.Bytes())
 		x1Buf := x1.Bytes()
 		y1Buf := y1.Bytes()
 		x2Buf := x2.Bytes()
 		y2Buf := y2.Bytes()
+		// 填充满32个字节长度
 		if n := len(x1Buf); n < 32 {
 			x1Buf = append(zeroByteSlice()[:32-n], x1Buf...)
 		}
@@ -289,33 +314,48 @@ func Encrypt(pub *PublicKey, data []byte, random io.Reader, mode int) ([]byte, e
 		if n := len(y2Buf); n < 32 {
 			y2Buf = append(zeroByteSlice()[:32-n], y2Buf...)
 		}
-		c = append(c, x1Buf...) // x分量
-		c = append(c, y1Buf...) // y分量
+		// 填入C1(x)
+		c = append(c, x1Buf...)
+		// 填入C1(y)
+		c = append(c, y1Buf...)
+
+		// 计算C3 : 按 x2 data y2 的顺序混合数据并做sm3摘要
 		tm := []byte{}
 		tm = append(tm, x2Buf...)
 		tm = append(tm, data...)
 		tm = append(tm, y2Buf...)
 		h := sm3.Sm3Sum(tm)
+		// 填入C3
 		c = append(c, h...)
-		ct, ok := kdf(length, x2Buf, y2Buf) // 密文
+
+		// 使用密钥派生函数kdf，基于P计算长度等于data长度的派生密钥 ct
+		ct, ok := kdf(length, x2Buf, y2Buf)
 		if !ok {
 			continue
 		}
+		// 填入ct
 		c = append(c, ct...)
+		// 利用ct对data进行异或加密，并覆盖c中对应内容
 		for i := 0; i < length; i++ {
 			c[96+i] ^= data[i]
 		}
-		switch mode {
 
+		// 此时c的内容是 c1c3c2，需要根据传入的参数mode判断是否需要重新排列。
+		switch mode {
 		case C1C3C2:
 			return append([]byte{0x04}, c...), nil
 		case C1C2C3:
+			// 如果是 C1C2C3 模式，那么需要将c切分后重新组装
 			c1 := make([]byte, 64)
 			c2 := make([]byte, len(c)-96)
 			c3 := make([]byte, 32)
-			copy(c1, c[:64])   //x1,y1
-			copy(c3, c[64:96]) //hash
-			copy(c2, c[96:])   //密文
+			// C1，即 x1Buf+y1Buf
+			copy(c1, c[:64])
+			// C3，即 x2+data+y2混合后的SM3摘要
+			copy(c3, c[64:96])
+			// C2，即 使用kdf派生出的密钥对data进行加密后的密文
+			copy(c2, c[96:])
+			// 按C1C2C3的顺序组装结果
 			ciphertext := []byte{}
 			ciphertext = append(ciphertext, c1...)
 			ciphertext = append(ciphertext, c2...)
@@ -327,11 +367,13 @@ func Encrypt(pub *PublicKey, data []byte, random io.Reader, mode int) ([]byte, e
 	}
 }
 
+// sm2非对称解密
 func Decrypt(priv *PrivateKey, data []byte, mode int) ([]byte, error) {
 	switch mode {
 	case C1C3C2:
 		data = data[1:]
 	case C1C2C3:
+		// C1C2C3重新组装为 C1C3C2
 		data = data[1:]
 		c1 := make([]byte, 64)
 		c2 := make([]byte, len(data)-96)
@@ -349,8 +391,10 @@ func Decrypt(priv *PrivateKey, data []byte, mode int) ([]byte, error) {
 	}
 	length := len(data) - 96
 	curve := priv.Curve
+	// 取出C1的x和y
 	x := new(big.Int).SetBytes(data[:32])
 	y := new(big.Int).SetBytes(data[32:64])
+	// 根据C1计算 P = d*C1
 	x2, y2 := curve.ScalarMult(x, y, priv.D.Bytes())
 	x2Buf := x2.Bytes()
 	y2Buf := y2.Bytes()
@@ -360,19 +404,23 @@ func Decrypt(priv *PrivateKey, data []byte, mode int) ([]byte, error) {
 	if n := len(y2Buf); n < 32 {
 		y2Buf = append(zeroByteSlice()[:32-n], y2Buf...)
 	}
+	// 使用密钥派生函数kdf，基于P计算派生密钥 c
 	c, ok := kdf(length, x2Buf, y2Buf)
 	if !ok {
 		return nil, errors.New("Decrypt: failed to decrypt")
 	}
+	// 使用派生密钥c对C2部分做异或计算解密
+	// 解密结果覆盖到c中，此时c即明文
 	for i := 0; i < length; i++ {
 		c[i] ^= data[i+96]
 	}
+	// 重新混合明文并计算摘要，与C3进行比较
 	tm := []byte{}
 	tm = append(tm, x2Buf...)
 	tm = append(tm, c...)
 	tm = append(tm, y2Buf...)
 	h := sm3.Sm3Sum(tm)
-	if bytes.Compare(h, data[64:96]) != 0 {
+	if !bytes.Equal(h, data[64:96]) {
 		return c, errors.New("Decrypt: failed to decrypt")
 	}
 	return c, nil
@@ -624,6 +672,7 @@ func kdf(length int, x ...[]byte) ([]byte, bool) {
 	return c, false
 }
 
+// 选取一个位于[1~n-1]之间的随机数k，n是椭圆曲线的参数N
 func randFieldElement(c elliptic.Curve, random io.Reader) (k *big.Int, err error) {
 	if random == nil {
 		random = rand.Reader //If there is no external trusted random source,please use rand.Reader to instead of it.

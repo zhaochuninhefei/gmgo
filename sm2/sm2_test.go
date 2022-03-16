@@ -26,61 +26,73 @@ import (
 )
 
 func TestSm2(t *testing.T) {
-	priv, err := GenerateKey(rand.Reader) // 生成密钥对
-	fmt.Println(priv)
+	// 生成sm2密钥对
+	priv, err := GenerateKey(rand.Reader)
+	fmt.Println("私钥: ", priv.D)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("%v\n", priv.Curve.IsOnCurve(priv.X, priv.Y)) // 验证是否为sm2的曲线
+	// 验证生成的公钥是否在sm2的椭圆曲线上
+	fmt.Printf("公钥是否在sm2的椭圆曲线上: %v\n", priv.Curve.IsOnCurve(priv.X, priv.Y))
+	// 公钥
 	pub := &priv.PublicKey
-	msg := []byte("123456")
+	fmt.Println("公钥: ", pub.X, pub.Y)
+
+	// 定义明文
+	msg := []byte("12345，上山打老虎")
+	fmt.Printf("明文: %s\n", msg)
+
+	// 公钥加密，C1C3C2模式，结果asn1编码
 	d0, err := pub.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		fmt.Printf("Error: failed to encrypt %s: %v\n", msg, err)
 		return
 	}
-	// fmt.Printf("Cipher text = %v\n", d0)
+	fmt.Printf("公钥加密结果(C1C3C2) : %v\n", d0)
+
+	// 私钥解密，C1C3C2模式，先asn1解码
 	d1, err := priv.DecryptAsn1(d0)
 	if err != nil {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
 	}
-	fmt.Printf("clear text = %s\n", d1)
+	fmt.Printf("私钥解密结果(C1C3C2) : %s\n", d1)
+
+	// 公钥加密 C1C2C3
 	d2, err := Encrypt(pub, msg, rand.Reader, C1C2C3)
 	if err != nil {
 		fmt.Printf("Error: failed to encrypt %s: %v\n", msg, err)
 		return
 	}
-	// fmt.Printf("Cipher text = %v\n", d0)
+	fmt.Printf("公钥加密结果(C1C2C3) : %v\n", d2)
+	// 私钥解密，C1C2C3
 	d3, err := Decrypt(priv, d2, C1C2C3)
 	if err != nil {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
 	}
-	fmt.Printf("clear text = %s\n", d3)
-	msg, _ = ioutil.ReadFile("ifile")             // 从文件读取数据
-	sign, err := priv.Sign(rand.Reader, msg, nil) // 签名
+	fmt.Printf("私钥解密结果(C1C2C3) : %s\n", d3)
+
+	// 从文件读取消息
+	msg, _ = ioutil.ReadFile("testdata/msg")
+
+	// 私钥签名
+	sign, err := priv.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	err = ioutil.WriteFile("TestResult", sign, os.FileMode(0644))
+	// 签名写入文件
+	err = ioutil.WriteFile("testdata/signdata", sign, os.FileMode(0644))
 	if err != nil {
 		t.Fatal(err)
 	}
-	signdata, _ := ioutil.ReadFile("TestResult")
-	ok := priv.PublicKey.Verify(msg, signdata) // 密钥验证
+	// 读取签名文件
+	signdata, _ := ioutil.ReadFile("testdata/signdata")
+	// 公钥验签
+	ok := pub.Verify(msg, signdata)
 	if ok != true {
-		fmt.Printf("Verify error\n")
+		fmt.Printf("公钥验签失败\n")
 	} else {
-		fmt.Printf("Verify ok\n")
+		fmt.Printf("公钥验签成功\n")
 	}
-	pubKey := priv.PublicKey
-	ok = pubKey.Verify(msg, signdata) // 公钥验证
-	if ok != true {
-		fmt.Printf("Verify error\n")
-	} else {
-		fmt.Printf("Verify ok\n")
-	}
-
 }
 
 func BenchmarkSM2(t *testing.B) {
