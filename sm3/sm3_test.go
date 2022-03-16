@@ -27,29 +27,36 @@ func byteToString(b []byte) string {
 	for i := 0; i < len(b); i++ {
 		ret += fmt.Sprintf("%02x", b[i])
 	}
-	fmt.Println("ret = ", ret)
+	// fmt.Println("ret = ", ret)
 	return ret
 }
 func TestSm3(t *testing.T) {
-	msg := []byte("test")
-	err := ioutil.WriteFile("ifile", msg, os.FileMode(0644)) // 生成测试文件
+	msg := []byte("天行健君子以自强不息")
+	// 生成msg文件
+	err := ioutil.WriteFile("testdata/msg", msg, os.FileMode(0644))
 	if err != nil {
 		t.Fatal(err)
 	}
-	msg, err = ioutil.ReadFile("ifile")
+	// 读取msg文件
+	msg, err = ioutil.ReadFile("testdata/msg")
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Printf("读取到的文件内容: %s\n", msg)
+	// sm3.New()
 	hw := New()
+	// 添加散列内容
 	hw.Write(msg)
+	// 散列计算
 	hash := hw.Sum(nil)
-	fmt.Println(hash)
-	fmt.Printf("hash = %d\n", len(hash))
-	fmt.Printf("%s\n", byteToString(hash))
+	fmt.Println("hash值: ", hash)
+	fmt.Printf("hash长度 : %d\n", len(hash))
+	fmt.Printf("hash字符串 : %s\n", byteToString(hash))
+	// 直接sm3计算
 	hash1 := Sm3Sum(msg)
-	fmt.Println(hash1)
-	fmt.Printf("%s\n", byteToString(hash1))
-
+	fmt.Println("hash1值: ", hash1)
+	fmt.Printf("hash1长度 : %d\n", len(hash1))
+	fmt.Printf("hash1字符串 : %s\n", byteToString(hash1))
 }
 
 func BenchmarkSm3(t *testing.B) {

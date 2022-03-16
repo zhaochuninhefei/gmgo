@@ -24,3 +24,4 @@ sm2/TestResult
 gmtls/gmcredentials/__debug_bin
 sm2/testdata/msg.dat
 sm2/testdata/signdata
+sm3/testdata/msg
