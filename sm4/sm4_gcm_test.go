@@ -23,38 +23,59 @@ import (
 	"testing"
 )
 
-
-func TestSM4GCM(t *testing.T){
+func TestSM4GCM(t *testing.T) {
+	// 定义key，16字节
 	key := []byte("1234567890abcdef")
-	data := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
-	IV :=make([]byte,BlockSize)
-	testA:=[][]byte{ // the length of the A can be random
-		[]byte{},
-		[]byte{0x01, 0x23, 0x45, 0x67, 0x89},
-		[]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10},
+	fmt.Printf("key字节数组 : %v\n", key)
+	fmt.Printf("key字符串 : %s\n", key)
+	// 定义IV，16字节
+	IV := []byte("1234def567890abc")
+	// IV := make([]byte, BlockSize)
+	fmt.Printf("iv字节数组 : %v\n", IV)
+	fmt.Printf("iv16进制 : %x\n", IV)
+	fmt.Printf("iv字符串 : %s\n", IV)
+
+	// 定义数据，16字节
+	// data := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
+	data := []byte("天行健1234567")
+	fmt.Printf("data字节数组 : %v\n", data)
+	fmt.Printf("data十六进制 : %x\n", data)
+	fmt.Printf("data字符串 : %s\n", data)
+
+	testA := [][]byte{ // the length of the A can be random
+		{},
+		{0x01, 0x23, 0x45, 0x67, 0x89},
+		{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10},
 	}
-	for _,A:=range testA{
-		gcmMsg,T,err:=Sm4GCM(key,IV,data,A,true)
-		if err !=nil{
+	for _, A := range testA {
+		fmt.Printf("====== 附加鉴别数据 A : %x\n", A)
+		// gcm模式加密
+		gcmMsg, T, err := Sm4GCM(key, IV, data, A, true)
+		if err != nil {
 			t.Errorf("sm4 enc error:%s", err)
 		}
-		fmt.Printf("gcmMsg = %x\n", gcmMsg)
-		gcmDec,T_,err:=Sm4GCM(key,IV,gcmMsg,A,false)
-		if err != nil{
+		fmt.Printf("gcmMsg 16进制 : %x\n", gcmMsg)
+		// gcm模式解密
+		gcmDec, T_, err := Sm4GCM(key, IV, gcmMsg, A, false)
+		if err != nil {
 			t.Errorf("sm4 dec error:%s", err)
 		}
-		fmt.Printf("gcmDec = %x\n", gcmDec)
-		if bytes.Compare(T,T_)==0{
-			fmt.Println("authentication successed")
+		fmt.Printf("gcmDec : %s\n", gcmDec)
+
+		if bytes.Equal(T, T_) {
+			fmt.Println("鉴别成功")
 		}
+
 		//Failed Test : if we input the different A , that will be a falied result.
-		A= []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd}
-		gcmDec,T_,err=Sm4GCM(key,IV,gcmMsg,A ,false)
-		if err != nil{
-			t.Errorf("sm4 dec error:%s", err)
+		A = []byte{0x01, 0x32, 0x45, 0x67, 0xba, 0xab, 0xcd}
+		gcmDec, T_, err = Sm4GCM(key, IV, gcmMsg, A, false)
+		if err != nil {
+			t.Errorf("使用不同的附加鉴别数据后，Sm4GCM 解密失败 : %s", err)
+		} else {
+			fmt.Printf("使用不同的附加鉴别数据后，gcmDec : %s\n", gcmDec)
 		}
-		if bytes.Compare(T,T_)!=0{
-			fmt.Println("authentication failed")
+		if !bytes.Equal(T, T_) {
+			fmt.Println("鉴别失败")
 		}
 	}
 

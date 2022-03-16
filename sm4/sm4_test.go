@@ -22,78 +22,102 @@ import (
 )
 
 func TestSM4(t *testing.T) {
-	key := []byte("1234567890abcdef")
+	// 定义密钥，16字节
+	key := []byte("abcdef1234567890")
+	fmt.Printf("key字节数组 : %v\n", key)
+	fmt.Printf("key字符串 : %s\n", key)
 
-	fmt.Printf("key = %v\n", key)
-	data := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
-	err := WriteKeyToPemFile("key.pem", key, nil)
+	// 将key写入key.pem
+	err := WriteKeyToPemFile("testdata/key.pem", key, nil)
 	if err != nil {
 		t.Fatalf("WriteKeyToPem error")
 	}
-	key, err = ReadKeyFromPemFile("key.pem", nil)
-	fmt.Printf("key = %v\n", key)
+	// 读取key.pem
+	key, err = ReadKeyFromPemFile("testdata/key.pem", nil)
+	fmt.Printf("读取到的key字节数组 : %v\n", key)
+	fmt.Printf("读取到的key字符串 : %s\n", key)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("data = %x\n", data)
+
+	// 定义数据
+	// data := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
+	data := []byte("天行健君子以自强不息")
+	fmt.Printf("data字节数组 : %v\n", data)
+	fmt.Printf("data十六进制 : %x\n", data)
+	fmt.Printf("data字符串 : %s\n", data)
+
+	// ECB模式加密
 	ecbMsg, err := Sm4Ecb(key, data, true)
 	if err != nil {
 		t.Errorf("sm4 enc error:%s", err)
 		return
 	}
-	fmt.Printf("ecbMsg = %x\n", ecbMsg)
-	iv := []byte("0000000000000000")
-	err = SetIV(iv)
-	fmt.Printf("err = %v\n", err)
+	fmt.Printf("ecbMsg 16进制 : %x\n", ecbMsg)
+	// ECB模式解密
 	ecbDec, err := Sm4Ecb(key, ecbMsg, false)
 	if err != nil {
 		t.Errorf("sm4 dec error:%s", err)
 		return
 	}
-	fmt.Printf("ecbDec = %x\n", ecbDec)
+	fmt.Printf("ecbDec : %s\n", ecbDec)
 	if !testCompare(data, ecbDec) {
 		t.Errorf("sm4 self enc and dec failed")
 	}
+
+	// 定义初始化向量，16字节
+	// iv := []byte("0000000000000000")
+	iv := []byte("1234def567890abc")
+	err = SetIV(iv)
+	fmt.Printf("err = %v\n", err)
+	fmt.Printf("iv字节数组 : %v\n", iv)
+	fmt.Printf("iv16进制 : %x\n", iv)
+	fmt.Printf("iv字符串 : %s\n", iv)
+
+	// CBC模式加密
 	cbcMsg, err := Sm4Cbc(key, data, true)
 	if err != nil {
 		t.Errorf("sm4 enc error:%s", err)
 	}
-	fmt.Printf("cbcMsg = %x\n", cbcMsg)
+	fmt.Printf("cbcMsg 16进制 : %x\n", cbcMsg)
+	// CBC模式解密
 	cbcDec, err := Sm4Cbc(key, cbcMsg, false)
 	if err != nil {
 		t.Errorf("sm4 dec error:%s", err)
 		return
 	}
-	fmt.Printf("cbcDec = %x\n", cbcDec)
+	fmt.Printf("cbcDec : %s\n", cbcDec)
 	if !testCompare(data, cbcDec) {
 		t.Errorf("sm4 self enc and dec failed")
 	}
 
-	cbcMsg, err = Sm4CFB(key, data, true)
+	// CFB模式加密
+	cfbMsg, err := Sm4CFB(key, data, true)
 	if err != nil {
 		t.Errorf("sm4 enc error:%s", err)
 	}
-	fmt.Printf("cbcCFB = %x\n", cbcMsg)
-
-	cbcCfb, err := Sm4CFB(key, cbcMsg, false)
+	fmt.Printf("cfbMsg 16进制 : %x\n", cfbMsg)
+	// CFB模式解密
+	cfbDec, err := Sm4CFB(key, cfbMsg, false)
 	if err != nil {
 		t.Errorf("sm4 dec error:%s", err)
 		return
 	}
-	fmt.Printf("cbcCFB = %x\n", cbcCfb)
+	fmt.Printf("cfbDec : %s\n", cfbDec)
 
-	cbcMsg, err = Sm4OFB(key, data, true)
+	// OFB模式加密
+	ofbMsg, err := Sm4OFB(key, data, true)
 	if err != nil {
 		t.Errorf("sm4 enc error:%s", err)
 	}
-	fmt.Printf("cbcOFB = %x\n", cbcMsg)
-
-	cbcOfc, err := Sm4OFB(key, cbcMsg, false)
+	fmt.Printf("ofbMsg 16进制 : %x\n", ofbMsg)
+	// OFB模式解密
+	ofbDec, err := Sm4OFB(key, ofbMsg, false)
 	if err != nil {
 		t.Errorf("sm4 dec error:%s", err)
 		return
 	}
-	fmt.Printf("cbcOFB = %x\n", cbcOfc)
+	fmt.Printf("ofbDec : %s\n", ofbDec)
 }
 
 func BenchmarkSM4(t *testing.B) {
