@@ -729,15 +729,15 @@ func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 type KeyUsage int
 
 const (
-	KeyUsageDigitalSignature KeyUsage = 1 << iota
-	KeyUsageContentCommitment
-	KeyUsageKeyEncipherment
-	KeyUsageDataEncipherment
-	KeyUsageKeyAgreement
-	KeyUsageCertSign
-	KeyUsageCRLSign
-	KeyUsageEncipherOnly
-	KeyUsageDecipherOnly
+	KeyUsageDigitalSignature  KeyUsage = 1 << iota // Digital Signature
+	KeyUsageContentCommitment                      // Non Repudiation
+	KeyUsageKeyEncipherment                        // Key Encipherment
+	KeyUsageDataEncipherment                       // Data Encipherment
+	KeyUsageKeyAgreement                           // Key Agreement
+	KeyUsageCertSign                               // Certificate Sign
+	KeyUsageCRLSign                                // CRL Sign
+	KeyUsageEncipherOnly                           // Encipher Only
+	KeyUsageDecipherOnly                           // Decipher Only
 )
 
 // RFC 5280, 4.2.1.12  Extended Key Usage
@@ -772,18 +772,18 @@ var (
 type ExtKeyUsage int
 
 const (
-	ExtKeyUsageAny ExtKeyUsage = iota
-	ExtKeyUsageServerAuth
-	ExtKeyUsageClientAuth
-	ExtKeyUsageCodeSigning
-	ExtKeyUsageEmailProtection
-	ExtKeyUsageIPSECEndSystem
-	ExtKeyUsageIPSECTunnel
-	ExtKeyUsageIPSECUser
-	ExtKeyUsageTimeStamping
-	ExtKeyUsageOCSPSigning
-	ExtKeyUsageMicrosoftServerGatedCrypto
-	ExtKeyUsageNetscapeServerGatedCrypto
+	ExtKeyUsageAny                        ExtKeyUsage = iota // Any Extended Key Usage
+	ExtKeyUsageServerAuth                                    // TLS Web Server Authentication
+	ExtKeyUsageClientAuth                                    // TLS Web Client Authentication
+	ExtKeyUsageCodeSigning                                   // Code Signing
+	ExtKeyUsageEmailProtection                               // E-mail Protection
+	ExtKeyUsageIPSECEndSystem                                // IPSec End System
+	ExtKeyUsageIPSECTunnel                                   // IPSec Tunnel
+	ExtKeyUsageIPSECUser                                     // IPSec User
+	ExtKeyUsageTimeStamping                                  // Time Stamping
+	ExtKeyUsageOCSPSigning                                   // OCSP Signing
+	ExtKeyUsageMicrosoftServerGatedCrypto                    // Microsoft Server Gated Crypto
+	ExtKeyUsageNetscapeServerGatedCrypto                     // Netscape Server Gated Crypto
 )
 
 // extKeyUsageOIDs contains the mapping between an ExtKeyUsage and its OID.

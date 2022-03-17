@@ -461,6 +461,7 @@ func (hs *serverHandshakeStateGM) doFullHandshake() error {
 		hs.finishedHash.Write(certMsg.marshal())
 
 		if len(certMsg.certificates) == 0 {
+			fmt.Println("------ debug用 : 服务端接受到的ClientCertificate件数为0")
 			// The client didn't actually send a certificate
 			switch c.config.ClientAuth {
 			case RequireAnyClientCert, RequireAndVerifyClientCert:
@@ -519,7 +520,7 @@ func (hs *serverHandshakeStateGM) doFullHandshake() error {
 			c.sendAlert(alertUnexpectedMessage)
 			return unexpectedMessageError(certVerify, msg)
 		}
-		// fmt.Println("------ debug用 : 服务端接受到 CertificateVerify")
+		fmt.Println("------ debug用 : 服务端接受到 CertificateVerify")
 
 		// Determine the signature type.
 		_, sigType, hashFunc, err := pickSignatureAlgorithm(pub, []SignatureScheme{certVerify.signatureAlgorithm}, supportedSignatureAlgorithms, c.vers)

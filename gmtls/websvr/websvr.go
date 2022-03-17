@@ -15,7 +15,7 @@ const (
 	RSACaCertPath   = "./certs/RSA_CA.cer"
 	RSAAuthCertPath = "./certs/rsa_auth_cert.cer"
 	RSAAuthKeyPath  = "./certs/rsa_auth_key.pem"
-	SM2CaCertPath   = "./certs/SM2_CA.cer"
+	SM2CaCertPath   = "./certs/sm2_ca_cert.cer"
 	SM2AuthCertPath = "./certs/sm2_auth_cert.cer"
 	SM2AuthKeyPath  = "./certs/sm2_auth_key.pem"
 	sm2SignCertPath = "./certs/sm2_sign_cert.cer"
@@ -65,9 +65,26 @@ func loadAutoSwitchConfig() (*gmtls.Config, error) {
 	encCert, err := gmtls.LoadX509KeyPair(sm2EncCertPath, sm2EncKeyPath)
 	if err != nil {
 		return nil, err
-
 	}
-	return gmtls.NewBasicAutoSwitchConfig(&sigCert, &encCert, &rsaKeypair)
+	// 返回自动切换的配置
+	config, err := gmtls.NewBasicAutoSwitchConfig(&sigCert, &encCert, &rsaKeypair)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果服务端想要验证客户端身份，在这里添对应配置
+	// // 信任的根证书
+	// certPool := gx509.NewCertPool()
+	// cacert, err := ioutil.ReadFile(SM2CaCertPath)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// certPool.AppendCertsFromPEM(cacert)
+	// config.ClientAuth = gmtls.RequireAndVerifyClientCert
+	// config.ClientCAs = certPool
+	// fmt.Println("------ debug用 : 服务端配置了双向tls通信")
+
+	return config, nil
 }
 
 // 双向身份认证 服务端配置

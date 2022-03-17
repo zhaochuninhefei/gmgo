@@ -384,7 +384,10 @@ func (hs *clientHandshakeStateGM) doFullHandshake() error {
 		// 将客户端发送的 Certificate 写入finished
 		hs.finishedHash.Write(certMsg.marshal())
 		// 发送 客户端 Certificate
-		// fmt.Println("------ debug用 : 客户端发送 Certificate")
+		fmt.Println("------ debug用 : 客户端发送 Certificate")
+		if chainToSend != nil && len(chainToSend.Certificate) > 0 {
+			fmt.Println("------ debug用 : 客户端发送的 Certificate 件数 > 0")
+		}
 		if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 			return err
 		}
@@ -701,8 +704,10 @@ findCert:
 			}
 
 			var isGMCert bool
-
-			if x509Cert.PublicKeyAlgorithm == x509.ECDSA {
+			// 添加sm2算法分支
+			if x509Cert.PublicKeyAlgorithm == x509.SM2 {
+				isGMCert = true
+			} else if x509Cert.PublicKeyAlgorithm == x509.ECDSA {
 				pubKey, ok := x509Cert.PublicKey.(*ecdsa.PublicKey)
 				if ok && pubKey.Curve == sm2.P256Sm2() {
 					isGMCert = true

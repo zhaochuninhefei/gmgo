@@ -130,6 +130,9 @@ func gmClientRun() {
 		GMSupport:    &gmtls.GMSupport{},
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
+		// 因为sm2相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
+		// 指定了CN为"test.example.com"，因此客户端配置需要显式指定ServerName
+		ServerName: "test.example.com",
 	}
 
 	// 向服务端拨号，建立tls连接
@@ -183,6 +186,7 @@ func gmGCMClientRun() {
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
 		CipherSuites: []uint16{gmtls.GMTLS_ECC_SM4_GCM_SM3},
+		ServerName:   "test.example.com",
 	}
 
 	// 向服务端拨号，建立tls连接

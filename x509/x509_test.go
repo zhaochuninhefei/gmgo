@@ -59,8 +59,8 @@ func TestX509(t *testing.T) {
 	// 定义证书申请模板
 	templateReq := CertificateRequest{
 		Subject: pkix.Name{
-			CommonName:   "test.example.com",
-			Organization: []string{"Test"},
+			CommonName:   "pangzi.com",
+			Organization: []string{"PANGZIXIEHUI"},
 		},
 		//		SignatureAlgorithm: ECDSAWithSHA256,
 		SignatureAlgorithm: SM2WithSM3,
@@ -85,7 +85,7 @@ func TestX509(t *testing.T) {
 	testExtKeyUsage := []ExtKeyUsage{ExtKeyUsageClientAuth, ExtKeyUsageServerAuth}
 	testUnknownExtKeyUsage := []asn1.ObjectIdentifier{[]int{1, 2, 3}, []int{2, 59, 1}}
 	extraExtensionData := []byte("extra extension")
-	commonName := "test.example.com"
+	commonName := "pangzi.com"
 	// 定义证书模板
 	template := Certificate{
 		// SerialNumber is negative to ensure that negative
@@ -95,7 +95,7 @@ func TestX509(t *testing.T) {
 		SerialNumber: big.NewInt(-1),
 		Subject: pkix.Name{
 			CommonName:   commonName,
-			Organization: []string{"TEST"},
+			Organization: []string{"PANGZIXIEHUI"},
 			Country:      []string{"China"},
 			ExtraNames: []pkix.AttributeTypeAndValue{
 				{
@@ -124,17 +124,17 @@ func TestX509(t *testing.T) {
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 
-		OCSPServer:            []string{"http://ocsp.example.com"},
-		IssuingCertificateURL: []string{"http://crt.example.com/ca1.crt"},
+		OCSPServer:            []string{"http://ocsp.pangzi.com"},
+		IssuingCertificateURL: []string{"http://crt.pangzi.com/ca1.crt"},
 
-		DNSNames:       []string{"test.example.com"},
+		DNSNames:       []string{"pangzi.com"},
 		EmailAddresses: []string{"gopher@golang.org"},
 		IPAddresses:    []net.IP{net.IPv4(127, 0, 0, 1).To4(), net.ParseIP("2001:4860:0:2001::68")},
 
 		PolicyIdentifiers:   []asn1.ObjectIdentifier{[]int{1, 2, 3}},
-		PermittedDNSDomains: []string{".example.com", "example.com"},
+		PermittedDNSDomains: []string{".pangzi.com", "pangzi.com"},
 
-		CRLDistributionPoints: []string{"http://crl1.example.com/ca1.crl", "http://crl2.example.com/ca1.crl"},
+		CRLDistributionPoints: []string{"http://crl1.pangzi.com/ca1.crl", "http://crl2.pangzi.com/ca1.crl"},
 
 		ExtraExtensions: []pkix.Extension{
 			{
@@ -149,7 +149,7 @@ func TestX509(t *testing.T) {
 			},
 		},
 	}
-	pubKey, _ = priv.Public().(*sm2.PublicKey)
+	// pubKey, _ = priv.Public().(*sm2.PublicKey)
 	// 创建证书pem字节流
 	certpem, err := CreateCertificateToPem(&template, &template, pubKey, privKey)
 	if err != nil {
@@ -169,9 +169,435 @@ func TestX509(t *testing.T) {
 	}
 }
 
-// TODO 添加对以下函数的测试:
-// CreateCertificateRequestToMem 、 CreateCertificateRequestToPemFile
-// CreateCertificateToMem 、 CreateCertificateToPemFile
+func TestX509WithFile(t *testing.T) {
+	// 生成sm2密钥对
+	priv, err := sm2.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := &priv.PublicKey
+	// 生成私钥pem文件
+	_, err = WritePrivateKeytoPem("testdata/pri_key.pem", priv, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 生成公钥pem文件
+	_, err = WritePublicKeytoPem("testdata/pub_key.pem", pub, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 从pem文件读取私钥
+	privKey, err := ReadPrivateKeyFromPemFile("testdata/pri_key.pem", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("读取到sm2私钥 : %v\n", privKey)
+	// 从pem文件读取公钥
+	pubKey, err := ReadPublicKeyFromPemFile("testdata/pub_key.pem", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("读取到sm2公钥 : %v\n", pubKey)
+	fmt.Println("测试sm2私钥与公钥文件读写成功")
+
+	// 定义证书申请模板
+	templateReq := CertificateRequest{
+		Subject: pkix.Name{
+			// Subject行的CN
+			CommonName: "test.pangzi.com",
+			// Subject行的O
+			Organization: []string{"PANGZIXIEHUI", "dapangzixiehui"},
+		},
+		//		SignatureAlgorithm: ECDSAWithSHA256,
+		SignatureAlgorithm: SM2WithSM3,
+	}
+	// 创建证书申请pem字节流并签名
+	_, err = CreateCertificateRequestToPemFile("testdata/csr.pem", &templateReq, privKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 创建证书申请csr文件后，可以用`openssl req -noout -text -in testdata/csr.pem`命令查看文件内容
+
+	// 模拟ca检查证书申请
+	// 从pem读取证书申请
+	req, err := ReadCertificateRequestFromPemFile("testdata/csr.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 检查证书申请的签名
+	err = req.CheckSignature()
+	if err != nil {
+		t.Fatalf("证书申请验签失败 : %v", err)
+	} else {
+		fmt.Printf("证书申请验签成功\n")
+	}
+	fmt.Println("测试证书申请文件读写与验签成功")
+
+	// 模拟ca发布证书
+	testExtKeyUsage := []ExtKeyUsage{ExtKeyUsageClientAuth, ExtKeyUsageServerAuth}
+	testUnknownExtKeyUsage := []asn1.ObjectIdentifier{[]int{1, 2, 3}, []int{2, 59, 1}}
+	extraExtensionData := []byte("extra extension")
+	commonName := "test.pangzi.com"
+	// 定义证书模板
+	template := Certificate{
+		// SerialNumber is negative to ensure that negative
+		// values are parsed. This is due to the prevalence of
+		// buggy code that produces certificates with negative
+		// serial numbers.
+		SerialNumber: big.NewInt(-1),
+		Subject: pkix.Name{
+			// Subject行的CN
+			CommonName: commonName,
+			// Subject行的O
+			Organization: []string{"PANGZIXIEHUI", "dapangzixiehui"},
+			Country:      []string{"China"},
+			// CN之后的附加名称
+			ExtraNames: []pkix.AttributeTypeAndValue{
+				{
+					// GN
+					Type:  []int{2, 5, 4, 42},
+					Value: "Gopher",
+				},
+				// This should override the Country, above.
+				{
+					// C
+					Type:  []int{2, 5, 4, 6},
+					Value: "NL",
+				},
+			},
+		},
+		NotBefore: time.Now(),
+		NotAfter:  time.Date(2032, time.December, 31, 23, 59, 59, 1, time.UTC),
+
+		//		SignatureAlgorithm: ECDSAWithSHA256,
+		SignatureAlgorithm: SM2WithSM3,
+
+		SubjectKeyId: []byte{1, 2, 3, 4},
+		KeyUsage:     KeyUsageCertSign,
+
+		ExtKeyUsage:        testExtKeyUsage,
+		UnknownExtKeyUsage: testUnknownExtKeyUsage,
+
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+
+		OCSPServer:            []string{"http://ocsp.pangzi.com"},
+		IssuingCertificateURL: []string{"http://crt.pangzi.com/ca1.crt"},
+
+		DNSNames:       []string{"test.pangzi.com"},
+		EmailAddresses: []string{"gopher@golang.org"},
+		IPAddresses:    []net.IP{net.IPv4(127, 0, 0, 1).To4(), net.ParseIP("2001:4860:0:2001::68")},
+
+		PolicyIdentifiers:   []asn1.ObjectIdentifier{[]int{1, 2, 3}},
+		PermittedDNSDomains: []string{".pangzi.com", "pangzi.com"},
+
+		CRLDistributionPoints: []string{"http://crl1.pangzi.com/ca1.crl", "http://crl2.pangzi.com/ca1.crl"},
+
+		ExtraExtensions: []pkix.Extension{
+			{
+				Id:    []int{1, 2, 3, 4},
+				Value: extraExtensionData,
+			},
+			// This extension should override the SubjectKeyId, above.
+			{
+				Id:       oidExtensionSubjectKeyId,
+				Critical: false,
+				Value:    []byte{0x04, 0x04, 4, 3, 2, 1},
+			},
+		},
+	}
+	// 创建证书pem文件
+	_, err = CreateCertificateToPemFile("testdata/cert.cer", &template, &template, pubKey, privKey)
+	if err != nil {
+		t.Fatal("failed to create cert file")
+	}
+	// 可以使用命令`openssl x509 -noout -text -in testdata/cert.cer`查看生成的x509证书
+	// 读取证书pem文件
+	cert, err := ReadCertificateFromPemFile("testdata/cert.cer")
+	if err != nil {
+		t.Fatal("failed to read cert file")
+	}
+	// 检查证书签名
+	err = cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	if err != nil {
+		t.Fatal(err)
+	} else {
+		fmt.Printf("CheckSignature ok\n")
+	}
+	fmt.Println("测试证书文件读写与验签成功")
+}
+
+func TestCreateCertFromCA(t *testing.T) {
+	caPriv, caCert, err := createCACert()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("生成CA密钥对与CA证书成功")
+
+	err = createSignCert(caPriv, caCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("生成sm2_sign密钥对并模拟CA为其颁发证书成功")
+
+	err = createEncCert(caPriv, caCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("生成sm2_enc密钥对并模拟CA为其颁发证书成功")
+
+	err = createAuthCert(caPriv, caCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("生成sm2_auth密钥对并模拟CA为其颁发证书成功")
+}
+
+// 创建ca证书，并返回ca私钥与ca证书
+func createCACert() (*sm2.PrivateKey, *Certificate, error) {
+	certType := "sm2_ca"
+	// 生成sm2密钥对
+	privKey, pubKey, err := createKeys(certType)
+	if err != nil {
+		return nil, nil, err
+	}
+	userKeyUsage := KeyUsageCertSign + KeyUsageCRLSign
+	userExtKeyUsage := []ExtKeyUsage{
+		// ExtKeyUsageAny,
+		// ExtKeyUsageServerAuth,
+		// ExtKeyUsageClientAuth,
+		// ExtKeyUsageCodeSigning,
+		// ExtKeyUsageEmailProtection,
+		// ExtKeyUsageIPSECEndSystem,
+		// ExtKeyUsageIPSECTunnel,
+		// ExtKeyUsageIPSECUser,
+		// ExtKeyUsageTimeStamping,
+		// ExtKeyUsageOCSPSigning,
+		// ExtKeyUsageMicrosoftServerGatedCrypto,
+		// ExtKeyUsageNetscapeServerGatedCrypto,
+	}
+	sid := []byte{0, 0, 0, 1}
+	aid := []byte{0, 0, 0, 1}
+	// 创建证书，ca证书自签名
+	cert, err := createCert(1, "test.example.com", "example.com", "CN", "He Fei", true, true, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, privKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 检查证书签名，因为是ca证书自签名，所以使用本证书自验
+	err = cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	if err != nil {
+		return nil, nil, err
+	} else {
+		fmt.Printf("CheckSignature ok\n")
+	}
+	return privKey, cert, nil
+}
+
+func createSignCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
+	certType := "sm2_sign"
+	// 生成sm2密钥对
+	_, pubKey, err := createKeys(certType)
+	if err != nil {
+		return err
+	}
+	userKeyUsage := KeyUsageDigitalSignature + KeyUsageContentCommitment
+	userExtKeyUsage := []ExtKeyUsage{
+		// ExtKeyUsageAny,
+		ExtKeyUsageServerAuth,
+		ExtKeyUsageClientAuth,
+		// ExtKeyUsageCodeSigning,
+		// ExtKeyUsageEmailProtection,
+		// ExtKeyUsageIPSECEndSystem,
+		// ExtKeyUsageIPSECTunnel,
+		// ExtKeyUsageIPSECUser,
+		// ExtKeyUsageTimeStamping,
+		// ExtKeyUsageOCSPSigning,
+		// ExtKeyUsageMicrosoftServerGatedCrypto,
+		// ExtKeyUsageNetscapeServerGatedCrypto,
+	}
+	sid := []byte{0, 0, 0, 2}
+	aid := caCert.SubjectKeyId
+	// 模拟CA颁发证书，注意此时ca证书是父证书
+	cert, err := createCert(2, "test.example.com", "example.com", "CN", "He Fei", false, false, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv)
+	if err != nil {
+		return err
+	}
+	// 使用父证书caCert验签
+	err = caCert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	if err != nil {
+		return err
+	} else {
+		fmt.Printf("CheckSignature ok\n")
+	}
+	return nil
+}
+
+func createEncCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
+	certType := "sm2_enc"
+	// 生成sm2密钥对
+	_, pubKey, err := createKeys(certType)
+	if err != nil {
+		return err
+	}
+	userKeyUsage := KeyUsageKeyEncipherment + KeyUsageDataEncipherment
+	userExtKeyUsage := []ExtKeyUsage{
+		// ExtKeyUsageAny,
+		// ExtKeyUsageServerAuth,
+		// ExtKeyUsageClientAuth,
+		// ExtKeyUsageCodeSigning,
+		// ExtKeyUsageEmailProtection,
+		// ExtKeyUsageIPSECEndSystem,
+		// ExtKeyUsageIPSECTunnel,
+		// ExtKeyUsageIPSECUser,
+		// ExtKeyUsageTimeStamping,
+		// ExtKeyUsageOCSPSigning,
+		// ExtKeyUsageMicrosoftServerGatedCrypto,
+		// ExtKeyUsageNetscapeServerGatedCrypto,
+	}
+	sid := []byte{0, 0, 0, 3}
+	aid := caCert.SubjectKeyId
+	// 模拟CA颁发证书，注意此时ca证书是父证书
+	cert, err := createCert(3, "test.example.com", "example.com", "CN", "He Fei", false, false, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv)
+	if err != nil {
+		return err
+	}
+	// 使用父证书caCert验签
+	err = caCert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	if err != nil {
+		return err
+	} else {
+		fmt.Printf("CheckSignature ok\n")
+	}
+	return nil
+}
+
+func createAuthCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
+	certType := "sm2_auth"
+	// 生成sm2密钥对
+	_, pubKey, err := createKeys(certType)
+	if err != nil {
+		return err
+	}
+	userKeyUsage := KeyUsageDigitalSignature + KeyUsageContentCommitment
+	userExtKeyUsage := []ExtKeyUsage{
+		// ExtKeyUsageAny,
+		ExtKeyUsageServerAuth,
+		ExtKeyUsageClientAuth,
+		// ExtKeyUsageCodeSigning,
+		// ExtKeyUsageEmailProtection,
+		// ExtKeyUsageIPSECEndSystem,
+		// ExtKeyUsageIPSECTunnel,
+		// ExtKeyUsageIPSECUser,
+		// ExtKeyUsageTimeStamping,
+		// ExtKeyUsageOCSPSigning,
+		// ExtKeyUsageMicrosoftServerGatedCrypto,
+		// ExtKeyUsageNetscapeServerGatedCrypto,
+	}
+	sid := []byte{0, 0, 0, 4}
+	aid := caCert.SubjectKeyId
+	// 模拟CA颁发证书，注意此时ca证书是父证书
+	cert, err := createCert(4, "test.example.com", "example.com", "CN", "He Fei", false, false, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv)
+	if err != nil {
+		return err
+	}
+	// 使用父证书caCert验签
+	err = caCert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	if err != nil {
+		return err
+	} else {
+		fmt.Printf("CheckSignature ok\n")
+	}
+	return nil
+}
+
+func createKeys(certType string) (*sm2.PrivateKey, *sm2.PublicKey, error) {
+	// 生成sm2密钥对
+	priv, err := sm2.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	pub := &priv.PublicKey
+	// 生成私钥pem文件
+	_, err = WritePrivateKeytoPem("testdata/"+certType+"_key.pem", priv, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 生成公钥pem文件
+	_, err = WritePublicKeytoPem("testdata/"+certType+"_pubkey.pem", pub, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 从pem文件读取私钥
+	privKey, err := ReadPrivateKeyFromPemFile("testdata/"+certType+"_key.pem", nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 从pem文件读取公钥
+	pubKey, err := ReadPublicKeyFromPemFile("testdata/"+certType+"_pubkey.pem", nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return privKey, pubKey, nil
+}
+
+func createCert(sn int64, cn string, o string, c string, st string, bcs bool, isca bool, sId []byte, aId []byte,
+	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
+	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) (*Certificate, error) {
+	// 定义证书模板
+	template := &Certificate{
+		SerialNumber: big.NewInt(sn),
+		Subject: pkix.Name{
+			// Subject行的CN
+			CommonName: cn,
+			// Subject行的O
+			Organization: []string{o},
+			Country:      []string{"China"},
+			// 附加名称
+			ExtraNames: []pkix.AttributeTypeAndValue{
+				// This should override the Country, above.
+				{
+					// C
+					Type:  []int{2, 5, 4, 6},
+					Value: c,
+				},
+				{
+					// ST
+					Type:  []int{2, 5, 4, 8},
+					Value: st,
+				},
+			},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Date(2032, time.December, 31, 23, 59, 59, 1, time.UTC),
+		SignatureAlgorithm:    SM2WithSM3,
+		BasicConstraintsValid: bcs,
+		IsCA:                  isca,
+		SubjectKeyId:          sId,
+		AuthorityKeyId:        aId,
+		KeyUsage:              ku,
+		ExtKeyUsage:           ekus,
+		UnknownExtKeyUsage:    uekus,
+	}
+	// 创建证书pem文件
+	_, err := CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, template, pubKey, privKey)
+	if err != nil {
+		return nil, err
+	}
+	// 可以使用命令`openssl x509 -noout -text -in testdata/user_cert.cer`查看生成的x509证书
+	// 读取证书pem文件
+	cert, err := ReadCertificateFromPemFile("testdata/" + certType + "_cert.cer")
+	if err != nil {
+		return nil, err
+	}
+	// // 检查证书签名
+	// err = cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	// if err != nil {
+	// 	return nil, nil, err
+	// } else {
+	// 	fmt.Printf("CheckSignature ok\n")
+	// }
+	return cert, nil
+}
 
 func TestCreateRevocationList(t *testing.T) {
 	priv, err := sm2.GenerateKey(nil) // 生成密钥对
