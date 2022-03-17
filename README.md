@@ -20,3 +20,63 @@ gmgo
 - GMT 0015-2012 基于SM2密码算法的数字证书格式.pdf
 - GMT 0034-2014 基于SM2密码算法的证书认证系统密码及其相关安全技术规范.PDF
 
+# 测试案例
+从测试案例入手快速了解gmgo的使用。
+
+## sm2
+测试案例代码: `sm2/sm2_test.go`
+```sh
+cd sm2
+go test
+
+```
+
+## sm3
+测试案例代码: `sm3/sm3_test.go`
+```sh
+cd sm3
+go test
+
+```
+
+## sm4
+测试案例代码: `sm4/sm4_test.go`、`sm4/sm4_gcm_test.go`
+```sh
+cd sm4
+go test
+
+```
+
+## x509
+测试案例代码: `x509/x509_test.go`
+```sh
+cd x509
+go test
+
+```
+
+注意，`x509_test`的`TestCreateCertFromCA`测试函数生成的sm2系列密钥文件与证书将会用于`gmtls`的测试案例。
+
+
+## gmtls
+gmtls的测试案例主要是 `tls + http` 通信测试以及 `tls + grpc` 通信测试。
+
+### websvr
+测试案例代码: `gmtls/websvr/websvr_test.go`
+```sh
+cd gmtls/websvr
+go test
+
+```
+
+执行之前请确认`certs`目录下的sm2系列文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
+
+### gmcredentials
+测试案例代码: `gmtls/gmcredentials/credentials_test.go`
+```sh
+cd gmtls/gmcredentials
+go test
+
+```
+
+执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
