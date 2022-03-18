@@ -66,6 +66,8 @@ var errZeroParam = errors.New("zero parameter")
 var one = new(big.Int).SetInt64(1)
 var two = new(big.Int).SetInt64(2)
 
+// 使用priv私钥对明文msg做SM2签名，参数signer实际没有用，因为sm2签名内部固定使用sm3对明文做加盐的摘要计算。
+// 返回的签名已经对(r,s)做了asn1编码。
 // sign format = 30 + len(z) + 02 + len(r) + r + 02 + len(s) + s, z being what follows its size, ie 02+len(r)+r+02+len(s)+s
 func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerOpts) ([]byte, error) {
 	r, s, err := Sm2Sign(priv, msg, nil, random)
@@ -80,6 +82,7 @@ func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerO
 	return b.Bytes()
 }
 
+// 使用pub公钥对签名sig做验签，msg是签名内容明文
 func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 	var (
 		r, s  = &big.Int{}, &big.Int{}
@@ -692,6 +695,7 @@ func randFieldElement(c elliptic.Curve, random io.Reader) (k *big.Int, err error
 	return
 }
 
+// 基于P256Sm2曲线生成sm2的公私钥
 func GenerateKey(random io.Reader) (*PrivateKey, error) {
 	c := P256Sm2()
 	if random == nil {
@@ -703,14 +707,20 @@ func GenerateKey(random io.Reader) (*PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// 生成随机数k
 	k := new(big.Int).SetBytes(b)
+	// n = N - 2
 	n := new(big.Int).Sub(params.N, two)
+	// k = k mod n
 	k.Mod(k, n)
+	// k = k + 1
 	k.Add(k, one)
 	priv := new(PrivateKey)
+	// 设置曲线
 	priv.PublicKey.Curve = c
+	// 设置私钥
 	priv.D = k
+	// 公钥 = k * G
 	priv.PublicKey.X, priv.PublicKey.Y = c.ScalarBaseMult(k.Bytes())
 
 	return priv, nil

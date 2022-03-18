@@ -40,6 +40,7 @@ import (
 )
 
 /*
+ * PKCS#8 是私钥消息表示标准（Private-Key Information Syntax Standard）.
  * reference to RFC5959 and RFC2898
  */
 
@@ -188,6 +189,7 @@ func pbkdf(password, salt []byte, iter, keyLen int, h func() hash.Hash) []byte {
 	return dk[:keyLen]
 }
 
+// 将PKIX标准的sm2公钥字节流转为sm2公钥
 func ParseSm2PublicKey(der []byte) (*sm2.PublicKey, error) {
 	var pubkey pkixPublicKey
 
@@ -207,6 +209,7 @@ func ParseSm2PublicKey(der []byte) (*sm2.PublicKey, error) {
 	return &pub, nil
 }
 
+// 将sm2公钥转为PKIX标准的sm2公钥字节流
 func MarshalSm2PublicKey(key *sm2.PublicKey) ([]byte, error) {
 	var r pkixPublicKey
 	var algo pkix.AlgorithmIdentifier
@@ -218,13 +221,15 @@ func MarshalSm2PublicKey(key *sm2.PublicKey) ([]byte, error) {
 	algo.Parameters.Class = 0
 	algo.Parameters.Tag = 6
 	algo.Parameters.IsCompound = false
-	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出
-	algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
+	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出:
+	// sm2OidFullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
+	algo.Parameters.FullBytes = sm2OidFullBytes
 	r.Algo = algo
 	r.BitString = asn1.BitString{Bytes: elliptic.Marshal(key.Curve, key.X, key.Y)}
 	return asn1.Marshal(r)
 }
 
+// 将sm2私钥字节流转为sm2私钥
 func ParseSm2PrivateKey(der []byte) (*sm2.PrivateKey, error) {
 	var privKey sm2PrivateKey
 
@@ -252,18 +257,21 @@ func ParseSm2PrivateKey(der []byte) (*sm2.PrivateKey, error) {
 	return priv, nil
 }
 
+// 将未加密的pkcs8格式私钥字节流转为sm2私钥
 func ParsePKCS8UnecryptedPrivateKey(der []byte) (*sm2.PrivateKey, error) {
 	var privKey pkcs8
-
+	// 检查是否PKCS8格式
 	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
 		return nil, err
 	}
+	// 检查算法oid是否sm2
 	if !reflect.DeepEqual(privKey.Algo.Algorithm, oidSM2) {
 		return nil, errors.New("x509: not sm2 elliptic curve")
 	}
 	return ParseSm2PrivateKey(privKey.PrivateKey)
 }
 
+// 将加密的pkcs8格式私钥字节流转为sm2私钥
 func ParsePKCS8EcryptedPrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
 	var keyInfo EncryptedPrivateKeyInfo
 
@@ -314,6 +322,7 @@ func ParsePKCS8EcryptedPrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
 	return rKey, nil
 }
 
+// 将PKCS8格式字节流转为sm2私钥，根据pwd是否为空决定是否需要解密
 func ParsePKCS8PrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
 	if pwd == nil {
 
@@ -322,6 +331,7 @@ func ParsePKCS8PrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
 	return ParsePKCS8EcryptedPrivateKey(der, pwd)
 }
 
+// 将sm2私钥转为pkcs8格式字节流，不对私钥加密
 func MarshalSm2UnecryptedPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
 	var r pkcs8
 	var priv sm2PrivateKey
@@ -332,7 +342,8 @@ func MarshalSm2UnecryptedPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
 	algo.Parameters.Tag = 6
 	algo.Parameters.IsCompound = false
 	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出
-	algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
+	// sm2OidFullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
+	algo.Parameters.FullBytes = sm2OidFullBytes
 	priv.Version = 1
 	priv.NamedCurveOID = oidNamedCurveP256SM2
 	priv.PublicKey = asn1.BitString{Bytes: elliptic.Marshal(key.Curve, key.X, key.Y)}
@@ -343,6 +354,7 @@ func MarshalSm2UnecryptedPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
 	return asn1.Marshal(r)
 }
 
+// 将sm2私钥转为pkcs8格式字节流，然后加密
 func MarshalSm2EcryptedPrivateKey(PrivKey *sm2.PrivateKey, pwd []byte) ([]byte, error) {
 	der, err := MarshalSm2UnecryptedPrivateKey(PrivKey)
 	if err != nil {
@@ -405,6 +417,7 @@ func MarshalECPrivateKey(key interface{}) ([]byte, error) {
 	return MarshalSm2PrivateKey(key.(*sm2.PrivateKey), nil)
 }
 
+// 将sm2私钥转为PKCS8格式字节流，根据pwd是否为空决定是否加密
 func MarshalSm2PrivateKey(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
 	if pwd == nil {
 		return MarshalSm2UnecryptedPrivateKey(key)
@@ -412,6 +425,7 @@ func MarshalSm2PrivateKey(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
 	return MarshalSm2EcryptedPrivateKey(key, pwd)
 }
 
+// 将pem字节流转为sm2私钥
 func ReadPrivateKeyFromMem(data []byte, pwd []byte) (*sm2.PrivateKey, error) {
 	var block *pem.Block
 
@@ -432,6 +446,7 @@ func ReadPrivateKeyFromPemFile(FileName string, pwd []byte) (*sm2.PrivateKey, er
 	return ReadPrivateKeyFromMem(data, pwd)
 }
 
+// 将sm2私钥转为PKCS8格式字节流，根据pwd决定是否加密，然后包装为pem字节流
 func WritePrivateKeytoMem(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
 	var block *pem.Block
 
@@ -483,6 +498,7 @@ func WritePrivateKeytoPem(FileName string, key *sm2.PrivateKey, pwd []byte) (boo
 	return true, nil
 }
 
+// 将pem字节流转为sm2公钥
 func ReadPublicKeyFromMem(data []byte, _ []byte) (*sm2.PublicKey, error) {
 	block, _ := pem.Decode(data)
 	if block == nil || block.Type != "PUBLIC KEY" {
@@ -501,6 +517,7 @@ func ReadPublicKeyFromPemFile(FileName string, pwd []byte) (*sm2.PublicKey, erro
 	return ReadPublicKeyFromMem(data, pwd)
 }
 
+// 将sm2公钥转为PKIX格式字节流并包装为pem字节流
 func WritePublicKeytoMem(key *sm2.PublicKey, _ []byte) ([]byte, error) {
 	der, err := MarshalSm2PublicKey(key)
 	if err != nil {

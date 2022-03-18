@@ -25,25 +25,32 @@ import (
 	"strconv"
 )
 
+// 分组长度 16字节
 const BlockSize = 16
 
+// 初始化向量 IV
 var IV = make([]byte, BlockSize)
 
+// sm4密钥
 type SM4Key []byte
 
 // Cipher is an instance of SM4 encryption.
+// sm4加密实例结构体
 type Sm4Cipher struct {
+	// 轮密钥 长度32的uint32切片，每个元素是32bit的integer，即一个word
 	subkeys []uint32
-	block1  []uint32
-	block2  []byte
+	// 长度4的uint32切片，用来缓存将要被加解密的源字节数组转换而来的word切片
+	block1 []uint32
+	// 长度16的字节切片，用来缓存完成加解密之后word切片转换而来的字节切片
+	block2 []byte
 }
 
-// sm4密钥参量
+// sm4密钥参量FK
 var fk = [4]uint32{
 	0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc,
 }
 
-// sm4密钥参量
+// sm4密钥参量CK
 var ck = [32]uint32{
 	0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
 	0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9,
@@ -55,7 +62,7 @@ var ck = [32]uint32{
 	0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279,
 }
 
-// sm4密钥参量
+// sm4密钥参量SBox
 var sbox = [256]uint8{
 	0xd6, 0x90, 0xe9, 0xfe, 0xcc, 0xe1, 0x3d, 0xb7, 0x16, 0xb6, 0x14, 0xc2, 0x28, 0xfb, 0x2c, 0x05,
 	0x2b, 0x67, 0x9a, 0x76, 0x2a, 0xbe, 0x04, 0xc3, 0xaa, 0x44, 0x13, 0x26, 0x49, 0x86, 0x06, 0x99,
@@ -162,13 +169,17 @@ func p(a uint32) uint32 {
 	return (uint32(sbox[a>>24]) << 24) ^ (uint32(sbox[(a>>16)&0xff]) << 16) ^ (uint32(sbox[(a>>8)&0xff]) << 8) ^ uint32(sbox[(a)&0xff])
 }
 
+// 将长度16的字节切片转为长度4的word切片
 func permuteInitialBlock(b []uint32, block []byte) {
+	// 将block分为４组，每组４个字节
+	// 经过计算，转换为长度为4的word切片
 	for i := 0; i < 4; i++ {
 		b[i] = (uint32(block[i*4]) << 24) | (uint32(block[i*4+1]) << 16) |
 			(uint32(block[i*4+2]) << 8) | (uint32(block[i*4+3]))
 	}
 }
 
+// 将长度4的word切片转为长度16的字节切片
 func permuteFinalBlock(b []byte, block []uint32) {
 	for i := 0; i < 4; i++ {
 		b[i*4] = uint8(block[i] >> 24)
@@ -178,14 +189,24 @@ func permuteFinalBlock(b []byte, block []uint32) {
 	}
 }
 
-//修改后的加密核心函数
+// SM4分组加密核心函数
+// subkeys : 轮密钥 长度32，每个元素是一个32bit的word
+// b : 用来存放src转换而来的长度4的word切片
+// r : 用来存放加密/解密后转换而来的长度16的字节切片
+// dst : r的拷贝，用来返回加解密结果，长度16的字节切片
+// src : 将要进行加解密的字节切片，长度16
+// decrypt : 是否解密
 func cryptBlock(subkeys []uint32, b []uint32, r []byte, dst, src []byte, decrypt bool) {
+	// 将src转为word切片，长度4
 	permuteInitialBlock(b, src)
 
 	// bounds check elimination in major encryption loop
 	// https://go101.org/article/bounds-check-elimination.html
 	_ = b[3]
 	if decrypt {
+		// 解密
+		// 将轮密钥分为８轮执行解密，注意获取本轮密钥时顺序为逆序
+		// 每轮4个word，分别对src转换来的word切片进行解密。
 		for i := 0; i < 8; i++ {
 			s := subkeys[31-4*i-3 : 31-4*i-3+4]
 			x := b[1] ^ b[2] ^ b[3] ^ s[3]
@@ -198,6 +219,9 @@ func cryptBlock(subkeys []uint32, b []uint32, r []byte, dst, src []byte, decrypt
 			b[3] = b[3] ^ sbox0[x&0xff] ^ sbox1[(x>>8)&0xff] ^ sbox2[(x>>16)&0xff] ^ sbox3[(x>>24)&0xff]
 		}
 	} else {
+		// 加密
+		// 将轮密钥分为８轮执行加密，注意获取本轮密钥时顺序为正序
+		// 每轮4个word，分别对src转换来的word切片进行加密。
 		for i := 0; i < 8; i++ {
 			s := subkeys[4*i : 4*i+4]
 			x := b[1] ^ b[2] ^ b[3] ^ s[0]
@@ -210,11 +234,15 @@ func cryptBlock(subkeys []uint32, b []uint32, r []byte, dst, src []byte, decrypt
 			b[3] = b[3] ^ sbox0[x&0xff] ^ sbox1[(x>>8)&0xff] ^ sbox2[(x>>16)&0xff] ^ sbox3[(x>>24)&0xff]
 		}
 	}
+	// 倒序
 	b[0], b[1], b[2], b[3] = b[3], b[2], b[1], b[0]
+	// 将加密后的长度4的word切片转回长度16的字节切片
 	permuteFinalBlock(r, b)
+	// 结果拷贝到dist
 	copy(dst, r)
 }
 
+// 生成轮密钥 长度32的uint32切片 每个元素是一个32bit的integer，即word
 func generateSubKeys(key []byte) []uint32 {
 	subkeys := make([]uint32, 32)
 	b := make([]uint32, 4)
@@ -242,14 +270,17 @@ func NewCipher(key []byte) (cipher.Block, error) {
 	return c, nil
 }
 
+// 获取分组长度(字节数量)
 func (c *Sm4Cipher) BlockSize() int {
 	return BlockSize
 }
 
+// 分组加密
 func (c *Sm4Cipher) Encrypt(dst, src []byte) {
 	cryptBlock(c.subkeys, c.block1, c.block2, dst, src, false)
 }
 
+// 分组解密
 func (c *Sm4Cipher) Decrypt(dst, src []byte) {
 	cryptBlock(c.subkeys, c.block1, c.block2, dst, src, true)
 }
@@ -266,12 +297,14 @@ func xor(in, iv []byte) (out []byte) {
 	return
 }
 
+// 根据pkcs7标准填充明文
 func pkcs7Padding(src []byte) []byte {
 	padding := BlockSize - len(src)%BlockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(src, padtext...)
 }
 
+// 根据pkcs7标准去除填充
 func pkcs7UnPadding(src []byte) ([]byte, error) {
 	length := len(src)
 	if length == 0 {
@@ -291,6 +324,7 @@ func pkcs7UnPadding(src []byte) ([]byte, error) {
 
 	return src[:(length - unpadding)], nil
 }
+
 func SetIV(iv []byte) error {
 	if len(iv) != BlockSize {
 		return errors.New("SM4: invalid iv size")
@@ -527,11 +561,13 @@ func Sm4OFB(key []byte, in []byte, mode bool) (out []byte, err error) {
 	return out, nil
 }
 
+// 分组加密
 func EncryptBlock(key SM4Key, dst, src []byte) {
 	subkeys := generateSubKeys(key)
 	cryptBlock(subkeys, make([]uint32, 4), make([]byte, 16), dst, src, false)
 }
 
+// 分组解密
 func DecryptBlock(key SM4Key, dst, src []byte) {
 	subkeys := generateSubKeys(key)
 	cryptBlock(subkeys, make([]uint32, 4), make([]byte, 16), dst, src, true)
