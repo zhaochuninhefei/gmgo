@@ -85,16 +85,21 @@ func ParsePKIXPublicKey(derBytes []byte) (pub interface{}, err error) {
 	return parsePublicKey(algo, &pki)
 }
 
+// 将公钥转为字节流，同时返回对应的pkix算法标识符
 func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorithm pkix.AlgorithmIdentifier, err error) {
 	switch pub := pub.(type) {
 	case *sm2.PublicKey:
+		// 将椭圆曲线、公钥座标转换为字节流
 		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		// 获取椭圆曲线oid，注意，国标目前没有给出sm2椭圆曲线的oid，这里使用SM2算法的oid代替
 		oid, ok := oidFromNamedCurve(pub.Curve)
 		if !ok {
 			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported SM2 curve")
 		}
+		// 设定公钥算法的oid为sm2算法oid
 		publicKeyAlgorithm.Algorithm = oidPublicKeySM2
 		var paramBytes []byte
+		// 将椭圆曲线oid转为字节流
 		paramBytes, err = asn1.Marshal(oid)
 		if err != nil {
 			return
@@ -165,6 +170,8 @@ type certificate struct {
 	SignatureValue     asn1.BitString
 }
 
+// 证书主体，签名内容
+// tbs即"To be signed"
 type tbsCertificate struct {
 	Raw                asn1.RawContent
 	Version            int `asn1:"optional,explicit,default:0,tag:0"`
@@ -1946,6 +1953,7 @@ func buildExtensions2(template *Certificate, authorityKeyId []byte) (ret []pkix.
 	return append(ret[:n], template.ExtraExtensions...), nil
 }
 
+// 构建证书扩展信息
 func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	ret = make([]pkix.Extension, 10 /* maximum number of elements. */)
 	n := 0
@@ -2122,6 +2130,7 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	return append(ret[:n], template.ExtraExtensions...), nil
 }
 
+// 获取证书主题subject的字节流
 func subjectBytes(cert *Certificate) ([]byte, error) {
 	if len(cert.RawSubject) > 0 {
 		return cert.RawSubject, nil
@@ -2133,10 +2142,25 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 // signingParamsForPublicKey returns the parameters to use for signing with
 // priv. If requestedSigAlgo is not zero then it overrides the default
 // signature algorithm.
+// 根据公钥与请求签名算法获取签名参数(摘要算法、签名算法)
 func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
+	// 根据pub的公钥类型选择证书算法
 	switch pub := pub.(type) {
+	case *sm2.PublicKey:
+		// 公钥算法
+		pubType = SM2
+		// 检查曲线是否是sm2曲线
+		switch pub.Curve {
+		case sm2.P256Sm2():
+			// 摘要算法
+			hashFunc = SM3
+			// 签名算法
+			sigAlgo.Algorithm = oidSignatureSM2WithSM3
+		default:
+			err = errors.New("x509: unknown SM2 curve")
+		}
 	case *rsa.PublicKey:
 		pubType = RSA
 		hashFunc = SHA256
@@ -2144,7 +2168,6 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		sigAlgo.Parameters = asn1.RawValue{
 			Tag: 5,
 		}
-
 	case *ecdsa.PublicKey:
 		pubType = ECDSA
 		switch pub.Curve {
@@ -2160,27 +2183,18 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown elliptic curve")
 		}
-	case *sm2.PublicKey:
-		pubType = SM2
-		switch pub.Curve {
-		case sm2.P256Sm2():
-			hashFunc = SM3
-			sigAlgo.Algorithm = oidSignatureSM2WithSM3
-		default:
-			err = errors.New("x509: unknown SM2 curve")
-		}
 	default:
 		err = errors.New("x509: only RSA and ECDSA keys supported")
 	}
-
 	if err != nil {
 		return
 	}
-
 	if requestedSigAlgo == 0 {
+		// 如果请求签名算法requestedSigAlgo为0，则直接返回前面根据pub的公钥类型选择的证书算法
 		return
 	}
 
+	// 根据请求签名算法requestedSigAlgo匹配签名算法
 	found := false
 	for _, details := range signatureAlgorithmDetails {
 		if details.algo == requestedSigAlgo {
@@ -2223,44 +2237,52 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 // All keys types that are implemented via crypto.Signer are supported (This
 // includes *rsa.PublicKey and *ecdsa.PublicKey.)
 // TODO CreateCertificate -> CreateCertificateFromReader
+// 根据证书模板生成证书
+// template : 证书模板
+// parent : 父证书
+// pub : 证书拥有者的公钥
+// priv : 签名者的私钥(有父证书的话，就是父证书拥有者的私钥)
 func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, pub, priv interface{}) (cert []byte, err error) {
+	// 检查私钥是否实现了`crypto.Signer`接口
 	key, ok := priv.(crypto.Signer)
 	if !ok {
 		return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
 	}
-
+	// 检查模板是否有SerialNumber
 	if template.SerialNumber == nil {
 		return nil, errors.New("x509: no SerialNumber given")
 	}
-
+	// 获取摘要算法与签名算法
 	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
 	if err != nil {
 		return nil, err
 	}
-
+	// 使用传入的公钥生成证书内部公钥部分内容(公钥字节流及对应的pkix算法标识符)
 	publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(pub)
 	if err != nil {
 		return nil, err
 	}
-
+	// 获取父证书的主题字节流作为发行者
 	asn1Issuer, err := subjectBytes(parent)
 	if err != nil {
 		return nil, err
 	}
-
+	// 获取模板的主题字节流
 	asn1Subject, err := subjectBytes(template)
 	if err != nil {
 		return nil, err
 	}
-
+	// 模板和父证书的subject不同且父证书subject非空时，将父证书的SubjectKeyId设置为本证书的AuthorityKeyId。
+	// 即，指明本证书的签名者是哪个父证书。
 	if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
 		template.AuthorityKeyId = parent.SubjectKeyId
 	}
-
+	// 构建本证书的扩展信息
 	extensions, err := buildExtensions(template)
 	if err != nil {
 		return
 	}
+	// 构建证书主体，即签名的内容
 	encodedPublicKey := asn1.BitString{BitLength: len(publicKeyBytes) * 8, Bytes: publicKeyBytes}
 	c := tbsCertificate{
 		Version:            2,
@@ -2272,13 +2294,13 @@ func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, 
 		PublicKey:          publicKeyInfo{nil, publicKeyAlgorithm, encodedPublicKey},
 		Extensions:         extensions,
 	}
-
+	// 证书主体字节流
 	tbsCertContents, err := asn1.Marshal(c)
 	if err != nil {
 		return
 	}
-
 	c.Raw = tbsCertContents
+
 	// TODO 注意，SM2WithSM3, SM2WithSHA1, SM2WithSHA256没有在外面计算摘要。
 	// 因为SM2的Sign函数内部直接对传入的内容使用公钥进行了SM3摘要计算。
 	digest := tbsCertContents
@@ -2300,12 +2322,13 @@ func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, 
 		}
 	}
 
+	// 使用传入的私钥key对证书主体进行签名
 	var signature []byte
 	signature, err = key.Sign(rand, digest, signerOpts)
 	if err != nil {
 		return nil, err
 	}
-
+	// 构建证书(证书主体 + 签名算法 + 签名)，并转为字节流
 	signedCert, err := asn1.Marshal(certificate{
 		nil,
 		c,
@@ -2558,9 +2581,15 @@ func parseCSRExtensions(rawAttributes []asn1.RawValue) ([]pkix.Extension, error)
 //
 // All keys types that are implemented via crypto.Signer are supported (This
 // includes *rsa.PublicKey and *ecdsa.PublicKey.)
+// 根据证书请求模板生成证书请求字节流
+// rand : 用于生成随机数的工具类库(io.Reader)
+// template : 证书申请模板(*CertificateRequest)
+// signer : 签名私钥(crypto.Signer)
+// 注意，证书申请内部的公钥信息就是签名者的公钥，即，证书申请是申请者自签名的。
 func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, signer crypto.Signer) (csr []byte, err error) {
 	var hashFunc Hash
 	var sigAlgo pkix.AlgorithmIdentifier
+	// 获取摘要算法与签名算法
 	hashFunc, sigAlgo, err = signingParamsForPublicKey(signer.Public(), template.SignatureAlgorithm)
 	if err != nil {
 		return nil, err
@@ -2568,26 +2597,24 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, sign
 
 	var publicKeyBytes []byte
 	var publicKeyAlgorithm pkix.AlgorithmIdentifier
+	// 将签名者公钥作为证书内部的公钥内容(公钥字节流与公钥算法)
 	publicKeyBytes, publicKeyAlgorithm, err = marshalPublicKey(signer.Public())
 	if err != nil {
 		return nil, err
 	}
-
+	// 构建证书扩展信息
 	var extensions []pkix.Extension
-
 	if (len(template.DNSNames) > 0 || len(template.EmailAddresses) > 0 || len(template.IPAddresses) > 0) &&
 		!oidInExtensions(oidExtensionSubjectAltName, template.ExtraExtensions) {
 		sanBytes, err := marshalSANs(template.DNSNames, template.EmailAddresses, template.IPAddresses)
 		if err != nil {
 			return nil, err
 		}
-
 		extensions = append(extensions, pkix.Extension{
 			Id:    oidExtensionSubjectAltName,
 			Value: sanBytes,
 		})
 	}
-
 	extensions = append(extensions, template.ExtraExtensions...)
 
 	var attributes []pkix.AttributeTypeAndValueSET
@@ -2648,6 +2675,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, sign
 		}
 	}
 
+	// 构建证书主题subject
 	asn1Subject := template.RawSubject
 	if len(asn1Subject) == 0 {
 		asn1Subject, err = asn1.Marshal(template.Subject.ToRDNSequence())
@@ -2661,6 +2689,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, sign
 		return
 	}
 
+	// 构建证书请求主体，即签名内容
 	tbsCSR := tbsCertificateRequest{
 		Version: 0, // PKCS #10, RFC 2986
 		Subject: asn1.RawValue{FullBytes: asn1Subject},
@@ -2673,13 +2702,12 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, sign
 		},
 		RawAttributes: rawAttributes,
 	}
-
 	tbsCSRContents, err := asn1.Marshal(tbsCSR)
 	if err != nil {
 		return
 	}
 	tbsCSR.Raw = tbsCSRContents
-
+	// 采用sm2签名算法的话，不需要提前做签名内容的摘要处理
 	digest := tbsCSRContents
 	switch template.SignatureAlgorithm {
 	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, UnknownSignatureAlgorithm:
@@ -2690,12 +2718,13 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, sign
 		digest = h.Sum(nil)
 	}
 
+	// 对证书请求主体做签名
 	var signature []byte
 	signature, err = signer.Sign(rand, digest, hashFunc)
 	if err != nil {
 		return
 	}
-
+	// 构建证书请求并转为字节流
 	return asn1.Marshal(certificateRequest{
 		TBSCSR:             tbsCSR,
 		SignatureAlgorithm: sigAlgo,
@@ -3042,7 +3071,12 @@ func ReadCertificateRequestFromPemFile(FileName string) (*CertificateRequest, er
 	return ReadCertificateRequestFromMem(data)
 }
 
+// 根据证书请求生成证书并转为pem字节流
+// template : 证书申请(*CertificateRequest)
+// privKey : 签名私钥(*sm2.PrivateKey)
+// 注意，证书申请内部公钥信息就是签名私钥的公钥，即，证书申请是申请者自签名的。
 func CreateCertificateRequestToMem(template *CertificateRequest, privKey *sm2.PrivateKey) ([]byte, error) {
+	// 生成证书申请字节流
 	der, err := CreateCertificateRequest(rand.Reader, template, privKey)
 	if err != nil {
 		return nil, err
@@ -3051,6 +3085,7 @@ func CreateCertificateRequestToMem(template *CertificateRequest, privKey *sm2.Pr
 		Type:  "CERTIFICATE REQUEST",
 		Bytes: der,
 	}
+	// 转为pem字节流
 	return pem.EncodeToMemory(block), nil
 }
 
@@ -3094,7 +3129,13 @@ func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
 	return ReadCertificateFromMem(data)
 }
 
+// 根据证书模板生成证书，并转为pem字节流
+// template : 证书模板
+// parent : 父证书
+// pubKey : 证书拥有者公钥
+// privKey : 签名者私钥
 func CreateCertificateToMem(template, parent *Certificate, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) ([]byte, error) {
+	// 根据template生成证书
 	der, err := CreateCertificateFromReader(rand.Reader, template, parent, pubKey, privKey)
 	if err != nil {
 		return nil, err
@@ -3103,6 +3144,7 @@ func CreateCertificateToMem(template, parent *Certificate, pubKey *sm2.PublicKey
 		Type:  "CERTIFICATE",
 		Bytes: der,
 	}
+	// 转为pem字节流
 	return pem.EncodeToMemory(block), nil
 }
 
