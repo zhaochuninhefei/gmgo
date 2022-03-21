@@ -277,8 +277,8 @@ func GCMEncrypt(K, IV, P, A []byte) (C, T []byte) {
 
 	Y0 := GetY0(H, IV)
 
-	Y := make([]byte, BlockSize*(n+1))
-	Y = incr(n+1, Y0)
+	// Y := make([]byte, BlockSize*(n+1))
+	Y := incr(n+1, Y0)
 	c, err := NewCipher(K)
 	if err != nil {
 		panic(err)
@@ -338,8 +338,8 @@ func GCMDecrypt(K, IV, C, A []byte) (P, _T []byte) {
 	n := len(C) / BlockSize
 	u := len(C) % BlockSize
 	n, u = calculm_v(n, u)
-	Y := make([]byte, BlockSize*(n+1))
-	Y = incr(n+1, Y0)
+	// Y := make([]byte, BlockSize*(n+1))
+	Y := incr(n+1, Y0)
 
 	P = make([]byte, BlockSize*n)
 	for i := 1; i <= n; i++ {

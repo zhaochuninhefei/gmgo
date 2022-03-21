@@ -2,10 +2,11 @@ package sm4
 
 import (
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
+
+	gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 // ReadKeyFromPem will return SM4Key from PEM format data.
@@ -14,14 +15,14 @@ func ReadKeyFromPem(data []byte, pwd []byte) (SM4Key, error) {
 	if block == nil {
 		return nil, errors.New("SM4: pem decode failed")
 	}
-	if x509.IsEncryptedPEMBlock(block) {
+	if gmx509.IsEncryptedPEMBlock(block) {
 		if block.Type != "SM4 ENCRYPTED KEY" {
 			return nil, errors.New("SM4: unknown type")
 		}
 		if pwd == nil {
 			return nil, errors.New("SM4: need passwd")
 		}
-		data, err := x509.DecryptPEMBlock(block, pwd)
+		data, err := gmx509.DecryptPEMBlock(block, pwd)
 		if err != nil {
 			return nil, err
 		}
@@ -45,8 +46,8 @@ func ReadKeyFromPemFile(FileName string, pwd []byte) (SM4Key, error) {
 // WriteKeyToPem will convert SM4Key to PEM format data and return it.
 func WriteKeyToPem(key SM4Key, pwd []byte) ([]byte, error) {
 	if pwd != nil {
-		block, err := x509.EncryptPEMBlock(rand.Reader,
-			"SM4 ENCRYPTED KEY", key, pwd, x509.PEMCipherAES256) //Use AES256  algorithms to encrypt SM4KEY
+		block, err := gmx509.EncryptPEMBlock(rand.Reader,
+			"SM4 ENCRYPTED KEY", key, pwd, gmx509.PEMCipherAES256) //Use AES256  algorithms to encrypt SM4KEY
 		if err != nil {
 			return nil, err
 		}
@@ -66,8 +67,8 @@ func WriteKeyToPemFile(FileName string, key SM4Key, pwd []byte) error {
 	var block *pem.Block
 	var err error
 	if pwd != nil {
-		block, err = x509.EncryptPEMBlock(rand.Reader,
-			"SM4 ENCRYPTED KEY", key, pwd, x509.PEMCipherAES256)
+		block, err = gmx509.EncryptPEMBlock(rand.Reader,
+			"SM4 ENCRYPTED KEY", key, pwd, gmx509.PEMCipherAES256)
 		if err != nil {
 			return err
 		}
@@ -88,8 +89,8 @@ func WriteKeyToPemFile(FileName string, key SM4Key, pwd []byte) error {
 // sm4密钥转为pem字节流
 func WriteKeytoMem(key SM4Key, pwd []byte) ([]byte, error) {
 	if pwd != nil {
-		block, err := x509.EncryptPEMBlock(rand.Reader,
-			"SM4 ENCRYPTED KEY", key, pwd, x509.PEMCipherAES256)
+		block, err := gmx509.EncryptPEMBlock(rand.Reader,
+			"SM4 ENCRYPTED KEY", key, pwd, gmx509.PEMCipherAES256)
 		if err != nil {
 			return nil, err
 		}
@@ -106,14 +107,14 @@ func WriteKeytoMem(key SM4Key, pwd []byte) ([]byte, error) {
 // 将pem字节流转为sm4密钥
 func ReadKeyFromMem(data []byte, pwd []byte) (SM4Key, error) {
 	block, _ := pem.Decode(data)
-	if x509.IsEncryptedPEMBlock(block) {
+	if gmx509.IsEncryptedPEMBlock(block) {
 		if block.Type != "SM4 ENCRYPTED KEY" {
 			return nil, errors.New("SM4: unknown type")
 		}
 		if pwd == nil {
 			return nil, errors.New("SM4: need passwd")
 		}
-		data, err := x509.DecryptPEMBlock(block, pwd)
+		data, err := gmx509.DecryptPEMBlock(block, pwd)
 		if err != nil {
 			return nil, err
 		}

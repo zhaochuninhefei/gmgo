@@ -413,6 +413,7 @@ func MarshalSm2EcryptedPrivateKey(PrivKey *sm2.PrivateKey, pwd []byte) ([]byte, 
 }
 
 // MarshalECPrivateKey marshals an EC private key into ASN.1, DER format.
+// 将sm2私钥转为PKCS8格式字节流，不加密
 func MarshalECPrivateKey(key interface{}) ([]byte, error) {
 	return MarshalSm2PrivateKey(key.(*sm2.PrivateKey), nil)
 }
