@@ -324,8 +324,7 @@ func ParsePKCS8EcryptedPrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
 
 // 将PKCS8格式字节流转为sm2私钥，根据pwd是否为空决定是否需要解密
 func ParsePKCS8PrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
-	if pwd == nil {
-
+	if len(pwd) == 0 {
 		return ParsePKCS8UnecryptedPrivateKey(der)
 	}
 	return ParsePKCS8EcryptedPrivateKey(der, pwd)
@@ -420,7 +419,7 @@ func MarshalECPrivateKey(key interface{}) ([]byte, error) {
 
 // 将sm2私钥转为PKCS8格式字节流，根据pwd是否为空决定是否加密
 func MarshalSm2PrivateKey(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
-	if pwd == nil {
+	if len(pwd) == 0 {
 		return MarshalSm2UnecryptedPrivateKey(key)
 	}
 	return MarshalSm2EcryptedPrivateKey(key, pwd)

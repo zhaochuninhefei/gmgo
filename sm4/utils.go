@@ -19,7 +19,7 @@ func ReadKeyFromPem(data []byte, pwd []byte) (SM4Key, error) {
 		if block.Type != "SM4 ENCRYPTED KEY" {
 			return nil, errors.New("SM4: unknown type")
 		}
-		if pwd == nil {
+		if len(pwd) == 0 {
 			return nil, errors.New("SM4: need passwd")
 		}
 		data, err := gmx509.DecryptPEMBlock(block, pwd)
@@ -111,7 +111,7 @@ func ReadKeyFromMem(data []byte, pwd []byte) (SM4Key, error) {
 		if block.Type != "SM4 ENCRYPTED KEY" {
 			return nil, errors.New("SM4: unknown type")
 		}
-		if pwd == nil {
+		if len(pwd) == 0 {
 			return nil, errors.New("SM4: need passwd")
 		}
 		data, err := gmx509.DecryptPEMBlock(block, pwd)
