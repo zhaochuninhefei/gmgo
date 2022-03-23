@@ -1,12 +1,11 @@
 package x509
 
 import (
-	"bytes"
 	"crypto"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
@@ -79,7 +78,7 @@ func ReadPrivateKeyFromHex(Dhex string) (*sm2.PrivateKey, error) {
 	one := new(big.Int).SetInt64(1)
 	n := new(big.Int).Sub(params.N, one)
 	if k.Cmp(n) >= 0 {
-		return nil, errors.New("privateKey's D is overflow.")
+		return nil, errors.New("privateKey's D is overflow")
 	}
 	priv := new(sm2.PrivateKey)
 	priv.PublicKey.Curve = c
@@ -101,7 +100,7 @@ func ReadPublicKeyFromHex(Qhex string) (*sm2.PublicKey, error) {
 		q = q[1:]
 	}
 	if len(q) != 64 {
-		return nil, errors.New("publicKey is not uncompressed.")
+		return nil, errors.New("publicKey is not uncompressed")
 	}
 	pub := new(sm2.PublicKey)
 	pub.Curve = sm2.P256Sm2()
@@ -169,89 +168,98 @@ func ReadCertificateFromPem(certPem []byte) (*Certificate, error) {
 //
 // All keys types that are implemented via crypto.Signer are supported (This
 // includes *rsa.PublicKey and *ecdsa.PublicKey.)
-// TODO: publicKey要支持rsa与ecdsa的公钥
+
+// 根据证书模板与父证书生成新证书
+// template : 证书模板 *gmx509.Certificate
+// parent : 父证书 *gmx509.Certificate
+// publicKey : 新证书拥有者的公钥 (sm2/ecdsa/rsa)
+// signer : 签名者(私钥)
 func CreateCertificate(template, parent *Certificate, publicKey interface{}, signer crypto.Signer) ([]byte, error) {
-	if template.SerialNumber == nil {
-		return nil, errors.New("x509: no SerialNumber given")
-	}
-
-	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(signer.Public(), template.SignatureAlgorithm)
-	if err != nil {
-		return nil, err
-	}
-
-	publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(publicKey)
-	if err != nil {
-		return nil, err
-	}
-
-	asn1Issuer, err := subjectBytes(parent)
-	if err != nil {
-		return nil, err
-	}
-
-	asn1Subject, err := subjectBytes(template)
-	if err != nil {
-		return nil, err
-	}
-
-	if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
-		template.AuthorityKeyId = parent.SubjectKeyId
-	}
-
-	extensions, err := buildExtensions(template)
-	if err != nil {
-		return nil, err
-	}
-	encodedPublicKey := asn1.BitString{BitLength: len(publicKeyBytes) * 8, Bytes: publicKeyBytes}
-	c := tbsCertificate{
-		Version:            2,
-		SerialNumber:       template.SerialNumber,
-		SignatureAlgorithm: signatureAlgorithm,
-		Issuer:             asn1.RawValue{FullBytes: asn1Issuer},
-		Validity:           validity{template.NotBefore.UTC(), template.NotAfter.UTC()},
-		Subject:            asn1.RawValue{FullBytes: asn1Subject},
-		PublicKey:          publicKeyInfo{nil, publicKeyAlgorithm, encodedPublicKey},
-		Extensions:         extensions,
-	}
-
-	tbsCertContents, err := asn1.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-
-	c.Raw = tbsCertContents
-
-	digest := tbsCertContents
-	switch template.SignatureAlgorithm {
-	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256:
-		break
-	default:
-		h := hashFunc.New()
-		h.Write(tbsCertContents)
-		digest = h.Sum(nil)
-	}
-
-	var signerOpts crypto.SignerOpts
-	signerOpts = hashFunc
-	if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
-		signerOpts = &rsa.PSSOptions{
-			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			Hash:       crypto.Hash(hashFunc),
-		}
-	}
-
-	var signature []byte
-	signature, err = signer.Sign(rand.Reader, digest, signerOpts)
-	if err != nil {
-		return nil, err
-	}
-	return asn1.Marshal(certificate{
-		nil,
-		c,
-		signatureAlgorithm,
-		asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
-	})
+	return CreateCertificateFromReader(rand.Reader, template, parent, publicKey, signer)
+	// if template.SerialNumber == nil {
+	// 	return nil, errors.New("x509: no SerialNumber given")
+	// }
+	// // 根据 签名者的公钥以及证书模板的签名算法配置推导本次新证书签名中使用的散列算法与签名算法
+	// hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(signer.Public(), template.SignatureAlgorithm)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // 将新证书拥有者的公钥转为证书公钥字节流与证书公钥算法 (新证书的核心内容)
+	// publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(publicKey)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // 从父证书获取证书签署者字节流
+	// asn1Issuer, err := subjectBytes(parent)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // 从证书模板获取证书拥有者字节流
+	// asn1Subject, err := subjectBytes(template)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // 非自签名时，将父证书的 SubjectKeyId 设置为新证书的 AuthorityKeyId
+	// // 即新证书的签署者密钥ID就是父证书的拥有者密钥ID
+	// if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
+	// 	template.AuthorityKeyId = parent.SubjectKeyId
+	// }
+	// // 创建证书扩展信息
+	// extensions, err := buildExtensions(template)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // 生成证书的被签名内容
+	// encodedPublicKey := asn1.BitString{BitLength: len(publicKeyBytes) * 8, Bytes: publicKeyBytes}
+	// c := tbsCertificate{
+	// 	Version:            2,
+	// 	SerialNumber:       template.SerialNumber,
+	// 	SignatureAlgorithm: signatureAlgorithm,
+	// 	Issuer:             asn1.RawValue{FullBytes: asn1Issuer},
+	// 	Validity:           validity{template.NotBefore.UTC(), template.NotAfter.UTC()},
+	// 	Subject:            asn1.RawValue{FullBytes: asn1Subject},
+	// 	PublicKey:          publicKeyInfo{nil, publicKeyAlgorithm, encodedPublicKey},
+	// 	Extensions:         extensions,
+	// }
+	// // 将被签名内容转为字节流
+	// tbsCertContents, err := asn1.Marshal(c)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// c.Raw = tbsCertContents
+	// // 根据签名算法决定是否需要对被签名内容做摘要
+	// digest := tbsCertContents
+	// switch template.SignatureAlgorithm {
+	// case SM2WithSM3, SM2WithSHA1, SM2WithSHA256:
+	// 	break
+	// default:
+	// 	h := hashFunc.New()
+	// 	h.Write(tbsCertContents)
+	// 	digest = h.Sum(nil)
+	// }
+	// // 设置 signerOpts 指定摘要算法
+	// var signerOpts crypto.SignerOpts
+	// signerOpts = hashFunc
+	// // rsa的特殊处理
+	// if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
+	// 	signerOpts = &rsa.PSSOptions{
+	// 		SaltLength: rsa.PSSSaltLengthEqualsHash,
+	// 		Hash:       crypto.Hash(hashFunc),
+	// 	}
+	// }
+	// // 签名
+	// var signature []byte
+	// signature, err = signer.Sign(rand.Reader, digest, signerOpts)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // 返回新证书字节流(被签名内容 + 签名算法 + 签名)
+	// return asn1.Marshal(certificate{
+	// 	nil,
+	// 	c,
+	// 	signatureAlgorithm,
+	// 	asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
+	// })
 }
 
 // CreateCertificateToPem creates a new certificate based on a template and
@@ -276,6 +284,28 @@ func ParseSm2CertifateToX509(asn1data []byte) (*x509.Certificate, error) {
 		return nil, err
 	}
 	return sm2Cert.ToX509Certificate(), nil
+}
+
+// 根据椭圆曲线公钥参数生成其SKI值
+func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
+	if curve == nil {
+		return nil
+	}
+	//Marshall the public key
+	raw := elliptic.Marshal(curve, x, y)
+	// Hash it
+	hash := sha256.New()
+	hash.Write(raw)
+	return hash.Sum(nil)
+}
+
+// 随机生成序列号
+func GetRandBigInt() *big.Int {
+	sn, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		panic(err)
+	}
+	return sn
 }
 
 // 32byte

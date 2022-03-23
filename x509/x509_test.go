@@ -376,10 +376,11 @@ func createCACert() (*sm2.PrivateKey, *Certificate, error) {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	sid := []byte{0, 0, 0, 1}
-	aid := []byte{0, 0, 0, 1}
+	// // 使用公钥生成ski
+	// sid := CreateEllipticSKI(pubKey.Curve, pubKey.X, pubKey.Y)
+	// aid := sid
 	// 创建证书，ca证书自签名
-	cert, err := createCert(1, "test.example.com", "example.com", "CN", "He Fei", true, true, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, privKey)
+	cert, err := createCertSignSelf("ca.test.com", "catest", "CN", "Anhui Hefei", true, true, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, privKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -415,10 +416,10 @@ func createSignCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	sid := []byte{0, 0, 0, 2}
-	aid := caCert.SubjectKeyId
+	// sid := []byte{0, 0, 0, 2}
+	// aid := caCert.SubjectKeyId
 	// 模拟CA颁发证书，注意此时ca证书是父证书
-	cert, err := createCert(2, "test.example.com", "example.com", "CN", "He Fei", false, false, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv)
+	cert, err := createCertSignParent("server.test.com", "server_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
 		return err
 	}
@@ -454,10 +455,10 @@ func createEncCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	sid := []byte{0, 0, 0, 3}
-	aid := caCert.SubjectKeyId
+	// sid := []byte{0, 0, 0, 3}
+	// aid := caCert.SubjectKeyId
 	// 模拟CA颁发证书，注意此时ca证书是父证书
-	cert, err := createCert(3, "test.example.com", "example.com", "CN", "He Fei", false, false, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv)
+	cert, err := createCertSignParent("server.test.com", "server_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
 		return err
 	}
@@ -493,10 +494,10 @@ func createAuthCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	sid := []byte{0, 0, 0, 4}
-	aid := caCert.SubjectKeyId
+	// sid := []byte{0, 0, 0, 4}
+	// aid := caCert.SubjectKeyId
 	// 模拟CA颁发证书，注意此时ca证书是父证书
-	cert, err := createCert(4, "test.example.com", "example.com", "CN", "He Fei", false, false, sid, aid, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv)
+	cert, err := createCertSignParent("client.test.com", "client_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
 		return err
 	}
@@ -540,45 +541,14 @@ func createKeys(certType string) (*sm2.PrivateKey, *sm2.PublicKey, error) {
 	return privKey, pubKey, nil
 }
 
-func createCert(sn int64, cn string, o string, c string, st string, bcs bool, isca bool, sId []byte, aId []byte,
+func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca bool,
 	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
 	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) (*Certificate, error) {
+	// 获取ski
+	ski := CreateEllipticSKI(pubKey.Curve, pubKey.X, pubKey.Y)
 	// 定义证书模板
-	template := &Certificate{
-		SerialNumber: big.NewInt(sn),
-		Subject: pkix.Name{
-			// Subject行的CN
-			CommonName: cn,
-			// Subject行的O
-			Organization: []string{o},
-			Country:      []string{"China"},
-			// 附加名称
-			ExtraNames: []pkix.AttributeTypeAndValue{
-				// This should override the Country, above.
-				{
-					// C
-					Type:  []int{2, 5, 4, 6},
-					Value: c,
-				},
-				{
-					// ST
-					Type:  []int{2, 5, 4, 8},
-					Value: st,
-				},
-			},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Date(2032, time.December, 31, 23, 59, 59, 1, time.UTC),
-		SignatureAlgorithm:    SM2WithSM3,
-		BasicConstraintsValid: bcs,
-		IsCA:                  isca,
-		SubjectKeyId:          sId,
-		AuthorityKeyId:        aId,
-		KeyUsage:              ku,
-		ExtKeyUsage:           ekus,
-		UnknownExtKeyUsage:    uekus,
-	}
-	// 创建证书pem文件
+	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, certType, pubKey, privKey)
+	// 创建自签名证书pem文件
 	_, err := CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, template, pubKey, privKey)
 	if err != nil {
 		return nil, err
@@ -589,15 +559,136 @@ func createCert(sn int64, cn string, o string, c string, st string, bcs bool, is
 	if err != nil {
 		return nil, err
 	}
-	// // 检查证书签名
-	// err = cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
-	// if err != nil {
-	// 	return nil, nil, err
-	// } else {
-	// 	fmt.Printf("CheckSignature ok\n")
-	// }
 	return cert, nil
 }
+
+func createCertSignParent(cn string, o string, c string, st string, bcs bool, isca bool,
+	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
+	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey, parent *Certificate) (*Certificate, error) {
+	// 获取ski
+	ski := CreateEllipticSKI(pubKey.Curve, pubKey.X, pubKey.Y)
+	// 定义证书模板
+	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, certType, pubKey, privKey)
+	// 创建自签名证书pem文件
+	_, err := CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, parent, pubKey, privKey)
+	if err != nil {
+		return nil, err
+	}
+	// 可以使用命令`openssl x509 -noout -text -in testdata/user_cert.cer`查看生成的x509证书
+	// 读取证书pem文件
+	cert, err := ReadCertificateFromPemFile("testdata/" + certType + "_cert.cer")
+	if err != nil {
+		return nil, err
+	}
+	return cert, nil
+}
+
+func createTemplate(cn string, o string, c string, st string, bcs bool, isca bool, sId []byte,
+	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
+	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) *Certificate {
+	// 定义证书模板
+	template := &Certificate{
+		// 证书序列号
+		SerialNumber: GetRandBigInt(),
+		// 证书拥有者
+		Subject: pkix.Name{
+			// CN 证书拥有者通用名, 一般是域名
+			CommonName: cn,
+			// O 证书拥有者组织机构
+			Organization: []string{o},
+			// C 证书拥有者所在国家
+			Country: []string{"China"},
+			// 附加名称
+			ExtraNames: []pkix.AttributeTypeAndValue{
+				// This should override the Country, above.
+				{
+					// C 会覆盖Country
+					Type:  []int{2, 5, 4, 6},
+					Value: c,
+				},
+				{
+					// ST 省市
+					Type:  []int{2, 5, 4, 8},
+					Value: st,
+				},
+			},
+		},
+		// 证书有效期 十年
+		// NotBefore:             time.Now(),
+		// NotAfter:              time.Date(2032, time.December, 31, 23, 59, 59, 1, time.UTC),
+		NotBefore: time.Now().Add(-1 * time.Hour),
+		NotAfter:  time.Now().Add(87600 * time.Hour),
+		// 证书签名算法
+		SignatureAlgorithm:    SM2WithSM3,
+		BasicConstraintsValid: bcs,
+		IsCA:                  isca,
+		SubjectKeyId:          sId,
+		// AuthorityKeyId:        aId,
+		KeyUsage:           ku,
+		ExtKeyUsage:        ekus,
+		UnknownExtKeyUsage: uekus,
+	}
+	return template
+}
+
+// func createCert(sn int64, cn string, o string, c string, st string, bcs bool, isca bool, sId []byte, aId []byte,
+// 	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
+// 	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) (*Certificate, error) {
+// 	// 定义证书模板
+// 	template := &Certificate{
+// 		// 证书序列号
+// 		SerialNumber: GetRandBigInt(),
+// 		// 证书拥有者
+// 		Subject: pkix.Name{
+// 			// CN 证书拥有者通用名, 一般是域名
+// 			CommonName: cn,
+// 			// O 证书拥有者组织机构
+// 			Organization: []string{o},
+// 			// C 证书拥有者所在国家
+// 			Country: []string{"China"},
+// 			// 附加名称
+// 			ExtraNames: []pkix.AttributeTypeAndValue{
+// 				// This should override the Country, above.
+// 				{
+// 					// C 会覆盖Country
+// 					Type:  []int{2, 5, 4, 6},
+// 					Value: c,
+// 				},
+// 				{
+// 					// ST 省市
+// 					Type:  []int{2, 5, 4, 8},
+// 					Value: st,
+// 				},
+// 			},
+// 		},
+// 		// 证书有效期 十年
+// 		// NotBefore:             time.Now(),
+// 		// NotAfter:              time.Date(2032, time.December, 31, 23, 59, 59, 1, time.UTC),
+// 		NotBefore: time.Now().Add(-1 * time.Hour),
+// 		NotAfter:  time.Now().Add(87600 * time.Hour),
+// 		// 证书签名算法
+// 		SignatureAlgorithm:    SM2WithSM3,
+// 		BasicConstraintsValid: bcs,
+// 		IsCA:                  isca,
+// 		SubjectKeyId:          sId,
+// 		// AuthorityKeyId:        aId,
+// 		KeyUsage:           ku,
+// 		ExtKeyUsage:        ekus,
+// 		UnknownExtKeyUsage: uekus,
+// 	}
+// 	// 创建证书pem文件
+// 	_, err := CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, template, pubKey, privKey)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// 可以使用命令`openssl x509 -noout -text -in testdata/user_cert.cer`查看生成的x509证书
+// 	// 读取证书pem文件
+// 	cert, err := ReadCertificateFromPemFile("testdata/" + certType + "_cert.cer")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return cert, nil
+// }
 
 func TestCreateRevocationList(t *testing.T) {
 	priv, err := sm2.GenerateKey(nil) // 生成密钥对

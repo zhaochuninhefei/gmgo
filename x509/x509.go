@@ -492,6 +492,7 @@ var (
 	oidISOSignatureSHA1WithRSA = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 29}
 )
 
+// 定义支持的签名算法细节
 var signatureAlgorithmDetails = []struct {
 	algo       SignatureAlgorithm
 	name       string
@@ -832,26 +833,47 @@ func oidFromExtKeyUsage(eku ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
 	return
 }
 
+// gmx509证书结构体
 // A Certificate represents an X.509 certificate.
 type Certificate struct {
-	Raw                     []byte // Complete ASN.1 DER content (certificate, signature algorithm and signature).
-	RawTBSCertificate       []byte // Certificate part of raw ASN.1 DER content.
-	RawSubjectPublicKeyInfo []byte // DER encoded SubjectPublicKeyInfo.
-	RawSubject              []byte // DER encoded Subject
-	RawIssuer               []byte // DER encoded Issuer
+	// 完整的 ASN1 DER 证书字节流(证书+签名算法+签名)
+	// Complete ASN.1 DER content (certificate, signature algorithm and signature).
+	Raw []byte
+	// 证书的被签名内容的原始 ASN.1 DER字节流
+	// Certificate part of raw ASN.1 DER content.
+	RawTBSCertificate []byte
+	// SubjectPublicKeyInfo的DER字节流
+	// DER encoded SubjectPublicKeyInfo.
+	RawSubjectPublicKeyInfo []byte
+	// 证书拥有者的DER字节流
+	// DER encoded Subject
+	RawSubject []byte
+	// 证书签署者的DER字节流
+	// DER encoded Issuer
+	RawIssuer []byte
 
-	Signature          []byte
+	// 签名
+	Signature []byte
+	// 签名算法
 	SignatureAlgorithm SignatureAlgorithm
 
+	// 证书拥有者的公钥算法
 	PublicKeyAlgorithm PublicKeyAlgorithm
-	PublicKey          interface{}
+	// 证书拥有者的公钥(证书的核心内容)
+	PublicKey interface{}
 
-	Version             int
-	SerialNumber        *big.Int
-	Issuer              pkix.Name
-	Subject             pkix.Name
+	// 证书版本
+	Version int
+	// 证书序列号
+	SerialNumber *big.Int
+	// 证书签署者(提供私钥对RawTBSCertificate进行签名)
+	Issuer pkix.Name
+	// 证书拥有者(该证书的核心公钥的拥有者)
+	Subject pkix.Name
+	// 证书有效期间
 	NotBefore, NotAfter time.Time // Validity bounds.
-	KeyUsage            KeyUsage
+	// 证书公钥的用途
+	KeyUsage KeyUsage
 
 	// Extensions contains raw X.509 extensions. When parsing certificates,
 	// this can be used to extract non-critical extensions that are not
@@ -875,19 +897,29 @@ type Certificate struct {
 	// handled.
 	UnhandledCriticalExtensions []asn1.ObjectIdentifier
 
-	ExtKeyUsage        []ExtKeyUsage           // Sequence of extended key usages.
-	UnknownExtKeyUsage []asn1.ObjectIdentifier // Encountered extended key usages unknown to this package.
+	// 公钥扩展用途
+	// Sequence of extended key usages.
+	ExtKeyUsage []ExtKeyUsage
+	// 未知的公钥扩展用途
+	// Encountered extended key usages unknown to this package.
+	UnknownExtKeyUsage []asn1.ObjectIdentifier
 
-	BasicConstraintsValid bool // if true then the next two fields are valid.
-	IsCA                  bool
-	MaxPathLen            int
+	// 基础约束是否有效，控制 IsCA 与 MaxPathLen 是否有效
+	// if true then the next two fields are valid.
+	BasicConstraintsValid bool
+	// 是否CA证书
+	IsCA       bool
+	MaxPathLen int
 	// MaxPathLenZero indicates that BasicConstraintsValid==true and
 	// MaxPathLen==0 should be interpreted as an actual maximum path length
 	// of zero. Otherwise, that combination is interpreted as MaxPathLen
 	// not being set.
 	MaxPathLenZero bool
 
-	SubjectKeyId   []byte
+	// 证书拥有者密钥ID
+	// 以sm2公钥为例，计算方式为 将椭圆曲线上的公钥座标转换为字节流再做sha256散列
+	SubjectKeyId []byte
+	// 证书签署者密钥ID(自签名时，AuthorityKeyId就是自己的SubjectKeyId；由父证书签名时，就是父证书的SubjectKeyId)
 	AuthorityKeyId []byte
 
 	// RFC 5280, 4.2.2.1 (Authority Information Access)
@@ -2130,7 +2162,7 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	return append(ret[:n], template.ExtraExtensions...), nil
 }
 
-// 获取证书主题subject的字节流
+// 获取证书主题subject(证书拥有者)的字节流
 func subjectBytes(cert *Certificate) ([]byte, error) {
 	if len(cert.RawSubject) > 0 {
 		return cert.RawSubject, nil
@@ -2142,7 +2174,7 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 // signingParamsForPublicKey returns the parameters to use for signing with
 // priv. If requestedSigAlgo is not zero then it overrides the default
 // signature algorithm.
-// 根据公钥与请求签名算法获取签名参数(摘要算法、签名算法)
+// 根据传入的公钥与签名算法获取签名参数(摘要算法、签名算法)
 func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
@@ -2243,37 +2275,37 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 // pub : 证书拥有者的公钥
 // priv : 签名者的私钥(有父证书的话，就是父证书拥有者的私钥)
 func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, pub, priv interface{}) (cert []byte, err error) {
-	// 检查私钥是否实现了`crypto.Signer`接口
+	// 检查签名者私钥是否实现了`crypto.Signer`接口
 	key, ok := priv.(crypto.Signer)
 	if !ok {
-		return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
+		return nil, errors.New("gmx509: certificate private key does not implement crypto.Signer")
 	}
 	// 检查模板是否有SerialNumber
 	if template.SerialNumber == nil {
 		return nil, errors.New("x509: no SerialNumber given")
 	}
-	// 获取摘要算法与签名算法
+	// 根据签名者的公钥以及证书模板的签名算法配置推导本次新证书签名中使用的散列算法与签名算法
 	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
 	if err != nil {
 		return nil, err
 	}
-	// 使用传入的公钥生成证书内部公钥部分内容(公钥字节流及对应的pkix算法标识符)
+	// 将新证书拥有者的公钥转为证书公钥字节流与证书公钥算法 (新证书的核心内容)
 	publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(pub)
 	if err != nil {
 		return nil, err
 	}
-	// 获取父证书的主题字节流作为发行者
+	// 从父证书获取证书签署者字节流
 	asn1Issuer, err := subjectBytes(parent)
 	if err != nil {
 		return nil, err
 	}
-	// 获取模板的主题字节流
+	// 从证书模板获取证书拥有者字节流
 	asn1Subject, err := subjectBytes(template)
 	if err != nil {
 		return nil, err
 	}
-	// 模板和父证书的subject不同且父证书subject非空时，将父证书的SubjectKeyId设置为本证书的AuthorityKeyId。
-	// 即，指明本证书的签名者是哪个父证书。
+	// 非自签名时，将父证书的 SubjectKeyId 设置为新证书的 AuthorityKeyId
+	// 即新证书的签署者密钥ID就是父证书的拥有者密钥ID
 	if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
 		template.AuthorityKeyId = parent.SubjectKeyId
 	}
@@ -2312,16 +2344,16 @@ func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, 
 		h.Write(tbsCertContents)
 		digest = h.Sum(nil)
 	}
-
+	// 设置 signerOpts 指定摘要算法
 	var signerOpts crypto.SignerOpts
 	signerOpts = hashFunc
+	// rsa的特殊处理
 	if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
 		signerOpts = &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 			Hash:       crypto.Hash(hashFunc),
 		}
 	}
-
 	// 使用传入的私钥key对证书主体进行签名
 	var signature []byte
 	signature, err = key.Sign(rand, digest, signerOpts)
@@ -3134,7 +3166,7 @@ func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
 // parent : 父证书
 // pubKey : 证书拥有者公钥
 // privKey : 签名者私钥
-func CreateCertificateToMem(template, parent *Certificate, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) ([]byte, error) {
+func CreateCertificateToMem(template, parent *Certificate, pubKey, privKey interface{}) ([]byte, error) {
 	// 根据template生成证书
 	der, err := CreateCertificateFromReader(rand.Reader, template, parent, pubKey, privKey)
 	if err != nil {
@@ -3149,7 +3181,7 @@ func CreateCertificateToMem(template, parent *Certificate, pubKey *sm2.PublicKey
 }
 
 // TODO CreateCertificateToPem -> CreateCertificateToPemFile
-func CreateCertificateToPemFile(FileName string, template, parent *Certificate, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) (bool, error) {
+func CreateCertificateToPemFile(FileName string, template, parent *Certificate, pubKey, privKey interface{}) (bool, error) {
 	der, err := CreateCertificateFromReader(rand.Reader, template, parent, pubKey, privKey)
 	if err != nil {
 		return false, err

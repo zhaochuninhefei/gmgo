@@ -84,7 +84,7 @@ func clientRun() {
 	certPool.AppendCertsFromPEM(cacert)
 	creds := NewTLS(&gmtls.Config{
 		GMSupport:    &gmtls.GMSupport{},
-		ServerName:   "test.example.com",
+		ServerName:   "server.test.com",
 		Certificates: []gmtls.Certificate{cert},
 		RootCAs:      certPool,
 		ClientAuth:   gmtls.RequireAndVerifyClientCert,
