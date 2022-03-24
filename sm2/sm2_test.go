@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"os"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
 func TestSm2(t *testing.T) {
@@ -73,9 +75,12 @@ func TestSm2(t *testing.T) {
 
 	// 从文件读取消息
 	msg, _ = ioutil.ReadFile("testdata/msg")
+	hashFunc := sm3.New()
+	hashFunc.Write(msg)
+	digest := hashFunc.Sum(nil)
 
 	// 私钥签名
-	sign, err := priv.Sign(rand.Reader, msg, nil)
+	sign, err := priv.Sign(rand.Reader, digest, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +92,7 @@ func TestSm2(t *testing.T) {
 	// 读取签名文件
 	signdata, _ := ioutil.ReadFile("testdata/signdata")
 	// 公钥验签
-	ok := pub.Verify(msg, signdata)
+	ok := pub.Verify(digest, signdata)
 	if ok != true {
 		fmt.Printf("公钥验签失败\n")
 	} else {

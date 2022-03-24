@@ -1113,8 +1113,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if sm2Sig.R.Sign() <= 0 || sm2Sig.S.Sign() <= 0 {
 			return errors.New("x509: sm2 signature contained zero or negative values")
 		}
-		//add liuhy signed ? = fnHash() tjfoc
-		if !sm2.Sm2Verify(pub, signed, nil, sm2Sig.R, sm2Sig.S) {
+		if !sm2.Sm2Verify(pub, fnHash(), nil, sm2Sig.R, sm2Sig.S) {
 			return errors.New("x509: sm2 verification failure")
 		}
 		return
@@ -1156,7 +1155,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 				X:     pub.X,
 				Y:     pub.Y,
 			}
-			if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S) {
+			if !sm2.Sm2Verify(sm2pub, fnHash(), nil, ecdsaSig.R, ecdsaSig.S) {
 				return errors.New("x509: SM2 verification failure")
 			}
 		default:
@@ -2333,17 +2332,17 @@ func CreateCertificateFromReader(rand io.Reader, template, parent *Certificate, 
 	}
 	c.Raw = tbsCertContents
 
-	// TODO 注意，SM2WithSM3, SM2WithSHA1, SM2WithSHA256没有在外面计算摘要。
-	// 因为SM2的Sign函数内部直接对传入的内容使用公钥进行了SM3摘要计算。
-	digest := tbsCertContents
-	switch template.SignatureAlgorithm {
-	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256:
-		break
-	default:
-		h := hashFunc.New()
-		h.Write(tbsCertContents)
-		digest = h.Sum(nil)
-	}
+	// // TODO 注意，SM2WithSM3, SM2WithSHA1, SM2WithSHA256没有在外面计算摘要。
+	// // 因为SM2的Sign函数内部直接对传入的内容使用公钥进行了SM3摘要计算。
+	// digest := tbsCertContents
+	// switch template.SignatureAlgorithm {
+	// case SM2WithSM3, SM2WithSHA1, SM2WithSHA256:
+	// 	break
+	// default:
+	h := hashFunc.New()
+	h.Write(tbsCertContents)
+	digest := h.Sum(nil)
+	// }
 	// 设置 signerOpts 指定摘要算法
 	var signerOpts crypto.SignerOpts
 	signerOpts = hashFunc
@@ -2739,16 +2738,16 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, sign
 		return
 	}
 	tbsCSR.Raw = tbsCSRContents
-	// 采用sm2签名算法的话，不需要提前做签名内容的摘要处理
-	digest := tbsCSRContents
-	switch template.SignatureAlgorithm {
-	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, UnknownSignatureAlgorithm:
-		break
-	default:
-		h := hashFunc.New()
-		h.Write(tbsCSRContents)
-		digest = h.Sum(nil)
-	}
+	// // 采用sm2签名算法的话，不需要提前做签名内容的摘要处理
+	// digest := tbsCSRContents
+	// switch template.SignatureAlgorithm {
+	// case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, UnknownSignatureAlgorithm:
+	// 	break
+	// default:
+	h := hashFunc.New()
+	h.Write(tbsCSRContents)
+	digest := h.Sum(nil)
+	// }
 
 	// 对证书请求主体做签名
 	var signature []byte

@@ -66,11 +66,15 @@ var errZeroParam = errors.New("zero parameter")
 var one = new(big.Int).SetInt64(1)
 var two = new(big.Int).SetInt64(2)
 
-// 使用priv私钥对明文msg做SM2签名，参数signer实际没有用，因为sm2签名内部固定使用sm3对明文做加盐的摘要计算。
-// 返回的签名已经对(r,s)做了asn1编码。
 // sign format = 30 + len(z) + 02 + len(r) + r + 02 + len(s) + s, z being what follows its size, ie 02+len(r)+r+02+len(s)+s
-func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerOpts) ([]byte, error) {
-	r, s, err := Sm2Sign(priv, msg, nil, random)
+
+// 使用priv私钥对签名内容摘要做SM2签名，参数signer目前没有使用，但仍要求传入外部对明文消息做摘要的散列算法。
+// 返回的签名已经对(r,s)做了asn1编码。
+// random : 随机数获取用, 如 rand.Reader
+// signContentDigest : 签名内容摘要(散列值)
+// signer : 外部对签名内容进行摘要计算使用的散列函数
+func (priv *PrivateKey) Sign(random io.Reader, signContentDigest []byte, signer crypto.SignerOpts) ([]byte, error) {
+	r, s, err := Sm2Sign(priv, signContentDigest, nil, random)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +87,9 @@ func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerO
 }
 
 // 使用pub公钥对签名sig做验签，msg是签名内容明文
-func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
+// signContentDigest : 签名内容摘要(散列值)
+// sig : 签名
+func (pub *PublicKey) Verify(signContentDigest []byte, sig []byte) bool {
 	var (
 		r, s  = &big.Int{}, &big.Int{}
 		inner cryptobyte.String
@@ -96,7 +102,7 @@ func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 		!inner.Empty() {
 		return false
 	}
-	return Sm2Verify(pub, msg, default_uid, r, s)
+	return Sm2Verify(pub, signContentDigest, default_uid, r, s)
 }
 
 // 对签名内容进行SM3摘要计算，摘要计算前混入sm2椭圆曲线部分参数与公钥并预散列一次。
@@ -144,9 +150,13 @@ func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, 
 //****************************************************************************//
 
 // SM2签名
-func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
+// priv : 签名私钥 *sm2.PrivateKey
+// signContentDigest : 签名内容摘要(散列值)
+// uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
+// random : 随机数获取用
+func Sm2Sign(priv *PrivateKey, signContentDigest, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	// 对签名内容进行摘要计算
-	digest, err := priv.PublicKey.Sm3Digest(msg, uid)
+	digest, err := priv.PublicKey.Sm3Digest(signContentDigest, uid)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -201,7 +211,11 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 }
 
 // SM2验签
-func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
+// pub : 验签公钥, *sm2.PublicKey
+// signContentDigest : 签名内容摘要(散列值)
+// uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
+// r, s : 签名
+func Sm2Verify(pub *PublicKey, signContentDigest, uid []byte, r, s *big.Int) bool {
 	c := pub.Curve
 	N := c.Params().N
 	one := new(big.Int).SetInt64(1)
@@ -220,7 +234,7 @@ func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 		return false
 	}
 	// 混合za与签名内容明文，并做sm3摘要
-	e, err := msgHash(za, msg)
+	e, err := msgHash(za, signContentDigest)
 	if err != nil {
 		return false
 	}
@@ -448,7 +462,7 @@ func keyExchange(klen int, ida, idb []byte, pri *PrivateKey, pub *PublicKey, rpr
 	tbt := new(big.Int).Add(pri.D, x2rb)
 	tb := new(big.Int).Mod(tbt, N)
 	if !curve.IsOnCurve(rpub.X, rpub.Y) {
-		err = errors.New("Ra not on curve")
+		err = errors.New("ra not on curve")
 		return
 	}
 	x1hat := keXHat(rpub.X)
@@ -466,13 +480,14 @@ func keyExchange(klen int, ida, idb []byte, pri *PrivateKey, pub *PublicKey, rpr
 	}
 	zero := new(big.Int)
 	if vx.Cmp(zero) == 0 || vy.Cmp(zero) == 0 {
-		err = errors.New("V is infinite")
+		err = errors.New("v is infinite")
+		return
 	}
 	pzb := pub
 	if !thisISA {
 		pzb = &pri.PublicKey
 	}
-	zb, err := ZA(pzb, idb)
+	zb, _ := ZA(pzb, idb)
 	k, ok := kdf(klen, vx.Bytes(), vy.Bytes(), za, zb)
 	if !ok {
 		err = errors.New("kdf: zero key")
