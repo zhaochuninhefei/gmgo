@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"golang.org/x/crypto/sha3"
 )
 
 func byteToString(b []byte) string {
@@ -57,6 +59,38 @@ func TestSm3(t *testing.T) {
 	fmt.Println("hash1值: ", hash1)
 	fmt.Printf("hash1长度 : %d\n", len(hash1))
 	fmt.Printf("hash1字符串 : %s\n", byteToString(hash1))
+}
+
+func TestSm3AndSHA256(t *testing.T) {
+	msg, err := ioutil.ReadFile("testdata/longMsg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// sm3计算
+	hashSm3 := Sm3Sum(msg)
+	fmt.Println("hashSm3值: ", hashSm3)
+	fmt.Printf("hashSm3长度 : %d\n", len(hashSm3))
+	fmt.Printf("hashSm3字符串 : %s\n", byteToString(hashSm3))
+
+	// hashFuncSha256 := sha256.New()
+	hashFuncSha256 := sha3.New256()
+	// 添加散列内容
+	hashFuncSha256.Write(msg)
+	// 散列计算
+	hashSha256 := hashFuncSha256.Sum(nil)
+	fmt.Println("hashSha256值: ", hashSha256)
+	fmt.Printf("hashSha256长度 : %d\n", len(hashSha256))
+	fmt.Printf("hashSha256字符串 : %s\n", byteToString(hashSha256))
+
+	// hashFuncSha384 := sha512.New384()
+	hashFuncSha384 := sha3.New384()
+	// 添加散列内容
+	hashFuncSha384.Write(msg)
+	// 散列计算
+	hashSha384 := hashFuncSha384.Sum(nil)
+	fmt.Println("hashSha384值: ", hashSha384)
+	fmt.Printf("hashSha384长度 : %d\n", len(hashSha384))
+	fmt.Printf("hashSha384字符串 : %s\n", byteToString(hashSha384))
 }
 
 func BenchmarkSm3(t *testing.B) {
