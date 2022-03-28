@@ -32,6 +32,7 @@ func byteToString(b []byte) string {
 	// fmt.Println("ret = ", ret)
 	return ret
 }
+
 func TestSm3(t *testing.T) {
 	msg := []byte("天行健君子以自强不息")
 	// 生成msg文件
