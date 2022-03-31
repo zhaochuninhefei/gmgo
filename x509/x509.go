@@ -844,6 +844,8 @@ type Certificate struct {
 	// Subject Alternate Name values. (Note that these values may not be valid
 	// if invalid values were contained within a parsed certificate. For
 	// example, an element of DNSNames may not be a valid DNS domain name.)
+	// go1.15开始废弃CommonName，使用SAN扩展信息。
+	// SAN扩展信息由下面四个字段组成。
 	DNSNames       []string
 	EmailAddresses []string
 	IPAddresses    []net.IP
@@ -1131,6 +1133,7 @@ func oidInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension) boo
 	return false
 }
 
+// go1.15开始废弃CommonName，改为使用SAN(Subject Alternative Name)扩展。
 // marshalSANs marshals a list of addresses into a the contents of an X.509
 // SubjectAlternativeName extension.
 func marshalSANs(dnsNames, emailAddresses []string, ipAddresses []net.IP, uris []*url.URL) (derBytes []byte, err error) {
@@ -1935,6 +1938,8 @@ type CertificateRequest struct {
 	ExtraExtensions []pkix.Extension
 
 	// Subject Alternate Name values.
+	// go1.15开始废弃CommonName，使用SAN扩展信息。
+	// SAN扩展信息由下面四个字段组成。
 	DNSNames       []string
 	EmailAddresses []string
 	IPAddresses    []net.IP
