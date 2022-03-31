@@ -15,37 +15,17 @@ limitations under the License.
 
 package sm2
 
+/*
+sm2/p256.go 定义sm2P256椭圆曲线
+*/
+
 import (
 	"crypto/elliptic"
 	"math/big"
 	"sync"
 )
 
-/** 学习标准库p256的优化方法实现sm2的快速版本
- * 标准库的p256的代码实现有些晦涩难懂，当然sm2的同样如此，有兴趣的大家可以研究研究，最后神兽压阵。。。
- *
- * ━━━━━━animal━━━━━━
- * 　　　┏┓　　　┏┓
- * 　　┏┛┻━━━┛┻┓
- * 　　┃　　　　　　　┃
- * 　　┃　　　━　　　┃
- * 　　┃　┳┛　┗┳　┃
- * 　　┃　　　　　　　┃
- * 　　┃　　　┻　　　┃
- * 　　┃　　　　　　　┃
- * 　　┗━┓　　　┏━┛
- * 　　　┃　　　┃
- *　　 　┃　　　┃
- *　　　 ┃　　　┗━━━┓
- *	   　┃　　　　　┣┓
- *   　　┃　　　　　┏┛
- *　　 　┗┓┓┏━┳┓┏┛
- *　　　　┃┫┫ ┃┫┫
- *　　　　┗┻┛ ┗┻┛
- *
- * ━━━━━Kawaii ━━━━━━
- */
-
+// SM2P256椭圆曲线
 type sm2P256Curve struct {
 	RInverse *big.Int
 	*elliptic.CurveParams
@@ -63,6 +43,7 @@ const (
 	bottom29Bits = 0x1FFFFFFF
 )
 
+// 初始化sm2椭圆曲线 sm2P256
 func initP256Sm2() {
 	sm2P256.CurveParams = &elliptic.CurveParams{Name: "SM2-P-256"} // sm2
 	A, _ := new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC", 16)
@@ -80,11 +61,15 @@ func initP256Sm2() {
 	sm2P256FromBig(&sm2P256.b, sm2P256.B)
 }
 
+// 获取SM2P256椭圆曲线
+// 该曲线是一个单例
 func P256Sm2() elliptic.Curve {
+	// 为确保sm2P256是一个单例，这里只初始化一次sm2P256
 	initonce.Do(initP256Sm2)
 	return sm2P256
 }
 
+// 获取SM2P256椭圆曲线的曲线参数
 func (curve sm2P256Curve) Params() *elliptic.CurveParams {
 	return sm2P256.CurveParams
 }
@@ -425,15 +410,15 @@ func sm2P256ToAffine(x, y, z *sm2P256FieldElement) (xOut, yOut *big.Int) {
 }
 
 var sm2P256Factor = []sm2P256FieldElement{
-	sm2P256FieldElement{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
-	sm2P256FieldElement{0x2, 0x0, 0x1FFFFF00, 0x7FF, 0x0, 0x0, 0x0, 0x2000000, 0x0},
-	sm2P256FieldElement{0x4, 0x0, 0x1FFFFE00, 0xFFF, 0x0, 0x0, 0x0, 0x4000000, 0x0},
-	sm2P256FieldElement{0x6, 0x0, 0x1FFFFD00, 0x17FF, 0x0, 0x0, 0x0, 0x6000000, 0x0},
-	sm2P256FieldElement{0x8, 0x0, 0x1FFFFC00, 0x1FFF, 0x0, 0x0, 0x0, 0x8000000, 0x0},
-	sm2P256FieldElement{0xA, 0x0, 0x1FFFFB00, 0x27FF, 0x0, 0x0, 0x0, 0xA000000, 0x0},
-	sm2P256FieldElement{0xC, 0x0, 0x1FFFFA00, 0x2FFF, 0x0, 0x0, 0x0, 0xC000000, 0x0},
-	sm2P256FieldElement{0xE, 0x0, 0x1FFFF900, 0x37FF, 0x0, 0x0, 0x0, 0xE000000, 0x0},
-	sm2P256FieldElement{0x10, 0x0, 0x1FFFF800, 0x3FFF, 0x0, 0x0, 0x0, 0x0, 0x01},
+	{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+	{0x2, 0x0, 0x1FFFFF00, 0x7FF, 0x0, 0x0, 0x0, 0x2000000, 0x0},
+	{0x4, 0x0, 0x1FFFFE00, 0xFFF, 0x0, 0x0, 0x0, 0x4000000, 0x0},
+	{0x6, 0x0, 0x1FFFFD00, 0x17FF, 0x0, 0x0, 0x0, 0x6000000, 0x0},
+	{0x8, 0x0, 0x1FFFFC00, 0x1FFF, 0x0, 0x0, 0x0, 0x8000000, 0x0},
+	{0xA, 0x0, 0x1FFFFB00, 0x27FF, 0x0, 0x0, 0x0, 0xA000000, 0x0},
+	{0xC, 0x0, 0x1FFFFA00, 0x2FFF, 0x0, 0x0, 0x0, 0xC000000, 0x0},
+	{0xE, 0x0, 0x1FFFF900, 0x37FF, 0x0, 0x0, 0x0, 0xE000000, 0x0},
+	{0x10, 0x0, 0x1FFFF800, 0x3FFF, 0x0, 0x0, 0x0, 0x0, 0x01},
 }
 
 func sm2P256Scalar(b *sm2P256FieldElement, a int) {
@@ -1057,7 +1042,8 @@ func sm2P256ToBig(X *sm2P256FieldElement) *big.Int {
 	return r
 }
 func WNafReversed(wnaf []int8) []int8 {
-	wnafRev := make([]int8, len(wnaf), len(wnaf))
+	// wnafRev := make([]int8, len(wnaf), len(wnaf))
+	wnafRev := make([]int8, len(wnaf))
 	for i, v := range wnaf {
 		wnafRev[len(wnaf)-(1+i)] = v
 	}
@@ -1072,7 +1058,8 @@ func sm2GenrateWNaf(b []byte) []int8 {
 	} else {
 		k = n
 	}
-	wnaf := make([]int8, k.BitLen()+1, k.BitLen()+1)
+	// wnaf := make([]int8, k.BitLen()+1, k.BitLen()+1)
+	wnaf := make([]int8, k.BitLen()+1)
 	if k.Sign() == 0 {
 		return wnaf
 	}
@@ -1101,7 +1088,8 @@ func sm2GenrateWNaf(b []byte) []int8 {
 		pos = int(width)
 	}
 	if len(wnaf) > length+1 {
-		t := make([]int8, length+1, length+1)
+		// t := make([]int8, length+1, length+1)
+		t := make([]int8, length+1)
 		copy(t, wnaf[0:length+1])
 		wnaf = t
 	}

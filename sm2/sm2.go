@@ -44,6 +44,19 @@ type PublicKey struct {
 	X, Y           *big.Int // 公钥座标
 }
 
+func (pub *PublicKey) Equal(x crypto.PublicKey) bool {
+	xx, ok := x.(*PublicKey)
+	if !ok {
+		return false
+	}
+	return pub.X.Cmp(xx.X) == 0 && pub.Y.Cmp(xx.Y) == 0 &&
+		// Standard library Curve implementations are singletons, so this check
+		// will work for those. Other Curves might be equivalent even if not
+		// singletons, but there is no definitive way to check for that, and
+		// better to err on the side of safety.
+		pub.Curve == xx.Curve
+}
+
 // SM2私钥结构体
 type PrivateKey struct {
 	PublicKey          // 公钥
@@ -62,6 +75,14 @@ func (priv *PrivateKey) Public() crypto.PublicKey {
 	return &priv.PublicKey
 }
 
+func (priv *PrivateKey) Equal(x crypto.PrivateKey) bool {
+	xx, ok := x.(*PrivateKey)
+	if !ok {
+		return false
+	}
+	return priv.PublicKey.Equal(&xx.PublicKey) && priv.D.Cmp(xx.D) == 0
+}
+
 var errZeroParam = errors.New("zero parameter")
 var one = new(big.Int).SetInt64(1)
 var two = new(big.Int).SetInt64(2)
@@ -69,10 +90,10 @@ var two = new(big.Int).SetInt64(2)
 // sign format = 30 + len(z) + 02 + len(r) + r + 02 + len(s) + s, z being what follows its size, ie 02+len(r)+r+02+len(s)+s
 
 // 使用priv私钥对签名内容摘要做SM2签名，参数signer目前没有使用，但仍要求传入外部对明文消息做摘要的散列算法。
-// 返回的签名已经对(r,s)做了asn1编码。
-// random : 随机数获取用, 如 rand.Reader
-// signContentDigest : 签名内容摘要(散列值)
-// signer : 外部对签名内容进行摘要计算使用的散列函数
+// 返回的签名为DER字节数组，对(r,s)做了asn1编码。
+//  - random : 随机数获取用, 如 rand.Reader
+//  - signContentDigest : 签名内容摘要(散列值)
+//  - signer : 外部对签名内容进行摘要计算使用的散列函数
 func (priv *PrivateKey) Sign(random io.Reader, signContentDigest []byte, signer crypto.SignerOpts) ([]byte, error) {
 	r, s, err := Sm2Sign(priv, signContentDigest, nil, random)
 	if err != nil {
@@ -86,9 +107,15 @@ func (priv *PrivateKey) Sign(random io.Reader, signContentDigest []byte, signer 
 	return b.Bytes()
 }
 
-// 使用pub公钥对签名sig做验签，msg是签名内容明文
-// signContentDigest : 签名内容摘要(散列值)
-// sig : 签名
+// 使用私钥priv对一个hash值进行签名。
+// 返回的签名为DER字节数组，对(r,s)做了asn1编码。
+func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
+	return priv.Sign(rand, hash, nil)
+}
+
+// 使用pub公钥对签名sig做验签。
+//  - signContentDigest : 签名内容摘要(散列值)
+//  - sig : 签名DER字节数组(对(r,s)做了asn1编码，因此会先做asn1解码)
 func (pub *PublicKey) Verify(signContentDigest []byte, sig []byte) bool {
 	var (
 		r, s  = &big.Int{}, &big.Int{}
@@ -103,6 +130,14 @@ func (pub *PublicKey) Verify(signContentDigest []byte, sig []byte) bool {
 		return false
 	}
 	return Sm2Verify(pub, signContentDigest, default_uid, r, s)
+}
+
+// 使用公钥pub对hash和sig进行验签。
+//  - pub 公钥
+//  - hash 签名内容摘要(散列值)
+//  - sig 签名DER字节数组(对(r,s)做了asn1编码，因此会先做asn1解码)
+func VerifyASN1(pub *PublicKey, hash, sig []byte) bool {
+	return pub.Verify(hash, sig)
 }
 
 // 对签名内容进行SM3摘要计算，摘要计算前混入sm2椭圆曲线部分参数与公钥并预散列一次。
@@ -150,10 +185,10 @@ func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, 
 //****************************************************************************//
 
 // SM2签名
-// priv : 签名私钥 *sm2.PrivateKey
-// signContentDigest : 签名内容摘要(散列值)
-// uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
-// random : 随机数获取用
+//  - priv : 签名私钥 *sm2.PrivateKey
+//  - signContentDigest : 签名内容摘要(散列值)
+//  - uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
+//  - random : 随机数获取用
 func Sm2Sign(priv *PrivateKey, signContentDigest, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	// 对签名内容进行摘要计算
 	digest, err := priv.PublicKey.Sm3Digest(signContentDigest, uid)
@@ -211,10 +246,10 @@ func Sm2Sign(priv *PrivateKey, signContentDigest, uid []byte, random io.Reader) 
 }
 
 // SM2验签
-// pub : 验签公钥, *sm2.PublicKey
-// signContentDigest : 签名内容摘要(散列值)
-// uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
-// r, s : 签名
+//  - pub : 验签公钥, *sm2.PublicKey
+//  - signContentDigest : 签名内容摘要(散列值)
+//  - uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
+//  - r, s : 签名
 func Sm2Verify(pub *PublicKey, signContentDigest, uid []byte, r, s *big.Int) bool {
 	c := pub.Curve
 	N := c.Params().N
@@ -257,6 +292,14 @@ func Sm2Verify(pub *PublicKey, signContentDigest, uid []byte, r, s *big.Int) boo
 	x.Mod(x, N)
 	// 判断 R == r
 	return x.Cmp(r) == 0
+}
+
+// SM2验签
+//  - pub : 验签公钥, *sm2.PublicKey
+//  - hash : 签名内容摘要(散列值)
+//  - r, s : 签名
+func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
+	return Sm2Verify(pub, hash, nil, r, s)
 }
 
 /*
@@ -741,18 +784,21 @@ func GenerateKey(random io.Reader) (*PrivateKey, error) {
 	return priv, nil
 }
 
-type zr struct {
-	io.Reader
-}
+// ecdsa的实现中，使用zeroReader辅助生成一个cipher.StreamReader用作随机数生成的 rand io.Reader。
+// sm2目前没有采用这种方式，所以这里将相关代码注释掉了。
 
-func (z *zr) Read(dst []byte) (n int, err error) {
-	for i := range dst {
-		dst[i] = 0
-	}
-	return len(dst), nil
-}
+// type zr struct {
+// 	io.Reader
+// }
 
-var zeroReader = &zr{}
+// func (z *zr) Read(dst []byte) (n int, err error) {
+// 	for i := range dst {
+// 		dst[i] = 0
+// 	}
+// 	return len(dst), nil
+// }
+
+// var zeroReader = &zr{}
 
 func getLastBit(a *big.Int) uint {
 	return a.Bit(0)

@@ -86,7 +86,7 @@ func WriteKeyToPemFile(FileName string, key SM4Key, pwd []byte) error {
 	return nil
 }
 
-// sm4密钥转为pem字节流
+// sm4密钥转为pem字节数组
 func WriteKeytoMem(key SM4Key, pwd []byte) ([]byte, error) {
 	if pwd != nil {
 		block, err := gmx509.EncryptPEMBlock(rand.Reader,
@@ -104,7 +104,7 @@ func WriteKeytoMem(key SM4Key, pwd []byte) ([]byte, error) {
 	}
 }
 
-// 将pem字节流转为sm4密钥
+// 将pem字节数组转为sm4密钥
 func ReadKeyFromMem(data []byte, pwd []byte) (SM4Key, error) {
 	block, _ := pem.Decode(data)
 	if gmx509.IsEncryptedPEMBlock(block) {

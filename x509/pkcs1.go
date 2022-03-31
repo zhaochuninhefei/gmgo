@@ -1,35 +1,21 @@
-/*
-Copyright Suzhou Tongji Fintech Research Institute 2017 All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package x509
 
+/*
+x509/pkcs1.go PKCS#1标准的DER字节数组与RSA公私钥之间相互转换
+*/
+
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/asn1"
 	"errors"
-	"fmt"
 	"math/big"
-
-	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
-const ecPrivKeyVersion = 1
-
-// pkcs1PrivateKey is a structure which mirrors the PKCS#1 ASN.1 for an RSA private key.
+// pkcs1PrivateKey is a structure which mirrors the PKCS #1 ASN.1 for an RSA private key.
 type pkcs1PrivateKey struct {
 	Version int
 	N       *big.Int
@@ -53,7 +39,16 @@ type pkcs1AdditionalRSAPrime struct {
 	Coeff *big.Int
 }
 
-// ParsePKCS1PrivateKey returns an RSA private key from its ASN.1 PKCS#1 DER encoded form.
+// pkcs1PublicKey reflects the ASN.1 structure of a PKCS #1 public key.
+type pkcs1PublicKey struct {
+	N *big.Int
+	E int
+}
+
+// 将PKCS #1, ASN.1 DER格式字节数组转为RSA私钥
+// ParsePKCS1PrivateKey parses an RSA private key in PKCS #1, ASN.1 DER form.
+//
+// This kind of key is commonly encoded in PEM blocks of type "RSA PRIVATE KEY".
 func ParsePKCS1PrivateKey(der []byte) (*rsa.PrivateKey, error) {
 	var priv pkcs1PrivateKey
 	rest, err := asn1.Unmarshal(der, &priv)
@@ -61,6 +56,12 @@ func ParsePKCS1PrivateKey(der []byte) (*rsa.PrivateKey, error) {
 		return nil, asn1.SyntaxError{Msg: "trailing data"}
 	}
 	if err != nil {
+		if _, err := asn1.Unmarshal(der, &ecPrivateKey{}); err == nil {
+			return nil, errors.New("x509: failed to parse private key (use ParseECPrivateKey instead for this key format)")
+		}
+		if _, err := asn1.Unmarshal(der, &pkcs8{}); err == nil {
+			return nil, errors.New("x509: failed to parse private key (use ParsePKCS8PrivateKey instead for this key format)")
+		}
 		return nil, err
 	}
 
@@ -100,7 +101,12 @@ func ParsePKCS1PrivateKey(der []byte) (*rsa.PrivateKey, error) {
 	return key, nil
 }
 
-// MarshalPKCS1PrivateKey converts a private key to ASN.1 DER encoded form.
+// 将RSA私钥转为PKCS #1, ASN.1 DER格式字节数组
+// MarshalPKCS1PrivateKey converts an RSA private key to PKCS #1, ASN.1 DER form.
+//
+// This kind of key is commonly encoded in PEM blocks of type "RSA PRIVATE KEY".
+// For a more flexible key format which is not RSA specific, use
+// MarshalPKCS8PrivateKey.
 func MarshalPKCS1PrivateKey(key *rsa.PrivateKey) []byte {
 	key.Precompute()
 
@@ -132,100 +138,44 @@ func MarshalPKCS1PrivateKey(key *rsa.PrivateKey) []byte {
 	return b
 }
 
-// rsaPublicKey reflects the ASN.1 structure of a PKCS#1 public key.
-type rsaPublicKey struct {
-	N *big.Int
-	E int
+// 将PKCS #1, ASN.1 DER字节数组转为RSA公钥
+// ParsePKCS1PublicKey parses an RSA public key in PKCS #1, ASN.1 DER form.
+//
+// This kind of key is commonly encoded in PEM blocks of type "RSA PUBLIC KEY".
+func ParsePKCS1PublicKey(der []byte) (*rsa.PublicKey, error) {
+	var pub pkcs1PublicKey
+	rest, err := asn1.Unmarshal(der, &pub)
+	if err != nil {
+		if _, err := asn1.Unmarshal(der, &publicKeyInfo{}); err == nil {
+			return nil, errors.New("x509: failed to parse public key (use ParsePKIXPublicKey instead for this key format)")
+		}
+		return nil, err
+	}
+	if len(rest) > 0 {
+		return nil, asn1.SyntaxError{Msg: "trailing data"}
+	}
+
+	if pub.N.Sign() <= 0 || pub.E <= 0 {
+		return nil, errors.New("x509: public key contains zero or negative value")
+	}
+	if pub.E > 1<<31-1 {
+		return nil, errors.New("x509: public key contains large public exponent")
+	}
+
+	return &rsa.PublicKey{
+		E: pub.E,
+		N: pub.N,
+	}, nil
 }
 
-// parseECPrivateKey parses an ASN.1 Elliptic Curve Private Key Structure.
-// The OID for the named curve may be provided from another source (such as
-// the PKCS8 container) - if it is provided then use this instead of the OID
-// that may exist in the EC private key structure.
-func parseECPrivateKey(namedCurveOID *asn1.ObjectIdentifier, der []byte) (key interface{}, err error) {
-	var privKey ecPrivateKey
-	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
-		return nil, errors.New("x509: failed to parse EC private key: " + err.Error())
-	}
-	if privKey.Version != ecPrivKeyVersion {
-		return nil, fmt.Errorf("x509: unknown EC private key version %d", privKey.Version)
-	}
-
-	var curve elliptic.Curve
-	if namedCurveOID != nil {
-		curve = namedCurveFromOID(*namedCurveOID)
-	} else {
-		curve = namedCurveFromOID(privKey.NamedCurveOID)
-	}
-	if curve == nil {
-		return nil, errors.New("x509: unknown elliptic curve")
-	}
-
-	k := new(big.Int).SetBytes(privKey.PrivateKey)
-	curveOrder := curve.Params().N
-	if k.Cmp(curveOrder) >= 0 {
-		return nil, errors.New("x509: invalid elliptic curve private key value")
-	}
-
-	switch curve {
-	case sm2.P256Sm2():
-		k := new(big.Int).SetBytes(privKey.PrivateKey)
-		curveOrder := curve.Params().N
-		if k.Cmp(curveOrder) >= 0 {
-			return nil, errors.New("x509: invalid elliptic curve private key value")
-		}
-		priv := new(sm2.PrivateKey)
-		priv.Curve = curve
-		priv.D = k
-
-		privateKey := make([]byte, (curveOrder.BitLen()+7)/8)
-
-		// Some private keys have leading zero padding. This is invalid
-		// according to [SEC1], but this code will ignore it.
-		for len(privKey.PrivateKey) > len(privateKey) {
-			if privKey.PrivateKey[0] != 0 {
-				return nil, errors.New("x509: invalid private key length")
-			}
-			privKey.PrivateKey = privKey.PrivateKey[1:]
-		}
-
-		// Some private keys remove all leading zeros, this is also invalid
-		// according to [SEC1] but since OpenSSL used to do this, we ignore
-		// this too.
-		copy(privateKey[len(privateKey)-len(privKey.PrivateKey):], privKey.PrivateKey)
-		priv.X, priv.Y = curve.ScalarBaseMult(privateKey)
-
-		return priv, nil
-
-	case elliptic.P224(), elliptic.P256(), elliptic.P384(), elliptic.P521():
-		k := new(big.Int).SetBytes(privKey.PrivateKey)
-		curveOrder := curve.Params().N
-		if k.Cmp(curveOrder) >= 0 {
-			return nil, errors.New("x509: invalid elliptic curve private key value")
-		}
-		priv := new(ecdsa.PrivateKey)
-		priv.Curve = curve
-		priv.D = k
-
-		privateKey := make([]byte, (curveOrder.BitLen()+7)/8)
-
-		// Some private keys have leading zero padding. This is invalid
-		// according to [SEC1], but this code will ignore it.
-		for len(privKey.PrivateKey) > len(privateKey) {
-			if privKey.PrivateKey[0] != 0 {
-				return nil, errors.New("x509: invalid private key length")
-			}
-			privKey.PrivateKey = privKey.PrivateKey[1:]
-		}
-
-		// Some private keys remove all leading zeros, this is also invalid
-		// according to [SEC1] but since OpenSSL used to do this, we ignore
-		// this too.
-		copy(privateKey[len(privateKey)-len(privKey.PrivateKey):], privKey.PrivateKey)
-		priv.X, priv.Y = curve.ScalarBaseMult(privateKey)
-
-		return priv, nil
-	default:
-		return nil, errors.New("x509: invalid private key curve param")
-	}
+// 将RSA公钥转为PKCS #1, ASN.1 DER字节数组
+// MarshalPKCS1PublicKey converts an RSA public key to PKCS #1, ASN.1 DER form.
+//
+// This kind of key is commonly encoded in PEM blocks of type "RSA PUBLIC KEY".
+func MarshalPKCS1PublicKey(key *rsa.PublicKey) []byte {
+	derBytes, _ := asn1.Marshal(pkcs1PublicKey{
+		N: key.N,
+		E: key.E,
+	})
+	return derBytes
 }

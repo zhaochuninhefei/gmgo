@@ -4,6 +4,12 @@
 
 package x509
 
+/*
+x509/pem_decrypt.go 对pem块做加密的实现。
+参考标准: RFC 1423
+其中派生密钥的算法参考的是OpenSSL的实现。
+*/
+
 // RFC 1423 describes the encryption of PEM blocks. The algorithm used to
 // generate a key from the password was derived by looking at the OpenSSL
 // implementation.
@@ -30,7 +36,6 @@ const (
 	PEMCipherAES128
 	PEMCipherAES192
 	PEMCipherAES256
-	// PEMCipherSM4
 )
 
 // rfc1423Algo holds a method for enciphering a PEM block.
@@ -74,13 +79,9 @@ var rfc1423Algos = []rfc1423Algo{{
 	cipherFunc: aes.NewCipher,
 	keySize:    32,
 	blockSize:  aes.BlockSize,
-	// }, {
-	// 	cipher:     PEMCipherSM4,
-	// 	name:       "SM4-ECB",
-	// 	cipherFunc: sm4.NewCipher,
-	// 	keySize:    16,
-	// 	blockSize:  sm4.BlockSize,
 },
+
+// TODO: 计划添加sm4，但需要sm4参考aes实现CBC相关接口
 }
 
 // deriveKey uses a key derivation function to stretch the password into a key
@@ -104,13 +105,17 @@ func (c rfc1423Algo) deriveKey(password, salt []byte) []byte {
 
 // IsEncryptedPEMBlock returns whether the PEM block is password encrypted
 // according to RFC 1423.
+//
+// Deprecated: Legacy PEM encryption as specified in RFC 1423 is insecure by
+// design. Since it does not authenticate the ciphertext, it is vulnerable to
+// padding oracle attacks that can let an attacker recover the plaintext.
 func IsEncryptedPEMBlock(b *pem.Block) bool {
 	_, ok := b.Headers["DEK-Info"]
 	return ok
 }
 
-// ErrIncorrectPassword is returned when an incorrect password is detected.
-var ErrIncorrectPassword = errors.New("x509: decryption password incorrect")
+// IncorrectPasswordError is returned when an incorrect password is detected.
+var IncorrectPasswordError = errors.New("x509: decryption password incorrect")
 
 // DecryptPEMBlock takes a PEM block encrypted according to RFC 1423 and the
 // password used to encrypt it and returns a slice of decrypted DER encoded
@@ -120,6 +125,10 @@ var ErrIncorrectPassword = errors.New("x509: decryption password incorrect")
 // of deficiencies in the format, it's not always possible to detect an
 // incorrect password. In these cases no error will be returned but the
 // decrypted DER bytes will be random noise.
+//
+// Deprecated: Legacy PEM encryption as specified in RFC 1423 is insecure by
+// design. Since it does not authenticate the ciphertext, it is vulnerable to
+// padding oracle attacks that can let an attacker recover the plaintext.
 func DecryptPEMBlock(b *pem.Block, password []byte) ([]byte, error) {
 	dek, ok := b.Headers["DEK-Info"]
 	if !ok {
@@ -172,14 +181,14 @@ func DecryptPEMBlock(b *pem.Block, password []byte) ([]byte, error) {
 	}
 	last := int(data[dlen-1])
 	if dlen < last {
-		return nil, ErrIncorrectPassword
+		return nil, IncorrectPasswordError
 	}
 	if last == 0 || last > ciph.blockSize {
-		return nil, ErrIncorrectPassword
+		return nil, IncorrectPasswordError
 	}
 	for _, val := range data[dlen-last:] {
 		if int(val) != last {
-			return nil, ErrIncorrectPassword
+			return nil, IncorrectPasswordError
 		}
 	}
 	return data[:dlen-last], nil
@@ -188,6 +197,10 @@ func DecryptPEMBlock(b *pem.Block, password []byte) ([]byte, error) {
 // EncryptPEMBlock returns a PEM block of the specified type holding the
 // given DER encoded data encrypted with the specified algorithm and
 // password according to RFC 1423.
+//
+// Deprecated: Legacy PEM encryption as specified in RFC 1423 is insecure by
+// design. Since it does not authenticate the ciphertext, it is vulnerable to
+// padding oracle attacks that can let an attacker recover the plaintext.
 func EncryptPEMBlock(rand io.Reader, blockType string, data, password []byte, alg PEMCipher) (*pem.Block, error) {
 	ciph := cipherByKey(alg)
 	if ciph == nil {

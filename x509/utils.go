@@ -1,73 +1,264 @@
 package x509
 
+/*
+x509/utils.go 提供gmx509常用操作的公开函数:
+ReadPrivateKeyFromPem : 将pem字节数组转为对应私钥
+ReadPrivateKeyFromPemFile : 将pem文件转为对应私钥
+WritePrivateKeyToPem : 将私钥转为pem字节数组
+WritePrivateKeytoPemFile : 将私钥转为pem文件
+ReadPublicKeyFromPem :  将pem字节数组转为对应公钥
+ReadPublicKeyFromPemFile : 将pem文件转为对应公钥
+WritePublicKeyToPem : 将公钥转为pem字节数组
+WritePublicKeytoPemFile : 将公钥转为pem文件
+ReadSm2PrivFromHex : 将hex字符串转为sm2私钥
+WriteSm2PrivToHex : 将sm2私钥D转为hex字符串
+ReadSm2PubFromHex : 将hex字符串转为sm2公钥
+WriteSm2PubToHex : 将sm2公钥转为hex字符串
+ReadCertificateRequestFromPem : 将pem字节数组转为证书申请
+ReadCertificateRequestFromPemFile : 将pem文件转为证书申请
+CreateCertificateRequestToPem : 创建证书申请并转为pem字节数组
+CreateCertificateRequestToPemFile : 创建证书申请并转为pem文件
+ReadCertificateFromPem : 将pem字节数组转为gmx509证书
+ReadCertificateFromPemFile : 将pem文件转为gmx509证书
+CreateCertificateToPem : 创建gmx509证书并转为pem字节数组
+CreateCertificateToPemFile : 创建gmx509证书并转为pem文件
+ParseGmx509DerToX509 : 将gmx509证书DER字节数组转为x509证书
+CreateEllipticSKI : 根据椭圆曲线公钥参数生成其SKI值
+GetRandBigInt : 随机生成序列号
+*/
+
 import (
-	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
+	"strings"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
-func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (*sm2.PrivateKey, error) {
+// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+// 私钥与pem相互转换
+
+// 将pem字节数组转为对应私钥
+//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error) {
 	var block *pem.Block
 	block, _ = pem.Decode(privateKeyPem)
-	if block == nil {
+	if block == nil || !strings.HasSuffix(block.Type, "PRIVATE KEY") {
 		return nil, errors.New("failed to decode private key")
 	}
-	priv, err := ParsePKCS8PrivateKey(block.Bytes, pwd)
+	priv, err := ParsePKCS8PrivateKey(block.Bytes)
 	return priv, err
 }
 
-func WritePrivateKeyToPem(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
+// 将pem文件转为对应私钥
+//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+func ReadPrivateKeyFromPemFile(FileName string, pwd []byte) (interface{}, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadPrivateKeyFromPem(data, pwd)
+}
+
+// 将私钥转为pem字节数组
+//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+func WritePrivateKeyToPem(key interface{}, pwd []byte) ([]byte, error) {
 	var block *pem.Block
-	der, err := MarshalSm2PrivateKey(key, pwd) //Convert private key to DER format
+	der, err := MarshalPKCS8PrivateKey(key)
 	if err != nil {
 		return nil, err
 	}
-	if pwd != nil {
-		block = &pem.Block{
-			Type:  "ENCRYPTED PRIVATE KEY",
-			Bytes: der,
-		}
-	} else {
-		block = &pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: der,
-		}
+	// if pwd != nil {
+	// 	block = &pem.Block{
+	// 		Type:  "ENCRYPTED PRIVATE KEY",
+	// 		Bytes: der,
+	// 	}
+	// } else {
+	// 	block = &pem.Block{
+	// 		Type:  "PRIVATE KEY",
+	// 		Bytes: der,
+	// 	}
+	// }
+	var pemType string
+	switch key.(type) {
+	case *sm2.PrivateKey:
+		pemType = "SM2 PRIVATE KEY"
+	case *ecdsa.PrivateKey:
+		pemType = "ECDSA PRIVATE KEY"
+	case ed25519.PrivateKey:
+		pemType = "ED25519 PRIVATE KEY"
+	case *rsa.PrivateKey:
+		pemType = "RSA PRIVATE KEY"
+	default:
+		return nil, fmt.Errorf("gmx509.WritePrivateKeyToPem : unsupported key: [%T]", key)
 	}
-	certPem := pem.EncodeToMemory(block)
-	return certPem, nil
-}
-
-func ReadPublicKeyFromPem(publicKeyPem []byte) (*sm2.PublicKey, error) {
-	block, _ := pem.Decode(publicKeyPem)
-	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, errors.New("failed to decode public key")
-	}
-	return ParseSm2PublicKey(block.Bytes)
-}
-
-func WritePublicKeyToPem(key *sm2.PublicKey) ([]byte, error) {
-	der, err := MarshalSm2PublicKey(key) //Convert publick key to DER format
-	if err != nil {
-		return nil, err
-	}
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
+	block = &pem.Block{
+		Type:  pemType,
 		Bytes: der,
 	}
 	certPem := pem.EncodeToMemory(block)
 	return certPem, nil
 }
 
-// 读取16进制的数字D作为私钥，Dhex是sm2私钥的16进制字符串，对应sm2.PrivateKey.D
-func ReadPrivateKeyFromHex(Dhex string) (*sm2.PrivateKey, error) {
+// 将私钥转为pem文件
+//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (bool, error) {
+	var block *pem.Block
+	der, err := MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return false, err
+	}
+	// if pwd != nil {
+	// 	block = &pem.Block{
+	// 		Type:  "ENCRYPTED PRIVATE KEY",
+	// 		Bytes: der,
+	// 	}
+	// } else {
+	// 	block = &pem.Block{
+	// 		Type:  "PRIVATE KEY",
+	// 		Bytes: der,
+	// 	}
+	// }
+	var pemType string
+	switch key.(type) {
+	case *sm2.PrivateKey:
+		pemType = "SM2 PRIVATE KEY"
+	case *ecdsa.PrivateKey:
+		pemType = "ECDSA PRIVATE KEY"
+	case ed25519.PrivateKey:
+		pemType = "ED25519 PRIVATE KEY"
+	case *rsa.PrivateKey:
+		pemType = "RSA PRIVATE KEY"
+	default:
+		return false, fmt.Errorf("gmx509.WritePrivateKeytoPemFile : unsupported key: [%T]", key)
+	}
+	block = &pem.Block{
+		Type:  pemType,
+		Bytes: der,
+	}
+	file, err := os.Create(FileName)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// 私钥与pem相互转换
+// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+// 公钥与pem相互转换
+
+// 将pem字节数组转为对应公钥
+//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *dsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
+	block, _ := pem.Decode(publicKeyPem)
+	if block == nil || !strings.HasSuffix(block.Type, "PUBLIC KEY") {
+		return nil, errors.New("failed to decode public key")
+	}
+	return ParsePKIXPublicKey(block.Bytes)
+}
+
+// 将pem文件转为对应公钥
+//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *dsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+func ReadPublicKeyFromPemFile(FileName string) (interface{}, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadPublicKeyFromPem(data)
+}
+
+// 将公钥转为pem字节数组
+//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+func WritePublicKeyToPem(key interface{}) ([]byte, error) {
+	der, err := MarshalPKIXPublicKey(key)
+	if err != nil {
+		return nil, err
+	}
+	var pemType string
+	switch key.(type) {
+	case *sm2.PublicKey:
+		pemType = "SM2 PUBLIC KEY"
+	case *ecdsa.PublicKey:
+		pemType = "ECDSA PUBLIC KEY"
+	case ed25519.PublicKey:
+		pemType = "ED25519 PUBLIC KEY"
+	case *rsa.PublicKey:
+		pemType = "RSA PUBLIC KEY"
+	default:
+		return nil, fmt.Errorf("gmx509.WritePublicKeyToPem : unsupported key: [%T]", key)
+	}
+	block := &pem.Block{
+		Type:  pemType,
+		Bytes: der,
+	}
+	certPem := pem.EncodeToMemory(block)
+	return certPem, nil
+}
+
+// 将公钥转为pem文件
+//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+func WritePublicKeytoPemFile(FileName string, key interface{}) (bool, error) {
+	der, err := MarshalPKIXPublicKey(key)
+	if err != nil {
+		return false, err
+	}
+	var pemType string
+	switch key.(type) {
+	case *sm2.PublicKey:
+		pemType = "SM2 PUBLIC KEY"
+	case *ecdsa.PublicKey:
+		pemType = "ECDSA PUBLIC KEY"
+	case ed25519.PublicKey:
+		pemType = "ED25519 PUBLIC KEY"
+	case *rsa.PublicKey:
+		pemType = "RSA PUBLIC KEY"
+	default:
+		return false, fmt.Errorf("gmx509.WritePublicKeytoPemFile : unsupported key: [%T]", key)
+	}
+	block := &pem.Block{
+		Type:  pemType,
+		Bytes: der,
+	}
+	file, err := os.Create(FileName)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// 公钥与pem相互转换
+// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+// SM2公私钥与hex相互转换
+
+// 将hex字符串转为sm2私钥
+// Dhex是16进制字符串，对应sm2.PrivateKey.D
+func ReadSm2PrivFromHex(Dhex string) (*sm2.PrivateKey, error) {
 	c := sm2.P256Sm2()
 	d, err := hex.DecodeString(Dhex)
 	if err != nil {
@@ -87,11 +278,14 @@ func ReadPrivateKeyFromHex(Dhex string) (*sm2.PrivateKey, error) {
 	return priv, nil
 }
 
-func WritePrivateKeyToHex(key *sm2.PrivateKey) string {
+// 将sm2私钥D转为hex字符串
+func WriteSm2PrivToHex(key *sm2.PrivateKey) string {
 	return key.D.Text(16)
 }
 
-func ReadPublicKeyFromHex(Qhex string) (*sm2.PublicKey, error) {
+// 将hex字符串转为sm2公钥
+// Qhex是sm2公钥座标x,y的字节数组拼接后的hex转码字符串
+func ReadSm2PubFromHex(Qhex string) (*sm2.PublicKey, error) {
 	q, err := hex.DecodeString(Qhex)
 	if err != nil {
 		return nil, err
@@ -109,7 +303,8 @@ func ReadPublicKeyFromHex(Qhex string) (*sm2.PublicKey, error) {
 	return pub, nil
 }
 
-func WritePublicKeyToHex(key *sm2.PublicKey) string {
+// 将sm2公钥转为hex字符串
+func WriteSm2PubToHex(key *sm2.PublicKey) string {
 	x := key.X.Bytes()
 	y := key.Y.Bytes()
 	if n := len(x); n < 32 {
@@ -125,6 +320,13 @@ func WritePublicKeyToHex(key *sm2.PublicKey) string {
 	return hex.EncodeToString(c)
 }
 
+// SM2公私钥与hex相互转换
+// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+// 证书申请与pem相互转换
+
+// 将pem字节数组转为证书申请
 func ReadCertificateRequestFromPem(certPem []byte) (*CertificateRequest, error) {
 	block, _ := pem.Decode(certPem)
 	if block == nil {
@@ -133,7 +335,17 @@ func ReadCertificateRequestFromPem(certPem []byte) (*CertificateRequest, error) 
 	return ParseCertificateRequest(block.Bytes)
 }
 
-func CreateCertificateRequestToPem(template *CertificateRequest, signer crypto.Signer) ([]byte, error) {
+// 将pem文件转为证书申请
+func ReadCertificateRequestFromPemFile(FileName string) (*CertificateRequest, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadCertificateRequestFromPem(data)
+}
+
+// 创建证书申请并转为pem字节数组
+func CreateCertificateRequestToPem(template *CertificateRequest, signer interface{}) ([]byte, error) {
 	der, err := CreateCertificateRequest(rand.Reader, template, signer)
 	if err != nil {
 		return nil, err
@@ -146,6 +358,35 @@ func CreateCertificateRequestToPem(template *CertificateRequest, signer crypto.S
 	return certPem, nil
 }
 
+// 创建证书申请并转为pem文件
+func CreateCertificateRequestToPemFile(FileName string, template *CertificateRequest, signer interface{}) (bool, error) {
+	der, err := CreateCertificateRequest(rand.Reader, template, signer)
+	if err != nil {
+		return false, err
+	}
+	block := &pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: der,
+	}
+	file, err := os.Create(FileName)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// 证书申请与pem相互转换
+// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+// gmx509证书与pem相互转换
+
+// 将pem字节数组转为gmx509证书
 func ReadCertificateFromPem(certPem []byte) (*Certificate, error) {
 	block, _ := pem.Decode(certPem)
 	if block == nil {
@@ -154,119 +395,18 @@ func ReadCertificateFromPem(certPem []byte) (*Certificate, error) {
 	return ParseCertificate(block.Bytes)
 }
 
-// CreateCertificate creates a new certificate based on a template. The
-// following members of template are used: SerialNumber, Subject, NotBefore,
-// NotAfter, KeyUsage, ExtKeyUsage, UnknownExtKeyUsage, BasicConstraintsValid,
-// IsCA, MaxPathLen, SubjectKeyId, DNSNames, PermittedDNSDomainsCritical,
-// PermittedDNSDomains, SignatureAlgorithm.
-//
-// The certificate is signed by parent. If parent is equal to template then the
-// certificate is self-signed. The parameter pub is the public key of the
-// signee and priv is the private key of the signer.
-//
-// The returned slice is the certificate in DER encoding.
-//
-// All keys types that are implemented via crypto.Signer are supported (This
-// includes *rsa.PublicKey and *ecdsa.PublicKey.)
-
-// 根据证书模板与父证书生成新证书
-// template : 证书模板 *gmx509.Certificate
-// parent : 父证书 *gmx509.Certificate
-// publicKey : 新证书拥有者的公钥 (sm2/ecdsa/rsa)
-// signer : 签名者(私钥)
-func CreateCertificate(template, parent *Certificate, publicKey interface{}, signer crypto.Signer) ([]byte, error) {
-	return CreateCertificateFromReader(rand.Reader, template, parent, publicKey, signer)
-	// if template.SerialNumber == nil {
-	// 	return nil, errors.New("x509: no SerialNumber given")
-	// }
-	// // 根据 签名者的公钥以及证书模板的签名算法配置推导本次新证书签名中使用的散列算法与签名算法
-	// hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(signer.Public(), template.SignatureAlgorithm)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 将新证书拥有者的公钥转为证书公钥字节流与证书公钥算法 (新证书的核心内容)
-	// publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(publicKey)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 从父证书获取证书签署者字节流
-	// asn1Issuer, err := subjectBytes(parent)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 从证书模板获取证书拥有者字节流
-	// asn1Subject, err := subjectBytes(template)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 非自签名时，将父证书的 SubjectKeyId 设置为新证书的 AuthorityKeyId
-	// // 即新证书的签署者密钥ID就是父证书的拥有者密钥ID
-	// if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
-	// 	template.AuthorityKeyId = parent.SubjectKeyId
-	// }
-	// // 创建证书扩展信息
-	// extensions, err := buildExtensions(template)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 生成证书的被签名内容
-	// encodedPublicKey := asn1.BitString{BitLength: len(publicKeyBytes) * 8, Bytes: publicKeyBytes}
-	// c := tbsCertificate{
-	// 	Version:            2,
-	// 	SerialNumber:       template.SerialNumber,
-	// 	SignatureAlgorithm: signatureAlgorithm,
-	// 	Issuer:             asn1.RawValue{FullBytes: asn1Issuer},
-	// 	Validity:           validity{template.NotBefore.UTC(), template.NotAfter.UTC()},
-	// 	Subject:            asn1.RawValue{FullBytes: asn1Subject},
-	// 	PublicKey:          publicKeyInfo{nil, publicKeyAlgorithm, encodedPublicKey},
-	// 	Extensions:         extensions,
-	// }
-	// // 将被签名内容转为字节流
-	// tbsCertContents, err := asn1.Marshal(c)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// c.Raw = tbsCertContents
-	// // 根据签名算法决定是否需要对被签名内容做摘要
-	// digest := tbsCertContents
-	// switch template.SignatureAlgorithm {
-	// case SM2WithSM3, SM2WithSHA1, SM2WithSHA256:
-	// 	break
-	// default:
-	// 	h := hashFunc.New()
-	// 	h.Write(tbsCertContents)
-	// 	digest = h.Sum(nil)
-	// }
-	// // 设置 signerOpts 指定摘要算法
-	// var signerOpts crypto.SignerOpts
-	// signerOpts = hashFunc
-	// // rsa的特殊处理
-	// if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
-	// 	signerOpts = &rsa.PSSOptions{
-	// 		SaltLength: rsa.PSSSaltLengthEqualsHash,
-	// 		Hash:       crypto.Hash(hashFunc),
-	// 	}
-	// }
-	// // 签名
-	// var signature []byte
-	// signature, err = signer.Sign(rand.Reader, digest, signerOpts)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 返回新证书字节流(被签名内容 + 签名算法 + 签名)
-	// return asn1.Marshal(certificate{
-	// 	nil,
-	// 	c,
-	// 	signatureAlgorithm,
-	// 	asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
-	// })
+// 将pem文件转为gmx509证书
+func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadCertificateFromPem(data)
 }
 
-// CreateCertificateToPem creates a new certificate based on a template and
-// encodes it to PEM format. It uses CreateCertificate to create certificate
-// and returns its PEM format.
-func CreateCertificateToPem(template, parent *Certificate, pubKey *sm2.PublicKey, signer crypto.Signer) ([]byte, error) {
-	der, err := CreateCertificate(template, parent, pubKey, signer)
+// 创建gmx509证书并转为pem字节数组
+func CreateCertificateToPem(template, parent *Certificate, pubKey, signer interface{}) ([]byte, error) {
+	der, err := CreateCertificate(rand.Reader, template, parent, pubKey, signer)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +418,33 @@ func CreateCertificateToPem(template, parent *Certificate, pubKey *sm2.PublicKey
 	return certPem, nil
 }
 
-func ParseSm2CertifateToX509(asn1data []byte) (*x509.Certificate, error) {
+// 创建gmx509证书并转为pem文件
+func CreateCertificateToPemFile(FileName string, template, parent *Certificate, pubKey, privKey interface{}) (bool, error) {
+	der, err := CreateCertificate(rand.Reader, template, parent, pubKey, privKey)
+	if err != nil {
+		return false, err
+	}
+	block := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: der,
+	}
+	file, err := os.Create(FileName)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// gmx509证书与pem相互转换
+// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+// 将gmx509证书DER字节数组转为x509证书
+func ParseGmx509DerToX509(asn1data []byte) (*x509.Certificate, error) {
 	sm2Cert, err := ParseCertificate(asn1data)
 	if err != nil {
 		return nil, err
@@ -293,8 +459,8 @@ func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 	}
 	//Marshall the public key
 	raw := elliptic.Marshal(curve, x, y)
-	// Hash it
-	hash := sha256.New()
+	// Hash it 国密改造后改为sm3
+	hash := sm3.New()
 	hash.Write(raw)
 	return hash.Sum(nil)
 }

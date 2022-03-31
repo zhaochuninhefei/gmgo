@@ -1,5 +1,9 @@
 package x509
 
+/*
+x509/crypto.go 重写Hash相关定义，添加SM3，用来代替`crypto.Hash`
+*/
+
 import (
 	"crypto"
 	"errors"

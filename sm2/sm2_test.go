@@ -173,16 +173,16 @@ func TestKEB2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if bytes.Compare(k1, k2) != 0 {
+	if !bytes.Equal(k1, k2) {
 		t.Error("key exchange differ")
 	}
-	if bytes.Compare(k1, expk) != 0 {
+	if !bytes.Equal(k1, expk) {
 		t.Errorf("expected %x, found %x", expk, k1)
 	}
-	if bytes.Compare(S1, Sb) != 0 {
+	if !bytes.Equal(S1, Sb) {
 		t.Error("hash verfication failed")
 	}
-	if bytes.Compare(Sa, S2) != 0 {
+	if !bytes.Equal(Sa, S2) {
 		t.Error("hash verfication failed")
 	}
 }

@@ -1,89 +1,85 @@
-/*
-Copyright Suzhou Tongji Fintech Research Institute 2017 All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package x509
 
+/*
+x509/pkcs8.go PKCS#8标准DER字节数组与对应私钥之间的相互转换。
+私钥支持: sm2, ecdsa, ed25519, rsa
+
+ParsePKCS8PrivateKey : 将未加密的PKCS #8, ASN.1 DER格式字节数组转为对应的私钥
+MarshalPKCS8PrivateKey : 将私钥转为PKCS #8, ASN.1 DER字节数组
+
+PKCS#8 是私钥消息表示标准（Private-Key Information Syntax Standard）.
+reference to RFC5959 and RFC2898
+*/
+
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/elliptic"
-	"crypto/hmac"
-	"crypto/md5"
-	"crypto/rand"
-	"crypto/sha1"
-	"crypto/sha256"
-	"crypto/sha512"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"encoding/pem"
 	"errors"
 	"fmt"
-	"hash"
-	"io/ioutil"
-	"math/big"
-	"os"
-	"reflect"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
-/*
- * PKCS#8 是私钥消息表示标准（Private-Key Information Syntax Standard）.
- * reference to RFC5959 and RFC2898
- */
-
-var (
-	oidPBES1  = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 3}  // pbeWithMD5AndDES-CBC(PBES1)
-	oidPBES2  = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 13} // id-PBES2(PBES2)
-	oidPBKDF2 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 12} // id-PBKDF2
-
-	oidKEYMD5    = asn1.ObjectIdentifier{1, 2, 840, 113549, 2, 5}
-	oidKEYSHA1   = asn1.ObjectIdentifier{1, 2, 840, 113549, 2, 7}
-	oidKEYSHA256 = asn1.ObjectIdentifier{1, 2, 840, 113549, 2, 9}
-	oidKEYSHA512 = asn1.ObjectIdentifier{1, 2, 840, 113549, 2, 11}
-
-	oidAES128CBC = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 2}
-	oidAES256CBC = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42}
-	// SM2算法标识定义，参考国密标准`GMT 0006-2012 密码应用标识规范.pdf`
-	oidSM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
-)
-
-// reference to https://www.rfc-editor.org/rfc/rfc5958.txt
-type PrivateKeyInfo struct {
-	Version             int // v1 or v2
-	PrivateKeyAlgorithm []asn1.ObjectIdentifier
-	PrivateKey          []byte
+// pkcs8 reflects an ASN.1, PKCS #8 PrivateKey. See
+// ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-8/pkcs-8v1_2.asn
+// and RFC 5208.
+type pkcs8 struct {
+	Version    int
+	Algo       pkix.AlgorithmIdentifier
+	PrivateKey []byte
+	// optional attributes omitted.
 }
 
-// ParsePKCS8PrivateKey parses an unencrypted, PKCS#8 private key.
-// See RFC 5208.
-func ParsePKCS8PrivateKey2(der []byte) (key interface{}, err error) {
+// ParsePKCS8PrivateKey将未加密的PKCS #8, ASN.1 DER格式字节数组转为对应的私钥。
+//  - 私钥支持: sm2, ecdsa, ed25519, rsa
+//
+// ParsePKCS8PrivateKey parses an unencrypted private key in PKCS #8, ASN.1 DER form.
+//
+// It returns a *rsa.PrivateKey, a *ecdsa.PrivateKey, or a ed25519.PrivateKey.
+// More types might be supported in the future.
+//
+// This kind of key is commonly encoded in PEM blocks of type "PRIVATE KEY".
+func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 	var privKey pkcs8
+	// 尝试将 der 反序列化到 privKey
 	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
+		if _, err := asn1.Unmarshal(der, &ecPrivateKey{}); err == nil {
+			return nil, errors.New("gmx509.ParsePKCS8PrivateKey: failed to parse private key (use ParseECPrivateKey instead for this key format)")
+		}
+		if _, err := asn1.Unmarshal(der, &pkcs1PrivateKey{}); err == nil {
+			return nil, errors.New("gmx509.ParsePKCS8PrivateKey: failed to parse private key (use ParsePKCS1PrivateKey instead for this key format)")
+		}
 		return nil, err
 	}
+	// 根据反序列化后的公钥算法标识生成对应的私钥
 	switch {
-
+	case privKey.Algo.Algorithm.Equal(oidPublicKeySM2):
+		bytes := privKey.Algo.Parameters.FullBytes
+		namedCurveOID := new(asn1.ObjectIdentifier)
+		// 尝试获取曲线oid
+		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {
+			namedCurveOID = nil
+		}
+		// 根据曲线oid获取对应曲线并生成对应私钥
+		key, err = parseECPrivateKey(namedCurveOID, privKey.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: failed to parse EC private key embedded in PKCS#8: %s", err.Error())
+		}
+		return key, nil
 	case privKey.Algo.Algorithm.Equal(oidPublicKeyRSA):
 		key, err = ParsePKCS1PrivateKey(privKey.PrivateKey)
 		if err != nil {
-			return nil, errors.New("x509: failed to parse RSA private key embedded in PKCS#8: " + err.Error())
+			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: failed to parse RSA private key embedded in PKCS#8: %s", err.Error())
 		}
 		return key, nil
-
-	case privKey.Algo.Algorithm.Equal(oidPublicKeyECDSA), privKey.Algo.Algorithm.Equal(oidPublicKeySM2):
+	case privKey.Algo.Algorithm.Equal(oidPublicKeyECDSA):
 		bytes := privKey.Algo.Parameters.FullBytes
 		namedCurveOID := new(asn1.ObjectIdentifier)
 		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {
@@ -91,462 +87,94 @@ func ParsePKCS8PrivateKey2(der []byte) (key interface{}, err error) {
 		}
 		key, err = parseECPrivateKey(namedCurveOID, privKey.PrivateKey)
 		if err != nil {
-			return nil, errors.New("x509: failed to parse EC private key embedded in PKCS#8: " + err.Error())
+			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: failed to parse EC private key embedded in PKCS#8: %s", err.Error())
 		}
 		return key, nil
-
+	case privKey.Algo.Algorithm.Equal(oidPublicKeyEd25519):
+		if l := len(privKey.Algo.Parameters.FullBytes); l != 0 {
+			return nil, errors.New("gmx509.ParsePKCS8PrivateKey: invalid Ed25519 private key parameters")
+		}
+		var curvePrivateKey []byte
+		if _, err := asn1.Unmarshal(privKey.PrivateKey, &curvePrivateKey); err != nil {
+			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: invalid Ed25519 private key: %v", err)
+		}
+		if l := len(curvePrivateKey); l != ed25519.SeedSize {
+			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: invalid Ed25519 private key length: %d", l)
+		}
+		return ed25519.NewKeyFromSeed(curvePrivateKey), nil
 	default:
-		return nil, fmt.Errorf("x509: PKCS#8 wrapping contained private key with unknown algorithm: %v", privKey.Algo.Algorithm)
+		return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: PKCS#8 wrapping contained private key with unknown algorithm: %v", privKey.Algo.Algorithm)
 	}
 }
 
-// reference to https://www.rfc-editor.org/rfc/rfc5958.txt
-type EncryptedPrivateKeyInfo struct {
-	EncryptionAlgorithm Pbes2Algorithms
-	EncryptedData       []byte
-}
-
-// reference to https://www.ietf.org/rfc/rfc2898.txt
-type Pbes2Algorithms struct {
-	IdPBES2     asn1.ObjectIdentifier
-	Pbes2Params Pbes2Params
-}
-
-// reference to https://www.ietf.org/rfc/rfc2898.txt
-type Pbes2Params struct {
-	KeyDerivationFunc Pbes2KDfs // PBES2-KDFs
-	EncryptionScheme  Pbes2Encs // PBES2-Encs
-}
-
-// reference to https://www.ietf.org/rfc/rfc2898.txt
-type Pbes2KDfs struct {
-	IdPBKDF2    asn1.ObjectIdentifier
-	Pkdf2Params Pkdf2Params
-}
-
-type Pbes2Encs struct {
-	EncryAlgo asn1.ObjectIdentifier
-	IV        []byte
-}
-
-// reference to https://www.ietf.org/rfc/rfc2898.txt
-type Pkdf2Params struct {
-	Salt           []byte
-	IterationCount int
-	Prf            pkix.AlgorithmIdentifier
-}
-
-type sm2PrivateKey struct {
-	Version       int
-	PrivateKey    []byte
-	NamedCurveOID asn1.ObjectIdentifier `asn1:"optional,explicit,tag:0"`
-	PublicKey     asn1.BitString        `asn1:"optional,explicit,tag:1"`
-}
-
-type ecPrivateKey sm2PrivateKey
-
-type pkcs8 struct {
-	Version    int
-	Algo       pkix.AlgorithmIdentifier
-	PrivateKey []byte
-}
-
-// copy from crypto/pbkdf2.go
-func pbkdf(password, salt []byte, iter, keyLen int, h func() hash.Hash) []byte {
-	prf := hmac.New(h, password)
-	hashLen := prf.Size()
-	numBlocks := (keyLen + hashLen - 1) / hashLen
-
-	var buf [4]byte
-	dk := make([]byte, 0, numBlocks*hashLen)
-	U := make([]byte, hashLen)
-	for block := 1; block <= numBlocks; block++ {
-		// N.B.: || means concatenation, ^ means XOR
-		// for each block T_i = U_1 ^ U_2 ^ ... ^ U_iter
-		// U_1 = PRF(password, salt || uint(i))
-		prf.Reset()
-		prf.Write(salt)
-		buf[0] = byte(block >> 24)
-		buf[1] = byte(block >> 16)
-		buf[2] = byte(block >> 8)
-		buf[3] = byte(block)
-		prf.Write(buf[:4])
-		dk = prf.Sum(dk)
-		T := dk[len(dk)-hashLen:]
-		copy(U, T)
-
-		// U_n = PRF(password, U_(n-1))
-		for n := 2; n <= iter; n++ {
-			prf.Reset()
-			prf.Write(U)
-			U = U[:0]
-			U = prf.Sum(U)
-			for x := range U {
-				T[x] ^= U[x]
-			}
-		}
-	}
-	return dk[:keyLen]
-}
-
-// 将PKIX标准的sm2公钥字节流转为sm2公钥
-func ParseSm2PublicKey(der []byte) (*sm2.PublicKey, error) {
-	var pubkey pkixPublicKey
-
-	if _, err := asn1.Unmarshal(der, &pubkey); err != nil {
-		return nil, err
-	}
-	if !reflect.DeepEqual(pubkey.Algo.Algorithm, oidSM2) {
-		return nil, errors.New("x509: not sm2 elliptic curve")
-	}
-	curve := sm2.P256Sm2()
-	x, y := elliptic.Unmarshal(curve, pubkey.BitString.Bytes)
-	pub := sm2.PublicKey{
-		Curve: curve,
-		X:     x,
-		Y:     y,
-	}
-	return &pub, nil
-}
-
-// 将sm2公钥转为PKIX标准的sm2公钥字节流
-func MarshalSm2PublicKey(key *sm2.PublicKey) ([]byte, error) {
-	var r pkixPublicKey
-	var algo pkix.AlgorithmIdentifier
-
-	if key.Curve.Params() != sm2.P256Sm2().Params() {
-		return nil, errors.New("x509: unsupported elliptic curve")
-	}
-	algo.Algorithm = oidSM2
-	algo.Parameters.Class = 0
-	algo.Parameters.Tag = 6
-	algo.Parameters.IsCompound = false
-	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出:
-	// sm2OidFullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
-	algo.Parameters.FullBytes = sm2OidFullBytes
-	r.Algo = algo
-	r.BitString = asn1.BitString{Bytes: elliptic.Marshal(key.Curve, key.X, key.Y)}
-	return asn1.Marshal(r)
-}
-
-// 将sm2私钥字节流转为sm2私钥
-func ParseSm2PrivateKey(der []byte) (*sm2.PrivateKey, error) {
-	var privKey sm2PrivateKey
-
-	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
-		return nil, errors.New("x509: failed to parse SM2 private key: " + err.Error())
-	}
-	curve := sm2.P256Sm2()
-	k := new(big.Int).SetBytes(privKey.PrivateKey)
-	curveOrder := curve.Params().N
-	if k.Cmp(curveOrder) >= 0 {
-		return nil, errors.New("x509: invalid elliptic curve private key value")
-	}
-	priv := new(sm2.PrivateKey)
-	priv.Curve = curve
-	priv.D = k
-	privateKey := make([]byte, (curveOrder.BitLen()+7)/8)
-	for len(privKey.PrivateKey) > len(privateKey) {
-		if privKey.PrivateKey[0] != 0 {
-			return nil, errors.New("x509: invalid private key length")
-		}
-		privKey.PrivateKey = privKey.PrivateKey[1:]
-	}
-	copy(privateKey[len(privateKey)-len(privKey.PrivateKey):], privKey.PrivateKey)
-	priv.X, priv.Y = curve.ScalarBaseMult(privateKey)
-	return priv, nil
-}
-
-// 将未加密的pkcs8格式私钥字节流转为sm2私钥
-func ParsePKCS8UnecryptedPrivateKey(der []byte) (*sm2.PrivateKey, error) {
+// MarshalPKCS8PrivateKey将私钥转为PKCS #8, ASN.1 DER字节数组
+//  - 私钥支持: sm2, ecdsa, ed25519, rsa
+//
+// MarshalPKCS8PrivateKey converts a private key to PKCS #8, ASN.1 DER form.
+//
+// The following key types are currently supported: *rsa.PrivateKey, *ecdsa.PrivateKey
+// and ed25519.PrivateKey. Unsupported key types result in an error.
+//
+// This kind of key is commonly encoded in PEM blocks of type "PRIVATE KEY".
+func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 	var privKey pkcs8
-	// 检查是否PKCS8格式
-	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
-		return nil, err
-	}
-	// 检查算法oid是否sm2
-	if !reflect.DeepEqual(privKey.Algo.Algorithm, oidSM2) {
-		return nil, errors.New("x509: not sm2 elliptic curve")
-	}
-	return ParseSm2PrivateKey(privKey.PrivateKey)
-}
 
-// 将加密的pkcs8格式私钥字节流转为sm2私钥
-func ParsePKCS8EcryptedPrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
-	var keyInfo EncryptedPrivateKeyInfo
-
-	_, err := asn1.Unmarshal(der, &keyInfo)
-	if err != nil {
-		return nil, errors.New("x509: unknown format")
-	}
-	if !reflect.DeepEqual(keyInfo.EncryptionAlgorithm.IdPBES2, oidPBES2) {
-		return nil, errors.New("x509: only support PBES2")
-	}
-	encryptionScheme := keyInfo.EncryptionAlgorithm.Pbes2Params.EncryptionScheme
-	keyDerivationFunc := keyInfo.EncryptionAlgorithm.Pbes2Params.KeyDerivationFunc
-	if !reflect.DeepEqual(keyDerivationFunc.IdPBKDF2, oidPBKDF2) {
-		return nil, errors.New("x509: only support PBKDF2")
-	}
-	pkdf2Params := keyDerivationFunc.Pkdf2Params
-	if !reflect.DeepEqual(encryptionScheme.EncryAlgo, oidAES128CBC) &&
-		!reflect.DeepEqual(encryptionScheme.EncryAlgo, oidAES256CBC) {
-		return nil, errors.New("x509: unknow encryption algorithm")
-	}
-	iv := encryptionScheme.IV
-	salt := pkdf2Params.Salt
-	iter := pkdf2Params.IterationCount
-	encryptedKey := keyInfo.EncryptedData
-	var key []byte
-	switch {
-	case pkdf2Params.Prf.Algorithm.Equal(oidKEYMD5):
-		key = pbkdf(pwd, salt, iter, 32, md5.New)
-	case pkdf2Params.Prf.Algorithm.Equal(oidKEYSHA1):
-		key = pbkdf(pwd, salt, iter, 32, sha1.New)
-	case pkdf2Params.Prf.Algorithm.Equal(oidKEYSHA256):
-		key = pbkdf(pwd, salt, iter, 32, sha256.New)
-	case pkdf2Params.Prf.Algorithm.Equal(oidKEYSHA512):
-		key = pbkdf(pwd, salt, iter, 32, sha512.New)
+	switch k := key.(type) {
+	case *sm2.PrivateKey:
+		oid, ok := oidFromNamedCurve(k.Curve)
+		if !ok {
+			return nil, fmt.Errorf("gmx509.MarshalPKCS8PrivateKey: unknown curve: [%s]", k.Curve.Params().Name)
+		}
+		oidBytes, err := asn1.Marshal(oid)
+		if err != nil {
+			return nil, fmt.Errorf("gmx509.MarshalPKCS8PrivateKey: failed to marshal curve OID: [%s]", err.Error())
+		}
+		privKey.Algo = pkix.AlgorithmIdentifier{
+			Algorithm: oidPublicKeySM2,
+			Parameters: asn1.RawValue{
+				FullBytes: oidBytes,
+			},
+		}
+		if privKey.PrivateKey, err = marshalECPrivateKeyWithOID(k, oid); err != nil {
+			return nil, fmt.Errorf("gmx509.MarshalPKCS8PrivateKey: failed to marshal EC private key while building PKCS#8: " + err.Error())
+		}
+	case *rsa.PrivateKey:
+		privKey.Algo = pkix.AlgorithmIdentifier{
+			Algorithm:  oidPublicKeyRSA,
+			Parameters: asn1.NullRawValue,
+		}
+		privKey.PrivateKey = MarshalPKCS1PrivateKey(k)
+	case *ecdsa.PrivateKey:
+		oid, ok := oidFromNamedCurve(k.Curve)
+		if !ok {
+			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: unknown curve while marshaling to PKCS#8")
+		}
+		oidBytes, err := asn1.Marshal(oid)
+		if err != nil {
+			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: failed to marshal curve OID: " + err.Error())
+		}
+		privKey.Algo = pkix.AlgorithmIdentifier{
+			Algorithm: oidPublicKeyECDSA,
+			Parameters: asn1.RawValue{
+				FullBytes: oidBytes,
+			},
+		}
+		// 注意, ecdsa并没有将曲线oid传入序列化结构中
+		// 大约是为了与openssl的结果对应
+		if privKey.PrivateKey, err = marshalECPrivateKeyWithOID(k, nil); err != nil {
+			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: failed to marshal EC private key while building PKCS#8: " + err.Error())
+		}
+	case ed25519.PrivateKey:
+		privKey.Algo = pkix.AlgorithmIdentifier{
+			Algorithm: oidPublicKeyEd25519,
+		}
+		curvePrivateKey, err := asn1.Marshal(k.Seed())
+		if err != nil {
+			return nil, fmt.Errorf("gmx509.MarshalPKCS8PrivateKey: failed to marshal private key: %v", err)
+		}
+		privKey.PrivateKey = curvePrivateKey
 	default:
-		return nil, errors.New("x509: unknown hash algorithm")
+		return nil, fmt.Errorf("gmx509.MarshalPKCS8PrivateKey: unknown key type while marshaling PKCS#8: %T", key)
 	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(encryptedKey, encryptedKey)
-	rKey, err := ParsePKCS8UnecryptedPrivateKey(encryptedKey)
-	if err != nil {
-		return nil, errors.New("pkcs8: incorrect password")
-	}
-	return rKey, nil
-}
-
-// 将PKCS8格式字节流转为sm2私钥，根据pwd是否为空决定是否需要解密
-func ParsePKCS8PrivateKey(der, pwd []byte) (*sm2.PrivateKey, error) {
-	if len(pwd) == 0 {
-		return ParsePKCS8UnecryptedPrivateKey(der)
-	}
-	return ParsePKCS8EcryptedPrivateKey(der, pwd)
-}
-
-// 将sm2私钥转为pkcs8格式字节流，不对私钥加密
-func MarshalSm2UnecryptedPrivateKey(key *sm2.PrivateKey) ([]byte, error) {
-	var r pkcs8
-	var priv sm2PrivateKey
-	var algo pkix.AlgorithmIdentifier
-
-	algo.Algorithm = oidSM2
-	algo.Parameters.Class = 0
-	algo.Parameters.Tag = 6
-	algo.Parameters.IsCompound = false
-	// 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出
-	// sm2OidFullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45}
-	algo.Parameters.FullBytes = sm2OidFullBytes
-	priv.Version = 1
-	priv.NamedCurveOID = oidNamedCurveP256SM2
-	priv.PublicKey = asn1.BitString{Bytes: elliptic.Marshal(key.Curve, key.X, key.Y)}
-	priv.PrivateKey = key.D.Bytes()
-	r.Version = 0
-	r.Algo = algo
-	r.PrivateKey, _ = asn1.Marshal(priv)
-	return asn1.Marshal(r)
-}
-
-// 将sm2私钥转为pkcs8格式字节流，然后加密
-func MarshalSm2EcryptedPrivateKey(PrivKey *sm2.PrivateKey, pwd []byte) ([]byte, error) {
-	der, err := MarshalSm2UnecryptedPrivateKey(PrivKey)
-	if err != nil {
-		return nil, err
-	}
-	iter := 2048
-	salt := make([]byte, 8)
-	iv := make([]byte, 16)
-	rand.Reader.Read(salt)
-	rand.Reader.Read(iv)
-	key := pbkdf(pwd, salt, iter, 32, sha1.New) // 默认是SHA1
-	padding := aes.BlockSize - len(der)%aes.BlockSize
-	if padding > 0 {
-		n := len(der)
-		der = append(der, make([]byte, padding)...)
-		for i := 0; i < padding; i++ {
-			der[n+i] = byte(padding)
-		}
-	}
-	encryptedKey := make([]byte, len(der))
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(encryptedKey, der)
-	var algorithmIdentifier pkix.AlgorithmIdentifier
-	algorithmIdentifier.Algorithm = oidKEYSHA1
-	algorithmIdentifier.Parameters.Tag = 5
-	algorithmIdentifier.Parameters.IsCompound = false
-	algorithmIdentifier.Parameters.FullBytes = []byte{5, 0}
-	keyDerivationFunc := Pbes2KDfs{
-		oidPBKDF2,
-		Pkdf2Params{
-			salt,
-			iter,
-			algorithmIdentifier,
-		},
-	}
-	encryptionScheme := Pbes2Encs{
-		oidAES256CBC,
-		iv,
-	}
-	pbes2Algorithms := Pbes2Algorithms{
-		oidPBES2,
-		Pbes2Params{
-			keyDerivationFunc,
-			encryptionScheme,
-		},
-	}
-	encryptedPkey := EncryptedPrivateKeyInfo{
-		pbes2Algorithms,
-		encryptedKey,
-	}
-	return asn1.Marshal(encryptedPkey)
-}
-
-// MarshalECPrivateKey marshals an EC private key into ASN.1, DER format.
-// 将sm2私钥转为PKCS8格式字节流，不加密
-func MarshalECPrivateKey(key interface{}) ([]byte, error) {
-	return MarshalSm2PrivateKey(key.(*sm2.PrivateKey), nil)
-}
-
-// 将sm2私钥转为PKCS8格式字节流，根据pwd是否为空决定是否加密
-func MarshalSm2PrivateKey(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
-	if len(pwd) == 0 {
-		return MarshalSm2UnecryptedPrivateKey(key)
-	}
-	return MarshalSm2EcryptedPrivateKey(key, pwd)
-}
-
-// 将pem字节流转为sm2私钥
-func ReadPrivateKeyFromMem(data []byte, pwd []byte) (*sm2.PrivateKey, error) {
-	var block *pem.Block
-
-	block, _ = pem.Decode(data)
-	if block == nil {
-		return nil, errors.New("failed to decode private key")
-	}
-	priv, err := ParsePKCS8PrivateKey(block.Bytes, pwd)
-	return priv, err
-}
-
-// TODO rename ReadPrivateKeyFromPem -> ReadPrivateKeyFromPemFile
-func ReadPrivateKeyFromPemFile(FileName string, pwd []byte) (*sm2.PrivateKey, error) {
-	data, err := ioutil.ReadFile(FileName)
-	if err != nil {
-		return nil, err
-	}
-	return ReadPrivateKeyFromMem(data, pwd)
-}
-
-// 将sm2私钥转为PKCS8格式字节流，根据pwd决定是否加密，然后包装为pem字节流
-func WritePrivateKeytoMem(key *sm2.PrivateKey, pwd []byte) ([]byte, error) {
-	var block *pem.Block
-
-	der, err := MarshalSm2PrivateKey(key, pwd)
-	if err != nil {
-		return nil, err
-	}
-	if pwd != nil {
-		block = &pem.Block{
-			Type:  "ENCRYPTED PRIVATE KEY",
-			Bytes: der,
-		}
-	} else {
-		block = &pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: der,
-		}
-	}
-	return pem.EncodeToMemory(block), nil
-}
-
-func WritePrivateKeytoPem(FileName string, key *sm2.PrivateKey, pwd []byte) (bool, error) {
-	var block *pem.Block
-
-	der, err := MarshalSm2PrivateKey(key, pwd)
-	if err != nil {
-		return false, err
-	}
-	if pwd != nil {
-		block = &pem.Block{
-			Type:  "ENCRYPTED PRIVATE KEY",
-			Bytes: der,
-		}
-	} else {
-		block = &pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: der,
-		}
-	}
-	file, err := os.Create(FileName)
-	if err != nil {
-		return false, err
-	}
-	defer file.Close()
-	err = pem.Encode(file, block)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-// 将pem字节流转为sm2公钥
-func ReadPublicKeyFromMem(data []byte, _ []byte) (*sm2.PublicKey, error) {
-	block, _ := pem.Decode(data)
-	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, errors.New("failed to decode public key")
-	}
-	pub, err := ParseSm2PublicKey(block.Bytes)
-	return pub, err
-}
-
-// TODO ReadPublicKeyFromPem -> ReadPublicKeyFromPemFile
-func ReadPublicKeyFromPemFile(FileName string, pwd []byte) (*sm2.PublicKey, error) {
-	data, err := ioutil.ReadFile(FileName)
-	if err != nil {
-		return nil, err
-	}
-	return ReadPublicKeyFromMem(data, pwd)
-}
-
-// 将sm2公钥转为PKIX格式字节流并包装为pem字节流
-func WritePublicKeytoMem(key *sm2.PublicKey, _ []byte) ([]byte, error) {
-	der, err := MarshalSm2PublicKey(key)
-	if err != nil {
-		return nil, err
-	}
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: der,
-	}
-	return pem.EncodeToMemory(block), nil
-}
-
-func WritePublicKeytoPem(FileName string, key *sm2.PublicKey, _ []byte) (bool, error) {
-	der, err := MarshalSm2PublicKey(key)
-	if err != nil {
-		return false, err
-	}
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: der,
-	}
-	file, err := os.Create(FileName)
-	defer file.Close()
-	if err != nil {
-		return false, err
-	}
-	err = pem.Encode(file, block)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return asn1.Marshal(privKey)
 }

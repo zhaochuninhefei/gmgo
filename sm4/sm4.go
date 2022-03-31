@@ -18,6 +18,10 @@ modified by Jack, 2017 Oct
 
 package sm4
 
+/*
+sm4/sm4.go SM4实现
+*/
+
 import (
 	"bytes"
 	"crypto/cipher"

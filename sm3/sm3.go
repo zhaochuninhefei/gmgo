@@ -15,10 +15,20 @@ limitations under the License.
 
 package sm3
 
+/*
+sm3/sm3.go SM3实现
+*/
+
 import (
 	"encoding/binary"
 	"hash"
 )
+
+// SM3散列结果的字节长度，对应bit长度为256位
+const Size = 32
+
+// SM3散列时一个Block的字节长度，对应bit长度为512位
+const BlockSize = 64
 
 type SM3 struct {
 	digest      [8]uint32 // digest represents the partial evaluation of V
@@ -119,7 +129,7 @@ func (sm3 *SM3) update(msg []byte) {
 	}
 	sm3.digest[0], sm3.digest[1], sm3.digest[2], sm3.digest[3], sm3.digest[4], sm3.digest[5], sm3.digest[6], sm3.digest[7] = a, b, c, d, e, f, g, h
 }
-func (sm3 *SM3) update2(msg []byte,) [8]uint32 {
+func (sm3 *SM3) update2(msg []byte) [8]uint32 {
 	var w [68]uint32
 	var w1 [64]uint32
 
@@ -190,10 +200,10 @@ func New() hash.Hash {
 // The Write method must be able to accept any amount
 // of data, but it may operate more efficiently if all writes
 // are a multiple of the block size.
-func (sm3 *SM3) BlockSize() int { return 64 }
+func (sm3 *SM3) BlockSize() int { return BlockSize }
 
 // Size returns the number of bytes Sum will return.
-func (sm3 *SM3) Size() int { return 32 }
+func (sm3 *SM3) Size() int { return Size }
 
 // Reset clears the internal state by zeroing bytes in the state buffer.
 // This can be skipped for a newly-created hash state; the default zero-allocated state is correct.
