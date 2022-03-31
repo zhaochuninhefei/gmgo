@@ -14,8 +14,6 @@ import (
 	"compress/gzip"
 	"container/list"
 	"context"
-
-	// "crypto/tls"
 	"errors"
 	"fmt"
 	"io"

@@ -9,7 +9,6 @@ package gmhttp_test
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -28,6 +27,7 @@ import (
 	. "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/cookiejar"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
 var robotsTxtHandler = HandlerFunc(func(w ResponseWriter, r *Request) {

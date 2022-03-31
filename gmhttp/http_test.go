@@ -8,7 +8,6 @@ package gmhttp
 
 import (
 	"bytes"
-	"internal/testenv"
 	"io/fs"
 	"net/url"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 )
 
 func TestForeachHeaderElement(t *testing.T) {

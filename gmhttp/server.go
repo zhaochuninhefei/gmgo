@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +29,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	"golang.org/x/net/http/httpguts"
 )
 

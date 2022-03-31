@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -27,6 +26,7 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptrace"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/internal/ascii"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 
 	"golang.org/x/net/idna"
 )

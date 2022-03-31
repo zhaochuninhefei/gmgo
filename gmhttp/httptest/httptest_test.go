@@ -5,7 +5,6 @@
 package httptest
 
 import (
-	"crypto/tls"
 	"io"
 	"net/url"
 	"reflect"
@@ -13,6 +12,7 @@ import (
 	"testing"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
 func TestNewRequest(t *testing.T) {

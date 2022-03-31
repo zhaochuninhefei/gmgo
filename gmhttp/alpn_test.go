@@ -7,8 +7,6 @@ package gmhttp_test
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"strings"
@@ -16,6 +14,8 @@ import (
 
 	. "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 func TestNextProtoUpgrade(t *testing.T) {

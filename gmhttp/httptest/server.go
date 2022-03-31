@@ -7,8 +7,6 @@
 package httptest
 
 import (
-	// "crypto/tls"
-	// "crypto/x509"
 	"flag"
 	"fmt"
 	"log"

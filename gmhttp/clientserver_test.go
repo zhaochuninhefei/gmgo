@@ -11,7 +11,6 @@ import (
 	"compress/gzip"
 	"crypto/rand"
 	"crypto/sha1"
-	"crypto/tls"
 	"fmt"
 	"hash"
 	"io"
@@ -31,6 +30,7 @@ import (
 	. "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httputil"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
 type clientServerTest struct {

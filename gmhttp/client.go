@@ -11,7 +11,6 @@ package gmhttp
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -25,6 +24,7 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/internal/ascii"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
 // A Client is an HTTP client. Its zero value (DefaultClient) is a

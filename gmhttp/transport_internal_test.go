@@ -8,7 +8,6 @@ package gmhttp
 
 import (
 	"bytes"
-	"crypto/tls"
 	"errors"
 	"io"
 	"net"
@@ -16,6 +15,7 @@ import (
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/internal/testcert"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
 // Issue 15446: incorrect wrapping of errors when server closes an idle connection.

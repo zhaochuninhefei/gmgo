@@ -15,8 +15,6 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/rand"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -44,7 +42,8 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptrace"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httputil"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/internal/testcert"
-
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"golang.org/x/net/http/httpguts"
 )
 

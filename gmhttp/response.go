@@ -9,7 +9,6 @@ package gmhttp
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	"golang.org/x/net/http/httpguts"
 )
 
