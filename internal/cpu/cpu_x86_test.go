@@ -8,10 +8,11 @@
 package cpu_test
 
 import (
-	. "internal/cpu"
 	"os"
 	"runtime"
 	"testing"
+
+	. "gitee.com/zhaochuninhefei/gmgo/internal/cpu"
 )
 
 func TestX86ifAVX2hasAVX(t *testing.T) {

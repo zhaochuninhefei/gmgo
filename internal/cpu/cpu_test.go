@@ -5,13 +5,14 @@
 package cpu_test
 
 import (
-	. "internal/cpu"
-	"internal/testenv"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"testing"
+
+	. "gitee.com/zhaochuninhefei/gmgo/internal/cpu"
+	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 )
 
 func TestMinimalFeatures(t *testing.T) {

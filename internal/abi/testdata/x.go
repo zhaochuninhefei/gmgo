@@ -4,7 +4,7 @@
 
 package x
 
-import "internal/abi"
+import "gitee.com/zhaochuninhefei/gmgo/internal/abi"
 
 func Fn0() // defined in assembly
 

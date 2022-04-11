@@ -8,9 +8,10 @@
 package poll_test
 
 import (
-	. "internal/poll"
 	"io"
 	"testing"
+
+	. "gitee.com/zhaochuninhefei/gmgo/internal/poll"
 )
 
 var eofErrorTests = []struct {

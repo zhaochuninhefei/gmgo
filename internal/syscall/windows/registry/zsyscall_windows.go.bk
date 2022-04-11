@@ -3,7 +3,7 @@
 package registry
 
 import (
-	"internal/syscall/windows/sysdll"
+	"gitee.com/zhaochuninhefei/gmgo/internal/syscall/windows/sysdll"
 	"syscall"
 	"unsafe"
 )

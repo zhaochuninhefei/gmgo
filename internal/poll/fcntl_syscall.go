@@ -8,8 +8,9 @@
 package poll
 
 import (
-	"internal/syscall/unix"
 	"syscall"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/syscall/unix"
 )
 
 func fcntl(fd int, cmd int, arg int) (int, error) {

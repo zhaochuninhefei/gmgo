@@ -119,7 +119,7 @@ func ToPEM(pfxData []byte, password string) ([]*pem.Block, error) {
 		return nil, ErrIncorrectPassword
 	}
 
-	bags, encodedPassword, err := getSafeContents(pfxData, encodedPassword)
+	bags, encodedPassword, _ := getSafeContents(pfxData, encodedPassword)
 
 	blocks := make([]*pem.Block, 0, len(bags))
 	for _, bag := range bags {
@@ -254,7 +254,7 @@ func DecodeAll(pfxData []byte, password string) (privateKey interface{}, certifi
 
 		case bag.Id.Equal(oidPKCS8ShroundedKeyBag):
 			if privateKey != nil {
-				err = errors.New("go-pkcs12: expected exactly one key bag")
+				_ = errors.New("go-pkcs12: expected exactly one key bag")
 			}
 
 			if privateKey, err = decodePkcs8ShroudedKeyBag(bag.Value.Bytes, encodedPassword); err != nil {
@@ -315,7 +315,7 @@ func Decode(pfxData []byte, password string) (privateKey interface{}, certificat
 
 		case bag.Id.Equal(oidPKCS8ShroundedKeyBag):
 			if privateKey != nil {
-				err = errors.New("go-pkcs12: expected exactly one key bag")
+				_ = errors.New("go-pkcs12: expected exactly one key bag")
 			}
 
 			if privateKey, err = decodePkcs8ShroudedKeyBag(bag.Value.Bytes, encodedPassword); err != nil {

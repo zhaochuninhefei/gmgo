@@ -9,9 +9,10 @@
 package reflectlite_test
 
 import (
-	. "internal/reflectlite"
 	"reflect"
 	"strconv"
+
+	. "gitee.com/zhaochuninhefei/gmgo/internal/reflectlite"
 )
 
 // valueToString returns a textual representation of the reflection value val.

@@ -6,8 +6,8 @@ package poll
 
 import (
 	"errors"
-	"internal/race"
-	"internal/syscall/windows"
+	"gitee.com/zhaochuninhefei/gmgo/internal/race"
+	"gitee.com/zhaochuninhefei/gmgo/internal/syscall/windows"
 	"io"
 	"sync"
 	"syscall"

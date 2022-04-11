@@ -7,8 +7,9 @@
 package sysinfo
 
 import (
-	internalcpu "internal/cpu"
 	"sync"
+
+	internalcpu "gitee.com/zhaochuninhefei/gmgo/internal/cpu"
 )
 
 type cpuInfo struct {

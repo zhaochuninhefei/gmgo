@@ -5,12 +5,13 @@
 package abi_test
 
 import (
-	"internal/abi"
-	"internal/testenv"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/abi"
+	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 )
 
 func TestFuncPC(t *testing.T) {

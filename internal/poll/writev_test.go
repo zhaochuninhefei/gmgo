@@ -5,9 +5,10 @@
 package poll_test
 
 import (
-	"internal/poll"
 	"reflect"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/poll"
 )
 
 func TestConsume(t *testing.T) {

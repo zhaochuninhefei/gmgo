@@ -16,6 +16,7 @@ limitations under the License.
 package sm3
 
 import (
+	"crypto/sha512"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -73,6 +74,12 @@ func TestSm3AndSHA256(t *testing.T) {
 	fmt.Printf("hashSm3长度 : %d\n", len(hashSm3))
 	fmt.Printf("hashSm3字符串 : %s\n", byteToString(hashSm3))
 
+	// sm3512计算
+	hashSm3512 := Sm3Sum512(msg)
+	fmt.Println("hashSm3512 值: ", hashSm3512)
+	fmt.Printf("hashSm3512 长度 : %d\n", len(hashSm3512))
+	fmt.Printf("hashSm3512 字符串 : %s\n", byteToString(hashSm3512))
+
 	// hashFuncSha256 := sha256.New()
 	hashFuncSha256 := sha3.New256()
 	// 添加散列内容
@@ -92,15 +99,21 @@ func TestSm3AndSHA256(t *testing.T) {
 	fmt.Println("hashSha384值: ", hashSha384)
 	fmt.Printf("hashSha384长度 : %d\n", len(hashSha384))
 	fmt.Printf("hashSha384字符串 : %s\n", byteToString(hashSha384))
+
+	// 散列计算
+	hashSha512 := sha512.Sum512(msg)
+	fmt.Println("hashSha512 值: ", hashSha512)
+	fmt.Printf("hashSha512 长度 : %d\n", len(hashSha512))
+	fmt.Printf("hashSha512 字符串 : %s\n", byteToString(hashSha512[:]))
 }
 
 func BenchmarkSm3(t *testing.B) {
 	t.ReportAllocs()
-	msg := []byte("test")
+	msg := []byte("天行健君子以自强不息")
 	hw := New()
 	for i := 0; i < t.N; i++ {
-
+		hw.Reset()
+		hw.Write(msg)
 		hw.Sum(nil)
-		Sm3Sum(msg)
 	}
 }

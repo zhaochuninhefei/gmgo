@@ -6,7 +6,7 @@ package poll_test
 
 import (
 	"fmt"
-	"internal/poll"
+	"gitee.com/zhaochuninhefei/gmgo/internal/poll"
 	"os"
 	"sync"
 	"syscall"

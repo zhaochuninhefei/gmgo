@@ -5,12 +5,13 @@
 package poll_test
 
 import (
-	. "internal/poll"
 	"math/rand"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	. "gitee.com/zhaochuninhefei/gmgo/internal/poll"
 )
 
 func TestMutexLock(t *testing.T) {

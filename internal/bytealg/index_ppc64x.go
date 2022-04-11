@@ -8,7 +8,7 @@
 
 package bytealg
 
-import "internal/cpu"
+import "gitee.com/zhaochuninhefei/gmgo/internal/cpu"
 
 const MaxBruteForce = 16
 

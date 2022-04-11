@@ -6,12 +6,13 @@ package fmtsort_test
 
 import (
 	"fmt"
-	"internal/fmtsort"
 	"math"
 	"reflect"
 	"strings"
 	"testing"
 	"unsafe"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/fmtsort"
 )
 
 var compareTests = [][]reflect.Value{

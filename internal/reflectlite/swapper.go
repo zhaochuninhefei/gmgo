@@ -5,8 +5,9 @@
 package reflectlite
 
 import (
-	"internal/unsafeheader"
 	"unsafe"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/unsafeheader"
 )
 
 // Swapper returns a function that swaps the elements in the provided

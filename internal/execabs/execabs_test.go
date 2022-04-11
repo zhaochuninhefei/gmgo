@@ -7,12 +7,13 @@ package execabs
 import (
 	"context"
 	"fmt"
-	"internal/testenv"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 )
 
 func TestFixCmd(t *testing.T) {

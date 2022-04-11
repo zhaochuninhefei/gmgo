@@ -5,12 +5,14 @@
 package poll_test
 
 import (
-	"internal/poll"
-	"internal/syscall/unix"
 	"runtime"
 	"syscall"
 	"testing"
 	"time"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/syscall/unix"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/poll"
 )
 
 // checkPipes returns true if all pipes are closed properly, false otherwise.

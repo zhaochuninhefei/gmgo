@@ -6,9 +6,10 @@ package itoa_test
 
 import (
 	"fmt"
-	"internal/itoa"
 	"math"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/itoa"
 )
 
 var (

@@ -5,12 +5,13 @@
 package poll
 
 import (
-	"internal/syscall/unix"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"unsafe"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/syscall/unix"
 )
 
 const (

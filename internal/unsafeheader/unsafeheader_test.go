@@ -6,10 +6,11 @@ package unsafeheader_test
 
 import (
 	"bytes"
-	"internal/unsafeheader"
 	"reflect"
 	"testing"
 	"unsafe"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/unsafeheader"
 )
 
 // TestTypeMatchesReflectType ensures that the name and layout of the

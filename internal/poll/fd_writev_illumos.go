@@ -8,7 +8,7 @@
 package poll
 
 import (
-	"internal/syscall/unix"
+	"gitee.com/zhaochuninhefei/gmgo/internal/syscall/unix"
 	"syscall"
 )
 
