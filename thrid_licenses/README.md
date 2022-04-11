@@ -1,0 +1,7 @@
+# 说明
+本目录用于存放第三方项目的版权声明。
+
+目前包括:
+- `emmansun/gmsm`的版权声明文件: `thrid_licenses/github.com/emmansun/gmsm/LICENSE`，原项目:`https://github.com/emmansun/gmsm`
+- `tjfoc/gmsm`的版权声明文件: `thrid_licenses/github.com/tjfoc/gmsm/版权声明`，原项目:`https://github.com/tjfoc/gmsm`
+

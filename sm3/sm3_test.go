@@ -1,37 +1,162 @@
-/*
-Copyright Suzhou Tongji Fintech Research Institute 2017 All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright (c) 2022 zhaochun
+// gmingo is licensed under Mulan PSL v2.
+// You can use this software according to the terms and conditions of the Mulan PSL v2.
+// You may obtain a copy of Mulan PSL v2 at:
+//          http://license.coscl.org.cn/MulanPSL2
+// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+// See the Mulan PSL v2 for more details.
 
 package sm3
 
 import (
-	"crypto/sha512"
+	"bytes"
+	"crypto/sha256"
+	"encoding"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
+	"hash"
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"golang.org/x/crypto/sha3"
+	"golang.org/x/sys/cpu"
 )
 
-func byteToString(b []byte) string {
-	ret := ""
-	for i := 0; i < len(b); i++ {
-		ret += fmt.Sprintf("%02x", b[i])
+type sm3Test struct {
+	out       string
+	in        string
+	halfState string // marshaled hash state after first half of in written, used by TestGoldenMarshal
+}
+
+var golden = []sm3Test{
+	{"66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0", "abc", "sm3\x03s\x80\x16oI\x14\xb2\xb9\x17$B\xd7ڊ\x06\x00\xa9o0\xbc\x1618\xaa\xe3\x8d\xeeM\xb0\xfb\x0eNa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"},
+	{"debe9ff92275b8a138604889c18e5a4d6fdb70e5387e5765293dcba39c0c5732", "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", "sm3\x03s\x80\x16oI\x14\xb2\xb9\x17$B\xd7ڊ\x06\x00\xa9o0\xbc\x1618\xaa\xe3\x8d\xeeM\xb0\xfb\x0eNabcdabcdabcdabcdabcdabcdabcdabcd\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 "},
+	{"952eb84cacee9c10bde4d6882d29d63140ba72af6fe485085095dccd5b872453", "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabc", "sm3\x03s\x80\x16oI\x14\xb2\xb9\x17$B\xd7ڊ\x06\x00\xa9o0\xbc\x1618\xaa\xe3\x8d\xeeM\xb0\xfb\x0eNabcdabcdabcdabcdabcdabcdabcdabcda\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00!"},
+	{"90d52a2e85631a8d6035262626941fa11b85ce570cec1e3e991e2dd7ed258148", "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", "sm3\x03YPށF\x86d\xebB\xfdL\x86\x1e|\xa0\n\xc0\xa5\x91\v\xae\x9aU\xea\x1aۍ\x17v<\xa2\"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00@"},
+	{"e1c53f367a9c5d19ab6ddd30248a7dafcc607e74e6bcfa52b00e0ba35e470421", "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabc", "sm3\x03YPށF\x86d\xebB\xfdL\x86\x1e|\xa0\n\xc0\xa5\x91\v\xae\x9aU\xea\x1aۍ\x17v<\xa2\"a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00A"},
+}
+
+func TestGolden(t *testing.T) {
+	for i := 0; i < len(golden); i++ {
+		g := golden[i]
+		h := Sm3Sum([]byte(g.in))
+		s := fmt.Sprintf("%x", h)
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(h[:]))
+		if s != g.out {
+			t.Fatalf("SM3 function: sm3(%s) = %s want %s", g.in, s, g.out)
+		}
+		c := New()
+		for j := 0; j < 3; j++ {
+			if j < 2 {
+				io.WriteString(c, g.in)
+			} else {
+				io.WriteString(c, g.in[0:len(g.in)/2])
+				c.Sum(nil)
+				io.WriteString(c, g.in[len(g.in)/2:])
+			}
+			s := fmt.Sprintf("%x", c.Sum(nil))
+			if s != g.out {
+				t.Fatalf("sm3[%d](%s) = %s want %s", j, g.in, s, g.out)
+			}
+			c.Reset()
+		}
 	}
-	// fmt.Println("ret = ", ret)
-	return ret
+}
+
+func TestGoldenMarshal(t *testing.T) {
+	tests := []struct {
+		name    string
+		newHash func() hash.Hash
+		gold    []sm3Test
+	}{
+		{"", New, golden},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, g := range tt.gold {
+				h := tt.newHash()
+				h2 := tt.newHash()
+
+				io.WriteString(h, g.in[:len(g.in)/2])
+
+				state, err := h.(encoding.BinaryMarshaler).MarshalBinary()
+				if err != nil {
+					t.Errorf("could not marshal: %v", err)
+					continue
+				}
+
+				if string(state) != g.halfState {
+					t.Errorf("sm3%s(%q) state = %q, want %q", tt.name, g.in, state, g.halfState)
+					continue
+				}
+
+				if err := h2.(encoding.BinaryUnmarshaler).UnmarshalBinary(state); err != nil {
+					t.Errorf("could not unmarshal: %v", err)
+					continue
+				}
+
+				io.WriteString(h, g.in[len(g.in)/2:])
+				io.WriteString(h2, g.in[len(g.in)/2:])
+
+				if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
+					t.Errorf("sm3%s(%q) = 0x%x != marshaled 0x%x", tt.name, g.in, actual, actual2)
+				}
+			}
+		})
+	}
+}
+
+func TestSize(t *testing.T) {
+	c := New()
+	if got := c.Size(); got != Size {
+		t.Errorf("Size = %d; want %d", got, Size)
+	}
+}
+
+func TestBlockSize(t *testing.T) {
+	c := New()
+	if got := c.BlockSize(); got != BlockSize {
+		t.Errorf("BlockSize = %d want %d", got, BlockSize)
+	}
+	switch cpuType {
+	case "arm64":
+		fmt.Printf("arm64 has sm3 %v, has sm4 %v, has aes %v\n", cpu.ARM64.HasSM3, cpu.ARM64.HasSM4, cpu.ARM64.HasAES)
+	case "amd64":
+		fmt.Printf("amd64 has AVX2 %v, has BMI2 %v\n", cpu.X86.HasAVX2, cpu.X86.HasBMI2)
+	}
+}
+
+var bench = New()
+var benchSH256 = sha256.New()
+var buf = make([]byte, 8192)
+
+func benchmarkSize(hash hash.Hash, b *testing.B, size int) {
+	b.SetBytes(int64(size))
+	sum := make([]byte, bench.Size())
+	for i := 0; i < b.N; i++ {
+		hash.Reset()
+		hash.Write(buf[:size])
+		hash.Sum(sum[:0])
+	}
+}
+
+func BenchmarkHash8Bytes(b *testing.B) {
+	benchmarkSize(bench, b, 8)
+}
+
+func BenchmarkHash1K(b *testing.B) {
+	benchmarkSize(bench, b, 1024)
+}
+
+func BenchmarkHash8K(b *testing.B) {
+	benchmarkSize(bench, b, 8192)
+}
+
+func BenchmarkHash8K_SH256(b *testing.B) {
+	benchmarkSize(benchSH256, b, 8192)
 }
 
 func TestSm3(t *testing.T) {
@@ -55,62 +180,29 @@ func TestSm3(t *testing.T) {
 	hash := hw.Sum(nil)
 	fmt.Println("hash值: ", hash)
 	fmt.Printf("hash长度 : %d\n", len(hash))
-	fmt.Printf("hash字符串 : %s\n", byteToString(hash))
+	fmt.Printf("hash字符串 : %s\n", hex.EncodeToString(hash))
 	// 直接sm3计算
 	hash1 := Sm3Sum(msg)
 	fmt.Println("hash1值: ", hash1)
 	fmt.Printf("hash1长度 : %d\n", len(hash1))
-	fmt.Printf("hash1字符串 : %s\n", byteToString(hash1))
-}
-
-func TestSm3AndSHA256(t *testing.T) {
-	msg, err := ioutil.ReadFile("testdata/longMsg")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// sm3计算
-	hashSm3 := Sm3Sum(msg)
-	fmt.Println("hashSm3值: ", hashSm3)
-	fmt.Printf("hashSm3长度 : %d\n", len(hashSm3))
-	fmt.Printf("hashSm3字符串 : %s\n", byteToString(hashSm3))
-
-	// sm3512计算
-	hashSm3512 := Sm3Sum512(msg)
-	fmt.Println("hashSm3512 值: ", hashSm3512)
-	fmt.Printf("hashSm3512 长度 : %d\n", len(hashSm3512))
-	fmt.Printf("hashSm3512 字符串 : %s\n", byteToString(hashSm3512))
-
-	// hashFuncSha256 := sha256.New()
-	hashFuncSha256 := sha3.New256()
-	// 添加散列内容
-	hashFuncSha256.Write(msg)
-	// 散列计算
-	hashSha256 := hashFuncSha256.Sum(nil)
-	fmt.Println("hashSha256值: ", hashSha256)
-	fmt.Printf("hashSha256长度 : %d\n", len(hashSha256))
-	fmt.Printf("hashSha256字符串 : %s\n", byteToString(hashSha256))
-
-	// hashFuncSha384 := sha512.New384()
-	hashFuncSha384 := sha3.New384()
-	// 添加散列内容
-	hashFuncSha384.Write(msg)
-	// 散列计算
-	hashSha384 := hashFuncSha384.Sum(nil)
-	fmt.Println("hashSha384值: ", hashSha384)
-	fmt.Printf("hashSha384长度 : %d\n", len(hashSha384))
-	fmt.Printf("hashSha384字符串 : %s\n", byteToString(hashSha384))
-
-	// 散列计算
-	hashSha512 := sha512.Sum512(msg)
-	fmt.Println("hashSha512 值: ", hashSha512)
-	fmt.Printf("hashSha512 长度 : %d\n", len(hashSha512))
-	fmt.Printf("hashSha512 字符串 : %s\n", byteToString(hashSha512[:]))
+	fmt.Printf("hash1字符串 : %s\n", hex.EncodeToString(hash1))
 }
 
 func BenchmarkSm3(t *testing.B) {
 	t.ReportAllocs()
 	msg := []byte("天行健君子以自强不息")
 	hw := New()
+	for i := 0; i < t.N; i++ {
+		hw.Reset()
+		hw.Write(msg)
+		hw.Sum(nil)
+	}
+}
+
+func BenchmarkSha256(t *testing.B) {
+	t.ReportAllocs()
+	msg := []byte("天行健君子以自强不息")
+	hw := sha256.New()
 	for i := 0; i < t.N; i++ {
 		hw.Reset()
 		hw.Write(msg)

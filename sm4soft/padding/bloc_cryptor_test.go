@@ -1,3 +1,11 @@
+// Copyright (c) 2022 zhaochun
+// gmingo is licensed under Mulan PSL v2.
+// You can use this software according to the terms and conditions of the Mulan PSL v2.
+// You may obtain a copy of Mulan PSL v2 at:
+//          http://license.coscl.org.cn/MulanPSL2
+// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+// See the Mulan PSL v2 for more details.
+
 package padding
 
 import (
@@ -7,7 +15,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gitee.com/zhaochuninhefei/gmgo/sm4"
+	"gitee.com/zhaochuninhefei/gmgo/sm4soft"
 )
 
 func TestP7BlockDecrypt(t *testing.T) {
@@ -22,7 +30,7 @@ func TestP7BlockDecrypt(t *testing.T) {
 	_, _ = rand.Read(iv)
 	fmt.Printf("key: %02X\n", key)
 	fmt.Printf("iv : %02X\n", iv)
-	block, err := sm4.NewCipher(key)
+	block, err := sm4soft.NewCipher(key)
 	if err != nil {
 		t.Fatal(err)
 	}

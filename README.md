@@ -1,8 +1,15 @@
 gmgo
 ================
-基于tjfoc国密算法库`tjfoc/gmsm`的`2.0`版本实现部分扩展。
+基于`go1.17.5`实现的国密算法库，包括:
+- sm2 : 基于tjfoc国密算法库`tjfoc/gmsm`的`2.0`版本的sm2部分实现部分扩展。
+- sm3 : 基于`emmansun/gmsm`的sm3部分实现部分扩展。
+- sm4 : 基于`emmansun/gmsm`的sm4部分实现部分扩展。
+- x509 : 整理实现中。。。
+- gmtls : 整理实现中。。。
+- gmhttp : 整理实现中。。。
 
-- go package： `gitee.com/zhaochuninhefei/gmgo`
+# gmgo的包路径
+go package： `gitee.com/zhaochuninhefei/gmgo`
 
 # 国密标准参考
 本项目涉及到的国密有SM2、SM3和SM4，相关国密标准如下：
