@@ -13,7 +13,6 @@ package sm4
 
 import (
 	"crypto/cipher"
-	"fmt"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/subtle"
 	"golang.org/x/sys/cpu"
@@ -40,7 +39,7 @@ type sm4CipherAsm struct {
 }
 
 func newCipher(key []byte) (cipher.Block, error) {
-	fmt.Println("sm4.newCipher in sm4/cipher_asm.go")
+	// fmt.Println("sm4.newCipher in sm4/cipher_asm.go")
 	if !supportsAES {
 		return newCipherGeneric(key)
 	}

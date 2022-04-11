@@ -13,7 +13,6 @@ package sm4
 
 import (
 	"crypto/cipher"
-	"fmt"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/subtle"
 	"gitee.com/zhaochuninhefei/gmgo/internal/xor"
@@ -29,7 +28,7 @@ type cbc struct {
 }
 
 func (b *sm4CipherAsm) NewCBCDecrypter(iv []byte) cipher.BlockMode {
-	fmt.Println("sm4.NewCBCDecrypter in sm4/cbc_cipher_asm.go")
+	// fmt.Println("sm4.NewCBCDecrypter in sm4/cbc_cipher_asm.go")
 	var c cbc
 	c.b = b
 	c.iv = make([]byte, BlockSize)
@@ -41,7 +40,7 @@ func (b *sm4CipherAsm) NewCBCDecrypter(iv []byte) cipher.BlockMode {
 func (x *cbc) BlockSize() int { return BlockSize }
 
 func (x *cbc) CryptBlocks(dst, src []byte) {
-	fmt.Println("sm4.CryptBlocks in sm4/cbc_cipher_asm.go")
+	// fmt.Println("sm4.CryptBlocks in sm4/cbc_cipher_asm.go")
 	if len(src)%BlockSize != 0 {
 		panic("cipher: input not full blocks")
 	}

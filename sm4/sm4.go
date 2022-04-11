@@ -32,7 +32,7 @@ func PKCS7UnPadding(src []byte) ([]byte, error) {
 	}
 	unpadding := int(src[length-1])
 	if unpadding > BlockSize || unpadding == 0 {
-		return nil, errors.New("invalid pkcs7 padding (unpadding > BlockSize || unpadding == 0)")
+		return nil, fmt.Errorf("invalid pkcs7 padding (unpadding > BlockSize || unpadding == 0). unpadding: %d, BlockSize: %d", unpadding, BlockSize)
 	}
 
 	pad := src[len(src)-unpadding:]
@@ -45,6 +45,7 @@ func PKCS7UnPadding(src []byte) ([]byte, error) {
 	return src[:(length - unpadding)], nil
 }
 
+// sm4加密，CBC模式
 func Sm4EncryptCbc(plainData, key []byte) (iv, encryptData []byte, err error) {
 	block, err := NewCipher(key)
 	if err != nil {
@@ -61,6 +62,7 @@ func Sm4EncryptCbc(plainData, key []byte) (iv, encryptData []byte, err error) {
 	return
 }
 
+// sm4解密，CBC模式
 func Sm4DecryptCbc(encryptData, key, iv []byte) (plainData []byte, err error) {
 	block, err := NewCipher(key)
 	if err != nil {
@@ -81,6 +83,83 @@ func Sm4DecryptCbc(encryptData, key, iv []byte) (plainData []byte, err error) {
 	return
 }
 
+// sm4加密，CFB模式
+func Sm4EncryptCfb(plainData, key []byte) (iv, encryptData []byte, err error) {
+	block, err := NewCipher(key)
+	if err != nil {
+		return nil, nil, err
+	}
+	paddedData := PKCS7Padding(plainData)
+	encryptData = make([]byte, len(paddedData))
+	iv = make([]byte, BlockSize)
+	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, nil, err
+	}
+	mode := cipher.NewCFBEncrypter(block, iv)
+	mode.XORKeyStream(encryptData, paddedData)
+	return
+}
+
+// sm4解密，CFB模式
+func Sm4DecryptCfb(encryptData, key, iv []byte) (plainData []byte, err error) {
+	block, err := NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	// 长度检查
+	length := len(encryptData)
+	if length < BlockSize || length%BlockSize != 0 {
+		return nil, fmt.Errorf("sm4.Sm4DecryptCfb: 密文长度不正确,不是Block字节数的整数倍. Block字节数: [%d]", BlockSize)
+	}
+	paddedData := make([]byte, len(encryptData))
+	mode := cipher.NewCFBDecrypter(block, iv)
+	mode.XORKeyStream(paddedData, encryptData)
+	plainData, err = PKCS7UnPadding(paddedData)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
+// sm4加密，OFB模式
+func Sm4EncryptOfb(plainData, key []byte) (iv, encryptData []byte, err error) {
+	block, err := NewCipher(key)
+	if err != nil {
+		return nil, nil, err
+	}
+	paddedData := PKCS7Padding(plainData)
+	encryptData = make([]byte, len(paddedData))
+	iv = make([]byte, BlockSize)
+	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, nil, err
+	}
+	mode := cipher.NewOFB(block, iv)
+	mode.XORKeyStream(encryptData, paddedData)
+	return
+}
+
+// sm4解密，OFB模式
+func Sm4DecryptOfb(encryptData, key, iv []byte) (plainData []byte, err error) {
+	block, err := NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	// 长度检查
+	length := len(encryptData)
+	if length < BlockSize || length%BlockSize != 0 {
+		return nil, fmt.Errorf("sm4.Sm4DecryptOfb: 密文长度不正确,不是Block字节数的整数倍. Block字节数: [%d]", BlockSize)
+	}
+	paddedData := make([]byte, len(encryptData))
+	mode := cipher.NewOFB(block, iv)
+	mode.XORKeyStream(paddedData, encryptData)
+	plainData, err = PKCS7UnPadding(paddedData)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
+// sm4加密，GCM模式
 func Sm4EncryptGcm(plainData, key []byte) (nonce, encryptData []byte, err error) {
 	block, err := NewCipher([]byte(key))
 	if err != nil {
@@ -94,10 +173,10 @@ func Sm4EncryptGcm(plainData, key []byte) (nonce, encryptData []byte, err error)
 	io.ReadFull(rand.Reader, nonce)
 	out := sm4gcm.Seal(nonce, nonce, plainData, nil)
 	encryptData = out[sm4gcm.NonceSize():]
-	// nonce = out[:sm4gcm.NonceSize()]
 	return
 }
 
+// sm4解密，GCM模式
 func Sm4DecryptGcm(encryptData, key, nonce []byte) ([]byte, error) {
 	block, err := NewCipher([]byte(key))
 	if err != nil {

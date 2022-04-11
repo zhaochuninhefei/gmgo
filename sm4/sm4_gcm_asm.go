@@ -14,7 +14,6 @@ package sm4
 import (
 	"crypto/cipher"
 	goSubtle "crypto/subtle"
-	"fmt"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/subtle"
 )
@@ -52,7 +51,7 @@ type gcmAsm struct {
 // NewGCM returns the SM4 cipher wrapped in Galois Counter Mode. This is only
 // called by crypto/cipher.NewGCM via the gcmAble interface.
 func (c *sm4CipherGCM) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
-	fmt.Println("sm4.NewGCM in sm4/sm4_gcm_asm.go")
+	// fmt.Println("sm4.NewGCM in sm4/sm4_gcm_asm.go")
 	g := &gcmAsm{}
 	g.cipher = &c.sm4CipherAsm
 	g.nonceSize = nonceSize
@@ -72,7 +71,7 @@ func (g *gcmAsm) Overhead() int {
 // Seal encrypts and authenticates plaintext. See the cipher.AEAD interface for
 // details.
 func (g *gcmAsm) Seal(dst, nonce, plaintext, data []byte) []byte {
-	fmt.Println("sm4.Seal in sm4/sm4_gcm_asm.go")
+	// fmt.Println("sm4.Seal in sm4/sm4_gcm_asm.go")
 	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
@@ -114,7 +113,7 @@ func (g *gcmAsm) Seal(dst, nonce, plaintext, data []byte) []byte {
 // Open authenticates and decrypts ciphertext. See the cipher.AEAD interface
 // for details.
 func (g *gcmAsm) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
-	fmt.Println("sm4.Open in sm4/sm4_gcm_asm.go")
+	// fmt.Println("sm4.Open in sm4/sm4_gcm_asm.go")
 	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
