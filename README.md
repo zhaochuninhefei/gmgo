@@ -87,3 +87,10 @@ go test
 ```
 
 执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
+
+# 关于版权声明
+本项目依赖的其他开源项目有:
+- `https://github.com/emmansun/gmsm`
+- `https://github.com/tjfoc/gmsm`
+
+对应的版权声明参见目录`thrid_licenses`。

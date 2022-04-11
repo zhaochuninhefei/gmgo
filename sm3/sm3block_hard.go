@@ -12,7 +12,7 @@
 package sm3
 
 /*
-sm3/sm3block_decl.go cpu是amd64或arm64架构时声明block函数(由汇编实现)
+sm3/sm3block_hard.go cpu是amd64或arm64架构时声明block函数(由汇编实现)
 */
 
 import (

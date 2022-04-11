@@ -22,9 +22,6 @@ import (
 // SM3校验和字节数，即散列结果的字节长度
 const Size int = 32
 
-// SizeBitSize the bit size of Size.
-const SizeBitSize = 5
-
 // SM3散列块字节数
 const BlockSize int = 64
 
