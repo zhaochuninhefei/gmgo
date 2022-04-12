@@ -11,7 +11,6 @@ ParseCertificates : 将DER字节数组转为多个gmx509证书
 
 import (
 	"bytes"
-	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
@@ -319,31 +318,32 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 			return nil, errors.New("x509: wrong Ed25519 public key size")
 		}
 		return ed25519.PublicKey(der), nil
-	case DSA:
-		y := new(big.Int)
-		if !der.ReadASN1Integer(y) {
-			return nil, errors.New("x509: invalid DSA public key")
-		}
-		pub := &dsa.PublicKey{
-			Y: y,
-			Parameters: dsa.Parameters{
-				P: new(big.Int),
-				Q: new(big.Int),
-				G: new(big.Int),
-			},
-		}
-		paramsDer := cryptobyte.String(keyData.Algorithm.Parameters.FullBytes)
-		if !paramsDer.ReadASN1(&paramsDer, cryptobyte_asn1.SEQUENCE) ||
-			!paramsDer.ReadASN1Integer(pub.Parameters.P) ||
-			!paramsDer.ReadASN1Integer(pub.Parameters.Q) ||
-			!paramsDer.ReadASN1Integer(pub.Parameters.G) {
-			return nil, errors.New("x509: invalid DSA parameters")
-		}
-		if pub.Y.Sign() <= 0 || pub.Parameters.P.Sign() <= 0 ||
-			pub.Parameters.Q.Sign() <= 0 || pub.Parameters.G.Sign() <= 0 {
-			return nil, errors.New("x509: zero or negative DSA parameter")
-		}
-		return pub, nil
+	// 去除DSA处理(不推荐)
+	// case DSA:
+	// 	y := new(big.Int)
+	// 	if !der.ReadASN1Integer(y) {
+	// 		return nil, errors.New("x509: invalid DSA public key")
+	// 	}
+	// 	pub := &dsa.PublicKey{
+	// 		Y: y,
+	// 		Parameters: dsa.Parameters{
+	// 			P: new(big.Int),
+	// 			Q: new(big.Int),
+	// 			G: new(big.Int),
+	// 		},
+	// 	}
+	// 	paramsDer := cryptobyte.String(keyData.Algorithm.Parameters.FullBytes)
+	// 	if !paramsDer.ReadASN1(&paramsDer, cryptobyte_asn1.SEQUENCE) ||
+	// 		!paramsDer.ReadASN1Integer(pub.Parameters.P) ||
+	// 		!paramsDer.ReadASN1Integer(pub.Parameters.Q) ||
+	// 		!paramsDer.ReadASN1Integer(pub.Parameters.G) {
+	// 		return nil, errors.New("x509: invalid DSA parameters")
+	// 	}
+	// 	if pub.Y.Sign() <= 0 || pub.Parameters.P.Sign() <= 0 ||
+	// 		pub.Parameters.Q.Sign() <= 0 || pub.Parameters.G.Sign() <= 0 {
+	// 		return nil, errors.New("x509: zero or negative DSA parameter")
+	// 	}
+	// 	return pub, nil
 	default:
 		return nil, nil
 	}

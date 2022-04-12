@@ -208,7 +208,7 @@ func ConvertSM2Priv2ECPriv(sm2Priv *PrivateKey) (*ecdsa.PrivateKey, error) {
 func ConvertECPriv2SM2Priv(ecPriv *ecdsa.PrivateKey) (*PrivateKey, error) {
 	sm2Priv := &PrivateKey{}
 	sm2Priv.Curve = ecPriv.Curve
-	if sm2Priv.Curve != P256() {
+	if sm2Priv.Curve != P256Sm2() {
 		return nil, errors.New("sm2.ConvertECPriv2SM2Priv: 源私钥并未使用SM2曲线,无法转换")
 	}
 	sm2Priv.D = ecPriv.D

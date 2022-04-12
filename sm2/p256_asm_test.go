@@ -294,7 +294,7 @@ func Test_p256Inverse(t *testing.T) {
 }
 
 func Test_p256PointAddAsm_basepoint(t *testing.T) {
-	curve1 := P256()
+	curve1 := P256Sm2()
 	params := curve1.Params()
 	basePoint := []uint64{
 		0x61328990f418029e, 0x3e7981eddca6c050, 0xd6a1ed99ac24c3c3, 0x91167a5ee1c13b05,
@@ -335,7 +335,7 @@ func Test_p256PointDoubleAsm(t *testing.T) {
 	copy(r.xyz[:], t1)
 	x1, y1 := r.p256PointToAffine()
 	fmt.Printf("x1=%s, y1=%s\n", hex.EncodeToString(x1.Bytes()), hex.EncodeToString(y1.Bytes()))
-	curve1 := P256()
+	curve1 := P256Sm2()
 	params := curve1.Params()
 	x2, y2 := params.Double(params.Gx, params.Gy)
 	for i := 0; i < 15; i++ {
@@ -349,7 +349,7 @@ func Test_p256PointDoubleAsm(t *testing.T) {
 
 func Test_ScalarBaseMult(t *testing.T) {
 	scalar := big.NewInt(0xffffffff)
-	curve1 := P256()
+	curve1 := P256Sm2()
 	x1, y1 := curve1.ScalarBaseMult(scalar.Bytes())
 	fmt.Printf("x1=%s, y1=%s\n", hex.EncodeToString(x1.Bytes()), hex.EncodeToString(y1.Bytes()))
 	params := curve1.Params()
@@ -361,7 +361,7 @@ func Test_ScalarBaseMult(t *testing.T) {
 }
 
 func Test_p256PointAddAsm(t *testing.T) {
-	curve1 := P256()
+	curve1 := P256Sm2()
 	params := curve1.Params()
 	k1, _ := randFieldElement(params, rand.Reader)
 	x1, y1 := params.ScalarBaseMult(k1.Bytes())
@@ -399,7 +399,7 @@ func Test_p256PointAddAsm(t *testing.T) {
 
 func Test_ScalarMult_basepoint(t *testing.T) {
 	scalar := big.NewInt(0xffffffff)
-	curve1 := P256()
+	curve1 := P256Sm2()
 	x1, y1 := curve1.ScalarMult(curve1.Params().Gx, curve1.Params().Gy, scalar.Bytes())
 	fmt.Printf("x1=%s, y1=%s\n", hex.EncodeToString(x1.Bytes()), hex.EncodeToString(y1.Bytes()))
 	params := curve1.Params()
@@ -419,7 +419,7 @@ func Test_Inverse(t *testing.T) {
 	fmt.Printf("%0b, %0b, %b, %b\n", nm2a[0], nm2a[1], nm2a[2], nm2a[3])
 	xInv1 := fermatInverse(x, n)
 	fmt.Printf("expect=%s\n", hex.EncodeToString(xInv1.Bytes()))
-	_ = P256()
+	_ = P256Sm2()
 	xInv2 := p256.Inverse(x)
 	fmt.Printf("result=%s\n", hex.EncodeToString(xInv2.Bytes()))
 

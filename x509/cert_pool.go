@@ -10,15 +10,16 @@ x509/cert_pool.go 证书池实现
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/pem"
 	"errors"
 	"runtime"
 	"sync"
+
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
-// TODO: 准备将sha256改为sm3
-type sum224 [sha256.Size224]byte
+// 将`sha256.Sum224`改为`sm3.Sm3SumArr`
+type sum_sm3 [sm3.Size]byte
 
 // CertPool is a set of certificates.
 type CertPool struct {
@@ -28,12 +29,12 @@ type CertPool struct {
 	// lazily parsing/decompressing it as needed.
 	lazyCerts []lazyCert
 
-	// haveSum maps from sum224(cert.Raw) to true. It's used only
+	// haveSum maps from sm3.Sm3SumArr(cert.Raw) to true. It's used only
 	// for AddCert duplicate detection, to avoid CertPool.contains
 	// calls in the AddCert path (because the contains method can
 	// call getCert and otherwise negate savings from lazy getCert
 	// funcs).
-	haveSum map[sum224]bool
+	haveSum map[sum_sm3]bool
 }
 
 // lazyCert is minimal metadata about a Cert and a func to retrieve it
@@ -60,7 +61,7 @@ type lazyCert struct {
 func NewCertPool() *CertPool {
 	return &CertPool{
 		byName:  make(map[string][]int),
-		haveSum: make(map[sum224]bool),
+		haveSum: make(map[sum_sm3]bool),
 	}
 }
 
@@ -82,7 +83,7 @@ func (s *CertPool) copy() *CertPool {
 	p := &CertPool{
 		byName:    make(map[string][]int, len(s.byName)),
 		lazyCerts: make([]lazyCert, len(s.lazyCerts)),
-		haveSum:   make(map[sum224]bool, len(s.haveSum)),
+		haveSum:   make(map[sum_sm3]bool, len(s.haveSum)),
 	}
 	for k, v := range s.byName {
 		indexes := make([]int, len(v))
@@ -166,7 +167,7 @@ func (s *CertPool) contains(cert *Certificate) bool {
 	if s == nil {
 		return false
 	}
-	return s.haveSum[sha256.Sum224(cert.Raw)]
+	return s.haveSum[sm3.Sm3SumArr(cert.Raw)]
 }
 
 // AddCert adds a certificate to a pool.
@@ -174,7 +175,7 @@ func (s *CertPool) AddCert(cert *Certificate) {
 	if cert == nil {
 		panic("adding nil Certificate to CertPool")
 	}
-	s.addCertFunc(sha256.Sum224(cert.Raw), string(cert.RawSubject), func() (*Certificate, error) {
+	s.addCertFunc(sm3.Sm3SumArr(cert.Raw), string(cert.RawSubject), func() (*Certificate, error) {
 		return cert, nil
 	})
 }
@@ -184,17 +185,17 @@ func (s *CertPool) AddCert(cert *Certificate) {
 //
 // The rawSubject is Certificate.RawSubject and must be non-empty.
 // The getCert func may be called 0 or more times.
-func (s *CertPool) addCertFunc(rawSum224 sum224, rawSubject string, getCert func() (*Certificate, error)) {
+func (s *CertPool) addCertFunc(rawSumSm3 sum_sm3, rawSubject string, getCert func() (*Certificate, error)) {
 	if getCert == nil {
 		panic("getCert can't be nil")
 	}
 
 	// Check that the certificate isn't being added twice.
-	if s.haveSum[rawSum224] {
+	if s.haveSum[rawSumSm3] {
 		return
 	}
 
-	s.haveSum[rawSum224] = true
+	s.haveSum[rawSumSm3] = true
 	s.lazyCerts = append(s.lazyCerts, lazyCert{
 		rawSubject: []byte(rawSubject),
 		getCert:    getCert,
@@ -228,7 +229,7 @@ func (s *CertPool) AppendCertsFromPEM(pemCerts []byte) (ok bool) {
 			sync.Once
 			v *Certificate
 		}
-		s.addCertFunc(sha256.Sum224(cert.Raw), string(cert.RawSubject), func() (*Certificate, error) {
+		s.addCertFunc(sm3.Sm3SumArr(cert.Raw), string(cert.RawSubject), func() (*Certificate, error) {
 			lazyCert.Do(func() {
 				// This can't fail, as the same bytes already parsed above.
 				lazyCert.v, _ = ParseCertificate(certBytes)

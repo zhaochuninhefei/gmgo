@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/pem"
+	"os"
 	"strings"
 	"testing"
 )
@@ -247,3 +248,37 @@ func TestIncompleteBlock(t *testing.T) {
 }
 
 func testingKey(s string) string { return strings.ReplaceAll(s, "TESTING KEY", "PRIVATE KEY") }
+
+func TestSm4(t *testing.T) {
+	plainDERStr := "MGMCAQACEQC6ssxmYuauuHGOCDAI54RdAgMBAAECEQCWIn6Yv2O+kBcDF7STctKBAgkA8SEfu/2i3g0CCQDGNlXbBHX7kQIIK3Ww5o0cYbECCQDCimPb0dYGsQIIeQ7AjryIst8="
+	plainDER, err := base64.StdEncoding.DecodeString(plainDERStr)
+	if err != nil {
+		t.Fatal("cannot decode test DER data: ", err)
+	}
+	password := []byte("kremvax1")
+	block, err := EncryptPEMBlock(rand.Reader, "RSA PRIVATE KEY", plainDER, password, PEMCipherSM4)
+	if err != nil {
+		t.Fatal("encrypt: ", err)
+	}
+	file, err := os.Create("testdata/sm4EncryptPEMBlock.pem")
+	if err != nil {
+		t.Fatal("encrypt: ", err)
+	}
+	pem.Encode(file, block)
+	if !IsEncryptedPEMBlock(block) {
+		t.Fatal("PEM block does not appear to be encrypted")
+	}
+	if block.Type != "RSA PRIVATE KEY" {
+		t.Fatalf("unexpected block type; got %s want %s", block.Type, "RSA PRIVATE KEY")
+	}
+	if block.Headers["Proc-Type"] != "4,ENCRYPTED" {
+		t.Fatal("block does not have correct Proc-Type header")
+	}
+	der, err := DecryptPEMBlock(block, password)
+	if err != nil {
+		t.Fatal("decrypt: ", err)
+	}
+	if !bytes.Equal(der, plainDER) {
+		t.Fatal("data mismatch")
+	}
+}

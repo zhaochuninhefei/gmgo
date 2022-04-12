@@ -22,7 +22,7 @@ import (
 var _ = elliptic.P256()
 
 func TestFuzz(t *testing.T) {
-	p256 := P256()
+	p256 := P256Sm2()
 	p256Generic := p256.Params()
 
 	var scalar1 [32]byte

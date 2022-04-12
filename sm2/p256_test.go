@@ -156,7 +156,7 @@ func genericParamsForCurve(c elliptic.Curve) *elliptic.CurveParams {
 }
 
 func TestP256BaseMult(t *testing.T) {
-	p256 := P256()
+	p256 := P256Sm2()
 	p256Generic := genericParamsForCurve(p256)
 
 	scalars := make([]*big.Int, 0, len(baseMultTests)+1)
@@ -186,7 +186,7 @@ func TestP256BaseMult(t *testing.T) {
 }
 
 func generateP256MultTests() {
-	p256 := P256()
+	p256 := P256Sm2()
 	p256Generic := genericParamsForCurve(p256)
 	for i := 0; i < 3; i++ {
 		k1, err := randFieldElement(p256Generic, rand.Reader)
@@ -208,7 +208,7 @@ func generateP256MultTests() {
 }
 
 func TestP256Mult(t *testing.T) {
-	p256 := P256()
+	p256 := P256Sm2()
 	for i, e := range p256MultTests {
 		x, _ := new(big.Int).SetString(e.xIn, 16)
 		y, _ := new(big.Int).SetString(e.yIn, 16)
@@ -239,9 +239,9 @@ func TestP256CombinedMult(t *testing.T) {
 		CombinedMult(bigX, bigY *big.Int, baseScalar, scalar []byte) (x, y *big.Int)
 	}
 
-	p256, ok := P256().(combinedMult)
+	p256, ok := P256Sm2().(combinedMult)
 	if !ok {
-		p256 = &synthCombinedMult{P256()}
+		p256 = &synthCombinedMult{P256Sm2()}
 	}
 
 	gx := p256.Params().Gx

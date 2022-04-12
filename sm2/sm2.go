@@ -26,7 +26,7 @@ EncryptAsn1
 Encrypt
 
 提供函数:
-P256
+P256Sm2
 GenerateKey
 IsSM2PublicKey
 NewSM2SignerOption
@@ -128,8 +128,8 @@ var (
 )
 
 // 获取sm2p256曲线
-// P256 init and return the singleton.
-func P256() elliptic.Curve {
+// P256Sm2 init and return the singleton.
+func P256Sm2() elliptic.Curve {
 	initonce.Do(initP256)
 	return p256
 }
@@ -155,7 +155,7 @@ func randFieldElement(c elliptic.Curve, rand io.Reader) (k *big.Int, err error) 
 // 生成sm2的公私钥对
 // GenerateKey generates a public and private key pair.
 func GenerateKey(rand io.Reader) (*PrivateKey, error) {
-	c := P256()
+	c := P256Sm2()
 	// 生成随机数k
 	k, err := randFieldElement(c, rand)
 	if err != nil {
@@ -176,7 +176,7 @@ var errZeroParam = errors.New("zero parameter")
 // IsSM2PublicKey check if given public key is a SM2 public key or not
 func IsSM2PublicKey(publicKey interface{}) bool {
 	pub, ok := publicKey.(*PublicKey)
-	return ok && strings.EqualFold(P256().Params().Name, pub.Curve.Params().Name)
+	return ok && strings.EqualFold(P256Sm2().Params().Name, pub.Curve.Params().Name)
 }
 
 // ↓↓↓↓↓↓↓↓↓↓ 签名与验签 ↓↓↓↓↓↓↓↓↓↓
@@ -260,12 +260,18 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	if opts == nil {
 		opts = DefaultSM2SignerOption()
 	}
-	if sm2Opts, ok := opts.(*SM2SignerOption); ok && sm2Opts.ForceZA {
-		// 执行ZA混合散列
-		r, s, err = SignWithZA(rand, priv, sm2Opts.UID, digest)
+	if sm2Opts, ok := opts.(*SM2SignerOption); ok {
+		// 传入的opts是SM2SignerOption类型时，根据设置决定是否进行ZA混合散列
+		if sm2Opts.ForceZA {
+			// 执行ZA混合散列
+			r, s, err = SignWithZA(rand, priv, sm2Opts.UID, digest)
+		} else {
+			// 不执行ZA混合散列
+			r, s, err = SignAfterZA(rand, priv, digest)
+		}
 	} else {
-		// 不执行ZA混合散列
-		r, s, err = SignAfterZA(rand, priv, digest)
+		// 传入的opts不是SM2SignerOption类型时，执行ZA混合散列
+		r, s, err = SignWithZA(rand, priv, defaultUID, digest)
 	}
 	if err != nil {
 		return nil, err
@@ -505,11 +511,11 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	}
 	var x *big.Int
 	if opt, ok := c.(combinedMult); ok {
-		fmt.Println("sm2hard/sm2.go Verify 利用硬件加速")
+		fmt.Println("sm2hard/sm2.go verifyGeneric 利用硬件加速")
 		// 如果cpu是amd64或arm64架构，则使用快速计算实现步骤2~4
 		x, _ = opt.CombinedMult(pub.X, pub.Y, s.Bytes(), t.Bytes())
 	} else {
-		fmt.Println("sm2hard/sm2.go Verify 没有利用硬件加速")
+		fmt.Println("sm2hard/sm2.go verifyGeneric 没有利用硬件加速")
 		// 2.计算 s*G
 		x1, y1 := c.ScalarBaseMult(s.Bytes())
 		// 3.计算 t*pub
@@ -856,7 +862,7 @@ func ASN1Ciphertext2Plain(ciphertext []byte, opts *EncrypterOpts) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	curve := P256()
+	curve := P256Sm2()
 	c1 := opts.PointMarshalMode.mashal(curve, x1, y1)
 	if opts.CiphertextSplicingOrder == C1C3C2 {
 		// c1 || c3 || c2
@@ -872,7 +878,7 @@ func PlainCiphertext2ASN1(ciphertext []byte, from ciphertextSplicingOrder) ([]by
 	if ciphertext[0] == 0x30 {
 		return nil, errors.New("SM2: invalid plain encoding ciphertext")
 	}
-	curve := P256()
+	curve := P256Sm2()
 	ciphertextLen := len(ciphertext)
 	if ciphertextLen <= 1+(curve.Params().BitSize/8)+sm3.Size {
 		return nil, errors.New("SM2: invalid ciphertext length")
@@ -898,7 +904,7 @@ func PlainCiphertext2ASN1(ciphertext []byte, from ciphertextSplicingOrder) ([]by
 // 修改sm2加密结果的C2C3拼接顺序
 // AdjustCiphertextSplicingOrder utility method to change c2 c3 order
 func AdjustCiphertextSplicingOrder(ciphertext []byte, from, to ciphertextSplicingOrder) ([]byte, error) {
-	curve := P256()
+	curve := P256Sm2()
 	if from == to {
 		return ciphertext, nil
 	}
