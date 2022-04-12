@@ -223,3 +223,9 @@ func Sm3Sum(data []byte) []byte {
 	d.Write(data)
 	return d.checkSum()
 }
+
+func Sm3SumArr(data []byte) (sum_sm3 [Size]byte) {
+	sum := Sm3Sum(data)
+	copy(sum_sm3[:], sum[:Size])
+	return
+}
