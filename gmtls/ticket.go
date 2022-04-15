@@ -6,14 +6,14 @@ package gmtls
 
 import (
 	"bytes"
-	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
-	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"io"
 
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
+	"gitee.com/zhaochuninhefei/gmgo/sm4"
 	"golang.org/x/crypto/cryptobyte"
 )
 
@@ -116,44 +116,61 @@ func (m *sessionStateTLS13) unmarshal(data []byte) bool {
 		s.Empty()
 }
 
+// 会话票据加密
+//  golang原来的实现是用aes加密，sha256散列，国密改造改为 sm4 + sm3
 func (c *Conn) encryptTicket(state []byte) ([]byte, error) {
 	if len(c.ticketKeys) == 0 {
 		return nil, errors.New("gmtls: internal error: session ticket keys unavailable")
 	}
-
-	encrypted := make([]byte, ticketKeyNameLen+aes.BlockSize+len(state)+sha256.Size)
+	// encrypted : ticketKeyName(16) + iv(16) + state对称加密结果 + 散列(32)
+	// encrypted := make([]byte, ticketKeyNameLen+aes.BlockSize+len(state)+sha256.Size)
+	encrypted := make([]byte, ticketKeyNameLen+sm4.BlockSize+len(state)+sm3.Size)
+	// 前16个字节放ticketKeyName
 	keyName := encrypted[:ticketKeyNameLen]
-	iv := encrypted[ticketKeyNameLen : ticketKeyNameLen+aes.BlockSize]
-	macBytes := encrypted[len(encrypted)-sha256.Size:]
-
+	// 16~32 放iv
+	iv := encrypted[ticketKeyNameLen : ticketKeyNameLen+sm4.BlockSize]
+	// 最后32个字节放mac认证码
+	macBytes := encrypted[len(encrypted)-sm3.Size:]
+	// 生成随机字节数组填入iv
 	if _, err := io.ReadFull(c.config.rand(), iv); err != nil {
 		return nil, err
 	}
+	// 当前连接的ticketKeys在前面读取ClientHello之后的处理中已经初始化。
+	// 这里拿到第一个ticketKey。
 	key := c.ticketKeys[0]
+	// 填入keyname
 	copy(keyName, key.keyName[:])
-	block, err := aes.NewCipher(key.aesKey[:])
+	block, err := sm4.NewCipher(key.sm4Key[:])
 	if err != nil {
 		return nil, errors.New("gmtls: failed to create cipher while encrypting ticket: " + err.Error())
 	}
-	cipher.NewCTR(block, iv).XORKeyStream(encrypted[ticketKeyNameLen+aes.BlockSize:], state)
-
-	mac := hmac.New(sha256.New, key.hmacKey[:])
-	mac.Write(encrypted[:len(encrypted)-sha256.Size])
+	// encrypted的 32 ~ 倒数32 填入state对称加密结果
+	cipher.NewCTR(block, iv).XORKeyStream(encrypted[ticketKeyNameLen+sm4.BlockSize:], state)
+	// 使用sm3作为mac认证码函数
+	mac := hmac.New(sm3.New, key.hmacKey[:])
+	// 写入 encrypted 前三部分内容: ticketKeyName(16) + iv(16) + state对称加密结果
+	mac.Write(encrypted[:len(encrypted)-sm3.Size])
+	// 生成认证码填入macBytes TODO: 取macBytes的空切片来填入，有啥好处?
 	mac.Sum(macBytes[:0])
 
 	return encrypted, nil
 }
 
+// 会话票据解密
+//  golang原来的实现是用aes加密，sha256散列，国密改造改为 sm4 + sm3
 func (c *Conn) decryptTicket(encrypted []byte) (plaintext []byte, usedOldKey bool) {
-	if len(encrypted) < ticketKeyNameLen+aes.BlockSize+sha256.Size {
+	if len(encrypted) < ticketKeyNameLen+sm4.BlockSize+sm3.Size {
 		return nil, false
 	}
-
+	// 获取keyname
 	keyName := encrypted[:ticketKeyNameLen]
-	iv := encrypted[ticketKeyNameLen : ticketKeyNameLen+aes.BlockSize]
-	macBytes := encrypted[len(encrypted)-sha256.Size:]
-	ciphertext := encrypted[ticketKeyNameLen+aes.BlockSize : len(encrypted)-sha256.Size]
-
+	// 获取iv
+	iv := encrypted[ticketKeyNameLen : ticketKeyNameLen+sm4.BlockSize]
+	// 获取认证码
+	macBytes := encrypted[len(encrypted)-sm3.Size:]
+	// 获取秘文
+	ciphertext := encrypted[ticketKeyNameLen+sm4.BlockSize : len(encrypted)-sm3.Size]
+	// 根据keyname获取key
 	keyIndex := -1
 	for i, candidateKey := range c.ticketKeys {
 		if bytes.Equal(keyName, candidateKey.keyName[:]) {
@@ -165,16 +182,16 @@ func (c *Conn) decryptTicket(encrypted []byte) (plaintext []byte, usedOldKey boo
 		return nil, false
 	}
 	key := &c.ticketKeys[keyIndex]
-
-	mac := hmac.New(sha256.New, key.hmacKey[:])
-	mac.Write(encrypted[:len(encrypted)-sha256.Size])
+	// 重新生成认证码
+	mac := hmac.New(sm3.New, key.hmacKey[:])
+	mac.Write(encrypted[:len(encrypted)-sm3.Size])
 	expected := mac.Sum(nil)
-
+	// 比较认证码
 	if subtle.ConstantTimeCompare(macBytes, expected) != 1 {
 		return nil, false
 	}
-
-	block, err := aes.NewCipher(key.aesKey[:])
+	// 对称解密
+	block, err := sm4.NewCipher(key.sm4Key[:])
 	if err != nil {
 		return nil, false
 	}

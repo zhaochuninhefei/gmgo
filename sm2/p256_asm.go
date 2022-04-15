@@ -38,11 +38,7 @@ var (
 
 // 初始化sm2的 p256 曲线单例
 func initP256() {
-	// 这里的sm2p256与国标略有不同，参数a为"-3"，没有在这里设置，而是在相关计算中直接使用了ecdsa的"y^2 = x^3 - 3x + b"。
-	// 因此命名上添加了V1。但目前经过测试，该曲线上的公钥坐标也在标准sm2曲线上，因此可以混用?
-	p256.CurveParams = &elliptic.CurveParams{Name: "SM2-P-256-V1"}
-	// TODO: 为何没有添加参数a? 因为sm2曲线和NIST P256是同类曲线：a=p-3 ?
-	// A, _ := new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC", 16)
+	p256.CurveParams = &elliptic.CurveParams{Name: "SM2-P-256"}
 	// SM2椭圆曲线公钥密码算法推荐曲线参数
 	// 2**256 - 2**224 - 2**96 + 2**64 - 1
 	p256.P, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF", 16)

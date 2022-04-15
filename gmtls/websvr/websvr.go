@@ -44,7 +44,7 @@ func loadSM2Config() (*gmtls.Config, error) {
 		return nil, err
 	}
 	return &gmtls.Config{
-		GMSupport:    &gmtls.GMSupport{},
+		// GMSupport:    &gmtls.GMSupport{},
 		Certificates: []gmtls.Certificate{sigCert, encCert},
 	}, nil
 }
@@ -109,7 +109,7 @@ func loadServerMutualTLCPAuthConfig() (*gmtls.Config, error) {
 	certPool.AppendCertsFromPEM(cacert)
 
 	return &gmtls.Config{
-		GMSupport:    gmtls.NewGMSupport(),
+		// GMSupport:    gmtls.NewGMSupport(),
 		Certificates: []gmtls.Certificate{sigCert, encCert},
 		ClientCAs:    certPool,
 		ClientAuth:   gmtls.RequireAndVerifyClientCert,
@@ -141,7 +141,7 @@ func bothAuthConfig() (*gmtls.Config, error) {
 		return nil, err
 	}
 	return &gmtls.Config{
-		GMSupport:          &gmtls.GMSupport{},
+		// GMSupport:          &gmtls.GMSupport{},
 		RootCAs:            certPool,
 		Certificates:       []gmtls.Certificate{authKeypair},
 		InsecureSkipVerify: false,
@@ -160,8 +160,8 @@ func singleSideAuthConfig() (*gmtls.Config, error) {
 	certPool.AppendCertsFromPEM(cacert)
 
 	return &gmtls.Config{
-		GMSupport: &gmtls.GMSupport{},
-		RootCAs:   certPool,
+		// GMSupport: &gmtls.GMSupport{},
+		RootCAs: certPool,
 	}, nil
 }
 

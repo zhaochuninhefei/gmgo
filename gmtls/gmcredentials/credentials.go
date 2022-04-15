@@ -153,7 +153,10 @@ func NewTLS(c *gmtls.Config) credentials.TransportCredentials {
 // serverNameOverride is for testing only. If set to a non empty string,
 // it will override the virtual host name of authority (e.g. :authority header field) in requests.
 func NewClientTLSFromCert(cp *x509.CertPool, serverNameOverride string) credentials.TransportCredentials {
-	return NewTLS(&gmtls.Config{GMSupport: &gmtls.GMSupport{}, ServerName: serverNameOverride, RootCAs: cp})
+	return NewTLS(&gmtls.Config{
+		// GMSupport: &gmtls.GMSupport{},
+		ServerName: serverNameOverride,
+		RootCAs:    cp})
 }
 
 // NewClientTLSFromFile constructs TLS credentials from the input certificate file for client.

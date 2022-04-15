@@ -14,9 +14,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"hash"
-	"internal/cpu"
 	"runtime"
 
+	"gitee.com/zhaochuninhefei/gmgo/internal/cpu"
 	"gitee.com/zhaochuninhefei/gmgo/sm4"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -212,6 +212,21 @@ type cipherSuiteTLS13 struct {
 	hash x509.Hash
 }
 
+func (cs *cipherSuiteTLS13) ToString() string {
+	switch cs.id {
+	case TLS_SM4_128_GCM_SM3:
+		return "TLS_SM4_128_GCM_SM3"
+	case TLS_AES_128_GCM_SHA256:
+		return "TLS_AES_128_GCM_SHA256"
+	case TLS_CHACHA20_POLY1305_SHA256:
+		return "TLS_CHACHA20_POLY1305_SHA256"
+	case TLS_AES_256_GCM_SHA384:
+		return "TLS_AES_256_GCM_SHA384"
+	default:
+		return "unknown"
+	}
+}
+
 // tls1.3支持的密码套件
 var cipherSuitesTLS13 = []*cipherSuiteTLS13{ // TODO: replace with a map.
 	{TLS_AES_128_GCM_SHA256, 16, aeadAESGCMTLS13, x509.SHA256},
@@ -395,6 +410,7 @@ var aesgcmCiphers = map[uint16]bool{
 	TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: true,
 	TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: true,
 	// TLS 1.3
+	TLS_SM4_128_GCM_SM3:    true,
 	TLS_AES_128_GCM_SHA256: true,
 	TLS_AES_256_GCM_SHA384: true,
 }
@@ -404,6 +420,7 @@ var nonAESGCMAEADCiphers = map[uint16]bool{
 	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305:   true,
 	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305: true,
 	// TLS 1.3
+	TLS_SM4_128_GCM_SM3:          true,
 	TLS_CHACHA20_POLY1305_SHA256: true,
 }
 
@@ -441,6 +458,9 @@ func cipherAES(key, iv []byte, isRead bool) interface{} {
 	}
 	return cipher.NewCBCEncrypter(block, iv)
 }
+
+// TODO: 暂时没有为tls1.2准备国密套件，因此不需要对照 cipherAES 实现 cipherSM4。
+// 基于相同原因，下面的 macSHA1 与 macSHA256 同样没有准备对应的 macSM3。
 
 // macSHA1 returns a SHA-1 based constant time MAC.
 func macSHA1(key []byte) hash.Hash {
@@ -561,6 +581,7 @@ func aeadAESGCMTLS13(key, nonceMask []byte) aead {
 }
 
 // TODO: sm4实现AEAD，需要验证
+// 只实现 aeadSM4GCMTLS13 没有实现 aeadSM4GCM 同样是因为目前没有为tls1.2准备国密密码套件
 func aeadSM4GCMTLS13(key, nonceMask []byte) aead {
 	if len(nonceMask) != aeadNonceLength {
 		panic("gmtls: internal error: wrong nonce length")
@@ -647,6 +668,7 @@ func ecdheRSAKA(version uint16) keyAgreement {
 	}
 }
 
+// 从给定的have密码套件列表中匹配want密码套件。
 // mutualCipherSuite returns a cipherSuite given a list of supported
 // ciphersuites and the id requested by the peer.
 func mutualCipherSuite(have []uint16, want uint16) *cipherSuite {
@@ -668,6 +690,9 @@ func cipherSuiteByID(id uint16) *cipherSuite {
 	return nil
 }
 
+// 协商tls1.3的密码套件
+//  - have 己方拥有的密码套件
+//  - want 对方需求的密码套件
 func mutualCipherSuiteTLS13(have []uint16, want uint16) *cipherSuiteTLS13 {
 	for _, id := range have {
 		if id == want {
@@ -677,6 +702,7 @@ func mutualCipherSuiteTLS13(have []uint16, want uint16) *cipherSuiteTLS13 {
 	return nil
 }
 
+// 根据id获取tls1.3对应的密码套件
 func cipherSuiteTLS13ByID(id uint16) *cipherSuiteTLS13 {
 	for _, cipherSuite := range cipherSuitesTLS13 {
 		if cipherSuite.id == id {

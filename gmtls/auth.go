@@ -24,6 +24,12 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
+// 使用pubkey，根据sigType选择对应的签名算法对sig进行验签。
+//  - sigType : 签名算法
+//  - pubkey : 公钥
+//  - hashFunc : 散列算法
+//  - signed : 签名内容
+//  - sig : 签名
 // 已补充国密SM2分支
 // verifyHandshakeSignature verifies a signature against pre-hashed
 // (if required) handshake contents.
@@ -93,9 +99,11 @@ var signaturePadding = []byte{
 	0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
 }
 
+// 生成一个前置的消息散列，用于证书公私钥的签名与验签。
 // signedMessage returns the pre-hashed (if necessary) message to be signed by
 // certificate keys in TLS 1.3. See RFC 8446, Section 4.4.3.
 func signedMessage(sigHash x509.Hash, context string, transcript hash.Hash) []byte {
+	// directSigning 表示不做签名内容的前置散列
 	if sigHash == directSigning {
 		b := &bytes.Buffer{}
 		b.Write(signaturePadding)
@@ -110,7 +118,8 @@ func signedMessage(sigHash x509.Hash, context string, transcript hash.Hash) []by
 	return h.Sum(nil)
 }
 
-// 已补充国密SM2签名算法分支
+// 获取签名算法与散列算法
+//  已补充国密SM2签名算法分支
 // typeAndHashFromSignatureScheme returns the corresponding signature type and
 // crypto.Hash for a given TLS SignatureScheme.
 func typeAndHashFromSignatureScheme(signatureAlgorithm SignatureScheme) (sigType uint8, hash x509.Hash, err error) {
@@ -130,7 +139,7 @@ func typeAndHashFromSignatureScheme(signatureAlgorithm SignatureScheme) (sigType
 		return 0, 0, fmt.Errorf("unsupported signature algorithm: %v", signatureAlgorithm)
 	}
 	switch signatureAlgorithm {
-	// 补充国密SM2签名算法
+	// 补充国密SM3散列算法
 	case SM2WITHSM3:
 		hash = x509.SM3
 	case PKCS1WithSHA1, ECDSAWithSHA1:

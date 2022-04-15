@@ -23,6 +23,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
+// tls安全连接定义, 实现`net.Conn`接口
 // A Conn represents a secured connection.
 // It implements the net.Conn interface.
 type Conn struct {
@@ -31,6 +32,9 @@ type Conn struct {
 	isClient    bool
 	handshakeFn func(context.Context) error // (*Conn).clientHandshake or serverHandshake
 
+	// handshakeStatus为1时代表正在传输应用数据，即当前不在握手阶段。
+	// 即一个连接要么处于握手阶段(handshakeStatus != 1)，要么处于握手成功后的传输应用数据阶段(handshakeStatus == 1)。
+	// 该状态值的读写是同步原子操作。
 	// handshakeStatus is 1 if the connection is currently transferring
 	// application data (i.e. is not currently processing a handshake).
 	// This field is only to be accessed with sync/atomic.
@@ -39,37 +43,48 @@ type Conn struct {
 	handshakeMutex sync.Mutex
 	handshakeErr   error   // error resulting from handshake
 	vers           uint16  // TLS version
-	haveVers       bool    // version has been negotiated
+	haveVers       bool    // 版本已协商
 	config         *Config // configuration passed to constructor
+
+	// 该连接到目前为止执行的握手次数,如果renegotiation被禁止，则该值只能是0或1。
 	// handshakes counts the number of handshakes performed on the
 	// connection so far. If renegotiation is disabled then this is either
 	// zero or one.
 	handshakes       int
-	didResume        bool // whether this connection was a session resumption
-	cipherSuite      uint16
-	ocspResponse     []byte   // stapled OCSP response
+	didResume        bool     // 此连接是否是会话恢复
+	cipherSuite      uint16   // 该连接使用的密码套件
+	ocspResponse     []byte   // 装订的 OCSP 响应, 由服务端提供给客户端用于检查证书是否已撤销
 	scts             [][]byte // signed certificate timestamps from server
 	peerCertificates []*x509.Certificate
+
+	// verifiedChains是连接握手过程中构建的经过验证的证书链，而非服务端提供的证书链。
 	// verifiedChains contains the certificate chains that we built, as
 	// opposed to the ones presented by the server.
 	verifiedChains [][]*x509.Certificate
 	// serverName contains the server name indicated by the client, if any.
 	serverName string
+	// 安全重协商?
 	// secureRenegotiation is true if the server echoed the secure
 	// renegotiation extension. (This is meaningless as a server because
 	// renegotiation is not supported in that case.)
 	secureRenegotiation bool
+	// ekm是一个用于导出密钥材料的闭包函数
 	// ekm is a closure for exporting keying material.
 	ekm func(label string, context []byte, length int) ([]byte, error)
+	// 处理NewSessionTicket消息时的回复主密钥
 	// resumptionSecret is the resumption_master_secret for handling
 	// NewSessionTicket messages. nil if config.SessionTicketsDisabled.
 	resumptionSecret []byte
 
+	// ticketKeys 是此连接的一组活动会话票证密钥。
+	// 第一个用于加密新票证，并尝试全部解密票证。
 	// ticketKeys is the set of active session ticket keys for this
 	// connection. The first one is used to encrypt new tickets and
 	// all are tried to decrypt tickets.
 	ticketKeys []ticketKey
 
+	// 客户端在最近一次握手中发送的Finished消息是否该连接到目前为止的首次Finished。
+	// 首次Finished消息是 tls-unique 通道绑定值。
 	// clientFinishedIsFirst is true if the client sent the first Finished
 	// message during the most recent handshake. This is recorded because
 	// the first transmitted Finished message is the tls-unique
@@ -82,6 +97,8 @@ type Conn struct {
 	// alertCloseNotify record.
 	closeNotifySent bool
 
+	// clientFinished 和 serverFinished 用于记录客户端或服务器在最近一次握手中发送的 Finished 消息。
+	// 记录的目的是为了支持重新协商扩展和 tls-unique 通道绑定。
 	// clientFinished and serverFinished contain the Finished message sent
 	// by the client or server in the most recent handshake. This is
 	// retained to support the renegotiation extension and tls-unique
@@ -89,6 +106,11 @@ type Conn struct {
 	clientFinished [12]byte
 	serverFinished [12]byte
 
+	// 协商好的ALPN协议。
+	// 应用层协议协商（Application-Layer Protocol Negotiation，简称ALPN）是一个传输层安全协议(TLS) 的扩展,
+	// ALPN 使得应用层可以协商在安全连接层之上使用什么协议, 避免了额外的往返通讯, 并且独立于应用层协议。
+	// ALPN 用于 HTTP/2 连接, 和HTTP/1.x 相比, ALPN 的使用增强了网页的压缩率减少了网络延时。
+	// ALPN 和 HTTP/2 协议是伴随着 Google 开发 SPDY 协议出现的。
 	// clientProtocol is the negotiated ALPN protocol.
 	clientProtocol string
 
@@ -110,6 +132,9 @@ type Conn struct {
 	// handshake, nor deliver application data. Protected by in.Mutex.
 	retryCount int
 
+	// activeCall 是一个原子 int32。
+	// 低位标识 Close 是否被调用。
+	// 其余位记录 Conn.Write 中的 goroutine 的数量。
 	// activeCall is an atomic int32; the low bit is whether Close has
 	// been called. the rest of the bits are the number of goroutines
 	// in Conn.Write.
@@ -200,7 +225,7 @@ func (hc *halfConn) prepareCipherSpec(version uint16, cipher interface{}, mac ha
 // changeCipherSpec changes the encryption and MAC states
 // to the ones previously passed to prepareCipherSpec.
 func (hc *halfConn) changeCipherSpec() error {
-	if hc.nextCipher == nil || hc.version == VersionTLS13 {
+	if hc.nextCipher == nil || hc.version == VersionTLS13 || hc.version == VersionGMSSL {
 		return alertInternalError
 	}
 	hc.cipher = hc.nextCipher
@@ -330,7 +355,7 @@ func (hc *halfConn) decrypt(record []byte) ([]byte, recordType, error) {
 
 	// In TLS 1.3, change_cipher_spec messages are to be ignored without being
 	// decrypted. See RFC 8446, Appendix D.4.
-	if hc.version == VersionTLS13 && typ == recordTypeChangeCipherSpec {
+	if (hc.version == VersionTLS13 || hc.version == VersionGMSSL) && typ == recordTypeChangeCipherSpec {
 		return payload, typ, nil
 	}
 
@@ -354,7 +379,7 @@ func (hc *halfConn) decrypt(record []byte) ([]byte, recordType, error) {
 			payload = payload[explicitNonceLen:]
 
 			var additionalData []byte
-			if hc.version == VersionTLS13 {
+			if hc.version == VersionTLS13 || hc.version == VersionGMSSL {
 				additionalData = record[:recordHeaderLen]
 			} else {
 				additionalData = append(hc.scratchBuf[:0], hc.seq[:]...)
@@ -392,7 +417,7 @@ func (hc *halfConn) decrypt(record []byte) ([]byte, recordType, error) {
 			panic("unknown cipher type")
 		}
 
-		if hc.version == VersionTLS13 {
+		if hc.version == VersionTLS13 || hc.version == VersionGMSSL {
 			if typ != recordTypeApplicationData {
 				return nil, 0, alertUnexpectedMessage
 			}
@@ -502,7 +527,7 @@ func (hc *halfConn) encrypt(record, payload []byte, rand io.Reader) ([]byte, err
 			nonce = hc.seq[:]
 		}
 
-		if hc.version == VersionTLS13 {
+		if hc.version == VersionTLS13 || hc.version == VersionGMSSL {
 			record = append(record, payload...)
 
 			// Encrypt the actual ContentType and replace the plaintext one.
@@ -630,7 +655,8 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 
 	vers := uint16(hdr[1])<<8 | uint16(hdr[2])
 	n := int(hdr[3])<<8 | int(hdr[4])
-	if c.haveVers && c.vers != VersionTLS13 && vers != c.vers {
+	// gmssl采用tls1.3的处理
+	if c.haveVers && c.vers != VersionTLS13 && c.vers != VersionGMSSL && vers != c.vers {
 		c.sendAlert(alertProtocolVersion)
 		msg := fmt.Sprintf("received record with version %x when expecting version %x", vers, c.vers)
 		return c.in.setErrorLocked(c.newRecordHeaderError(nil, msg))
@@ -644,7 +670,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 			return c.in.setErrorLocked(c.newRecordHeaderError(c.conn, "first record does not look like a TLS handshake"))
 		}
 	}
-	if c.vers == VersionTLS13 && n > maxCiphertextTLS13 || n > maxCiphertext {
+	if (c.vers == VersionTLS13 || c.vers == VersionGMSSL) && n > maxCiphertextTLS13 || n > maxCiphertext {
 		c.sendAlert(alertRecordOverflow)
 		msg := fmt.Sprintf("oversized record received with length %d", n)
 		return c.in.setErrorLocked(c.newRecordHeaderError(nil, msg))
@@ -677,7 +703,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 	}
 
 	// Handshake messages MUST NOT be interleaved with other record types in TLS 1.3.
-	if c.vers == VersionTLS13 && typ != recordTypeHandshake && c.hand.Len() > 0 {
+	if (c.vers == VersionTLS13 || c.vers == VersionGMSSL) && typ != recordTypeHandshake && c.hand.Len() > 0 {
 		return c.in.setErrorLocked(c.sendAlert(alertUnexpectedMessage))
 	}
 
@@ -692,7 +718,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		if alert(data[1]) == alertCloseNotify {
 			return c.in.setErrorLocked(io.EOF)
 		}
-		if c.vers == VersionTLS13 {
+		if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 			return c.in.setErrorLocked(&net.OpError{Op: "remote error", Err: alert(data[1])})
 		}
 		switch data[0] {
@@ -718,7 +744,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		// 5, a server can send a ChangeCipherSpec before its ServerHello, when
 		// c.vers is still unset. That's not useful though and suspicious if the
 		// server then selects a lower protocol version, so don't allow that.
-		if c.vers == VersionTLS13 {
+		if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 			return c.retryReadRecord(expectChangeCipherSpec)
 		}
 		if !expectChangeCipherSpec {
@@ -886,7 +912,7 @@ func (c *Conn) maxPayloadSizeForWrite(typ recordType) int {
 			panic("unknown cipher type")
 		}
 	}
-	if c.vers == VersionTLS13 {
+	if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 		payloadBytes-- // encrypted ContentType
 	}
 
@@ -963,7 +989,8 @@ func (c *Conn) writeRecordLocked(typ recordType, data []byte) (int, error) {
 			// Some TLS servers fail if the record version is
 			// greater than TLS 1.0 for the initial ClientHello.
 			vers = VersionTLS10
-		} else if vers == VersionTLS13 {
+		} else if vers == VersionTLS13 || vers == VersionGMSSL {
+			// 出于兼容性考虑，将tls1.3与gmssl改为tls1.2，对应的信息将在扩展信息中展现。
 			// TLS 1.3 froze the record layer version to 1.2.
 			// See RFC 8446, Section 5.1.
 			vers = VersionTLS12
@@ -984,8 +1011,9 @@ func (c *Conn) writeRecordLocked(typ recordType, data []byte) (int, error) {
 		n += m
 		data = data[m:]
 	}
-
-	if typ == recordTypeChangeCipherSpec && c.vers != VersionTLS13 {
+	// tls1.3发出recordTypeChangeCipherSpec是为了兼容性对应，并不需要执行changeCipherSpec。
+	// GMSSL暂时与tls1.3采用相同的对应
+	if typ == recordTypeChangeCipherSpec && c.vers != VersionTLS13 && c.vers != VersionGMSSL {
 		if err := c.out.changeCipherSpec(); err != nil {
 			return n, c.sendAlertLocked(err.(alert))
 		}
@@ -994,6 +1022,7 @@ func (c *Conn) writeRecordLocked(typ recordType, data []byte) (int, error) {
 	return n, nil
 }
 
+// 向tls连接写入一条消息
 // writeRecord writes a TLS record with the given type and payload to the
 // connection and updates the record layer state.
 func (c *Conn) writeRecord(typ recordType, data []byte) (int, error) {
@@ -1003,6 +1032,7 @@ func (c *Conn) writeRecord(typ recordType, data []byte) (int, error) {
 	return c.writeRecordLocked(typ, data)
 }
 
+// 从tls连接读取下一条握手消息
 // readHandshake reads the next handshake message from
 // the record layer.
 func (c *Conn) readHandshake() (interface{}, error) {
@@ -1033,19 +1063,22 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	case typeServerHello:
 		m = new(serverHelloMsg)
 	case typeNewSessionTicket:
-		if c.vers == VersionTLS13 {
+		// GMSSL暂时采用tls1.3的处理
+		if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 			m = new(newSessionTicketMsgTLS13)
 		} else {
 			m = new(newSessionTicketMsg)
 		}
 	case typeCertificate:
-		if c.vers == VersionTLS13 {
+		// GMSSL暂时采用tls1.3的处理
+		if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 			m = new(certificateMsgTLS13)
 		} else {
 			m = new(certificateMsg)
 		}
 	case typeCertificateRequest:
-		if c.vers == VersionTLS13 {
+		// GMSSL暂时采用tls1.3的处理
+		if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 			m = new(certificateRequestMsgTLS13)
 		} else {
 			m = &certificateRequestMsg{
@@ -1062,7 +1095,8 @@ func (c *Conn) readHandshake() (interface{}, error) {
 		m = new(clientKeyExchangeMsg)
 	case typeCertificateVerify:
 		m = &certificateVerifyMsg{
-			hasSignatureAlgorithm: c.vers >= VersionTLS12,
+			// GMSSL暂时采用tls1.3的处理
+			hasSignatureAlgorithm: c.vers >= VersionTLS12 || c.vers == VersionGMSSL,
 		}
 	case typeFinished:
 		m = new(finishedMsg)
@@ -1155,7 +1189,7 @@ func (c *Conn) Write(b []byte) (int, error) {
 
 // handleRenegotiation processes a HelloRequest handshake message.
 func (c *Conn) handleRenegotiation() error {
-	if c.vers == VersionTLS13 {
+	if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 		return errors.New("gmtls: internal error: unexpected renegotiation")
 	}
 
@@ -1198,10 +1232,12 @@ func (c *Conn) handleRenegotiation() error {
 	return c.handshakeErr
 }
 
+// 处理握手完成后到达的握手消息。
+//  比如服务端发出的 newSessionTicketMsgTLS13 或 keyUpdateMsg。
 // handlePostHandshakeMessage processes a handshake message arrived after the
 // handshake is complete. Up to TLS 1.2, it indicates the start of a renegotiation.
 func (c *Conn) handlePostHandshakeMessage() error {
-	if c.vers != VersionTLS13 {
+	if c.vers != VersionTLS13 && c.vers != VersionGMSSL {
 		return c.handleRenegotiation()
 	}
 
@@ -1218,8 +1254,10 @@ func (c *Conn) handlePostHandshakeMessage() error {
 
 	switch msg := msg.(type) {
 	case *newSessionTicketMsgTLS13:
+		fmt.Println("===== gmtls/conn.go handlePostHandshakeMessage : 客户端接收到 newSessionTicketMsgTLS13")
 		return c.handleNewSessionTicket(msg)
 	case *keyUpdateMsg:
+		fmt.Println("===== gmtls/conn.go handlePostHandshakeMessage : 客户端/服务端接收到 keyUpdateMsg")
 		return c.handleKeyUpdate(msg)
 	default:
 		c.sendAlert(alertUnexpectedMessage)
@@ -1227,31 +1265,34 @@ func (c *Conn) handlePostHandshakeMessage() error {
 	}
 }
 
+// 发起keyUpdateMsg, 或处理接收到的keyUpdateMsg
 func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 	cipherSuite := cipherSuiteTLS13ByID(c.cipherSuite)
 	if cipherSuite == nil {
 		return c.in.setErrorLocked(c.sendAlert(alertInternalError))
 	}
-
+	// 派生新的对方的通信机密并设置到连接通道in
 	newSecret := cipherSuite.nextTrafficSecret(c.in.trafficSecret)
 	c.in.setTrafficSecret(cipherSuite, newSecret)
-
+	// 作为keyUpdate发起方(updateRequested == true)，通知tls通信对方更新会话密钥
 	if keyUpdate.updateRequested {
 		c.out.Lock()
 		defer c.out.Unlock()
-
+		// 创建一个新的keyUpdateMsg,此时updateRequested默认为false
 		msg := &keyUpdateMsg{}
+		// 发送 keyUpdateMsg
 		_, err := c.writeRecordLocked(recordTypeHandshake, msg.marshal())
 		if err != nil {
 			// Surface the error at the next write.
 			c.out.setErrorLocked(err)
 			return nil
 		}
-
+		fmt.Println("===== gmtls/conn.go handleKeyUpdate : 客户端/服务端发出 keyUpdateMsg")
+		// 发出 keyUpdateMsg 之后才能派生新的己方通信机密并设置到连接out通道
 		newSecret := cipherSuite.nextTrafficSecret(c.out.trafficSecret)
 		c.out.setTrafficSecret(cipherSuite, newSecret)
 	}
-
+	// TODO: 为何没有 keyUpdate 接收方重新派生 out通道密钥的处理?
 	return nil
 }
 
@@ -1262,6 +1303,7 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 // has not yet completed. See SetDeadline, SetReadDeadline, and
 // SetWriteDeadline.
 func (c *Conn) Read(b []byte) (int, error) {
+	fmt.Println("===== gmtls/conn.go conn.Read : tls连接读取到一条消息")
 	if err := c.Handshake(); err != nil {
 		return 0, err
 	}
@@ -1396,6 +1438,7 @@ func (c *Conn) HandshakeContext(ctx context.Context) error {
 	return c.handshakeContext(ctx)
 }
 
+// 根据上下文环境执行握手
 func (c *Conn) handshakeContext(ctx context.Context) (ret error) {
 	handshakeCtx, cancel := context.WithCancel(ctx)
 	// Note: defer this before starting the "interrupter" goroutine
@@ -1442,7 +1485,7 @@ func (c *Conn) handshakeContext(ctx context.Context) (ret error) {
 
 	c.in.Lock()
 	defer c.in.Unlock()
-
+	// 调用握手函数
 	c.handshakeErr = c.handshakeFn(handshakeCtx)
 	if c.handshakeErr == nil {
 		c.handshakes++
@@ -1479,7 +1522,7 @@ func (c *Conn) connectionStateLocked() ConnectionState {
 	state.VerifiedChains = c.verifiedChains
 	state.SignedCertificateTimestamps = c.scts
 	state.OCSPResponse = c.ocspResponse
-	if !c.didResume && c.vers != VersionTLS13 {
+	if !c.didResume && c.vers != VersionTLS13 && c.vers != VersionGMSSL {
 		if c.clientFinishedIsFirst {
 			state.TLSUnique = c.clientFinished[:]
 		} else {

@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
@@ -39,6 +40,25 @@ const (
 	VersionSSL30 = 0x0300
 )
 
+func ShowTLSVersion(version int) string {
+	switch version {
+	case VersionGMSSL:
+		return "VersionGMSSL"
+	case VersionTLS10:
+		return "VersionTLS10"
+	case VersionTLS11:
+		return "VersionTLS11"
+	case VersionTLS12:
+		return "VersionTLS12"
+	case VersionTLS13:
+		return "VersionTLS13"
+	case VersionSSL30:
+		return "VersionSSL30"
+	default:
+		return "unknown"
+	}
+}
+
 const (
 	maxPlaintext       = 16384        // maximum plaintext payload length
 	maxCiphertext      = 16384 + 2048 // maximum ciphertext payload length
@@ -54,6 +74,7 @@ const (
 // TLS record types.
 type recordType uint8
 
+// tls记录类型
 const (
 	recordTypeChangeCipherSpec recordType = 20
 	recordTypeAlert            recordType = 21
@@ -120,6 +141,7 @@ const (
 // only supports Elliptic Curve based groups. See RFC 8446, Section 4.2.7.
 type CurveID uint16
 
+// 支持的椭圆曲线ID
 const (
 	CurveP256   CurveID = 23
 	CurveP384   CurveID = 24
@@ -128,18 +150,21 @@ const (
 	X25519      CurveID = 29
 )
 
+// tls1.3的密钥交换算法参数，或者说共享密钥计算用参数。
 // TLS 1.3 Key Share. See RFC 8446, Section 4.2.8.
 type keyShare struct {
-	group CurveID
-	data  []byte
+	group CurveID // 椭圆曲线ID
+	data  []byte  // 公钥
 }
 
+// tls1.3的 PSK密钥交换模式
 // TLS 1.3 PSK Key Exchange Modes. See RFC 8446, Section 4.2.9.
 const (
-	pskModePlain uint8 = 0
-	pskModeDHE   uint8 = 1
+	pskModePlain uint8 = 0 // 平文模式
+	pskModeDHE   uint8 = 1 // DHE模式, 动态笛福赫尔曼密钥交换算法
 )
 
+// tls1.3支持的psk身份，用作会话票据，或已保存的会话的引用。
 // TLS 1.3 PSK Identity. Can be a Session Ticket, or a reference to a saved
 // session. See RFC 8446, Section 4.2.11.
 type pskIdentity struct {
@@ -150,6 +175,8 @@ type pskIdentity struct {
 // TLS Elliptic Curve Point Formats
 // https://www.iana.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-9
 const (
+	// 椭圆曲线上的点坐标的序列化格式
+	// 该格式是不压缩存储, 即将x,y坐标完整序列化
 	pointFormatUncompressed uint8 = 0
 )
 
@@ -201,6 +228,8 @@ var supportedSignatureAlgorithms = []SignatureScheme{
 	ECDSAWithSHA1,
 }
 
+// 服务端未能获取到客户端公钥时，会发送HelloRetryRequest,请求客户端重新发送ClientHello。
+// 此时需要将HelloRetryRequest中的random字段设置为该字段。
 // helloRetryRequestRandom is set as the Random value of a ServerHello
 // to signal that the message is actually a HelloRetryRequest.
 var helloRetryRequestRandom = []byte{ // See RFC 8446, Section 4.1.3.
@@ -525,14 +554,16 @@ const (
 	RenegotiateFreelyAsClient
 )
 
+// TLS通信配置
 // A Config structure is used to configure a TLS client or server.
 // After one has been passed to a TLS function it must not be
 // modified. A Config may be reused; the tls package will also not
 // modify it.
 type Config struct {
-	//if not nil, will support GMT0024
+	// 是否支持国密，默认支持
+	// if not nil, will support GMT0024
 	// GMSupport *GMSupport
-	GMSupport bool
+	// GMSupport bool
 
 	// Rand provides the source of entropy for nonces and RSA blinding.
 	// If Rand is nil, TLS uses the cryptographic random reader in package
@@ -540,10 +571,12 @@ type Config struct {
 	// The Reader must be safe for use by multiple goroutines.
 	Rand io.Reader
 
+	// 当前时间
 	// Time returns the current time as the number of seconds since the epoch.
 	// If Time is nil, TLS uses time.Now.
 	Time func() time.Time
 
+	// 向通信对方展示的证书链
 	// Certificates contains one or more certificate chains to present to the
 	// other side of the connection. The first certificate compatible with the
 	// peer's requirements is selected automatically.
@@ -566,6 +599,7 @@ type Config struct {
 	// select the first compatible chain from Certificates.
 	NameToCertificate map[string]*Certificate
 
+	// 根据ClientHelloInfo返回证书，只在客户端提供了SNI或Certificates为空时调用。
 	// GetCertificate returns a Certificate based on the given
 	// ClientHelloInfo. It will only be called if the client supplies SNI
 	// information or if Certificates is empty.
@@ -579,8 +613,9 @@ type Config struct {
 	// 这个方法只有在使用Config中Certificates为空或长度小于2时，才会被调用。
 	// 如果该方法为空，则默认从证书列表中 Certificates 取出第二个位置的证书，也就是加密证书。
 	// 该方法只有GMSSL流程中才会调用。
-	GetKECertificate func(*ClientHelloInfo) (*Certificate, error)
+	// GetKECertificate func(*ClientHelloInfo) (*Certificate, error)
 
+	// 当服务端向客户端请求证书时调用，用于获取客户端证书。该函数被设置时比Certificates优先。
 	// GetClientCertificate, if not nil, is called when a server requests a
 	// certificate from a client. If set, the contents of Certificates will
 	// be ignored.
@@ -596,6 +631,7 @@ type Config struct {
 	// connection if renegotiation occurs or if TLS 1.3 is in use.
 	GetClientCertificate func(*CertificateRequestInfo) (*Certificate, error)
 
+	// 当服务端收到一个ClientHello后调用，用于获取客户端的TLS通信配置。
 	// GetConfigForClient, if not nil, is called after a ClientHello is
 	// received from a client. It may return a non-nil Config in order to
 	// change the Config that will be used to handle this connection. If
@@ -611,6 +647,8 @@ type Config struct {
 	// rotated if they are automatically managed).
 	GetConfigForClient func(*ClientHelloInfo) (*Config, error)
 
+	// 预先定义好的额外的证书验证。
+	// 客户端或服务端进行正常的证书验证后调用,接收对方提供的ASN1格式证书或经过验证的证书链。
 	// VerifyPeerCertificate, if not nil, is called after normal
 	// certificate verification by either a TLS client or server. It
 	// receives the raw ASN.1 certificates provided by the peer and also
@@ -624,6 +662,8 @@ type Config struct {
 	// be considered but the verifiedChains argument will always be nil.
 	VerifyPeerCertificate func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 
+	// 预先定义好的额外的连接验证。
+	// 在正常的证书验证以及VerifyPeerCertificate之后调用。
 	// VerifyConnection, if not nil, is called after normal certificate
 	// verification and after VerifyPeerCertificate by either a TLS client
 	// or server. If it returns a non-nil error, the handshake is aborted
@@ -634,11 +674,15 @@ type Config struct {
 	// regardless of InsecureSkipVerify or ClientAuth settings.
 	VerifyConnection func(ConnectionState) error
 
+	// 客户端用来验证服务端证书的CA根证书池
 	// RootCAs defines the set of root certificate authorities
 	// that clients use when verifying server certificates.
 	// If RootCAs is nil, TLS uses the host's root CA set.
 	RootCAs *x509.CertPool
 
+	// 应用层协议列表
+	// 如果双方都支持应用层协议协商（Application-Layer Protocol Negotiation，简称ALPN），
+	// 则从该列表中选择。
 	// NextProtos is a list of supported application level protocols, in
 	// order of preference. If both peers support ALPN, the selected
 	// protocol will be one from this list, and the connection will fail
@@ -647,21 +691,28 @@ type Config struct {
 	// ConnectionState.NegotiatedProtocol will be empty.
 	NextProtos []string
 
+	// InsecureSkipVerify为设置时，根据ServerName检查收到的证书中的hostname。
 	// ServerName is used to verify the hostname on the returned
 	// certificates unless InsecureSkipVerify is given. It is also included
 	// in the client's handshake to support virtual hosting unless it is
 	// an IP address.
 	ServerName string
 
+	// 服务端对客户端认证的策略，默认NoClientCert，不需要客户端证书。
 	// ClientAuth determines the server's policy for
 	// TLS Client Authentication. The default is NoClientCert.
 	ClientAuth ClientAuthType
 
+	// 客户端CA根证书池, 当服务端需要客户端提供证书时验证这些证书用。
 	// ClientCAs defines the set of root certificate authorities
 	// that servers use if required to verify a client certificate
 	// by the policy in ClientAuth.
 	ClientCAs *x509.CertPool
 
+	// InsecureSkipVerify 控制客户端是否验证服务器的证书链和主机名。
+	// 如果 InsecureSkipVerify 为真，crypto/tls 接受服务器提供的任何证书以及该证书中的任何主机名。
+	// 在这种模式下，除非使用自定义验证，否则 TLS 容易受到中间机攻击。
+	// 这应该仅用于测试或与 VerifyConnection 或 VerifyPeerCertificate 结合使用。
 	// InsecureSkipVerify controls whether a client verifies the server's
 	// certificate chain and host name. If InsecureSkipVerify is true, crypto/tls
 	// accepts any certificate presented by the server and any host name in that
@@ -670,6 +721,8 @@ type Config struct {
 	// testing or in combination with VerifyConnection or VerifyPeerCertificate.
 	InsecureSkipVerify bool
 
+	// CipherSuites 是启用的 TLS 1.0–1.2 密码套件的列表。 列表的顺序被忽略。
+	// 请注意，TLS 1.3 密码套件不可配置。
 	// CipherSuites is a list of enabled TLS 1.0–1.2 cipher suites. The order of
 	// the list is ignored. Note that TLS 1.3 ciphersuites are not configurable.
 	//
@@ -687,11 +740,14 @@ type Config struct {
 	// Deprected: PreferServerCipherSuites is ignored.
 	PreferServerCipherSuites bool
 
+	// SessionTicketsDisabled 可以设置为 true 以禁用会话票证和 PSK（恢复）支持。
+	// 请注意，在客户端上，如果 ClientSessionCache 为 nil，会话票证支持也会被禁用。
 	// SessionTicketsDisabled may be set to true to disable session ticket and
 	// PSK (resumption) support. Note that on clients, session ticket support is
 	// also disabled if ClientSessionCache is nil.
 	SessionTicketsDisabled bool
 
+	// TLS 服务器使用 SessionTicketKey 来提供会话恢复。
 	// SessionTicketKey is used by TLS servers to provide session resumption.
 	// See RFC 5077 and the PSK mode of RFC 8446. If zero, it will be filled
 	// with random data before the first server handshake.
@@ -702,35 +758,47 @@ type Config struct {
 	// terminating connections for the same host, use SetSessionTicketKeys.
 	SessionTicketKey [32]byte
 
+	// ClientSessionCache 是用于 TLS 会话恢复的 ClientSessionState 条目的缓存。
+	// 它仅供客户使用。
 	// ClientSessionCache is a cache of ClientSessionState entries for TLS
 	// session resumption. It is only used by clients.
 	ClientSessionCache ClientSessionCache
 
+	// 支持的最低的TLS协议版本，默认 TLS 1.0
+	// 国密改造后默认是 GMSSL
 	// MinVersion contains the minimum TLS version that is acceptable.
 	// If zero, TLS 1.0 is currently taken as the minimum.
 	MinVersion uint16
 
+	// 支持的最高的TLS协议版本，默认 TLS 1.3
 	// MaxVersion contains the maximum TLS version that is acceptable.
 	// If zero, the maximum version supported by this package is used,
 	// which is currently TLS 1.3.
 	MaxVersion uint16
 
+	// ECDHE握手支持的椭圆曲线ID
 	// CurvePreferences contains the elliptic curves that will be used in
 	// an ECDHE handshake, in preference order. If empty, the default will
 	// be used. The client will use the first preference as the type for
 	// its key share in TLS 1.3. This may change in the future.
 	CurvePreferences []CurveID
 
+	// DynamicRecordSizingDisabled 禁用 TLS 记录的自适应大小。
+	// 如果为 true，则始终使用最大可能的 TLS 记录大小。
+	// 如果为 false，则可能会调整 TLS 记录的大小以尝试改善延迟。
 	// DynamicRecordSizingDisabled disables adaptive sizing of TLS records.
 	// When true, the largest possible TLS record size is always used. When
 	// false, the size of TLS records may be adjusted in an attempt to
 	// improve latency.
 	DynamicRecordSizingDisabled bool
 
+	// 重新协商控制支持哪些类型的重新协商。 默认值 none 对于绝大多数应用程序都是正确的。
 	// Renegotiation controls what types of renegotiation are supported.
 	// The default, none, is correct for the vast majority of applications.
 	Renegotiation RenegotiationSupport
 
+	// KeyLogWriter 可以选择以 NSS 密钥日志格式指定 TLS 主密钥的存储目标。
+	// 该目标可用于允许 Wireshark 等外部程序解密 TLS 连接。
 	// KeyLogWriter optionally specifies a destination for TLS master secrets
 	// in NSS key log format that can be used to allow external programs
 	// such as Wireshark to decrypt TLS connections.
@@ -771,8 +839,8 @@ type ticketKey struct {
 	// keyName is an opaque byte string that serves to identify the session
 	// ticket key. It's exposed as plaintext in every session ticket.
 	keyName [ticketKeyNameLen]byte
-	// TODO: 考虑是否重新命名?因为要支持sm4
-	aesKey  [16]byte
+	// 原先是aesKey，国密改造改为sm4
+	sm4Key  [16]byte
 	hmacKey [16]byte
 	// created is the time at which this ticket key was created. See Config.ticketKeys.
 	created time.Time
@@ -787,7 +855,7 @@ func (c *Config) ticketKeyFromBytes(b [32]byte) (key ticketKey) {
 	// 1~16字节作为 keyName
 	copy(key.keyName[:], hashed[:ticketKeyNameLen])
 	// 17~32字节作为aesKey
-	copy(key.aesKey[:], hashed[ticketKeyNameLen:ticketKeyNameLen+16])
+	copy(key.sm4Key[:], hashed[ticketKeyNameLen:ticketKeyNameLen+16])
 	// 33~64字节作为hmacKey
 	copy(key.hmacKey[:], hashed[ticketKeyNameLen+16:ticketKeyNameLen+32])
 	key.created = c.time()
@@ -807,13 +875,13 @@ func (c *Config) Clone() *Config {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return &Config{
-		GMSupport:                   c.GMSupport,
-		Rand:                        c.Rand,
-		Time:                        c.Time,
-		Certificates:                c.Certificates,
-		NameToCertificate:           c.NameToCertificate,
-		GetCertificate:              c.GetCertificate,
-		GetKECertificate:            c.GetKECertificate,
+		// GMSupport:                   c.GMSupport,
+		Rand:              c.Rand,
+		Time:              c.Time,
+		Certificates:      c.Certificates,
+		NameToCertificate: c.NameToCertificate,
+		GetCertificate:    c.GetCertificate,
+		// GetKECertificate:            c.GetKECertificate,
 		GetClientCertificate:        c.GetClientCertificate,
 		GetConfigForClient:          c.GetConfigForClient,
 		VerifyPeerCertificate:       c.VerifyPeerCertificate,
@@ -860,6 +928,7 @@ func (c *Config) initLegacySessionTicketKeyRLocked() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.SessionTicketKey == [32]byte{} {
+		// 生成一个长度32的随机SessionTicketKey
 		if _, err := io.ReadFull(c.rand(), c.SessionTicketKey[:]); err != nil {
 			panic(fmt.Sprintf("gmtls: unable to generate random session ticket key: %v", err))
 		}
@@ -874,6 +943,7 @@ func (c *Config) initLegacySessionTicketKeyRLocked() {
 
 }
 
+// 为当前连接获取ticketKeys。
 // ticketKeys returns the ticketKeys for this connection.
 // If configForClient has explicitly set keys, those will
 // be returned. Otherwise, the keys on c will be used and
@@ -986,18 +1056,20 @@ func (c *Config) cipherSuites() []uint16 {
 	if c.CipherSuites != nil {
 		return c.CipherSuites
 	}
-	// TODO: 需要先对应 gmtls/cipher_suites.go
 	return defaultCipherSuites
 }
 
+// TODO: 可能需要调整 VersionGMSSL 的位置
 var supportedVersions = []uint16{
-	VersionGMSSL,
 	VersionTLS13,
 	VersionTLS12,
 	VersionTLS11,
 	VersionTLS10,
+	VersionGMSSL,
 }
 
+// 获取目标Config支持的TLS协议
+//  协议版本需要位于[c.MinVersion, c.MaxVersion]之间
 func (c *Config) supportedVersions() []uint16 {
 	versions := make([]uint16, 0, len(supportedVersions))
 	for _, v := range supportedVersions {
@@ -1012,11 +1084,13 @@ func (c *Config) supportedVersions() []uint16 {
 	return versions
 }
 
+// 获取支持的最高TLS协议版本
 func (c *Config) maxSupportedVersion() uint16 {
 	supportedVersions := c.supportedVersions()
 	if len(supportedVersions) == 0 {
 		return 0
 	}
+	// supportedVersions列表中，越高的版本越靠前
 	return supportedVersions[0]
 }
 
@@ -1034,7 +1108,8 @@ func supportedVersionsFromMax(maxVersion uint16) []uint16 {
 	return versions
 }
 
-var defaultCurvePreferences = []CurveID{X25519, CurveP256, CurveP384, CurveP521}
+// 将sm2p256列为默认曲线首位
+var defaultCurvePreferences = []CurveID{Curve256Sm2, X25519, CurveP256, CurveP384, CurveP521}
 
 func (c *Config) curvePreferences() []CurveID {
 	if c == nil || len(c.CurvePreferences) == 0 {
@@ -1052,6 +1127,9 @@ func (c *Config) supportsCurve(curve CurveID) bool {
 	return false
 }
 
+// 协商tls协议
+//  根据对方传来的tls版本信息，从己方支持的版本列表中从前往后选取第一个匹配的版本。
+//  目前优先匹配顺序是 tls1.3 -> gmssl -> tls1.2 ...
 // mutualVersion returns the protocol version to use given the advertised
 // versions of the peer. Priority is given to the peer preference order.
 func (c *Config) mutualVersion(peerVersions []uint16) (uint16, bool) {
@@ -1070,18 +1148,18 @@ func (c *Config) mutualVersion(peerVersions []uint16) (uint16, bool) {
 // 该方法只有GMSSL会调用
 // 如果 Certificates 长度大于等于2时，默认返回第2个证书密钥
 // 如果 Certificates 为空或不足2时，调用 GetEKCertificate 方法获取。
-func (c *Config) getEKCertificate(clientHello *ClientHelloInfo) (*Certificate, error) {
-	if c.GetKECertificate != nil && (len(c.Certificates) < 2) {
-		cert, err := c.GetKECertificate(clientHello)
-		if cert != nil || err != nil {
-			return cert, err
-		}
-	}
-	if len(c.Certificates) >= 2 {
-		return &c.Certificates[1], nil
-	}
-	return nil, errors.New("gmtls: no key exchange (encrypt) certificate configured")
-}
+// func (c *Config) getEKCertificate(clientHello *ClientHelloInfo) (*Certificate, error) {
+// 	if c.GetKECertificate != nil && (len(c.Certificates) < 2) {
+// 		cert, err := c.GetKECertificate(clientHello)
+// 		if cert != nil || err != nil {
+// 			return cert, err
+// 		}
+// 	}
+// 	if len(c.Certificates) >= 2 {
+// 		return &c.Certificates[1], nil
+// 	}
+// 	return nil, errors.New("gmtls: no key exchange (encrypt) certificate configured")
+// }
 
 var errNoCertificates = errors.New("gmtls: no certificates configured")
 
@@ -1174,7 +1252,7 @@ func (chi *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 	// supporting signed key exchanges, so we just check it as a fallback.
 	supportsRSAFallback := func(unsupported error) error {
 		// TLS 1.3 dropped support for the static RSA key exchange.
-		if vers == VersionTLS13 {
+		if vers == VersionTLS13 || vers == VersionGMSSL {
 			return unsupported
 		}
 		// The static RSA key exchange works by decrypting a challenge with the
@@ -1215,7 +1293,7 @@ func (chi *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 	// In TLS 1.3 we are done because supported_groups is only relevant to the
 	// ECDHE computation, point format negotiation is removed, cipher suites are
 	// only relevant to the AEAD choice, and static RSA does not exist.
-	if vers == VersionTLS13 {
+	if vers == VersionTLS13 || vers == VersionGMSSL {
 		return nil
 	}
 
@@ -1227,7 +1305,26 @@ func (chi *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 	var ecdsaCipherSuite bool
 	if priv, ok := c.PrivateKey.(crypto.Signer); ok {
 		switch pub := priv.Public().(type) {
-		// TODO: 添加sm2分支
+		// 添加sm2分支
+		case *sm2.PublicKey:
+			var curve CurveID
+			switch pub.Curve {
+			case sm2.P256Sm2():
+				curve = Curve256Sm2
+			default:
+				return supportsRSAFallback(unsupportedCertificateError(c))
+			}
+			var curveOk bool
+			for _, c := range chi.SupportedCurves {
+				if c == curve && config.supportsCurve(c) {
+					curveOk = true
+					break
+				}
+			}
+			if !curveOk {
+				return errors.New("client doesn't support certificate curve")
+			}
+			ecdsaCipherSuite = true
 		case *ecdsa.PublicKey:
 			var curve CurveID
 			switch pub.Curve {
@@ -1376,23 +1473,30 @@ func (c *Config) writeKeyLog(label string, clientRandom, secret []byte) error {
 // and is only for debugging, so a global mutex saves space.
 var writerMutex sync.Mutex
 
+// 证书链, 子证书在前
 // A Certificate is a chain of one or more certificates, leaf first.
 type Certificate struct {
+	// 证书列表
 	Certificate [][]byte
+	// 子证书公钥对应的私钥
 	// PrivateKey contains the private key corresponding to the public key in
 	// Leaf. This must implement crypto.Signer with an RSA, ECDSA or Ed25519 PublicKey.
 	// For a server up to TLS 1.2, it can also implement crypto.Decrypter with
 	// an RSA PublicKey.
 	PrivateKey crypto.PrivateKey
+	// 子证书私钥支持的签名算法列表
 	// SupportedSignatureAlgorithms is an optional list restricting what
 	// signature algorithms the PrivateKey can be used for.
 	SupportedSignatureAlgorithms []SignatureScheme
+	// 供客户端请求的OCSP响应
 	// OCSPStaple contains an optional OCSP response which will be served
 	// to clients that request it.
 	OCSPStaple []byte
+	// 供客户端请求的证书签名时间列表
 	// SignedCertificateTimestamps contains an optional list of Signed
 	// Certificate Timestamps which will be served to clients that request it.
 	SignedCertificateTimestamps [][]byte
+	// 子证书
 	// Leaf is the parsed form of the leaf certificate, which may be initialized
 	// using x509.ParseCertificate to reduce per-handshake processing. If nil,
 	// the leaf certificate will be parsed as needed.
@@ -1413,6 +1517,7 @@ type handshakeMessage interface {
 	unmarshal([]byte) bool
 }
 
+// 使用LRU(近期最少使用)算法实现的客户端会话缓存。
 // lruSessionCache is a ClientSessionCache implementation that uses an LRU
 // caching strategy.
 type lruSessionCache struct {
@@ -1444,6 +1549,7 @@ func NewLRUClientSessionCache(capacity int) ClientSessionCache {
 	}
 }
 
+// 存储会话到缓存, 实现了 ClientSessionCache 接口
 // Put adds the provided (sessionKey, cs) pair to the cache. If cs is nil, the entry
 // corresponding to sessionKey is removed from the cache instead.
 func (c *lruSessionCache) Put(sessionKey string, cs *ClientSessionState) {
@@ -1477,6 +1583,7 @@ func (c *lruSessionCache) Put(sessionKey string, cs *ClientSessionState) {
 	c.m[sessionKey] = elem
 }
 
+// 从缓存获取会话, 实现了 ClientSessionCache 接口
 // Get returns the ClientSessionState value associated with a given key. It
 // returns (nil, false) if no value is found.
 func (c *lruSessionCache) Get(sessionKey string) (*ClientSessionState, bool) {

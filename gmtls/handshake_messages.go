@@ -67,31 +67,31 @@ func readUint24LengthPrefixed(s *cryptobyte.String, out *[]byte) bool {
 }
 
 type clientHelloMsg struct {
-	raw                              []byte
-	vers                             uint16
-	random                           []byte
-	sessionId                        []byte
-	cipherSuites                     []uint16
-	compressionMethods               []uint8
-	serverName                       string
-	ocspStapling                     bool
-	supportedCurves                  []CurveID
-	supportedPoints                  []uint8
-	ticketSupported                  bool
-	sessionTicket                    []uint8
-	supportedSignatureAlgorithms     []SignatureScheme
-	supportedSignatureAlgorithmsCert []SignatureScheme
-	secureRenegotiationSupported     bool
-	secureRenegotiation              []byte
-	alpnProtocols                    []string
-	scts                             bool
-	supportedVersions                []uint16
-	cookie                           []byte
-	keyShares                        []keyShare
-	earlyData                        bool
-	pskModes                         []uint8
-	pskIdentities                    []pskIdentity
-	pskBinders                       [][]byte
+	raw                              []byte            // 序列化原文
+	vers                             uint16            // tls协议最高支持版本, tls1.2及之前版本用
+	random                           []byte            // ClientRandom, tls1.2及之前版本用来生成主密钥的参数之一
+	sessionId                        []byte            // 会话ID
+	cipherSuites                     []uint16          // 支持的密码套件列表
+	compressionMethods               []uint8           // 支持的压缩方法列表
+	serverName                       string            // 访问的服务端名称
+	ocspStapling                     bool              // 是否需要OCSP装订
+	supportedCurves                  []CurveID         // 支持的椭圆曲线ID
+	supportedPoints                  []uint8           // 支持的椭圆曲线点坐标压缩格式
+	ticketSupported                  bool              // 是否支持票据
+	sessionTicket                    []uint8           // 会话票据
+	supportedSignatureAlgorithms     []SignatureScheme // 支持的签名算法
+	supportedSignatureAlgorithmsCert []SignatureScheme // 支持的签名算法证书?
+	secureRenegotiationSupported     bool              // 是否支持安全重协议
+	secureRenegotiation              []byte            // 安全重协议用字段，非首次握手时，将上次握手时客户端的Finished消息作为该字段传入
+	alpnProtocols                    []string          // ALPN协议列表
+	scts                             bool              // signed certificate timestamps from server
+	supportedVersions                []uint16          // 支持的tls协议, tls1.3后启用的扩展信息
+	cookie                           []byte            // cookie?
+	keyShares                        []keyShare        // 密钥交换算法参数
+	earlyData                        bool              // 上次握手的密钥材料?
+	pskModes                         []uint8           // psk(pre shared key)模式?
+	pskIdentities                    []pskIdentity     // psk ids 客户端存储的之前的共享密钥ID?
+	pskBinders                       [][]byte          // psk Binders ?
 }
 
 func (m *clientHelloMsg) marshal() []byte {
@@ -590,27 +590,25 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 }
 
 type serverHelloMsg struct {
-	raw                          []byte
-	vers                         uint16
-	random                       []byte
-	sessionId                    []byte
-	cipherSuite                  uint16
-	compressionMethod            uint8
-	ocspStapling                 bool
-	ticketSupported              bool
-	secureRenegotiationSupported bool
-	secureRenegotiation          []byte
-	alpnProtocol                 string
-	scts                         [][]byte
-	supportedVersion             uint16
-	serverShare                  keyShare
-	selectedIdentityPresent      bool
-	selectedIdentity             uint16
-	supportedPoints              []uint8
-
-	// HelloRetryRequest extensions
-	cookie        []byte
-	selectedGroup CurveID
+	raw                          []byte   // 序列化原文
+	vers                         uint16   // 协商好的tls协议, tls1.2及之前版本用
+	random                       []byte   // ServerRandom, tls1.2及之前版本用来生成主密钥的参数之一，tls1.3用来标识是否 HelloRetryRequest
+	sessionId                    []byte   // 会话ID
+	cipherSuite                  uint16   // 协商好的密码套件
+	compressionMethod            uint8    // 压缩方法
+	ocspStapling                 bool     // 是否需要OCSP装订
+	ticketSupported              bool     // 是否支持票据
+	secureRenegotiationSupported bool     // 是否支持安全重协议
+	secureRenegotiation          []byte   // 安全重协议?
+	alpnProtocol                 string   // 协商好的ALPN协议
+	scts                         [][]byte // signed certificate timestamps from server
+	supportedVersion             uint16   // 协商好的tls协议, tls1.3后启用的扩展信息
+	serverShare                  keyShare // 服务端密钥交换算法参数
+	selectedIdentityPresent      bool     // 是否选择恢复之前的会话的pskID
+	selectedIdentity             uint16   // 选择恢复会话的pskID
+	supportedPoints              []uint8  // 支持的曲线坐标点?
+	cookie                       []byte   // cookie , HelloRetryRequest扩展信息
+	selectedGroup                CurveID  // 曲线ID , HelloRetryRequest扩展信息
 }
 
 func (m *serverHelloMsg) marshal() []byte {

@@ -36,6 +36,11 @@ const (
 	trafficUpdateLabel            = "traffic upd"
 )
 
+// expandLabel 标签扩展方法，实现 HKDF-Expand-Label。
+//  - secret 基础密钥
+//  - label 标签
+//  - context 消息转录散列
+//  - length 散列长度
 // expandLabel implements HKDF-Expand-Label from RFC 8446, Section 7.1.
 func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []byte, length int) []byte {
 	var hkdfLabel cryptobyte.Builder
@@ -55,28 +60,37 @@ func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []by
 	return out
 }
 
+// deriveSecret 机密派生方法，实现 Derive-Secret。
+//  - secret 基础密钥
+//  - label 标签
+//  - transcript 转录散列函数
 // deriveSecret implements Derive-Secret from RFC 8446, Section 7.1.
 func (c *cipherSuiteTLS13) deriveSecret(secret []byte, label string, transcript hash.Hash) []byte {
 	if transcript == nil {
+		// transcript默认使用tls1.3密码套件的散列函数
 		transcript = c.hash.New()
 	}
 	return c.expandLabel(secret, label, transcript.Sum(nil), c.hash.Size())
 }
 
+// extract 机密提炼方法，实现 HKDF-Extract。
 // extract implements HKDF-Extract with the cipher suite hash.
 func (c *cipherSuiteTLS13) extract(newSecret, currentSecret []byte) []byte {
 	if newSecret == nil {
 		newSecret = make([]byte, c.hash.Size())
 	}
+	// 从输入密钥newSecret和可选的独立盐currentSecret生成一个伪随机密钥，用于Expand
 	return hkdf.Extract(c.hash.New, newSecret, currentSecret)
 }
 
+// 根据当前的通信机密派生一个新的通信机密。
 // nextTrafficSecret generates the next traffic secret, given the current one,
 // according to RFC 8446, Section 7.2.
 func (c *cipherSuiteTLS13) nextTrafficSecret(trafficSecret []byte) []byte {
 	return c.expandLabel(trafficSecret, trafficUpdateLabel, nil, c.hash.Size())
 }
 
+// 根据通信机密派生会话密钥与初始偏移量(对称加密用的key,iv)
 // trafficKey generates traffic keys according to RFC 8446, Section 7.3.
 func (c *cipherSuiteTLS13) trafficKey(trafficSecret []byte) (key, iv []byte) {
 	key = c.expandLabel(trafficSecret, "key", nil, c.keyLen)
@@ -84,6 +98,7 @@ func (c *cipherSuiteTLS13) trafficKey(trafficSecret []byte) (key, iv []byte) {
 	return
 }
 
+// 生成Finished消息散列。
 // finishedHash generates the Finished verify_data or PskBinderEntry according
 // to RFC 8446, Section 4.4.4. See sections 4.4 and 4.2.11.2 for the baseKey
 // selection.
@@ -106,14 +121,22 @@ func (c *cipherSuiteTLS13) exportKeyingMaterial(masterSecret []byte, transcript 
 	}
 }
 
+// ECDHE接口
+//  Elliptic Curve Diffie-Hellman Ephemeral,基于椭圆曲线的，动态的，笛福赫尔曼算法。
 // ecdheParameters implements Diffie-Hellman with either NIST curves or X25519,
 // according to RFC 8446, Section 4.2.8.2.
 type ecdheParameters interface {
+	// 曲线ID
 	CurveID() CurveID
+	// 获取公钥
 	PublicKey() []byte
+	// 计算共享密钥 : 己方私钥 * 对方公钥peerPublicKey
 	SharedKey(peerPublicKey []byte) []byte
 }
 
+// 基于给定的椭圆曲线ID，获取椭圆曲线并生成ecdhe参数
+//  ecdhe : Elliptic Curve Diffie-Hellman Ephemeral, 临时的基于椭圆曲线的笛福赫尔曼密钥交换算法。
+//  ecdheParameters是一个接口，实际对象需要实现该接口的SharedKey等方法,其内部包含曲线ID与对应的公私钥。
 func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, error) {
 	if curveID == X25519 {
 		privateKey := make([]byte, curve25519.ScalarSize)
@@ -131,10 +154,11 @@ func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, 
 	if !ok {
 		return nil, errors.New("gmtls: internal error: unsupported curve")
 	}
-
+	// 生成密钥交换算法参数
 	p := &nistParameters{curveID: curveID}
 	var err error
 	// TODO: 需要验证P256Sm2曲线使用该函数能否正常运行
+	// 利用曲线生成公私钥
 	p.privateKey, p.x, p.y, err = elliptic.GenerateKey(curve, rand)
 	if err != nil {
 		return nil, err
@@ -142,6 +166,7 @@ func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, 
 	return p, nil
 }
 
+// 根据曲线ID获取对应曲线
 func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 	switch id {
 	// 添加国密SM2曲线

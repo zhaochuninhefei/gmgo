@@ -97,8 +97,6 @@ func toPointXY(bytes []byte) *big.Int {
 }
 
 // 根据x坐标计算y坐标
-//  TODO: 为何使用的曲线公式是`y² ≡ x³ - 3x + b (mod p)`而非SM2国密标准规定的`y² ≡ x³ + ax + b (mod p)`
-//  换言之，为何能用`-3`代替a，a的值实际上是`p-3`
 //  参考: GB/T 32918.1-2016 A.5.2 B.1.4
 func calculatePrimeCurveY(curve elliptic.Curve, x *big.Int) (*big.Int, error) {
 	// x3 : x^3

@@ -21,6 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
@@ -35,9 +36,11 @@ type clientHandshakeState struct {
 	session      *ClientSessionState
 }
 
+// 生成ClientHello
 func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	config := c.config
 	if len(config.ServerName) == 0 && !config.InsecureSkipVerify {
+		// 如果没有指定 InsecureSkipVerify 那么就必须设置 ServerName
 		return nil, nil, errors.New("gmtls: either ServerName or InsecureSkipVerify must be specified in the tls.Config")
 	}
 
@@ -52,46 +55,47 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	if nextProtosLength > 0xffff {
 		return nil, nil, errors.New("gmtls: NextProtos values too large")
 	}
-
+	// 获取客户端支持的tls协议版本列表,tls1.3使用该扩展信息
 	supportedVersions := config.supportedVersions()
 	if len(supportedVersions) == 0 {
 		return nil, nil, errors.New("gmtls: no supported versions satisfy MinVersion and MaxVersion")
 	}
-
+	// 获取客户端支持的最高版本tls协议,tls1.2及以前的版本使用该属性
 	clientHelloVersion := config.maxSupportedVersion()
-	// The version at the beginning of the ClientHello was capped at TLS 1.2
-	// for compatibility reasons. The supported_versions extension is used
-	// to negotiate versions now. See RFC 8446, Section 4.2.1.
+	// 出于兼容性原因，ClientHello 开头的版本上限为 TLS 1.2。
+	// 对于更高的tls1.3版本，使用 supported_versions 扩展。
+	// See RFC 8446, Section 4.2.1.
 	if clientHelloVersion > VersionTLS12 {
 		clientHelloVersion = VersionTLS12
 	}
 
 	hello := &clientHelloMsg{
 		vers:                         clientHelloVersion,
-		compressionMethods:           []uint8{compressionNone},
+		compressionMethods:           []uint8{compressionNone}, // tls1.3不再支持压缩
 		random:                       make([]byte, 32),
 		sessionId:                    make([]byte, 32),
 		ocspStapling:                 true,
 		scts:                         true,
-		serverName:                   hostnameInSNI(config.ServerName),
-		supportedCurves:              config.curvePreferences(),
-		supportedPoints:              []uint8{pointFormatUncompressed},
-		secureRenegotiationSupported: true,
-		alpnProtocols:                config.NextProtos,
-		supportedVersions:            supportedVersions,
+		serverName:                   hostnameInSNI(config.ServerName), // 服务端域名,使用DNS域名即可
+		supportedCurves:              config.curvePreferences(),        // 支持的曲线ID
+		supportedPoints:              []uint8{pointFormatUncompressed}, // 曲线上的点坐标序列化时不压缩
+		secureRenegotiationSupported: true,                             // 是否支持安全重协商
+		alpnProtocols:                config.NextProtos,                // ALPN协议列表
+		supportedVersions:            supportedVersions,                // 客户端支持的tls协议版本列表
 	}
-
+	// 如果不是第一次握手，将上次握手时客户端发送的Finished消息作为 安全重协商 字段。
 	if c.handshakes > 0 {
 		hello.secureRenegotiation = c.clientFinished[:]
 	}
-
+	// 预置的tls1.0-1.2密码学套件列表
 	preferenceOrder := cipherSuitesPreferenceOrder
 	if !hasAESGCMHardwareSupport {
 		preferenceOrder = cipherSuitesPreferenceOrderNoAES
 	}
+	// 配置要求的tls1.0-1.2密码学套件列表
 	configCipherSuites := config.cipherSuites()
 	hello.cipherSuites = make([]uint16, 0, len(configCipherSuites))
-
+	// 从预置的tls1.0-1.2密码学套件列表中筛选满足配置的密码套件
 	for _, suiteId := range preferenceOrder {
 		suite := mutualCipherSuite(configCipherSuites, suiteId)
 		if suite == nil {
@@ -102,9 +106,10 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		if hello.vers < VersionTLS12 && suite.flags&suiteTLS12 != 0 {
 			continue
 		}
+		// 将筛选出的密码套件加入hello消息的密码套件列表
 		hello.cipherSuites = append(hello.cipherSuites, suiteId)
 	}
-
+	// 填充客户端随机数
 	_, err := io.ReadFull(config.rand(), hello.random)
 	if err != nil {
 		return nil, nil, errors.New("gmtls: short read from Rand: " + err.Error())
@@ -116,34 +121,42 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	if _, err := io.ReadFull(config.rand(), hello.sessionId); err != nil {
 		return nil, nil, errors.New("gmtls: short read from Rand: " + err.Error())
 	}
-
-	if hello.vers >= VersionTLS12 {
+	// tls1.2以上版本需要传输支持的签名算法
+	// GMSSL也需要传输支持的签名算法
+	if hello.vers >= VersionTLS12 || hello.vers == VersionGMSSL {
 		hello.supportedSignatureAlgorithms = supportedSignatureAlgorithms
 	}
 
+	// 对于TLS1.3，需要额外传输一些扩展信息
 	var params ecdheParameters
-	if hello.supportedVersions[0] == VersionTLS13 {
+	if hello.supportedVersions[0] == VersionTLS13 || hello.supportedVersions[0] == VersionGMSSL {
+		// 在密码套件中加入tls1.3的密码套件
+		// tls1.3的密码套件是固定的，不允许客户端自行配置选择
 		if hasAESGCMHardwareSupport {
 			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
 		} else {
 			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
 		}
-
+		// 设置密钥协商的曲线为配置的首个曲线，目前默认是sm2P256
 		curveID := config.curvePreferences()[0]
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
 			return nil, nil, errors.New("gmtls: CurvePreferences includes unsupported curve")
 		}
+		// 生成ecdheParameters
 		params, err = generateECDHEParameters(config.rand(), curveID)
 		if err != nil {
 			return nil, nil, err
 		}
+		// 将曲线ID与客户端公钥设置为ClientHello中的密钥交换算法参数
 		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
 	}
 
 	return hello, params, nil
 }
 
+// 客户端握手
 func (c *Conn) clientHandshake(ctx context.Context) (err error) {
+	fmt.Println("===== gmtls/handshake_client.go clientHandshake : 开始客户端握手过程")
 	if c.config == nil {
 		c.config = defaultConfig()
 	}
@@ -151,15 +164,17 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 	// This may be a renegotiation handshake, in which case some fields
 	// need to be reset.
 	c.didResume = false
-
+	// 生成ClientHello消息: tls协议版本列表，密码套件列表，客户端密钥交换算法参数等
 	hello, ecdheParams, err := c.makeClientHello()
 	if err != nil {
 		return err
 	}
+	// 确保连接的serverName与ClientHello中的serverName相同
 	c.serverName = hello.serverName
-
+	// 尝试从当前连接中获取会话恢复信息
 	cacheKey, session, earlySecret, binderKey := c.loadSession(hello)
 	if cacheKey != "" && session != nil {
+		// 如果尝试会话恢复，那么在会话恢复发生错误时要删除客户端的该会话缓存
 		defer func() {
 			// If we got a handshake failure when resuming a session, throw away
 			// the session ticket. See RFC 5077, Section 3.2.
@@ -172,26 +187,26 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 			}
 		}()
 	}
-
+	// 向连接写入ClientHello
+	fmt.Println("===== gmtls/handshake_client.go clientHandshake : 客户端发出ClientHello")
 	if _, err := c.writeRecord(recordTypeHandshake, hello.marshal()); err != nil {
 		return err
 	}
-
+	// 从连接读取ServerHello
 	msg, err := c.readHandshake()
 	if err != nil {
 		return err
 	}
-
 	serverHello, ok := msg.(*serverHelloMsg)
 	if !ok {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(serverHello, msg)
 	}
-
+	fmt.Println("===== gmtls/handshake_client.go clientHandshake : 客户端读取到ServerHello")
+	// 协商tls版本
 	if err := c.pickTLSVersion(serverHello); err != nil {
 		return err
 	}
-
 	// If we are negotiating a protocol version that's lower than what we
 	// support, check for the server downgrade canaries.
 	// See RFC 8446, Section 4.1.3.
@@ -203,8 +218,9 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 		c.sendAlert(alertIllegalParameter)
 		return errors.New("gmtls: downgrade attempt detected, possibly due to a MitM attack or a broken middlebox")
 	}
-
-	if c.vers == VersionTLS13 {
+	// GMSSL目前采用与tls1.3相同的处理
+	if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
+		fmt.Println("===== gmtls/handshake_client.go clientHandshake : 客户端执行tls1.3或gmlssl协议的握手过程")
 		hs := &clientHandshakeStateTLS13{
 			c:           c,
 			ctx:         ctx,
@@ -215,11 +231,11 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 			earlySecret: earlySecret,
 			binderKey:   binderKey,
 		}
-
+		// tls1.3的握手过程在收到ServerHello之后与tls1.2不同，这里走不同的分支处理
 		// In TLS 1.3, session tickets are delivered after the handshake.
 		return hs.handshake()
 	}
-
+	fmt.Println("===== gmtls/handshake_client.go clientHandshake : 客户端执行tls1.2或更老版本的握手过程")
 	hs := &clientHandshakeState{
 		c:           c,
 		ctx:         ctx,
@@ -241,34 +257,49 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 	return nil
 }
 
+// 从连接中获取会话恢复信息。
+//  对于tls1.3，如果有可用的缓存会话，则会返回以下字段:
+//  - cacheKey 缓存会话key,值是服务端ServerName或ip地址
+//  - session 想要恢复的缓存会话
+//  - earlySecret 早期机密,由session的主机密扩展提炼而来
+//  - binderKey 绑定者密钥,由早期机密派生而来
+//  此外，还会在ClientHello中设置以下字段:
+//  - ticketSupported true,支持使用会话票据
+//  - pskModes 指定使用DHE密钥交换算法模式
+//  - pskIdentities 请求恢复的pskID集合,事实上只有一条pskid
+//  - pskBinders psk绑定者的散列信息
 func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	session *ClientSessionState, earlySecret, binderKey []byte) {
+	// 检查是否支持会话恢复
 	if c.config.SessionTicketsDisabled || c.config.ClientSessionCache == nil {
 		return "", nil, nil, nil
 	}
-
+	// 设置支持使用会话票据
 	hello.ticketSupported = true
-
-	if hello.supportedVersions[0] == VersionTLS13 {
+	// 检查tls最高版本是否tls1.3 或 GMSSL
+	if hello.supportedVersions[0] == VersionTLS13 || hello.supportedVersions[0] == VersionGMSSL {
+		// tls1.3开始，psk使用DHE算法模式。
 		// Require DHE on resumption as it guarantees forward secrecy against
 		// compromise of the session ticket key. See RFC 8446, Section 4.2.9.
 		hello.pskModes = []uint8{pskModeDHE}
 	}
-
+	// TODO: 疑惑: 握手次数非0，代表发生过重新协商?允许重新协商就不允许会话恢复?
+	// 但首次握手成功后，握手次数就是1了啊，这不会导致永远无法启用会话恢复?
+	// 感觉应该是 "c.handshakes > 1" ?
 	// Session resumption is not allowed if renegotiating because
 	// renegotiation is primarily used to allow a client to send a client
 	// certificate, which would be skipped if session resumption occurred.
 	if c.handshakes != 0 {
 		return "", nil, nil, nil
 	}
-
+	// 根据连接的servername或serverAddr获取对应的会话缓存
 	// Try to resume a previously negotiated TLS session, if available.
 	cacheKey = clientSessionCacheKey(c.conn.RemoteAddr(), c.config)
 	session, ok := c.config.ClientSessionCache.Get(cacheKey)
 	if !ok || session == nil {
 		return cacheKey, nil, nil, nil
 	}
-
+	// 检查之前缓存的会话与本次ClientHello的tls版本是否匹配
 	// Check that version used for the previous session is still valid.
 	versOk := false
 	for _, v := range hello.supportedVersions {
@@ -280,7 +311,7 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	if !versOk {
 		return cacheKey, nil, nil, nil
 	}
-
+	// 检查缓存会话的服务端子证书的过期时间与域名
 	// Check that the cached server certificate is not expired, and that it's
 	// valid for the ServerName. This should be ensured by the cache key, but
 	// protect the application from a faulty ClientSessionCache implementation.
@@ -300,29 +331,30 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 		}
 	}
 
-	if session.vers != VersionTLS13 {
+	if session.vers != VersionTLS13 && session.vers != VersionGMSSL {
 		// In TLS 1.2 the cipher suite must match the resumed session. Ensure we
 		// are still offering it.
 		if mutualCipherSuite(hello.cipherSuites, session.cipherSuite) == nil {
 			return cacheKey, nil, nil, nil
 		}
-
+		// 对于tls1.2及之前的版本，如果密码套件匹配，则直接将缓存会话票据设置到ClientHello中。
 		hello.sessionTicket = session.sessionTicket
 		return
 	}
-
+	// 检查缓存的会话是否已经过期
 	// Check that the session ticket is not expired.
 	if c.config.time().After(session.useBy) {
 		c.config.ClientSessionCache.Put(cacheKey, nil)
 		return cacheKey, nil, nil, nil
 	}
-
+	// 获取缓存会话的密码套件
 	// In TLS 1.3 the KDF hash must match the resumed session. Ensure we
 	// offer at least one cipher suite with that hash.
 	cipherSuite := cipherSuiteTLS13ByID(session.cipherSuite)
 	if cipherSuite == nil {
 		return cacheKey, nil, nil, nil
 	}
+	// 检查缓存会话的密码套件是否与当前ClientHello支持的密码套件匹配
 	cipherSuiteOk := false
 	for _, offeredID := range hello.cipherSuites {
 		offeredSuite := cipherSuiteTLS13ByID(offeredID)
@@ -334,49 +366,62 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	if !cipherSuiteOk {
 		return cacheKey, nil, nil, nil
 	}
-
+	// 设置psk扩展信息
 	// Set the pre_shared_key extension. See RFC 8446, Section 4.2.11.1.
+	// 票据年龄 : 会话获取时间到当前时间的毫秒数
 	ticketAge := uint32(c.config.time().Sub(session.receivedAt) / time.Millisecond)
+	// 会话的pskID
 	identity := pskIdentity{
 		label:               session.sessionTicket,
 		obfuscatedTicketAge: ticketAge + session.ageAdd,
 	}
+	// 设置到ClientHello的 pskIdentities
 	hello.pskIdentities = []pskIdentity{identity}
+	// 计算pskBinders
 	hello.pskBinders = [][]byte{make([]byte, cipherSuite.hash.Size())}
-
 	// Compute the PSK binders. See RFC 8446, Section 4.2.11.2.
+	// 根据会话的主机密扩展出psk(pre-shared-key)
 	psk := cipherSuite.expandLabel(session.masterSecret, "resumption",
 		session.nonce, cipherSuite.hash.Size())
+	// 再用psk提炼早期机密
 	earlySecret = cipherSuite.extract(psk, nil)
+	// 根据早期机密派生绑定者密钥
 	binderKey = cipherSuite.deriveSecret(earlySecret, resumptionBinderLabel, nil)
+	// 声明一个转录散列函数
 	transcript := cipherSuite.hash.New()
+	// 向转录散列写入不带pskBinders的ClientHello
 	transcript.Write(hello.marshalWithoutBinders())
+	// 生成pskBinders: 使用绑定者密钥和转录散列生成的Finished消息散列
 	pskBinders := [][]byte{cipherSuite.finishedHash(binderKey, transcript)}
+	// 将 pskBinders 设置到ClientHello
 	hello.updateBinders(pskBinders)
 
 	return
 }
 
+// 选取本次tls通信的版本
 func (c *Conn) pickTLSVersion(serverHello *serverHelloMsg) error {
 	peerVersion := serverHello.vers
 	if serverHello.supportedVersion != 0 {
 		peerVersion = serverHello.supportedVersion
 	}
-
+	// 按优先顺序匹配协议版本
 	vers, ok := c.config.mutualVersion([]uint16{peerVersion})
 	if !ok {
 		c.sendAlert(alertProtocolVersion)
 		return fmt.Errorf("gmtls: server selected unsupported protocol version %x", peerVersion)
 	}
-
+	// 将协商好的版本设置到tls连接中
 	c.vers = vers
 	c.haveVers = true
 	c.in.version = vers
 	c.out.version = vers
+	fmt.Println("===== gmtls/handshake_client.go pickTLSVersion 客户端确认本次tls连接使用的版本是:", ShowTLSVersion(int(c.vers)))
 
 	return nil
 }
 
+// tls1.2及更老版本在接收到 ServerHello 之后的握手过程。
 // Does the handshake, either a full one or resumes old session. Requires hs.c,
 // hs.hello, hs.serverHello, and, optionally, hs.session to be set.
 func (hs *clientHandshakeState) handshake() error {
@@ -842,6 +887,7 @@ func (hs *clientHandshakeState) sendFinished(out []byte) error {
 	return nil
 }
 
+// 验证服务端证书
 // verifyServerCertificate parses and verifies the provided chain, setting
 // c.verifiedChains and c.peerCertificates or sending the appropriate alert.
 func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
@@ -866,6 +912,7 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 			opts.Intermediates.AddCert(cert)
 		}
 		var err error
+		// 尝试构建证书信任链, certs[0]是子证书
 		c.verifiedChains, err = certs[0].Verify(opts)
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
@@ -874,16 +921,18 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 	}
 
 	switch certs[0].PublicKey.(type) {
-	case *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
+	// 补充sm2条件
+	case *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
 		break
 	default:
 		c.sendAlert(alertUnsupportedCertificate)
 		return fmt.Errorf("gmtls: server's certificate contains an unsupported type of public key: %T", certs[0].PublicKey)
 	}
-
+	// 将服务端的证书设置为对方证书
 	c.peerCertificates = certs
 
 	if c.config.VerifyPeerCertificate != nil {
+		// 执行额外的对方证书验证函数
 		if err := c.config.VerifyPeerCertificate(certificates, c.verifiedChains); err != nil {
 			c.sendAlert(alertBadCertificate)
 			return err
@@ -891,6 +940,7 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 	}
 
 	if c.config.VerifyConnection != nil {
+		// 执行额外的连接验证函数
 		if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
 			c.sendAlert(alertBadCertificate)
 			return err
@@ -982,6 +1032,7 @@ func (c *Conn) getClientCertificate(cri *CertificateRequestInfo) (*Certificate, 
 	return new(Certificate), nil
 }
 
+// 获取客户端会话缓存key，使用ServerName或serverAddr。
 // clientSessionCacheKey returns a key used to cache sessionTickets that could
 // be used to resume previously negotiated TLS sessions with a server.
 func clientSessionCacheKey(serverAddr net.Addr, config *Config) string {
@@ -991,20 +1042,26 @@ func clientSessionCacheKey(serverAddr net.Addr, config *Config) string {
 	return serverAddr.String()
 }
 
+// 将name适配为SNI要求的格式。
+//  不支持IPv4或IPv6格式，支持DNS域名。
 // hostnameInSNI converts name into an appropriate hostname for SNI.
 // Literal IP addresses and absolute FQDNs are not permitted as SNI values.
 // See RFC 6066, Section 3.
 func hostnameInSNI(name string) string {
 	host := name
+	// 去除首尾的"[]"包裹
 	if len(host) > 0 && host[0] == '[' && host[len(host)-1] == ']' {
 		host = host[1 : len(host)-1]
 	}
+	// 去除"%"以后的内容
 	if i := strings.LastIndex(host, "%"); i > 0 {
 		host = host[:i]
 	}
+	// 检查host是ip的话是否合法，合法则返回空字符串
 	if net.ParseIP(host) != nil {
 		return ""
 	}
+	// 去除末尾的一个或多个"."
 	for len(name) > 0 && name[len(name)-1] == '.' {
 		name = name[:len(name)-1]
 	}

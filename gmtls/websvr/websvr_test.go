@@ -127,7 +127,7 @@ func gmClientRun() {
 	// 而该函数在没有显式传入密码套件列表时，默认的列表中第一个是 GMTLS_ECC_SM4_CBC_SM3 。
 	// 这就是gmtls连接默认使用的密码套件。
 	config := &gmtls.Config{
-		GMSupport:    &gmtls.GMSupport{},
+		// GMSupport:    &gmtls.GMSupport{},
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
 		// 因为sm2相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
@@ -182,11 +182,11 @@ func gmGCMClientRun() {
 	// 创建gmtls配置
 	// 注意这里显式传入了密码套件列表，只有 GMTLS_ECC_SM4_GCM_SM3
 	config := &gmtls.Config{
-		GMSupport:    &gmtls.GMSupport{},
+		// GMSupport:    &gmtls.GMSupport{},
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
-		CipherSuites: []uint16{gmtls.GMTLS_ECC_SM4_GCM_SM3},
-		ServerName:   "server.test.com",
+		// CipherSuites: []uint16{gmtls.GMTLS_ECC_SM4_GCM_SM3},
+		ServerName: "server.test.com",
 	}
 
 	// 向服务端拨号，建立tls连接

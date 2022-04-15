@@ -18,15 +18,18 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
 	"os"
 	"strings"
+
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
+// 生成tls通信Server
 // Server returns a new TLS server side connection
 // using conn as the underlying transport.
 // The configuration config must be non-nil and must include
@@ -36,10 +39,12 @@ func Server(conn net.Conn, config *Config) *Conn {
 		conn:   conn,
 		config: config,
 	}
+	// 绑定握手函数
 	c.handshakeFn = c.serverHandshake
 	return c
 }
 
+// 生成tls通信Client
 // Client returns a new TLS client side connection
 // using conn as the underlying transport.
 // The config cannot be nil: users must set either ServerName or
@@ -50,6 +55,7 @@ func Client(conn net.Conn, config *Config) *Conn {
 		config:   config,
 		isClient: true,
 	}
+	// 绑定握手函数
 	c.handshakeFn = c.clientHandshake
 	return c
 }
@@ -117,6 +123,7 @@ func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*
 	return dial(context.Background(), dialer, network, addr, config)
 }
 
+// 客户端拨号,发起tls通信请求
 func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, config *Config) (*Conn, error) {
 	if netDialer.Timeout != 0 {
 		var cancel context.CancelFunc
@@ -154,6 +161,7 @@ func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, conf
 	}
 
 	conn := Client(rawConn, config)
+	// 客户端发起tls握手
 	if err := conn.HandshakeContext(ctx); err != nil {
 		rawConn.Close()
 		return nil, err
@@ -249,11 +257,13 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	var skippedBlockTypes []string
 	for {
 		var certDERBlock *pem.Block
+		// 将证书PEM字节数组解码为DER字节数组
 		certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
 		if certDERBlock == nil {
 			break
 		}
 		if certDERBlock.Type == "CERTIFICATE" {
+			// 将证书DER字节数组加入证书链的证书列表
 			cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
 		} else {
 			skippedBlockTypes = append(skippedBlockTypes, certDERBlock.Type)
@@ -288,20 +298,29 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		}
 		skippedBlockTypes = append(skippedBlockTypes, keyDERBlock.Type)
 	}
-
+	// 读取证书链中的首个证书(子证书)，转为x509.Certificate
 	// We don't need to parse the public key for TLS, but we so do anyway
 	// to check that it looks sane and matches the private key.
 	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
 		return fail(err)
 	}
-
+	// 将key的DER字节数组转为私钥
 	cert.PrivateKey, err = parsePrivateKey(keyDERBlock.Bytes)
 	if err != nil {
 		return fail(err)
 	}
-
+	// 检查私钥与证书中的公钥是否匹配
 	switch pub := x509Cert.PublicKey.(type) {
+	// 补充SM2分支
+	case *sm2.PublicKey:
+		priv, ok := cert.PrivateKey.(*sm2.PrivateKey)
+		if !ok {
+			return fail(errors.New("gmtls: private key type does not match public key type"))
+		}
+		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
+			return fail(errors.New("gmtls: private key does not match public key"))
+		}
 	case *rsa.PublicKey:
 		priv, ok := cert.PrivateKey.(*rsa.PrivateKey)
 		if !ok {
@@ -333,6 +352,7 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	return cert, nil
 }
 
+// 将DER字节数组转为对应的私钥
 // Attempt to parse the given private key DER block. OpenSSL 0.9.8 generates
 // PKCS #1 private keys by default, while OpenSSL 1.0.0 generates PKCS #8 keys.
 // OpenSSL ecparam generates SEC1 EC private keys for ECDSA. We try all three.
@@ -342,7 +362,8 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 	}
 	if key, err := x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key := key.(type) {
-		case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
+		// 添加SM2
+		case *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
 			return key, nil
 		default:
 			return nil, errors.New("gmtls: found unknown private key type in PKCS#8 wrapping")

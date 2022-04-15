@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
@@ -39,14 +40,18 @@ type serverHandshakeState struct {
 	cert         *Certificate
 }
 
+// 服务端握手
 // serverHandshake performs a TLS handshake as a server.
 func (c *Conn) serverHandshake(ctx context.Context) error {
+	fmt.Println("===== gmtls/handshake_server.go serverHandshake : 开始服务端握手过程")
+	// 读取 ClientHello
 	clientHello, err := c.readClientHello(ctx)
 	if err != nil {
 		return err
 	}
-
-	if c.vers == VersionTLS13 {
+	// GMSSL目前采用tls1.3的处理
+	if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
+		fmt.Println("===== gmtls/handshake_server.go serverHandshake : 服务端执行tls1.3或gmssl的握手过程")
 		hs := serverHandshakeStateTLS13{
 			c:           c,
 			ctx:         ctx,
@@ -54,7 +59,7 @@ func (c *Conn) serverHandshake(ctx context.Context) error {
 		}
 		return hs.handshake()
 	}
-
+	fmt.Println("===== gmtls/handshake_server.go serverHandshake : 服务端执行tls1.2或更老版本的握手过程")
 	hs := serverHandshakeState{
 		c:           c,
 		ctx:         ctx,
@@ -63,6 +68,7 @@ func (c *Conn) serverHandshake(ctx context.Context) error {
 	return hs.handshake()
 }
 
+// tls1.2及更老版本在读取ClientHello之后的握手过程
 func (hs *serverHandshakeState) handshake() error {
 	c := hs.c
 
@@ -128,8 +134,10 @@ func (hs *serverHandshakeState) handshake() error {
 	return nil
 }
 
+// 读取ClientHello并选择协议版本。
 // readClientHello reads a ClientHello message and selects the protocol version.
 func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
+	// 读取ClientHello
 	msg, err := c.readHandshake()
 	if err != nil {
 		return nil, err
@@ -139,6 +147,7 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 		c.sendAlert(alertUnexpectedMessage)
 		return nil, unexpectedMessageError(clientHello, msg)
 	}
+	fmt.Println("===== gmtls/handshake_server.go readClientHello : 服务端读取到 ClientHello")
 
 	var configForClient *Config
 	originalConfig := c.config
@@ -151,17 +160,20 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 			c.config = configForClient
 		}
 	}
+	// 为当前连接设置ticketKeys
 	c.ticketKeys = originalConfig.ticketKeys(configForClient)
-
+	// 获取ClientHello的协议版本信息，默认使用supportedVersions，没有设置supportedVersions的情况下使用vers
 	clientVersions := clientHello.supportedVersions
 	if len(clientHello.supportedVersions) == 0 {
 		clientVersions = supportedVersionsFromMax(clientHello.vers)
 	}
+	// 协商tls协议版本
 	c.vers, ok = c.config.mutualVersion(clientVersions)
 	if !ok {
 		c.sendAlert(alertProtocolVersion)
 		return nil, fmt.Errorf("gmtls: client offered only unsupported versions: %x", clientVersions)
 	}
+	fmt.Println("===== gmtls/handshake_server.go readClientHello 服务端选择本次tls连接使用的版本是:", ShowTLSVersion(int(c.vers)))
 	c.haveVers = true
 	c.in.version = c.vers
 	c.out.version = c.vers
@@ -792,6 +804,7 @@ func (hs *serverHandshakeState) sendFinished(out []byte) error {
 	return nil
 }
 
+// 检查客户端证书。
 // processCertsFromClient takes a chain of client certificates either from a
 // Certificates message or from a sessionState and verifies them. It returns
 // the public key of the leaf certificate.
@@ -822,7 +835,7 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 		for _, cert := range certs[1:] {
 			opts.Intermediates.AddCert(cert)
 		}
-
+		// 从子证书开始验证签名并尝试构建信任链
 		chains, err := certs[0].Verify(opts)
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
@@ -837,8 +850,9 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 	c.scts = certificate.SignedCertificateTimestamps
 
 	if len(certs) > 0 {
+		// 补充sm2条件
 		switch certs[0].PublicKey.(type) {
-		case *ecdsa.PublicKey, *rsa.PublicKey, ed25519.PublicKey:
+		case *sm2.PublicKey, *ecdsa.PublicKey, *rsa.PublicKey, ed25519.PublicKey:
 		default:
 			c.sendAlert(alertUnsupportedCertificate)
 			return fmt.Errorf("gmtls: client certificate contains an unsupported public key of type %T", certs[0].PublicKey)

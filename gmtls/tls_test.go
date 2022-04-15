@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"internal/testenv"
 	"io"
 	"math"
 	"net"
@@ -22,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
@@ -228,7 +228,8 @@ func TestDeadlineOnWrite(t *testing.T) {
 	}()
 
 	clientConfig := testConfig.Clone()
-	clientConfig.MaxVersion = VersionTLS12
+	// clientConfig.MaxVersion = VersionTLS12
+	clientConfig.MaxVersion = VersionGMSSL
 	conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -476,23 +477,23 @@ func TestTLSUniqueMatches(t *testing.T) {
 func TestVerifyHostname(t *testing.T) {
 	testenv.MustHaveExternalNetwork(t)
 
-	c, err := Dial("tcp", "www.google.com:https", nil)
+	c, err := Dial("tcp", "www.baidu.com:https", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := c.VerifyHostname("www.google.com"); err != nil {
+	if err := c.VerifyHostname("www.baidu.com"); err != nil {
 		t.Fatalf("verify www.google.com: %v", err)
 	}
 	if err := c.VerifyHostname("www.yahoo.com"); err == nil {
 		t.Fatalf("verify www.yahoo.com succeeded")
 	}
 
-	c, err = Dial("tcp", "www.google.com:https", &Config{InsecureSkipVerify: true})
+	c, err = Dial("tcp", "www.baidu.com:https", &Config{InsecureSkipVerify: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := c.VerifyHostname("www.google.com"); err == nil {
-		t.Fatalf("verify www.google.com succeeded with InsecureSkipVerify=true")
+	if err := c.VerifyHostname("www.baidu.com"); err == nil {
+		t.Fatalf("verify www.baidu.com succeeded with InsecureSkipVerify=true")
 	}
 }
 
@@ -1426,9 +1427,17 @@ func TestCipherSuites(t *testing.T) {
 		if cc.Insecure {
 			t.Errorf("%#04x: Insecure %v, expected false", c.id, cc.Insecure)
 		}
-		if len(cc.SupportedVersions) != 1 || cc.SupportedVersions[0] != VersionTLS13 {
+		if len(cc.SupportedVersions) <= 0 {
 			t.Errorf("%#04x: suite is TLS 1.3 only, but SupportedVersions is %v", c.id, cc.SupportedVersions)
 		}
+		for _, version := range cc.SupportedVersions {
+			if version != VersionTLS13 && version != VersionGMSSL {
+				t.Errorf("%#04x: suite is TLS 1.3 only, but SupportedVersions is %v", c.id, cc.SupportedVersions)
+			}
+		}
+		// if len(cc.SupportedVersions) != 1 || cc.SupportedVersions[0] != VersionTLS13 {
+		// 	t.Errorf("%#04x: suite is TLS 1.3 only, but SupportedVersions is %v", c.id, cc.SupportedVersions)
+		// }
 
 		if got := CipherSuiteName(c.id); got != cc.Name {
 			t.Errorf("%#04x: unexpected CipherSuiteName: got %q, expected %q", c.id, got, cc.Name)

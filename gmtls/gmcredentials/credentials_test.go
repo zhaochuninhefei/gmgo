@@ -58,7 +58,7 @@ func serverRun() {
 		log.Fatalf("fail to listen: %v", err)
 	}
 	creds := NewTLS(&gmtls.Config{
-		GMSupport:    &gmtls.GMSupport{},
+		// GMSupport:    &gmtls.GMSupport{},
 		ClientAuth:   gmtls.RequireAndVerifyClientCert,
 		Certificates: []gmtls.Certificate{signCert, encryptCert},
 		ClientCAs:    certPool,
@@ -83,7 +83,7 @@ func clientRun() {
 	}
 	certPool.AppendCertsFromPEM(cacert)
 	creds := NewTLS(&gmtls.Config{
-		GMSupport:    &gmtls.GMSupport{},
+		// GMSupport:    &gmtls.GMSupport{},
 		ServerName:   "server.test.com",
 		Certificates: []gmtls.Certificate{cert},
 		RootCAs:      certPool,
