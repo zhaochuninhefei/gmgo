@@ -1,7 +1,14 @@
-package websvr
+// Copyright (c) 2022 zhaochun
+// gmgo is licensed under Mulan PSL v2.
+// You can use this software according to the terms and conditions of the Mulan PSL v2.
+// You may obtain a copy of Mulan PSL v2 at:
+//          http://license.coscl.org.cn/MulanPSL2
+// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+// See the Mulan PSL v2 for more details.
+
+package tls_test
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,54 +21,33 @@ import (
 )
 
 const (
-	rsaCertPath     = "./certs/rsa_sign.cer"
-	rsaKeyPath      = "./certs/rsa_sign_key.pem"
-	RSACaCertPath   = "./certs/RSA_CA.cer"
-	RSAAuthCertPath = "./certs/rsa_auth_cert.cer"
-	RSAAuthKeyPath  = "./certs/rsa_auth_key.pem"
 	SM2CaCertPath   = "./certs/sm2_ca_cert.cer"
 	SM2AuthCertPath = "./certs/sm2_auth_cert.cer"
 	SM2AuthKeyPath  = "./certs/sm2_auth_key.pem"
 	sm2SignCertPath = "./certs/sm2_sign_cert.cer"
 	sm2SignKeyPath  = "./certs/sm2_sign_key.pem"
-	sm2EncCertPath  = "./certs/sm2_enc_cert.cer"
-	sm2EncKeyPath   = "./certs/sm2_enc_key.pem"
 	sm2UserCertPath = "certs/sm2_auth_cert.cer"
 	sm2UserKeyPath  = "certs/sm2_auth_key.pem"
 )
 
-func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
-	// 读取rsa证书与私钥，作为普通tls场景的服务器证书用
-	rsaKeypair, err := gmtls.LoadX509KeyPair(rsaCertPath, rsaKeyPath)
-	if err != nil {
-		return nil, err
-	}
-	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
-	sigCert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
-	if err != nil {
-		return nil, err
-	}
-	// 返回服务端配置
-	config, err := gmtls.NewServerConfigByClientHello(&sigCert, &rsaKeypair)
-	if err != nil {
-		return nil, err
-	}
+var end chan bool
 
-	if needClientAuth {
-		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
-		certPool := x509.NewCertPool()
-		cacert, err := ioutil.ReadFile(SM2CaCertPath)
-		if err != nil {
-			return nil, err
-		}
-		certPool.AppendCertsFromPEM(cacert)
-		config.ClientAuth = gmtls.RequireAndVerifyClientCert
-		config.ClientCAs = certPool
-		// config.SessionTicketsDisabled = false
-		fmt.Println("------ debug用 : 服务端配置了ClientAuth")
-	}
+func Test_tls13(t *testing.T) {
+	end = make(chan bool, 64)
+	go ServerRun(true)
+	time.Sleep(time.Second)
+	go ClientRunTls13()
+	<-end
+	fmt.Println("Test_tls13 over.")
+}
 
-	return config, nil
+func Test_gmssl(t *testing.T) {
+	end = make(chan bool, 64)
+	go ServerRun(true)
+	time.Sleep(time.Second)
+	go ClientRunGMSSL()
+	<-end
+	fmt.Println("Test_tls13 over.")
 }
 
 // 启动服务端
@@ -93,49 +79,6 @@ func ServerRun(needClientAuth bool) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// 启动普通tls连接的客户端
-func ClientRun() {
-	// 定义tls配置
-	var config = tls.Config{
-		MaxVersion:         gmtls.VersionTLS12,
-		InsecureSkipVerify: true,
-	}
-	// tls拨号连接目标tls服务
-	conn, err := tls.Dial("tcp", "localhost:50052", &config)
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
-
-	fmt.Println("============ 普通tls客户端连接服务端，握手成功 ============")
-
-	// 定义http请求
-	req := []byte("GET /test?clientName=tlsClient HTTP/1.1\r\n" +
-		"Host: localhost\r\n" +
-		"Connection: close\r\n\r\n")
-	// 向tls连接写入请求
-	conn.Write(req)
-
-	fmt.Println("============ 普通tls客户端向服务端发送http请求 ============")
-
-	// 从tls连接中读取http请求响应
-	buff := make([]byte, 1024)
-	for {
-		// 从conn读取消息，没有消息时会阻塞，直到超时
-		n, _ := conn.Read(buff)
-		if n <= 0 {
-			// 读取不到内容时结束
-			break
-		} else {
-			// 输出读取到的内容
-			fmt.Printf("普通tls客户端从服务端获取到http响应: %s", buff[0:n])
-		}
-	}
-	fmt.Println("============ 普通tls客户端与服务端连接测试成功 ============")
-	// 将结束flag写入通道 end
-	end <- true
 }
 
 func ClientRunGMSSL() {
@@ -260,44 +203,31 @@ func ClientRunTls13() {
 	end <- true
 }
 
-var end chan bool
+func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
+	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
+	sigCert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	// 返回服务端配置
+	config, err := gmtls.NewServerConfigByClientHello(&sigCert, &sigCert)
+	if err != nil {
+		return nil, err
+	}
 
-func Test_tls(t *testing.T) {
-	end = make(chan bool, 64)
-	go ServerRun(false)
-	time.Sleep(time.Second)
-	go ClientRun()
-	<-end
-	go ClientRunTls13()
-	<-end
-	go ClientRunGMSSL()
-	<-end
-	fmt.Println("Test_tls over.")
-}
+	if needClientAuth {
+		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
+		certPool := x509.NewCertPool()
+		cacert, err := ioutil.ReadFile(SM2CaCertPath)
+		if err != nil {
+			return nil, err
+		}
+		certPool.AppendCertsFromPEM(cacert)
+		config.ClientAuth = gmtls.RequireAndVerifyClientCert
+		config.ClientCAs = certPool
+		// config.SessionTicketsDisabled = false
+		fmt.Println("------ debug用 : 服务端配置了ClientAuth")
+	}
 
-func Test_tls12(t *testing.T) {
-	end = make(chan bool, 64)
-	go ServerRun(false)
-	time.Sleep(time.Second)
-	go ClientRun()
-	<-end
-	fmt.Println("Test_tls12 over.")
-}
-
-func Test_tls13(t *testing.T) {
-	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(time.Second)
-	go ClientRunTls13()
-	<-end
-	fmt.Println("Test_tls13 over.")
-}
-
-func Test_gmssl(t *testing.T) {
-	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(time.Second)
-	go ClientRunGMSSL()
-	<-end
-	fmt.Println("Test_tls13 over.")
+	return config, nil
 }
