@@ -36,9 +36,9 @@ go package： `gitee.com/zhaochuninhefei/gmgo`
 从测试案例入手快速了解gmgo的使用。
 
 ## sm2
-测试案例代码: `sm2/sm2_test.go`
+测试案例代码: `sm2test/sm2_test.go`
 ```sh
-cd sm2
+cd sm2test
 go test
 
 ```
@@ -94,6 +94,8 @@ go test
 执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
 
 # 关于版权声明
+本项目自身采用木兰宽松许可证(第2版)，具体参考`LICENSE`文件。
+
 本项目的国密算法部分参考了以下其他开源项目，向对应的开源作者表示感谢!
 - `https://github.com/emmansun/gmsm`
 - `https://github.com/tjfoc/gmsm`
