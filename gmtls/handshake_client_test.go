@@ -879,7 +879,7 @@ func TestClientKeyUpdate(t *testing.T) {
 }
 
 func TestResumption(t *testing.T) {
-	t.Run("TLSv12", func(t *testing.T) { testResumption(t, VersionTLS12) })
+	// t.Run("TLSv12", func(t *testing.T) { testResumption(t, VersionTLS12) })
 	t.Run("TLSv13", func(t *testing.T) { testResumption(t, VersionTLS13) })
 }
 
@@ -2051,12 +2051,12 @@ type brokenConn struct {
 	numWrites int
 }
 
-// brokenConnErr is the error that brokenConn returns once exhausted.
-var brokenConnErr = errors.New("too many writes to brokenConn")
+// errbrokenConn is the error that brokenConn returns once exhausted.
+var errbrokenConn = errors.New("too many writes to brokenConn")
 
 func (b *brokenConn) Write(data []byte) (int, error) {
 	if b.numWrites >= b.breakAfter {
-		return 0, brokenConnErr
+		return 0, errbrokenConn
 	}
 
 	b.numWrites++
@@ -2077,7 +2077,7 @@ func TestFailedWrite(t *testing.T) {
 
 		brokenC := &brokenConn{Conn: c, breakAfter: breakAfter}
 		err := Client(brokenC, testConfig).Handshake()
-		if err != brokenConnErr {
+		if err != errbrokenConn {
 			t.Errorf("#%d: expected error from brokenConn but got %q", breakAfter, err)
 		}
 		brokenC.Close()

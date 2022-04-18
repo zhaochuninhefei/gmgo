@@ -76,8 +76,8 @@ const (
 	maxHandshake       = 65536        // maximum handshake we support (protocol max is 16 MB)
 	maxUselessRecords  = 16           // maximum number of consecutive non-advancing records
 
-	minVersion = VersionGMSSL
-	maxVersion = VersionTLS13
+	// minVersion = VersionGMSSL
+	// maxVersion = VersionTLS13
 )
 
 // TLS record types.
@@ -198,8 +198,8 @@ const (
 const (
 	certTypeRSASign   = 1
 	certTypeECDSASign = 64 // ECDSA or EdDSA keys, see RFC 8422, Section 3.
-	// 是否添加SM2Type
-	certTypeSM2Sign = 128
+	// 是否添加SM2Type 用于tls1.2及更老版本，暂时不做国密对应
+	// certTypeSM2Sign = 128
 )
 
 // Signature algorithms (for internal signaling use). Starting at 225 to avoid overlap with
@@ -859,7 +859,7 @@ type ticketKey struct {
 // ticket key to a ticketKey. Externally, session ticket keys are 32 random
 // bytes and this function expands that into sufficient name and key material.
 func (c *Config) ticketKeyFromBytes(b [32]byte) (key ticketKey) {
-	// TODO: 是否改为SM3，但要注意，sm3散列结果是32字节，这里采用sha512的结果是64字节，需要使用sm3_512
+	// 目前只能继续采用sha512，因为sm3校验和长度只有32个字节，不够用。
 	hashed := sha512.Sum512(b[:])
 	// 1~16字节作为 keyName
 	copy(key.keyName[:], hashed[:ticketKeyNameLen])

@@ -86,7 +86,7 @@ func CipherSuites() []*CipherSuite {
 		{TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", supportedOnlyTLS12, false},
 		{TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", supportedOnlyTLS12, false},
 		{TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256", supportedOnlyTLS12, false},
-		// TODO: 暂不提供 tls1.2 的国密密码学套件
+		// 暂不提供 tls1.2 的国密密码学套件
 		// {TLS_ECDHE_SM2_WITH_SM4_128_CBC_SM3, "TLS_ECDHE_SM2_WITH_SM4_128_CBC_SM3", supportedOnlyTLS12, false},
 	}
 }
@@ -155,8 +155,7 @@ type cipherSuite struct {
 	keyLen int
 	macLen int
 	ivLen  int
-	// TODO: 并没有发现任何ka函数的实现
-	ka func(version uint16) keyAgreement
+	ka     func(version uint16) keyAgreement
 	// flags is a bitmask of the suite* values, above.
 	flags  int
 	cipher func(key, iv []byte, isRead bool) interface{}
@@ -164,8 +163,8 @@ type cipherSuite struct {
 	aead   func(key, fixedNonce []byte) aead
 }
 
-// TLS 1.0–1.2的密码学套件集合 TODO: 暂时没有添加对应的国密密码学套件
-var cipherSuites = []*cipherSuite{ // TODO: replace with a map, since the order doesn't matter.
+// TLS 1.0–1.2的密码学套件集合 暂时没有添加对应的国密密码学套件
+var cipherSuites = []*cipherSuite{ // replace with a map, since the order doesn't matter.
 	{TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, 32, 0, 12, ecdheRSAKA, suiteECDHE | suiteTLS12, nil, nil, aeadChaCha20Poly1305},
 	{TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, 32, 0, 12, ecdheECDSAKA, suiteECDHE | suiteECSign | suiteTLS12, nil, nil, aeadChaCha20Poly1305},
 	{TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, 16, 0, 4, ecdheRSAKA, suiteECDHE | suiteTLS12, nil, nil, aeadAESGCM},
@@ -236,15 +235,15 @@ func (cs *cipherSuiteTLS13) ToString() string {
 }
 
 // tls1.3支持的密码套件
-var cipherSuitesTLS13 = []*cipherSuiteTLS13{ // TODO: replace with a map.
+var cipherSuitesTLS13 = []*cipherSuiteTLS13{ // replace with a map.
 	{TLS_AES_128_GCM_SHA256, 16, aeadAESGCMTLS13, x509.SHA256},
 	{TLS_CHACHA20_POLY1305_SHA256, 32, aeadChaCha20Poly1305, x509.SHA256},
 	{TLS_AES_256_GCM_SHA384, 32, aeadAESGCMTLS13, x509.SHA384},
-	// TODO: 添加国密对应实现，需要验证aeadSM4GCMTLS13
+	// 添加国密对应实现
 	{TLS_SM4_128_GCM_SM3, 16, aeadSM4GCMTLS13, x509.SM3},
 }
 
-// 选择tls1.0-1.2密码学套件的顺序。TODO:暂时没有添加国密密码学套件。
+// 选择tls1.0-1.2密码学套件的顺序。暂时没有添加国密密码学套件。
 // cipherSuitesPreferenceOrder is the order in which we'll select (on the
 // server) or advertise (on the client) TLS 1.0–1.2 cipher suites.
 //
@@ -423,14 +422,14 @@ var aesgcmCiphers = map[uint16]bool{
 	TLS_AES_256_GCM_SHA384: true,
 }
 
-var nonAESGCMAEADCiphers = map[uint16]bool{
-	// TLS 1.2
-	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305:   true,
-	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305: true,
-	// TLS 1.3
-	TLS_SM4_128_GCM_SM3:          true,
-	TLS_CHACHA20_POLY1305_SHA256: true,
-}
+// var nonAESGCMAEADCiphers = map[uint16]bool{
+// 	// TLS 1.2
+// 	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305:   true,
+// 	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305: true,
+// 	// TLS 1.3
+// 	TLS_SM4_128_GCM_SM3:          true,
+// 	TLS_CHACHA20_POLY1305_SHA256: true,
+// }
 
 // aesgcmPreferred returns whether the first known cipher in the preference list
 // is an AES-GCM cipher, implying the peer has hardware support for it.
@@ -467,7 +466,7 @@ func cipherAES(key, iv []byte, isRead bool) interface{} {
 	return cipher.NewCBCEncrypter(block, iv)
 }
 
-// TODO: 暂时没有为tls1.2准备国密套件，因此不需要对照 cipherAES 实现 cipherSM4。
+// 暂时没有为tls1.2准备国密套件，因此不需要对照 cipherAES 实现 cipherSM4。
 // 基于相同原因，下面的 macSHA1 与 macSHA256 同样没有准备对应的 macSM3。
 
 // macSHA1 returns a SHA-1 based constant time MAC.
@@ -748,7 +747,7 @@ const (
 	TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384       uint16 = 0xc02c
 	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256   uint16 = 0xcca8
 	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 uint16 = 0xcca9
-	// 补充国密套件定义 TODO: 暂不提供 TLS1.2 的国密密码学套件
+	// 暂不提供 TLS1.2 的国密密码学套件
 	// TLS_ECDHE_SM2_WITH_SM4_128_CBC_SM3 uint16 = 0xccb0
 
 	// TLS 1.3 cipher suites.

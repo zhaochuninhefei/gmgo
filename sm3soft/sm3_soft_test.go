@@ -62,7 +62,7 @@ func TestSm3(t *testing.T) {
 }
 
 func TestSm3AndSHA256(t *testing.T) {
-	msg, err := ioutil.ReadFile("testdata/longMsg")
+	msg, err := ioutil.ReadFile("testdata/msg")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,12 +71,6 @@ func TestSm3AndSHA256(t *testing.T) {
 	fmt.Println("hashSm3值: ", hashSm3)
 	fmt.Printf("hashSm3长度 : %d\n", len(hashSm3))
 	fmt.Printf("hashSm3字符串 : %s\n", byteToString(hashSm3))
-
-	// sm3512计算
-	hashSm3512 := Sm3Sum512(msg)
-	fmt.Println("hashSm3512 值: ", hashSm3512)
-	fmt.Printf("hashSm3512 长度 : %d\n", len(hashSm3512))
-	fmt.Printf("hashSm3512 字符串 : %s\n", byteToString(hashSm3512))
 
 	// hashFuncSha256 := sha256.New()
 	hashFuncSha256 := sha3.New256()
