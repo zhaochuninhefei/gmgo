@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rsa"
 	"errors"
@@ -50,7 +51,7 @@ func (hs *serverHandshakeStateTLS13) handshake() error {
 
 	// For an overview of the TLS 1.3 handshake, see RFC 8446, Section 2.
 
-	// 处理ClientHello,协商密码套件,计算公钥密钥
+	// 处理ClientHello,协商密码套件,计算共享密钥
 	if err := hs.processClientHello(); err != nil {
 		return err
 	}
@@ -219,8 +220,9 @@ GroupSelection:
 		}
 		clientKeyShare = &hs.clientHello.keyShares[0]
 	}
-
-	if _, ok := curveForCurveID(selectedGroup); selectedGroup != X25519 && !ok {
+	var curve elliptic.Curve
+	var curveOk bool
+	if curve, curveOk = curveForCurveID(selectedGroup); selectedGroup != X25519 && !curveOk {
 		c.sendAlert(alertInternalError)
 		return errors.New("gmtls: CurvePreferences includes unsupported curve")
 	}
@@ -230,9 +232,11 @@ GroupSelection:
 		c.sendAlert(alertInternalError)
 		return err
 	}
+	fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 服务端基于曲线 %s 生成密钥交换算法参数\n", curve.Params().Name)
 	// 设置服务端密钥交换算法参数(曲线ID + 服务端公钥)
 	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
 	// 根据客户端公钥计算共享密钥
+	fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 使用曲线 %s 与客户端公钥计算共享密钥\n", curve.Params().Name)
 	hs.sharedKey = params.SharedKey(clientKeyShare.data)
 	if hs.sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)

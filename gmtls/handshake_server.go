@@ -264,7 +264,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 
 	if priv, ok := hs.cert.PrivateKey.(crypto.Signer); ok {
 		switch priv.Public().(type) {
-		case *ecdsa.PublicKey:
+		case *sm2.PublicKey, *ecdsa.PublicKey:
 			hs.ecSignOk = true
 		case ed25519.PublicKey:
 			hs.ecSignOk = true

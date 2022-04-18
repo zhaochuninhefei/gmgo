@@ -475,25 +475,35 @@ func TestTLSUniqueMatches(t *testing.T) {
 }
 
 func TestVerifyHostname(t *testing.T) {
+	// 想找个国内的支持tls1.3的站点，但是大部分都还只支持tls1.2，好不容易找到一个思否是支持tls1.3的。
+	// github等国外网站倒是支持tls1.3，奈何访问不稳定。
+	uri := "segmentfault.com"
+
 	testenv.MustHaveExternalNetwork(t)
-
-	c, err := Dial("tcp", "www.baidu.com:https", nil)
+	clientConfig := &Config{
+		CurvePreferences: []CurveID{CurveP256},
+		// MaxVersion:       VersionTLS12,
+	}
+	fmt.Println("---------- 访问 https://" + uri + " ----------")
+	c, err := Dial("tcp", uri+":https", clientConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := c.VerifyHostname("www.baidu.com"); err != nil {
-		t.Fatalf("verify www.google.com: %v", err)
+	if err := c.VerifyHostname(uri); err != nil {
+		t.Fatalf("verify %s: %v", uri, err)
 	}
-	if err := c.VerifyHostname("www.yahoo.com"); err == nil {
-		t.Fatalf("verify www.yahoo.com succeeded")
+	if err := c.VerifyHostname("test.com"); err == nil {
+		t.Fatalf("verify test.com succeeded")
 	}
 
-	c, err = Dial("tcp", "www.baidu.com:https", &Config{InsecureSkipVerify: true})
+	fmt.Println("---------- 访问 https://" + uri + " 不做证书检查 ----------")
+	clientConfig.InsecureSkipVerify = true
+	c, err = Dial("tcp", uri+":https", clientConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := c.VerifyHostname("www.baidu.com"); err == nil {
-		t.Fatalf("verify www.baidu.com succeeded with InsecureSkipVerify=true")
+	if err := c.VerifyHostname(uri); err == nil {
+		t.Fatalf("verify %s succeeded with InsecureSkipVerify=true", uri)
 	}
 }
 

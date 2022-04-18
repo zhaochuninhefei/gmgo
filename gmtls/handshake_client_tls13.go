@@ -377,6 +377,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 	c := hs.c
 	// 根据服务端公钥计算共享密钥
+	fmt.Println("===== gmtls/handshake_client_tls13.go establishHandshakeKeys : 利用服务端公钥计算共享密钥")
 	sharedKey := hs.ecdheParams.SharedKey(hs.serverHello.serverShare.data)
 	if sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)

@@ -10,6 +10,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/subtle"
 	"errors"
@@ -139,7 +140,9 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		}
 		// 设置密钥协商的曲线为配置的首个曲线，目前默认是sm2P256
 		curveID := config.curvePreferences()[0]
-		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
+		var curve elliptic.Curve
+		var curveOk bool
+		if curve, curveOk = curveForCurveID(curveID); curveID != X25519 && !curveOk {
 			return nil, nil, errors.New("gmtls: CurvePreferences includes unsupported curve")
 		}
 		// 生成ecdheParameters
@@ -147,6 +150,7 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		if err != nil {
 			return nil, nil, err
 		}
+		fmt.Printf("===== gmtls/handshake_client.go makeClientHello : 客户端基于曲线 %s 生成密钥交换算法参数\n", curve.Params().Name)
 		// 将曲线ID与客户端公钥设置为ClientHello中的密钥交换算法参数
 		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
 	}
@@ -426,7 +430,7 @@ func (c *Conn) pickTLSVersion(serverHello *serverHelloMsg) error {
 // hs.hello, hs.serverHello, and, optionally, hs.session to be set.
 func (hs *clientHandshakeState) handshake() error {
 	c := hs.c
-
+	// 处理 ServerHello
 	isResume, err := hs.processServerHello()
 	if err != nil {
 		return err
@@ -448,6 +452,7 @@ func (hs *clientHandshakeState) handshake() error {
 	c.buffering = true
 	c.didResume = isResume
 	if isResume {
+		// 会话恢复处理
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
@@ -474,12 +479,15 @@ func (hs *clientHandshakeState) handshake() error {
 			return err
 		}
 	} else {
+		// 非会话恢复,执行完整的握手过程
 		if err := hs.doFullHandshake(); err != nil {
 			return err
 		}
+		// 生成会话密钥
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
+		// 发送 ClientFinished
 		if err := hs.sendFinished(c.clientFinished[:]); err != nil {
 			return err
 		}
@@ -501,19 +509,21 @@ func (hs *clientHandshakeState) handshake() error {
 	return nil
 }
 
+// 客户端确认协商好的密码套件(tls1.2)
 func (hs *clientHandshakeState) pickCipherSuite() error {
 	if hs.suite = mutualCipherSuite(hs.hello.cipherSuites, hs.serverHello.cipherSuite); hs.suite == nil {
 		hs.c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: server chose an unconfigured cipher suite")
 	}
-
 	hs.c.cipherSuite = hs.suite.id
+	fmt.Printf("===== gmtls/handshake_client.go pickCipherSuite : 客户端确认协商好的密码套件: %s\n", CipherSuiteName(hs.suite.id))
 	return nil
 }
 
+// tls1.2非会话恢复时的完整握手过程
 func (hs *clientHandshakeState) doFullHandshake() error {
 	c := hs.c
-
+	// 读取 certificateMsg 服务端证书
 	msg, err := c.readHandshake()
 	if err != nil {
 		return err
@@ -523,6 +533,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(certMsg, msg)
 	}
+	fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端读取到服务端证书 certificateMsg")
 	hs.finishedHash.Write(certMsg.marshal())
 
 	msg, err = c.readHandshake()
@@ -532,6 +543,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 
 	cs, ok := msg.(*certificateStatusMsg)
 	if ok {
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端读取到 certificateStatusMsg")
 		// RFC4366 on Certificate Status Request:
 		// The server MAY return a "certificate_status" message.
 
@@ -544,7 +556,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 			return errors.New("gmtls: received unexpected CertificateStatus message")
 		}
 		hs.finishedHash.Write(cs.marshal())
-
+		// certificateStatusMsg 返回的是服务端装订的ocsp信息
 		c.ocspResponse = cs.response
 
 		msg, err = c.readHandshake()
@@ -554,12 +566,14 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 	}
 
 	if c.handshakes == 0 {
+		// 首次握手时验证服务端证书，成功时会将服务端证书塞到客户端的对方证书字段peerCertificates中
 		// If this is the first handshake on a connection, process and
 		// (optionally) verify the server's certificates.
 		if err := c.verifyServerCertificate(certMsg.certificates); err != nil {
 			return err
 		}
 	} else {
+		// 不是首次握手时，只需比较接收到的服务端证书是否还是之前验证过的服务端证书即可。
 		// This is a renegotiation handshake. We require that the
 		// server's identity (i.e. leaf certificate) is unchanged and
 		// thus any previous trust decision is still valid.
@@ -571,11 +585,12 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 			return errors.New("gmtls: server's identity changed during renegotiation")
 		}
 	}
-
+	// 根据具体的密码套件执行其密钥交换算法，计算密钥交换参数
 	keyAgreement := hs.suite.ka(c.vers)
 
 	skx, ok := msg.(*serverKeyExchangeMsg)
 	if ok {
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端读取到 serverKeyExchangeMsg")
 		hs.finishedHash.Write(skx.marshal())
 		err = keyAgreement.processServerKeyExchange(c.config, hs.hello, hs.serverHello, c.peerCertificates[0], skx)
 		if err != nil {
@@ -593,6 +608,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 	var certRequested bool
 	certReq, ok := msg.(*certificateRequestMsg)
 	if ok {
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端读取到 certificateRequestMsg")
 		certRequested = true
 		hs.finishedHash.Write(certReq.marshal())
 
@@ -610,6 +626,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 
 	shd, ok := msg.(*serverHelloDoneMsg)
 	if !ok {
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端读取到 serverHelloDoneMsg")
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(shd, msg)
 	}
@@ -625,6 +642,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 			return err
 		}
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端发送 ClientCertificate")
 	}
 
 	preMasterSecret, ckx, err := keyAgreement.generateClientKeyExchange(c.config, hs.hello, c.peerCertificates[0])
@@ -637,6 +655,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		if _, err := c.writeRecord(recordTypeHandshake, ckx.marshal()); err != nil {
 			return err
 		}
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端发送 clientKeyExchangeMsg")
 	}
 
 	if chainToSend != nil && len(chainToSend.Certificate) > 0 {
@@ -685,6 +704,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		if _, err := c.writeRecord(recordTypeHandshake, certVerify.marshal()); err != nil {
 			return err
 		}
+		fmt.Println("===== gmtls/handshake_client.go doFullHandshake : 客户端发送 ClientCertVerify")
 	}
 
 	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.hello.random, hs.serverHello.random)
@@ -698,6 +718,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 	return nil
 }
 
+// 生成会话密钥(tls1.2)
 func (hs *clientHandshakeState) establishKeys() error {
 	c := hs.c
 
@@ -727,9 +748,10 @@ func (hs *clientHandshakeState) serverResumedSession() bool {
 		bytes.Equal(hs.serverHello.sessionId, hs.hello.sessionId)
 }
 
+// 处理tls1.2及更老版本的 ServerHello
 func (hs *clientHandshakeState) processServerHello() (bool, error) {
 	c := hs.c
-
+	// 选取密码套件
 	if err := hs.pickCipherSuite(); err != nil {
 		return false, err
 	}
@@ -816,6 +838,7 @@ func (hs *clientHandshakeState) readFinished(out []byte) error {
 	if err := c.readChangeCipherSpec(); err != nil {
 		return err
 	}
+	fmt.Println("===== gmtls/handshake_client.go readFinished : 客户端读取到 ChangeCipherSpec")
 
 	msg, err := c.readHandshake()
 	if err != nil {
@@ -826,7 +849,7 @@ func (hs *clientHandshakeState) readFinished(out []byte) error {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(serverFinished, msg)
 	}
-
+	fmt.Println("===== gmtls/handshake_client.go readFinished : 客户端读取到 ServerFinished")
 	verify := hs.finishedHash.serverSum(hs.masterSecret)
 	if len(verify) != len(serverFinished.verifyData) ||
 		subtle.ConstantTimeCompare(verify, serverFinished.verifyData) != 1 {
@@ -854,7 +877,7 @@ func (hs *clientHandshakeState) readSessionTicket() error {
 		return unexpectedMessageError(sessionTicketMsg, msg)
 	}
 	hs.finishedHash.Write(sessionTicketMsg.marshal())
-
+	fmt.Println("===== gmtls/handshake_client.go readSessionTicket : 客户端读取到 SessionTicket")
 	hs.session = &ClientSessionState{
 		sessionTicket:      sessionTicketMsg.ticket,
 		vers:               c.vers,
@@ -870,19 +893,21 @@ func (hs *clientHandshakeState) readSessionTicket() error {
 	return nil
 }
 
+// 发送 ClientFinished (tls1.2)
 func (hs *clientHandshakeState) sendFinished(out []byte) error {
 	c := hs.c
 
 	if _, err := c.writeRecord(recordTypeChangeCipherSpec, []byte{1}); err != nil {
 		return err
 	}
-
+	fmt.Println("===== gmtls/handshake_client.go sendFinished : 客户端发送 ChangeCipherSpec")
 	finished := new(finishedMsg)
 	finished.verifyData = hs.finishedHash.clientSum(hs.masterSecret)
 	hs.finishedHash.Write(finished.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, finished.marshal()); err != nil {
 		return err
 	}
+	fmt.Println("===== gmtls/handshake_client.go sendFinished : 客户端发送 ClientFinished")
 	copy(out, finished.verifyData)
 	return nil
 }

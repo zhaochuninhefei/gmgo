@@ -42,8 +42,7 @@ var (
 	supportedUpToTLS12 = []uint16{VersionTLS10, VersionTLS11, VersionTLS12}
 	supportedOnlyTLS12 = []uint16{VersionTLS12}
 	supportedOnlyTLS13 = []uint16{VersionTLS13}
-	// TODO: 如果最终没有实现 VersionGMSSL的握手，那么需要去掉 VersionGMSSL 的相关处理
-	// 补充上国密SSL
+	// 补充上国密SSL, 其实现与国密改造后的tls1.3一致
 	supportedTLS13AndGMSSL = []uint16{VersionTLS13, VersionGMSSL}
 )
 
@@ -147,7 +146,7 @@ type cipherSuite struct {
 	keyLen int
 	macLen int
 	ivLen  int
-	// TODO: 需要先改造 gmtls/key_agreement.go
+	// TODO: 并没有发现任何ka函数的实现
 	ka func(version uint16) keyAgreement
 	// flags is a bitmask of the suite* values, above.
 	flags  int
@@ -580,7 +579,7 @@ func aeadAESGCMTLS13(key, nonceMask []byte) aead {
 	return ret
 }
 
-// TODO: sm4实现AEAD，需要验证
+// sm4实现AEAD，需要验证
 // 只实现 aeadSM4GCMTLS13 没有实现 aeadSM4GCM 同样是因为目前没有为tls1.2准备国密密码套件
 func aeadSM4GCMTLS13(key, nonceMask []byte) aead {
 	if len(nonceMask) != aeadNonceLength {

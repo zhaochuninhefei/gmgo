@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build ignore
-// +build ignore
-
 // Generate a self-signed X.509 certificate for a TLS server. Outputs to
 // 'cert.pem' and 'key.pem' and will overwrite existing files.
+
+//go:build ignore
+// +build ignore
 
 package main
 
@@ -16,7 +16,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"flag"
@@ -26,6 +25,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 var (
@@ -34,12 +36,14 @@ var (
 	validFor   = flag.Duration("duration", 365*24*time.Hour, "Duration that certificate is valid for")
 	isCA       = flag.Bool("ca", false, "whether this cert should be its own Certificate Authority")
 	rsaBits    = flag.Int("rsa-bits", 2048, "Size of RSA key to generate. Ignored if --ecdsa-curve is set")
-	ecdsaCurve = flag.String("ecdsa-curve", "", "ECDSA curve to use to generate a key. Valid values are P224, P256 (recommended), P384, P521")
+	ecCurve    = flag.String("ec-curve", "", "EC curve to use to generate a key. Valid values are SM2P256 (recommended), P224, P256, P384, P521")
 	ed25519Key = flag.Bool("ed25519", false, "Generate an Ed25519 key")
 )
 
 func publicKey(priv interface{}) interface{} {
 	switch k := priv.(type) {
+	case *sm2.PrivateKey:
+		return &k.PublicKey
 	case *rsa.PrivateKey:
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
@@ -60,13 +64,16 @@ func main() {
 
 	var priv interface{}
 	var err error
-	switch *ecdsaCurve {
+
+	switch *ecCurve {
 	case "":
 		if *ed25519Key {
 			_, priv, err = ed25519.GenerateKey(rand.Reader)
 		} else {
 			priv, err = rsa.GenerateKey(rand.Reader, *rsaBits)
 		}
+	case "SM2P256":
+		priv, err = sm2.GenerateKey(rand.Reader)
 	case "P224":
 		priv, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	case "P256":
@@ -76,7 +83,7 @@ func main() {
 	case "P521":
 		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
-		log.Fatalf("Unrecognized elliptic curve: %q", *ecdsaCurve)
+		log.Fatalf("Unrecognized elliptic curve: %q", *ecCurve)
 	}
 	if err != nil {
 		log.Fatalf("Failed to generate private key: %v", err)
