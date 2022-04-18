@@ -9,28 +9,65 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-
 	"gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 const (
-	// rsaCertPath = "certs/rsa_sign.cer"
-	// rsaKeyPath  = "certs/rsa_sign_key.pem"
-	// rsaCacertPath = "certs/rsa_CA.cer"
-	// sm2SignCertPath = "certs/sm2_sign_cert.cer"
-	// sm2SignKeyPath  = "certs/sm2_sign_key.pem"
-	// sm2EncCertPath  = "certs/sm2_enc_cert.cer"
-	// sm2EncKeyPath   = "certs/sm2_enc_key.pem"
-	// SM2CaCertPath   = "certs/SM2_CA.cer"
+	rsaCertPath     = "./certs/rsa_sign.cer"
+	rsaKeyPath      = "./certs/rsa_sign_key.pem"
+	RSACaCertPath   = "./certs/RSA_CA.cer"
+	RSAAuthCertPath = "./certs/rsa_auth_cert.cer"
+	RSAAuthKeyPath  = "./certs/rsa_auth_key.pem"
+	SM2CaCertPath   = "./certs/sm2_ca_cert.cer"
+	SM2AuthCertPath = "./certs/sm2_auth_cert.cer"
+	SM2AuthKeyPath  = "./certs/sm2_auth_key.pem"
+	sm2SignCertPath = "./certs/sm2_sign_cert.cer"
+	sm2SignKeyPath  = "./certs/sm2_sign_key.pem"
+	sm2EncCertPath  = "./certs/sm2_enc_cert.cer"
+	sm2EncKeyPath   = "./certs/sm2_enc_key.pem"
 	sm2UserCertPath = "certs/sm2_auth_cert.cer"
 	sm2UserKeyPath  = "certs/sm2_auth_key.pem"
 )
 
+func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
+	// 读取rsa证书与私钥，作为普通tls场景的服务器证书用
+	rsaKeypair, err := gmtls.LoadX509KeyPair(rsaCertPath, rsaKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
+	sigCert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	// 返回服务端配置
+	config, err := gmtls.NewServerConfigByClientHello(&sigCert, &rsaKeypair)
+	if err != nil {
+		return nil, err
+	}
+
+	if needClientAuth {
+		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
+		certPool := x509.NewCertPool()
+		cacert, err := ioutil.ReadFile(SM2CaCertPath)
+		if err != nil {
+			return nil, err
+		}
+		certPool.AppendCertsFromPEM(cacert)
+		config.ClientAuth = gmtls.RequireAndVerifyClientCert
+		config.ClientCAs = certPool
+		// config.SessionTicketsDisabled = false
+		fmt.Println("------ debug用 : 服务端配置了ClientAuth")
+	}
+
+	return config, nil
+}
+
 // 启动服务端
 func ServerRun(needClientAuth bool) {
 	// 导入tls配置
-	config, err := loadAutoSwitchConfig(needClientAuth)
+	config, err := loadServerConfig(needClientAuth)
 	if err != nil {
 		panic(err)
 	}
