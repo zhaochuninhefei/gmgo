@@ -1,15 +1,16 @@
 # 基本思路
 
 ## 思路１：
-在tls1.2和tls1.3的实现中添加国密套件的实现。
+在tls1.2或tls1.3的实现中添加国密套件的实现。
 
 ## 思路２：
-单独添加一个GMTLS的握手过程。
+单独添加一个GMSSL的握手过程。
+
+# 实际国密改造工作内容
+
+1. 在tls1.3中添加国密密码套件`TLS_SM4_128_GCM_SM3`,实现相关代码,并让tls1.3默认最优先选择国密密码套件。此外,tls1.3的会话恢复机制中对sessionTicket的加密与认证改用sm4与sm3。
+
+2. 添加了GMSSL协议版本定义，但并未遵循国密标准``的定义，而是让其实现与国密改造后的tls1.3相同的握手过程。
 
 
-# 与crypto/tls的代码比对
-
-依赖关系：
-
-gmtls/auth.go -> gmtls/common.go -> gmtls/cipher_suites.go -> gmtls/key_agreement.go -> gmtls/key_schedule.go
 

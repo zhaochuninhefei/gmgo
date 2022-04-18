@@ -375,3 +375,33 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 
 	return nil, errors.New("gmtls: failed to parse private key")
 }
+
+func NewBasicAutoSwitchConfig(gmSigCert, genericCert *Certificate) (*Config, error) {
+	// 根据ClientHelloInfo中支持的协议，返回服务端证书
+	fncGetSignCertKeypair := func(info *ClientHelloInfo) (*Certificate, error) {
+		gmFlag := false
+		// 检查客户端支持的协议中是否包含TLS1.3或GMSSL
+		for _, v := range info.SupportedVersions {
+			if v == VersionGMSSL || v == VersionTLS13 {
+				// 检查客户端支持的密码套件是否包含TLS_SM4_128_GCM_SM3
+				for _, c := range info.CipherSuites {
+					if c == TLS_SM4_128_GCM_SM3 {
+						gmFlag = true
+						break
+					}
+				}
+				break
+			}
+		}
+		if gmFlag {
+			return gmSigCert, nil
+		} else {
+			return genericCert, nil
+		}
+	}
+
+	return &Config{
+		Certificates:   nil,
+		GetCertificate: fncGetSignCertKeypair,
+	}, nil
+}

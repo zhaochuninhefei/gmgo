@@ -58,7 +58,6 @@ func serverRun() {
 		log.Fatalf("fail to listen: %v", err)
 	}
 	creds := NewTLS(&gmtls.Config{
-		// GMSupport:    &gmtls.GMSupport{},
 		ClientAuth:   gmtls.RequireAndVerifyClientCert,
 		Certificates: []gmtls.Certificate{signCert, encryptCert},
 		ClientCAs:    certPool,

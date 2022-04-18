@@ -150,7 +150,7 @@ func (c *Conn) encryptTicket(state []byte) ([]byte, error) {
 	mac := hmac.New(sm3.New, key.hmacKey[:])
 	// 写入 encrypted 前三部分内容: ticketKeyName(16) + iv(16) + state对称加密结果
 	mac.Write(encrypted[:len(encrypted)-sm3.Size])
-	// 生成认证码填入macBytes TODO: 取macBytes的空切片来填入，有啥好处?
+	// 生成认证码填入macBytes
 	mac.Sum(macBytes[:0])
 
 	return encrypted, nil

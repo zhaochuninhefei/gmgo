@@ -1,5 +1,5 @@
 // Copyright (c) 2022 zhaochun
-// gmingo is licensed under Mulan PSL v2.
+// gmgo is licensed under Mulan PSL v2.
 // You can use this software according to the terms and conditions of the Mulan PSL v2.
 // You may obtain a copy of Mulan PSL v2 at:
 //          http://license.coscl.org.cn/MulanPSL2
@@ -52,11 +52,11 @@ func TestFuzz(t *testing.T) {
 		xx2, yy2 := p256Generic.ScalarMult(x2, y2, scalar2[:])
 
 		if x.Cmp(x2) != 0 || y.Cmp(y2) != 0 {
-			t.Fatalf("ScalarBaseMult does not match reference result with scalar: %x, please report this error to https://gitee.com/zhaochuninhefei/gmingo/issues", scalar1)
+			t.Fatalf("ScalarBaseMult does not match reference result with scalar: %x, please report this error to https://gitee.com/zhaochuninhefei/gmgo/issues", scalar1)
 		}
 
 		if xx.Cmp(xx2) != 0 || yy.Cmp(yy2) != 0 {
-			t.Fatalf("ScalarMult does not match reference result with scalars: %x and %x, please report this error to https://gitee.com/zhaochuninhefei/gmingo/issues", scalar1, scalar2)
+			t.Fatalf("ScalarMult does not match reference result with scalars: %x and %x, please report this error to https://gitee.com/zhaochuninhefei/gmgo/issues", scalar1, scalar2)
 		}
 	}
 }

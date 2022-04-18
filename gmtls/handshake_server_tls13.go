@@ -733,6 +733,7 @@ func (hs *serverHandshakeStateTLS13) sendServerFinished() error {
 
 func (hs *serverHandshakeStateTLS13) shouldSendSessionTickets() bool {
 	if hs.c.config.SessionTicketsDisabled {
+		fmt.Println("===== gmtls/handshake_server_tls13.go shouldSendSessionTickets : config.SessionTicketsDisabled is true")
 		return false
 	}
 
@@ -756,6 +757,7 @@ func (hs *serverHandshakeStateTLS13) sendSessionTickets() error {
 	hs.transcript.Write(finishedMsg.marshal())
 
 	if !hs.shouldSendSessionTickets() {
+		fmt.Println("===== gmtls/handshake_server_tls13.go sendSessionTickets : shouldSendSessionTickets is false")
 		return nil
 	}
 	// 派生会话恢复用机密

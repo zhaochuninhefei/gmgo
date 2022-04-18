@@ -1,12 +1,17 @@
 gmgo
 ================
 基于`go1.17.5`实现的国密算法库，包括:
-- sm2 : 基于tjfoc国密算法库`tjfoc/gmsm`的`2.0`版本的sm2部分实现部分扩展。
+- sm2 : 基于`emmansun/gmsm`的sm2部分实现部分扩展。
+- sm2soft : 基于`tjfoc/gmsm`的sm2部分的纯软实现,仅作验证与参考用。
 - sm3 : 基于`emmansun/gmsm`的sm3部分实现部分扩展。
+- sm3soft : 基于`tjfoc/gmsm`的sm3部分的纯软实现,仅作验证与参考用。
 - sm4 : 基于`emmansun/gmsm`的sm4部分实现部分扩展。
-- x509 : 整理实现中。。。
-- gmtls : 整理实现中。。。
+- sm4soft : 基于`tjfoc/gmsm`的sm4部分的纯软实现,仅作验证与参考用。
+- x509 : 基于`go1.17.5`的x509包与本项目的sm2/sm3/sm4包实现国密改造。
+- gmtls : 基于`go1.17.5`的tls包与本项目的sm2/sm3/sm4包实现国密改造。
 - gmhttp : 整理实现中。。。
+
+> 在x509/gmtls/gmhttp的实现中，采用的是基于`emmansun/gmsm`的国密实现，该开源项目已实现利用amd64与arm64架构CPU实现对应国密算法的硬件加速。sm2soft/sm3soft/sm4soft是对应国密算法的纯软实现，仅用作验证与参考。
 
 # gmgo的包路径
 go package： `gitee.com/zhaochuninhefei/gmgo`
@@ -89,7 +94,7 @@ go test
 执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
 
 # 关于版权声明
-本项目依赖的其他开源项目有:
+本项目的国密算法部分参考了以下其他开源项目，向对应的开源作者表示感谢!
 - `https://github.com/emmansun/gmsm`
 - `https://github.com/tjfoc/gmsm`
 

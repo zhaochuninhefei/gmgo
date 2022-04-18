@@ -1,10 +1,15 @@
 // Copyright (c) 2022 zhaochun
-// gmingo is licensed under Mulan PSL v2.
+// gmgo is licensed under Mulan PSL v2.
 // You can use this software according to the terms and conditions of the Mulan PSL v2.
 // You may obtain a copy of Mulan PSL v2 at:
 //          http://license.coscl.org.cn/MulanPSL2
 // THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
+
+/*
+sm2soft 是sm2的纯软实现，基于tjfoc国密算法库`tjfoc/gmsm`做了少量修改。
+对应版权声明: thrid_licenses/github.com/tjfoc/gmsm/版权声明
+*/
 
 package sm2soft
 
