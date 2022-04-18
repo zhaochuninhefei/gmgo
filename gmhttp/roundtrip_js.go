@@ -162,7 +162,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	failure = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		success.Release()
 		failure.Release()
-		errCh <- fmt.Errorf("net/http: fetch() failed: %s", args[0].Get("message").String())
+		errCh <- fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: fetch() failed: %s", args[0].Get("message").String())
 		return nil
 	})
 
@@ -181,7 +181,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	}
 }
 
-var errClosed = errors.New("net/http: reader is closed")
+var errClosed = errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: reader is closed")
 
 // streamReader implements an io.ReadCloser wrapper for ReadableStream.
 // See https://fetch.spec.whatwg.org/#readablestream for more information.

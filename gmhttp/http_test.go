@@ -91,14 +91,14 @@ func TestCmdGoNoHTTPServer(t *testing.T) {
 	}
 	wantSym := map[string]bool{
 		// Verify these exist: (sanity checking this test)
-		"net/http.(*Client).do":           true,
-		"net/http.(*Transport).RoundTrip": true,
+		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*Client).do":           true,
+		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*Transport).RoundTrip": true,
 
 		// Verify these don't exist:
-		"net/http.http2Server":           false,
-		"net/http.(*Server).Serve":       false,
-		"net/http.(*ServeMux).ServeHTTP": false,
-		"net/http.DefaultServeMux":       false,
+		"gitee.com/zhaochuninhefei/gmgo/gmhttp.http2Server":           false,
+		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*Server).Serve":       false,
+		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*ServeMux).ServeHTTP": false,
+		"gitee.com/zhaochuninhefei/gmgo/gmhttp.DefaultServeMux":       false,
 	}
 	for sym, want := range wantSym {
 		got := bytes.Contains(out, []byte(sym))
@@ -119,7 +119,7 @@ func TestOmitHTTP2(t *testing.T) {
 	}
 	t.Parallel()
 	goTool := testenv.GoToolPath(t)
-	out, err := exec.Command(goTool, "test", "-short", "-tags=nethttpomithttp2", "net/http").CombinedOutput()
+	out, err := exec.Command(goTool, "test", "-short", "-tags=nethttpomithttp2", "gitee.com/zhaochuninhefei/gmgo/gmhttp").CombinedOutput()
 	if err != nil {
 		t.Fatalf("go test -short failed: %v, %s", err, out)
 	}
@@ -131,7 +131,7 @@ func TestOmitHTTP2(t *testing.T) {
 func TestOmitHTTP2Vet(t *testing.T) {
 	t.Parallel()
 	goTool := testenv.GoToolPath(t)
-	out, err := exec.Command(goTool, "vet", "-tags=nethttpomithttp2", "net/http").CombinedOutput()
+	out, err := exec.Command(goTool, "vet", "-tags=nethttpomithttp2", "gitee.com/zhaochuninhefei/gmgo/gmhttp").CombinedOutput()
 	if err != nil {
 		t.Fatalf("go vet failed: %v, %s", err, out)
 	}

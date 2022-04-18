@@ -8,13 +8,13 @@ package httptrace
 
 import (
 	"context"
-	"internal/nettrace"
 	"net"
 	"net/textproto"
 	"reflect"
 	"time"
 
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/internal/nettrace"
 )
 
 // unique type to prevent assignment.

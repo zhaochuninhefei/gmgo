@@ -585,7 +585,7 @@ var reqWriteTests = []reqWriteTest{
 				RawQuery: "new\nline", // or any CTL
 			},
 		},
-		WantError: errors.New("net/http: can't write control character in Request.URL"),
+		WantError: errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: can't write control character in Request.URL"),
 	},
 
 	26: { // Request with nil body and PATCH method. Issue #40978

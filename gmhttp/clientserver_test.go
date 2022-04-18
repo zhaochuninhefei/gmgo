@@ -1489,9 +1489,11 @@ func testWriteHeaderAfterWrite(t *testing.T, h2, hijack bool) {
 		return
 	}
 	gotLog := strings.TrimSpace(errorLog.String())
-	wantLog := "http: superfluous response.WriteHeader call from net/http_test.testWriteHeaderAfterWrite.func1 (clientserver_test.go:"
+	wantLog := "http: superfluous response.WriteHeader call from gitee.com/zhaochuninhefei/gmgo/gmhttp_test.testWriteHeaderAfterWrite.func1 (clientserver_test.go:"
+	// wantLog := "http: superfluous response.WriteHeader call from gitee.com/zhaochuninhefei/gmgo/"
 	if hijack {
-		wantLog = "http: response.WriteHeader on hijacked connection from net/http_test.testWriteHeaderAfterWrite.func1 (clientserver_test.go:"
+		wantLog = "http: response.WriteHeader on hijacked connection from gitee.com/zhaochuninhefei/gmgo/gmhttp_test.testWriteHeaderAfterWrite.func1 (clientserver_test.go:"
+		// wantLog = "http: response.WriteHeader on hijacked connection from gitee.com/zhaochuninhefei/gmgo/"
 	}
 	if !strings.HasPrefix(gotLog, wantLog) {
 		t.Errorf("stderr output = %q; want %q", gotLog, wantLog)

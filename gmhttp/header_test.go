@@ -6,11 +6,12 @@ package gmhttp
 
 import (
 	"bytes"
-	"internal/race"
 	"reflect"
 	"runtime"
 	"testing"
 	"time"
+
+	"gitee.com/zhaochuninhefei/gmgo/internal/race"
 )
 
 var headerWriteTests = []struct {

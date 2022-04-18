@@ -521,12 +521,12 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 		for k, vv := range req.Header {
 			if !httpguts.ValidHeaderFieldName(k) {
 				req.closeBody()
-				return nil, fmt.Errorf("net/http: invalid header field name %q", k)
+				return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: invalid header field name %q", k)
 			}
 			for _, v := range vv {
 				if !httpguts.ValidHeaderFieldValue(v) {
 					req.closeBody()
-					return nil, fmt.Errorf("net/http: invalid header field value %q for key %v", v, k)
+					return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: invalid header field value %q for key %v", v, k)
 				}
 			}
 		}
@@ -552,7 +552,7 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 	}
 	if req.Method != "" && !validMethod(req.Method) {
 		req.closeBody()
-		return nil, fmt.Errorf("net/http: invalid method %q", req.Method)
+		return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: invalid method %q", req.Method)
 	}
 	if req.URL.Host == "" {
 		req.closeBody()
@@ -622,7 +622,7 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 	}
 }
 
-var errCannotRewind = errors.New("net/http: cannot rewind body after connection loss")
+var errCannotRewind = errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: cannot rewind body after connection loss")
 
 type readTrackingBody struct {
 	io.ReadCloser
@@ -727,7 +727,7 @@ func (pc *persistConn) shouldRetryRequest(req *Request, err error) bool {
 }
 
 // ErrSkipAltProtocol is a sentinel error value defined by Transport.RegisterProtocol.
-var ErrSkipAltProtocol = errors.New("net/http: skip alternate protocol")
+var ErrSkipAltProtocol = errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: skip alternate protocol")
 
 // RegisterProtocol registers a new protocol with scheme.
 // The Transport will pass requests using the given scheme to rt.
@@ -885,7 +885,7 @@ type transportReadFromServerError struct {
 func (e transportReadFromServerError) Unwrap() error { return e.err }
 
 func (e transportReadFromServerError) Error() string {
-	return fmt.Sprintf("net/http: Transport failed to read from server: %v", e.err)
+	return fmt.Sprintf("gitee.com/zhaochuninhefei/gmgo/gmhttp: Transport failed to read from server: %v", e.err)
 }
 
 func (t *Transport) putOrCloseIdleConn(pconn *persistConn) {
@@ -1169,7 +1169,7 @@ func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, e
 	if t.Dial != nil {
 		c, err := t.Dial(network, addr)
 		if c == nil && err == nil {
-			err = errors.New("net/http: Transport.Dial hook returned (nil, nil)")
+			err = errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: Transport.Dial hook returned (nil, nil)")
 		}
 		return c, err
 	}
@@ -1221,7 +1221,7 @@ func (w *wantConn) tryDeliver(pc *persistConn, err error) bool {
 	w.pc = pc
 	w.err = err
 	if w.pc == nil && w.err == nil {
-		panic("net/http: internal error: misuse of tryDeliver")
+		panic("gitee.com/zhaochuninhefei/gmgo/gmhttp: internal error: misuse of tryDeliver")
 	}
 	close(w.ready)
 	return true
@@ -1317,7 +1317,7 @@ func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (co
 		conn, err = t.DialTLS(network, addr)
 	}
 	if conn == nil && err == nil {
-		err = errors.New("net/http: Transport.DialTLS or DialTLSContext returned (nil, nil)")
+		err = errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: Transport.DialTLS or DialTLSContext returned (nil, nil)")
 	}
 	return
 }
@@ -1470,7 +1470,7 @@ func (t *Transport) decConnsPerHost(key connectMethodKey) {
 	if n == 0 {
 		// Shouldn't happen, but if it does, the counting is buggy and could
 		// easily lead to a silent deadlock, so report the problem loudly.
-		panic("net/http: internal error: connCount underflow")
+		panic("gitee.com/zhaochuninhefei/gmgo/gmhttp: internal error: connCount underflow")
 	}
 
 	// Can we hand this count to a goroutine still waiting to dial?
@@ -2040,7 +2040,7 @@ func (pc *persistConn) mapRoundTripError(req *transportRequest, startBytesWritte
 		if pc.nwrite == startBytesWritten {
 			return nothingWrittenError{err}
 		}
-		return fmt.Errorf("net/http: HTTP/1.x transport connection broken: %v", err)
+		return fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: HTTP/1.x transport connection broken: %v", err)
 	}
 	return err
 }
@@ -2108,7 +2108,7 @@ func (pc *persistConn) readLoop() {
 
 		if err != nil {
 			if pc.readLimit <= 0 {
-				err = fmt.Errorf("net/http: server response headers exceeded %d bytes; aborted", pc.maxHeaderResponseSize())
+				err = fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: server response headers exceeded %d bytes; aborted", pc.maxHeaderResponseSize())
 			}
 
 			select {
@@ -2301,7 +2301,7 @@ func (pc *persistConn) readResponse(rc requestAndChan, trace *httptrace.ClientTr
 		if is1xxNonTerminal {
 			num1xx++
 			if num1xx > max1xxResponses {
-				return nil, errors.New("net/http: too many 1xx informational responses")
+				return nil, errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: too many 1xx informational responses")
 			}
 			pc.readLimit = pc.maxHeaderResponseSize() // reset the limit
 			if trace != nil && trace.Got1xxResponse != nil {
@@ -2505,12 +2505,12 @@ func (e *httpError) Error() string   { return e.err }
 func (e *httpError) Timeout() bool   { return e.timeout }
 func (e *httpError) Temporary() bool { return true }
 
-var errTimeout error = &httpError{err: "net/http: timeout awaiting response headers", timeout: true}
+var errTimeout error = &httpError{err: "gitee.com/zhaochuninhefei/gmgo/gmhttp: timeout awaiting response headers", timeout: true}
 
 // errRequestCanceled is set to be identical to the one from h2 to facilitate
 // testing.
 var errRequestCanceled = http2errRequestCanceled
-var errRequestCanceledConn = errors.New("net/http: request canceled while waiting for connection") // TODO: unify?
+var errRequestCanceledConn = errors.New("gitee.com/zhaochuninhefei/gmgo/gmhttp: request canceled while waiting for connection") // TODO: unify?
 
 func nop() {}
 
@@ -2841,7 +2841,9 @@ type tlsHandshakeTimeoutError struct{}
 
 func (tlsHandshakeTimeoutError) Timeout() bool   { return true }
 func (tlsHandshakeTimeoutError) Temporary() bool { return true }
-func (tlsHandshakeTimeoutError) Error() string   { return "net/http: TLS handshake timeout" }
+func (tlsHandshakeTimeoutError) Error() string {
+	return "gitee.com/zhaochuninhefei/gmgo/gmhttp: TLS handshake timeout"
+}
 
 // fakeLocker is a sync.Locker which does nothing. It's used to guard
 // test-only fields when not under test, to avoid runtime atomic
