@@ -94,7 +94,7 @@ go test
 # 关于版权声明
 本项目自身采用木兰宽松许可证(第2版)，具体参考`LICENSE`文件。
 
-本项目的国密算法部分参考了以下其他开源项目，向对应的开源作者表示感谢!
+本项目参考了以下其他开源项目，向对应的开源作者表示感谢!
 - `https://github.com/golang/go`
 - `https://github.com/emmansun/gmsm`
 - `https://github.com/tjfoc/gmsm`

@@ -66,7 +66,17 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 	if block == nil || !strings.HasSuffix(block.Type, "PRIVATE KEY") {
 		return nil, errors.New("failed to decode private key")
 	}
-	priv, err := ParsePKCS8PrivateKey(block.Bytes)
+	var der []byte
+	var err error
+	if pwd != nil {
+		der, err = DecryptPEMBlock(block, pwd)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		der = block.Bytes
+	}
+	priv, err := ParsePKCS8PrivateKey(der)
 	return priv, err
 }
 
@@ -88,17 +98,6 @@ func WritePrivateKeyToPem(key interface{}, pwd []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// if pwd != nil {
-	// 	block = &pem.Block{
-	// 		Type:  "ENCRYPTED PRIVATE KEY",
-	// 		Bytes: der,
-	// 	}
-	// } else {
-	// 	block = &pem.Block{
-	// 		Type:  "PRIVATE KEY",
-	// 		Bytes: der,
-	// 	}
-	// }
 	var pemType string
 	switch key.(type) {
 	case *sm2.PrivateKey:
@@ -112,9 +111,16 @@ func WritePrivateKeyToPem(key interface{}, pwd []byte) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("gmx509.WritePrivateKeyToPem : unsupported key: [%T]", key)
 	}
-	block = &pem.Block{
-		Type:  pemType,
-		Bytes: der,
+	if pwd != nil {
+		block, err = EncryptPEMBlock(rand.Reader, "ENCRYPTED "+pemType, der, pwd, PEMCipherSM4)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		block = &pem.Block{
+			Type:  pemType,
+			Bytes: der,
+		}
 	}
 	certPem := pem.EncodeToMemory(block)
 	return certPem, nil
@@ -128,17 +134,6 @@ func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (boo
 	if err != nil {
 		return false, err
 	}
-	// if pwd != nil {
-	// 	block = &pem.Block{
-	// 		Type:  "ENCRYPTED PRIVATE KEY",
-	// 		Bytes: der,
-	// 	}
-	// } else {
-	// 	block = &pem.Block{
-	// 		Type:  "PRIVATE KEY",
-	// 		Bytes: der,
-	// 	}
-	// }
 	var pemType string
 	switch key.(type) {
 	case *sm2.PrivateKey:
@@ -152,9 +147,16 @@ func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (boo
 	default:
 		return false, fmt.Errorf("gmx509.WritePrivateKeytoPemFile : unsupported key: [%T]", key)
 	}
-	block = &pem.Block{
-		Type:  pemType,
-		Bytes: der,
+	if pwd != nil {
+		block, err = EncryptPEMBlock(rand.Reader, "ENCRYPTED "+pemType, der, pwd, PEMCipherSM4)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		block = &pem.Block{
+			Type:  pemType,
+			Bytes: der,
+		}
 	}
 	file, err := os.Create(FileName)
 	if err != nil {
