@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/gmtls"
-	"gitee.com/zhaochuninhefei/gmgo/gmtls/gmcredentials/echo"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/grpc_test/echo"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
