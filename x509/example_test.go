@@ -5,7 +5,6 @@
 package x509_test
 
 import (
-	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
@@ -126,8 +125,8 @@ AIU+2GKjyT3iMuzZxxFxPFMCAwEAAQ==
 	switch pub := pub.(type) {
 	case *rsa.PublicKey:
 		fmt.Println("pub is of type RSA:", pub)
-	case *dsa.PublicKey:
-		fmt.Println("pub is of type DSA:", pub)
+	// case *dsa.PublicKey:
+	// 	fmt.Println("pub is of type DSA:", pub)
 	case *ecdsa.PublicKey:
 		fmt.Println("pub is of type ECDSA:", pub)
 	case ed25519.PublicKey:

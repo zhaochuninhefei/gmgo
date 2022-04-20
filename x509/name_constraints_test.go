@@ -45,7 +45,7 @@ type nameConstraintsTest struct {
 	requestedEKUs []ExtKeyUsage
 	expectedError string
 	noOpenSSL     bool
-	ignoreCN      bool
+	// ignoreCN      bool
 }
 
 type constraintsSpec struct {
