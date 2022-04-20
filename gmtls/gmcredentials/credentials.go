@@ -21,9 +21,9 @@ import (
 	"strings"
 
 	"gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/credentials"
 )
 
 var (

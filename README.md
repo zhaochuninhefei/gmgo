@@ -9,7 +9,8 @@ gmgo
 - sm4soft : 基于`tjfoc/gmsm`的sm4部分的纯软实现,仅作验证与参考用。
 - x509 : 基于`go1.17.5`的x509包与本项目的sm2/sm3/sm4包实现国密改造。
 - gmtls : 基于`go1.17.5`的tls包与本项目的sm2/sm3/sm4包实现国密改造，其中，`gmcredentials`包是对`google.golang.org/grpc/credentials`的国密改造，基于`tjfoc/gmsm`中的`gmcredentials`包做了少量修改。
-- gmhttp : 整理中。。。
+- gmhttp : 基于`go1.17.5`的`net/http`包做了对应的国密改造。
+- grpc : 基于`google.golang.org/grpc`的`v1.44.0`版本做了对应的国密改造。
 
 > 在x509/gmtls/gmhttp的实现中，国密算法采用的是基于`emmansun/gmsm`的国密实现，该开源项目已实现利用amd64与arm64架构CPU实现对应国密算法的硬件加速。sm2soft/sm3soft/sm4soft是对应国密算法的纯软实现，仅用作验证与参考。
 
@@ -69,9 +70,6 @@ go test
 
 
 ## gmtls
-gmtls的测试案例主要是 `tls + http` 通信测试以及 `tls + grpc` 通信测试。
-
-### tls + http
 测试案例代码: `gmtls/tls_test/tls_test.go`
 ```sh
 cd gmtls/tls_test
@@ -81,10 +79,10 @@ go test
 
 执行之前请确认`certs`目录下的sm2系列文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
 
-### tls + grpc
-测试案例代码: `gmtls/gmcredentials/credentials_test.go`
+## gmgrpc
+测试案例代码: `grpc/grpc_test/grpc_test.go`
 ```sh
-cd gmtls/gmcredentials
+cd grpc/grpc_test
 go test
 
 ```
@@ -94,9 +92,12 @@ go test
 # 关于版权声明
 本项目自身采用木兰宽松许可证(第2版)，具体参考`LICENSE`文件。
 
-本项目参考了以下其他开源项目，向对应的开源作者表示感谢!
-- `https://github.com/golang/go`
+本项目参考了以下开源项目，向对应的开源作者表示感谢!
 - `https://github.com/emmansun/gmsm`
 - `https://github.com/tjfoc/gmsm`
+- `https://github.com/golang/go`
+- `https://github.com/grpc/grpc-go`
+- `https://github.com/envoyproxy/go-control-plane`
+- `https://github.com/golang/net`
 
 对应的版权声明参见目录`thrid_licenses`。

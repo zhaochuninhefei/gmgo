@@ -23,9 +23,9 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/gmtls"
 	"gitee.com/zhaochuninhefei/gmgo/gmtls/gmcredentials/echo"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 const (
