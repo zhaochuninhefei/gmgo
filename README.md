@@ -8,7 +8,7 @@ gmgo
 - sm4 : 基于`emmansun/gmsm`的sm4部分实现部分扩展。
 - sm4soft : 基于`tjfoc/gmsm`的sm4部分的纯软实现,仅作验证与参考用。
 - x509 : 基于`go1.17.5`的x509包与本项目的sm2/sm3/sm4包实现国密改造。
-- gmtls : 基于`go1.17.5`的tls包与本项目的sm2/sm3/sm4包实现国密改造，其中，`gmcredentials`包是对`google.golang.org/grpc/credentials`的国密改造，基于`tjfoc/gmsm`中的`gmcredentials`包做了少量修改。
+- gmtls : 基于`go1.17.5`的tls包与本项目的sm2/sm3/sm4包实现国密改造。
 - gmhttp : 基于`go1.17.5`的`net/http`包做了对应的国密改造。
 - grpc : 基于`google.golang.org/grpc`的`v1.44.0`版本做了对应的国密改造。
 
