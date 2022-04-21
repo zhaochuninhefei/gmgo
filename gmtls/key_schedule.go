@@ -193,6 +193,22 @@ func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 	}
 }
 
+func CurveNameById(id CurveID) string {
+	switch id {
+	// 添加国密SM2曲线
+	case Curve256Sm2:
+		return sm2.P256Sm2().Params().Name
+	case CurveP256:
+		return elliptic.P256().Params().Name
+	case CurveP384:
+		return elliptic.P384().Params().Name
+	case CurveP521:
+		return elliptic.P521().Params().Name
+	default:
+		return fmt.Sprintf("unknown CurveID: %d", id)
+	}
+}
+
 type nistParameters struct {
 	privateKey []byte
 	x, y       *big.Int // public key

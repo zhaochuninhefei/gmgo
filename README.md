@@ -12,7 +12,7 @@ gmgo
 - gmhttp : 基于`go1.17.5`的`net/http`包做了对应的国密改造。
 - grpc : 基于`google.golang.org/grpc`的`v1.44.0`版本做了对应的国密改造。
 
-> 在x509/gmtls/gmhttp的实现中，国密算法采用的是基于`emmansun/gmsm`的国密实现，该开源项目已实现利用amd64与arm64架构CPU实现对应国密算法的硬件加速。sm2soft/sm3soft/sm4soft是对应国密算法的纯软实现，仅用作验证与参考。
+> 在x509与gmtls的实现中，国密算法采用的是基于`emmansun/gmsm`的国密实现，该开源项目已实现利用amd64与arm64架构CPU实现对应国密算法的硬件加速。sm2soft/sm3soft/sm4soft是对应国密算法的纯软实现，仅用作验证与参考。
 
 # gmgo的包路径
 go package： `gitee.com/zhaochuninhefei/gmgo`
@@ -66,7 +66,7 @@ go test
 
 ```
 
-注意，`x509_test`的`TestCreateCertFromCA`测试函数生成的sm2系列密钥文件与证书将会用于`gmtls`的测试案例。
+注意，`x509_test`的`TestCreateCertFromCA`测试函数生成的sm2系列密钥文件与证书将会用于`gmtls`与`gmgrpc`的测试案例。
 
 
 ## gmtls
