@@ -92,12 +92,17 @@ go test
 # 关于版权声明
 本项目自身采用木兰宽松许可证(第2版)，具体参考`LICENSE`文件。
 
-本项目参考了以下开源项目，向对应的开源作者表示感谢!
+本项目参考了以下开源项目，基于其代码做了部分二次开发，向对应的开源作者表示感谢!
 - `https://github.com/emmansun/gmsm`
 - `https://github.com/tjfoc/gmsm`
 - `https://github.com/golang/go`
 - `https://github.com/grpc/grpc-go`
 - `https://github.com/envoyproxy/go-control-plane`
 - `https://github.com/golang/net`
+- `https://github.com/gorilla/mux`
+- `https://github.com/gorilla/handlers`
+- `https://github.com/felixge/httpsnoop`
+- `https://github.com/grpc-ecosystem/go-grpc-middleware`
+- `https://github.com/prometheus/client_golang`
 
 对应的版权声明参见目录`thrid_licenses`。
