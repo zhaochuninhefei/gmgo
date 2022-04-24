@@ -401,11 +401,11 @@ func signGeneric(priv *PrivateKey, csprng *cipher.StreamReader, hash []byte) (r,
 		dp1 := new(big.Int).Add(priv.D, one) // 1 + d
 		var dp1Inv *big.Int                  // (1 + d)^-1
 		if in, ok := priv.Curve.(invertible); ok {
-			fmt.Println("sm2hard/sm2.go signGeneric 利用硬件加速")
+			// fmt.Println("sm2hard/sm2.go signGeneric 利用硬件加速")
 			// 如果平台cpu是amd64或arm64架构，则利用cpu硬件实现快速的 (1 + d)^-1 运算
 			dp1Inv = in.Inverse(dp1)
 		} else {
-			fmt.Println("sm2hard/sm2.go signGeneric 没有利用硬件加速")
+			// fmt.Println("sm2hard/sm2.go signGeneric 没有利用硬件加速")
 			// 纯软实现的 (1 + d)^-1 运算
 			dp1Inv = fermatInverse(dp1, N) // N != 0
 		}
@@ -511,11 +511,11 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	}
 	var x *big.Int
 	if opt, ok := c.(combinedMult); ok {
-		fmt.Println("sm2hard/sm2.go verifyGeneric 利用硬件加速")
+		// fmt.Println("sm2hard/sm2.go verifyGeneric 利用硬件加速")
 		// 如果cpu是amd64或arm64架构，则使用快速计算实现步骤2~4
 		x, _ = opt.CombinedMult(pub.X, pub.Y, s.Bytes(), t.Bytes())
 	} else {
-		fmt.Println("sm2hard/sm2.go verifyGeneric 没有利用硬件加速")
+		// fmt.Println("sm2hard/sm2.go verifyGeneric 没有利用硬件加速")
 		// 2.计算 s*G
 		x1, y1 := c.ScalarBaseMult(s.Bytes())
 		// 3.计算 t*pub

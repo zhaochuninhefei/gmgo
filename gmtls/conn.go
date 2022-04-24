@@ -1263,10 +1263,10 @@ func (c *Conn) handlePostHandshakeMessage() error {
 
 	switch msg := msg.(type) {
 	case *newSessionTicketMsgTLS13:
-		fmt.Println("===== gmtls/conn.go handlePostHandshakeMessage : 客户端接收到 newSessionTicketMsgTLS13")
+		// fmt.Println("===== gmtls/conn.go handlePostHandshakeMessage : 客户端接收到 newSessionTicketMsgTLS13")
 		return c.handleNewSessionTicket(msg)
 	case *keyUpdateMsg:
-		fmt.Println("===== gmtls/conn.go handlePostHandshakeMessage : 客户端/服务端接收到 keyUpdateMsg")
+		// fmt.Println("===== gmtls/conn.go handlePostHandshakeMessage : 客户端/服务端接收到 keyUpdateMsg")
 		return c.handleKeyUpdate(msg)
 	default:
 		c.sendAlert(alertUnexpectedMessage)
@@ -1301,7 +1301,6 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 		newSecret := cipherSuite.nextTrafficSecret(c.out.trafficSecret)
 		c.out.setTrafficSecret(cipherSuite, newSecret)
 	}
-	// TODO: 为何没有 keyUpdate 接收方重新派生 out通道密钥的处理?
 	return nil
 }
 
@@ -1312,7 +1311,7 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 // has not yet completed. See SetDeadline, SetReadDeadline, and
 // SetWriteDeadline.
 func (c *Conn) Read(b []byte) (int, error) {
-	fmt.Println("===== gmtls/conn.go conn.Read : tls连接读取到一条消息")
+	// fmt.Println("===== gmtls/conn.go conn.Read : tls连接读取到一条消息")
 	if err := c.Handshake(); err != nil {
 		return 0, err
 	}

@@ -235,7 +235,7 @@ func (p *nistParameters) SharedKey(peerPublicKey []byte) []byte {
 	// peerPublicKey * 私钥 获取共享密钥
 	xShared, _ := curve.ScalarMult(x, y, p.privateKey)
 	sharedKey := make([]byte, (curve.Params().BitSize+7)/8)
-	fmt.Printf("===== gmtls/key_schedule.go nistParameters.SharedKey : 使用曲线 %s 与对方公钥计算共享密钥\n", curve.Params().Name)
+	// fmt.Printf("===== gmtls/key_schedule.go nistParameters.SharedKey : 使用曲线 %s 与对方公钥计算共享密钥\n", curve.Params().Name)
 	return xShared.FillBytes(sharedKey)
 }
 

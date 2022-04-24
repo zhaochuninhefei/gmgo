@@ -72,7 +72,7 @@ func ServerRun(needClientAuth bool) {
 		// 在http响应中写入内容
 		fmt.Fprintf(writer, "你好, %s ! \n", clientName)
 	})
-	fmt.Println("============ HTTP服务(基于GMSSL或TLS) 已启动 ============")
+	// fmt.Println("============ HTTP服务(基于GMSSL或TLS) 已启动 ============")
 
 	// 在tls监听器上开启https服务
 	err = http.Serve(ln, nil)
@@ -116,7 +116,7 @@ func ClientRunGMSSL() {
 	}
 	defer conn.Close()
 
-	fmt.Println("============ gmtls客户端(gmssl)连接服务端，握手成功 ============")
+	// fmt.Println("============ gmtls客户端(gmssl)连接服务端，握手成功 ============")
 	// time.Sleep(time.Minute)
 	// 定义http请求
 	req := []byte("GET /test?clientName=gmtlsClient(gmssl) HTTP/1.1\r\n" +
@@ -125,7 +125,7 @@ func ClientRunGMSSL() {
 	// 向tls连接写入请求
 	_, _ = conn.Write(req)
 
-	fmt.Println("============ gmtls客户端(gmssl)向服务端发送http请求 ============")
+	// fmt.Println("============ gmtls客户端(gmssl)向服务端发送http请求 ============")
 
 	// 从tls连接中读取http请求响应
 	buff := make([]byte, 1024)
@@ -137,7 +137,7 @@ func ClientRunGMSSL() {
 			fmt.Printf("%s", buff[0:n])
 		}
 	}
-	fmt.Println("============ gmtls客户端(gmssl)与服务端连接测试成功 ============")
+	// fmt.Println("============ gmtls客户端(gmssl)与服务端连接测试成功 ============")
 	end <- true
 }
 
@@ -178,7 +178,7 @@ func ClientRunTls13() {
 	}
 	defer conn.Close()
 
-	fmt.Println("============ gmtls客户端(tls1.3)连接服务端，握手成功 ============")
+	// fmt.Println("============ gmtls客户端(tls1.3)连接服务端，握手成功 ============")
 	// time.Sleep(time.Minute)
 	// 定义http请求
 	req := []byte("GET /test?clientName=gmtlsClient(tls1.3) HTTP/1.1\r\n" +
@@ -187,7 +187,7 @@ func ClientRunTls13() {
 	// 向tls连接写入请求
 	_, _ = conn.Write(req)
 
-	fmt.Println("============ gmtls客户端(tls1.3)向服务端发送http请求 ============")
+	// fmt.Println("============ gmtls客户端(tls1.3)向服务端发送http请求 ============")
 
 	// 从tls连接中读取http请求响应
 	buff := make([]byte, 1024)
@@ -199,7 +199,7 @@ func ClientRunTls13() {
 			fmt.Printf("%s", buff[0:n])
 		}
 	}
-	fmt.Println("============ gmtls客户端(tls1.3)与服务端连接测试成功 ============")
+	// fmt.Println("============ gmtls客户端(tls1.3)与服务端连接测试成功 ============")
 	end <- true
 }
 

@@ -36,7 +36,7 @@ func TestSm2Sign(t *testing.T) {
 	msg := []byte("12345,上山打老虎")
 	fmt.Printf("明文: %s\n", msg)
 
-	fmt.Println("========== sm2soft使用soft公私钥签名及验签 ==========")
+	// fmt.Println("========== sm2soft使用soft公私钥签名及验签 ==========")
 	softSignBySoftPriv, err := privSoft.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestSm2Sign(t *testing.T) {
 	ok1 := privSoft.PublicKey.Verify(msg, softSignBySoftPriv)
 	fmt.Printf("验签结果: %v\n", ok1)
 
-	fmt.Println("========== sm2hard使用hard公私钥签名及验签 ==========")
+	// fmt.Println("========== sm2hard使用hard公私钥签名及验签 ==========")
 	hardSignByHardPriv, err := privHard.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestSm2Sign(t *testing.T) {
 	ok2 := privHard.PublicKey.Verify(msg, hardSignByHardPriv)
 	fmt.Printf("验签结果: %v\n", ok2)
 
-	fmt.Println("========== sm2soft使用hard公私钥签名及验签 ==========")
+	// fmt.Println("========== sm2soft使用hard公私钥签名及验签 ==========")
 	softSignByHardPriv, err := privSoftFromHard.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -60,7 +60,7 @@ func TestSm2Sign(t *testing.T) {
 	ok3 := privSoftFromHard.PublicKey.Verify(msg, softSignByHardPriv)
 	fmt.Printf("验签结果: %v\n", ok3)
 
-	fmt.Println("========== sm2hard使用soft公私钥签名及验签 ==========")
+	// fmt.Println("========== sm2hard使用soft公私钥签名及验签 ==========")
 	hardSignBySoftPriv, err := privHardFromSoft.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func TestSm2Sign(t *testing.T) {
 	ok4 := privHardFromSoft.PublicKey.Verify(msg, hardSignBySoftPriv)
 	fmt.Printf("验签结果: %v\n", ok4)
 
-	fmt.Println("========== sm2soft使用soft私钥签名, sm2hard使用soft公钥验签 ==========")
+	// fmt.Println("========== sm2soft使用soft私钥签名, sm2hard使用soft公钥验签 ==========")
 	softSignBySoftPriv2, err := privSoft.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestSm2Sign(t *testing.T) {
 	ok5 := privHardFromSoft.PublicKey.Verify(msg, softSignBySoftPriv2)
 	fmt.Printf("验签结果: %v\n", ok5)
 
-	fmt.Println("========== sm2soft使用hard私钥签名, sm2hard使用hard公钥验签 ==========")
+	// fmt.Println("========== sm2soft使用hard私钥签名, sm2hard使用hard公钥验签 ==========")
 	softSignByHardPriv2, err := privSoftFromHard.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +84,7 @@ func TestSm2Sign(t *testing.T) {
 	ok6 := privHard.PublicKey.Verify(msg, softSignByHardPriv2)
 	fmt.Printf("验签结果: %v\n", ok6)
 
-	fmt.Println("========== sm2hard使用soft私钥签名, sm2soft使用soft公钥验签 ==========")
+	// fmt.Println("========== sm2hard使用soft私钥签名, sm2soft使用soft公钥验签 ==========")
 	hardSignBySoftPriv2, err := privHardFromSoft.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func TestSm2Sign(t *testing.T) {
 	ok7 := privSoft.PublicKey.Verify(msg, hardSignBySoftPriv2)
 	fmt.Printf("验签结果: %v\n", ok7)
 
-	fmt.Println("========== sm2hard使用hard私钥签名, sm2soft使用hard公钥验签 ==========")
+	// fmt.Println("========== sm2hard使用hard私钥签名, sm2soft使用hard公钥验签 ==========")
 	hardSignByHardPriv2, err := privHard.Sign(rand.Reader, msg, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +120,7 @@ func TestSm2Encrypt(t *testing.T) {
 	msg := []byte("12345,上山打老虎")
 	fmt.Printf("明文: %s\n", msg)
 
-	fmt.Println("========== sm2Soft使用soft公钥加密, soft私钥解密 ==========")
+	// fmt.Println("========== sm2Soft使用soft公钥加密, soft私钥解密 ==========")
 	softEncBySoft, err := privSoft.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +131,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", softDecBySoft)
 
-	fmt.Println("========== sm2Hard使用hard公钥加密, hard私钥解密 ==========")
+	// fmt.Println("========== sm2Hard使用hard公钥加密, hard私钥解密 ==========")
 	hardEncByHard, err := privHard.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +142,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", hardDecByHard)
 
-	fmt.Println("========== sm2Soft使用hard公钥加密, hard私钥解密 ==========")
+	// fmt.Println("========== sm2Soft使用hard公钥加密, hard私钥解密 ==========")
 	softEncByHard, err := privSoftFromHard.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -153,7 +153,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", softDecByHard)
 
-	fmt.Println("========== sm2Hard使用soft公钥加密, soft私钥解密 ==========")
+	// fmt.Println("========== sm2Hard使用soft公钥加密, soft私钥解密 ==========")
 	hardEncBySoft, err := privHardFromSoft.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +164,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", hardDecBySoft)
 
-	fmt.Println("========== sm2Soft使用hard公钥加密, sm2Hard使用hard私钥解密 ==========")
+	// fmt.Println("========== sm2Soft使用hard公钥加密, sm2Hard使用hard私钥解密 ==========")
 	softEncByHard1, err := privSoftFromHard.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -175,7 +175,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", hardDecByHard1)
 
-	fmt.Println("========== sm2Soft使用soft公钥加密, sm2Hard使用soft私钥解密 ==========")
+	// fmt.Println("========== sm2Soft使用soft公钥加密, sm2Hard使用soft私钥解密 ==========")
 	softEncBySoft1, err := privSoft.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -186,7 +186,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", hardDecBySoft1)
 
-	fmt.Println("========== sm2Hard使用hard公钥加密, sm2Soft使用hard私钥解密 ==========")
+	// fmt.Println("========== sm2Hard使用hard公钥加密, sm2Soft使用hard私钥解密 ==========")
 	hardEncByHard1, err := privHard.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -197,7 +197,7 @@ func TestSm2Encrypt(t *testing.T) {
 	}
 	fmt.Printf("解密结果: %s\n", softDecByHard1)
 
-	fmt.Println("========== sm2Hard使用soft公钥加密, sm2Soft使用soft私钥解密 ==========")
+	// fmt.Println("========== sm2Hard使用soft公钥加密, sm2Soft使用soft私钥解密 ==========")
 	hardEncBySoft1, err := privHardFromSoft.PublicKey.EncryptAsn1(msg, rand.Reader)
 	if err != nil {
 		t.Fatal(err)
