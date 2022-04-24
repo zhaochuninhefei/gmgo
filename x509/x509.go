@@ -438,7 +438,7 @@ var signatureAlgorithmDetails = []struct {
 	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, SHA512},
 	{PureEd25519, "Ed25519", oidSignatureEd25519, Ed25519, Hash(0) /* no pre-hashing */},
 	// TODO 添加SM2相关签名算法定义
-	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, SM2, SM3},
+	{SM2WithSM3, "SM2-with-SM3", oidSignatureSM2WithSM3, SM2, SM3},
 }
 
 // hashToPSSParameters contains the DER encoded RSA PSS parameters for the
