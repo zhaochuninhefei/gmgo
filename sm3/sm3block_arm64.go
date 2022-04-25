@@ -25,5 +25,7 @@ import (
 var useSM3NI = cpu.ARM64.HasSM3
 
 func init() {
-	fmt.Printf("该平台CPU架构为arm64, 对SM3指令集的支持: %v\n", useSM3NI)
+	if false {
+		fmt.Printf("该平台CPU架构为arm64, 对SM3指令集的支持: %v\n", useSM3NI)
+	}
 }

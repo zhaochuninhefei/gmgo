@@ -408,8 +408,8 @@ var (
 
 	// 国密相关算法标识定义，参考国密标准`GMT 0006-2012 密码应用标识规范.pdf`
 	oidSignatureSM2WithSM3 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 501}
-	oidSM3                 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401, 1}
-	oidHashSM3             = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401}
+	// oidSM3                 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401, 1}
+	oidSM3 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401}
 )
 
 // 定义支持的签名算法细节

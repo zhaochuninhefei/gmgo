@@ -25,5 +25,7 @@ import (
 var useAVX2 = cpu.X86.HasAVX2 && cpu.X86.HasBMI2
 
 func init() {
-	fmt.Printf("该平台CPU架构为amd64, 对AVX2和BMI2指令集的支持: %v\n", useAVX2)
+	if false {
+		fmt.Printf("该平台CPU架构为amd64, 对AVX2和BMI2指令集的支持: %v\n", useAVX2)
+	}
 }

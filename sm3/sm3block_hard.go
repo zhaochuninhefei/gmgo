@@ -16,13 +16,12 @@ sm3/sm3block_hard.go cpu是amd64或arm64架构时声明block函数(由汇编实�
 */
 
 import (
-	"fmt"
 	"runtime"
 )
 
 func init() {
 	cpuType = runtime.GOARCH
-	fmt.Printf("该平台CPU架构: %s\n", cpuType)
+	// fmt.Printf("该平台CPU架构: %s\n", cpuType)
 }
 
 //go:noescape

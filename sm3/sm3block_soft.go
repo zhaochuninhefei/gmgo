@@ -23,7 +23,7 @@ import (
 
 func init() {
 	cpuType = runtime.GOARCH
-	fmt.Printf("该平台CPU架构: %s , SM3的块处理采用纯软实现。", cpuType)
+	// fmt.Printf("该平台CPU架构: %s , SM3的块处理采用纯软实现。", cpuType)
 }
 
 func block(dig *digest, p []byte) {
