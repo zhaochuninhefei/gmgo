@@ -115,6 +115,26 @@ func BenchmarkSM2(t *testing.B) {
 	}
 }
 
+func BenchmarkVerify_SM2(b *testing.B) {
+	priv, err := GenerateKey(rand.Reader)
+	if err != nil {
+		b.Fatal(err)
+	}
+	hashed := []byte("testing")
+	r, s, err := Sm2Sign(priv, hashed, nil, rand.Reader)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if !Sm2Verify(&priv.PublicKey, hashed, nil, r, s) {
+			b.Fatal("verify failed")
+		}
+	}
+}
+
 func TestKEB2(t *testing.T) {
 	ida := []byte{'1', '2', '3', '4', '5', '6', '7', '8',
 		'1', '2', '3', '4', '5', '6', '7', '8'}
