@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/url"
 	"reflect"
@@ -177,27 +178,39 @@ var errNotParsed = errors.New("x509: missing ASN.1 contents; use ParseCertificat
 
 // VerifyOptions contains parameters for Certificate.Verify.
 type VerifyOptions struct {
+	// 如果设置了 DNSName，则使用 Certificate.VerifyHostname 或平台验证程序检查叶证书。
 	// DNSName, if set, is checked against the leaf certificate with
 	// Certificate.VerifyHostname or the platform verifier.
 	DNSName string
 
+	// 可选的中间证书池，它们不是信任锚，但可用于形成从叶证书到根证书的链。
 	// Intermediates is an optional pool of certificates that are not trust
 	// anchors, but can be used to form a chain from the leaf certificate to a
 	// root certificate.
 	Intermediates *CertPool
+
+	// 根是叶证书需要链接到的一组受信任的根证书。 如果为零，则使用系统根或平台验证程序。
 	// Roots is the set of trusted root certificates the leaf certificate needs
 	// to chain up to. If nil, the system roots or the platform verifier are used.
 	Roots *CertPool
 
+	// CurrentTime 用于检查链中所有证书的有效性。 如果为零，则使用当前时间。
 	// CurrentTime is used to check the validity of all certificates in the
 	// chain. If zero, the current time is used.
 	CurrentTime time.Time
 
+	// KeyUsages 指定允许的扩展公钥用途。
+	// 目标证书只要匹配上任意一个指定的用途即可通过该项检查。
+	// 该字段默认值为 ExtKeyUsageServerAuth。
+	// 如果允许任意一种扩展公钥用途，请在该字段列表中加入 ExtKeyUsageAny。
 	// KeyUsages specifies which Extended Key Usage values are acceptable. A
 	// chain is accepted if it allows any of the listed values. An empty list
 	// means ExtKeyUsageServerAuth. To accept any key usage, include ExtKeyUsageAny.
 	KeyUsages []ExtKeyUsage
 
+	// MaxConstraintComparisions 是检查给定证书的名称约束时要执行的最大比较次数。
+	// 如果为零，则使用合理的默认值。
+	// 此限制可防止病态证书在验证时消耗过多的 CPU 时间。 它不适用于平台验证者。
 	// MaxConstraintComparisions is the maximum number of comparisons to
 	// perform when checking a given certificate's name constraints. If
 	// zero, a sensible default is used. This limit prevents pathological
@@ -207,8 +220,11 @@ type VerifyOptions struct {
 }
 
 const (
+	// 子证书
 	leafCertificate = iota
+	// 中间证书
 	intermediateCertificate
+	// 根证书
 	rootCertificate
 )
 
@@ -556,21 +572,25 @@ func (c *Certificate) checkNameConstraints(count *int,
 	return nil
 }
 
-// isValid performs validity checks on c given that it is a candidate to append
-// to the chain in currentChain.
+// isValid 对 证书c 执行有效性检查，证书c是当前证书莲currentChain的候选者。
+//  certType 证书c在证书链中的位置(0:子证书, 1:中间证书, 2:根证书)
+//  currentChain 当前证书链
+//  opts 校验参数
+// isValid performs validity checks on c given that it is a candidate to append to the chain in currentChain.
 func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *VerifyOptions) error {
 	// log.Printf("===== x509/verify.go isValid c.NotAfter 3: %s", c.NotAfter.Format(time.RFC3339))
 	if len(c.UnhandledCriticalExtensions) > 0 {
+		log.Printf("===== x509/verify.go isValid 证书解析时有未完全处理的扩展ID: %#v", c.UnhandledCriticalExtensions)
 		return UnhandledCriticalExtension{}
 	}
-
 	if len(currentChain) > 0 {
+		// 检查当前证书链最后一个证书的签署者是否是证书c的拥有者
 		child := currentChain[len(currentChain)-1]
 		if !bytes.Equal(child.RawIssuer, c.RawSubject) {
-			return CertificateInvalidError{c, NameMismatch, ""}
+			return CertificateInvalidError{c, NameMismatch, "===== x509/verify.go isValid 当前证书链最后一个证书的签署者不是证书c的拥有者"}
 		}
 	}
-
+	// 获取当前时间并检查证书c是否已过期
 	now := opts.CurrentTime
 	if now.IsZero() {
 		now = time.Now()
@@ -599,12 +619,14 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 
 	var leaf *Certificate
 	if certType == intermediateCertificate || certType == rootCertificate {
+		// 如果证书c位置为中间证书或根证书，则当前证书链长度不可为0
 		if len(currentChain) == 0 {
-			return errors.New("x509: internal error: empty chain when appending CA cert")
+			return errors.New("===== x509/verify.go isValid 证书c位置为中间证书或根证书时当前证书链长度不可为0")
 		}
+		// 获取子证书:证书链的首个证书即子证书
 		leaf = currentChain[0]
 	}
-
+	// 证书c是中间证书或根证书，且证书c有名称约束，且子证书有SAN扩展字段时，进行对SAN扩展字段检查
 	if (certType == intermediateCertificate || certType == rootCertificate) &&
 		c.hasNameConstraints() && leaf.hasSANExtension() {
 		err := forEachSAN(leaf.getSANExtension(), func(tag int, data []byte) error {
@@ -692,10 +714,12 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 	// keyUsage, and a keyUsage containing a flag indicating that the RSA
 	// encryption key could only be used for Diffie-Hellman key agreement.
 
+	// 证书c是中间证书时，其BasicConstraintsValid与IsCA必须为true
 	if certType == intermediateCertificate && (!c.BasicConstraintsValid || !c.IsCA) {
 		return CertificateInvalidError{c, NotAuthorizedToSign, ""}
 	}
-
+	// BasicConstraintsValid有效且设置了有效的MaxPathLen(大于0)时，做证书链长度检查。
+	// 证书链长度不能超过ca证书设置的有效MaxPathLen。
 	if c.BasicConstraintsValid && c.MaxPathLen >= 0 {
 		numIntermediates := len(currentChain) - 1
 		if numIntermediates > c.MaxPathLen {
@@ -747,20 +771,21 @@ func (c *Certificate) Verify(opts VerifyOptions) (chains [][]*Certificate, err e
 		return nil, errNotParsed
 	}
 	for i := 0; i < opts.Intermediates.len(); i++ {
-		c, err := opts.Intermediates.cert(i)
+		// 如果检查参数中包含可选的中间证书池，则先检查这些中间证书是否能够正常读取
+		intermediatesCert, err := opts.Intermediates.cert(i)
 		if err != nil {
 			return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/x509: error fetching intermediate: %w", err)
 		}
-		if len(c.Raw) == 0 {
+		if len(intermediatesCert.Raw) == 0 {
 			return nil, errNotParsed
 		}
 	}
-
+	// 检查参数的根证书池为空，且平台为windows时，调用目标证书的系统校验，使用windows自己的校验与证书链构建。
 	// Use Windows's own verification and chain building.
 	if opts.Roots == nil && runtime.GOOS == "windows" {
 		return c.systemVerify(&opts)
 	}
-
+	// 检查参数的根证书池为空，且平台不是windows时，获取系统的跟证书池
 	if opts.Roots == nil {
 		opts.Roots = systemRootsPool()
 		if opts.Roots == nil {
@@ -768,51 +793,50 @@ func (c *Certificate) Verify(opts VerifyOptions) (chains [][]*Certificate, err e
 		}
 	}
 	// log.Printf("===== x509/verify.go Verify c.NotAfter 2: %s", c.NotAfter.Format(time.RFC3339))
+	// 将目标证书作为叶证书进行有效性检查
 	err = c.isValid(leafCertificate, nil, &opts)
 	if err != nil {
 		return
 	}
-
+	// 检查参数设置了DNSName时，对目标证书c做域名(或IP)检查
 	if len(opts.DNSName) > 0 {
 		err = c.VerifyHostname(opts.DNSName)
 		if err != nil {
 			return
 		}
 	}
-
+	// 创建证书信任链
 	var candidateChains [][]*Certificate
 	if opts.Roots.contains(c) {
-		// 如果根证书包含待验证证书c，则直接将其加入证书信任链
+		// 如果检查参数的根证书池中包含目标证书c，则直接将其加入证书信任链，此时信任链只有这一个证书(叶证书)
 		candidateChains = append(candidateChains, []*Certificate{c})
 	} else {
-		// 创建信任链，c作为第一个证书加入
+		// 目标证书c不是检查参数的根证书池中的某一个，则将其作为第一个证书(叶证书)加入证书信任链
 		if candidateChains, err = c.buildChains(nil, []*Certificate{c}, nil, &opts); err != nil {
 			return nil, err
 		}
 	}
-
+	// 获取检查参数的扩展公钥用途字段，未设置时默认值为 ExtKeyUsageServerAuth
 	keyUsages := opts.KeyUsages
 	if len(keyUsages) == 0 {
 		keyUsages = []ExtKeyUsage{ExtKeyUsageServerAuth}
 	}
-
-	// If any key usage is acceptable then we're done.
+	// 如果扩展公钥用途包含 ExtKeyUsageAny , 则无需检查，直接返回证书信任链
 	for _, usage := range keyUsages {
 		if usage == ExtKeyUsageAny {
 			return candidateChains, nil
 		}
 	}
-
+	// 检查证书信任链中每个证书的扩展公钥用途是否能够匹配检查参数的扩展公钥用途。
+	// 只保留匹配用途的证书留在证书链中。
 	for _, candidate := range candidateChains {
 		if checkChainForKeyUsage(candidate, keyUsages) {
 			chains = append(chains, candidate)
 		}
 	}
-
 	if len(chains) == 0 {
 		return nil, CertificateInvalidError{c, IncompatibleUsage, ""}
 	}
-
 	return chains, nil
 }
 
@@ -848,11 +872,12 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 		}
 		*sigChecks++
 		if *sigChecks > maxChainSignatureChecks {
+			// 验签次数有限制，防止过多的验签
 			err = errors.New("x509: signature check attempts limit reached while verifying certificate chain")
 			return
 		}
-		// 使用当前证书candidate对c进行验签
-		// 该步骤会最终调用到对应公钥的验签方法
+		// 使用当前证书candidate对c进行验签，即检查证书c是否由candidate拥有者签署。
+		// 该步骤会最终调用到对应公钥的验签方法。
 		if err := c.CheckSignatureFrom(candidate); err != nil {
 			if hintErr == nil {
 				hintErr = err
@@ -860,7 +885,7 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 			}
 			return
 		}
-		// 检查candidate
+		// 检查candidate的有效性
 		err = candidate.isValid(certType, currentChain, opts)
 		if err != nil {
 			return
