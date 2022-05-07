@@ -32,6 +32,7 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/log"
 )
 
 type clientHandshakeState struct {
@@ -233,6 +234,7 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 	// GMSSL目前采用与tls1.3相同的处理
 	if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 		// fmt.Println("===== gmtls/handshake_client.go clientHandshake : 客户端执行tls1.3或gmlssl协议的握手过程")
+		log.Debug("===== 客户端执行tls1.3或gmlssl协议的握手过程")
 		hs := &clientHandshakeStateTLS13{
 			c:           c,
 			ctx:         ctx,
@@ -248,6 +250,7 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 		return hs.handshake()
 	}
 	// fmt.Println("===== gmtls/handshake_client.go clientHandshake : 客户端执行tls1.2或更老版本的握手过程")
+	log.Debug("===== 客户端执行tls1.2或更老版本的握手过程")
 	hs := &clientHandshakeState{
 		c:           c,
 		ctx:         ctx,

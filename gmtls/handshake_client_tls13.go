@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/log"
 )
 
 // tls1.3客户端握手状态
@@ -182,6 +183,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 		return errors.New("gmtls: server chose an unconfigured cipher suite")
 	}
 	// fmt.Println("===== gmtls/handshake_client_tls13.go checkServerHelloOrHRR 客户端确认协商好的密码套件: ", CipherSuiteName(selectedSuite.id))
+	log.Debug("===== 客户端确认协商好的密码套件: %s", CipherSuiteName(selectedSuite.id))
 	// 设置协商好的密码套件
 	hs.suite = selectedSuite
 	c.cipherSuite = hs.suite.id
