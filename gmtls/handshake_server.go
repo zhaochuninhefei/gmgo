@@ -29,6 +29,7 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/log"
 )
 
 // serverHandshakeState contains details of a server handshake in progress.
@@ -61,6 +62,7 @@ func (c *Conn) serverHandshake(ctx context.Context) error {
 	// GMSSL目前采用tls1.3的处理
 	if c.vers == VersionTLS13 || c.vers == VersionGMSSL {
 		// fmt.Println("===== gmtls/handshake_server.go serverHandshake : 服务端执行tls1.3或gmssl的握手过程")
+		log.Debug("===== 服务端执行tls1.3或gmssl的握手过程")
 		hs := serverHandshakeStateTLS13{
 			c:           c,
 			ctx:         ctx,
@@ -69,6 +71,7 @@ func (c *Conn) serverHandshake(ctx context.Context) error {
 		return hs.handshake()
 	}
 	// fmt.Println("===== gmtls/handshake_server.go serverHandshake : 服务端执行tls1.2或更老版本的握手过程")
+	log.Debug("===== 服务端执行tls1.2或更老版本的握手过程")
 	hs := serverHandshakeState{
 		c:           c,
 		ctx:         ctx,

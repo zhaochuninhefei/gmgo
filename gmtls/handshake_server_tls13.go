@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rsa"
 	"errors"
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/log"
 )
 
 // maxClientPSKIdentities is the number of client PSK identities the server will
@@ -189,6 +191,7 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 	c.cipherSuite = hs.suite.id
 	hs.hello.cipherSuite = hs.suite.id
 	// fmt.Println("===== gmtls/handshake_server_tls13.go processClientHello 服务端协商密码套件: ", CipherSuiteName(hs.suite.id))
+	log.Debug("===== 服务端协商密码套件: %s", CipherSuiteName(hs.suite.id))
 	// 使用密码套件的散列函数作为握手数据摘要函数
 	hs.transcript = hs.suite.hash.New()
 
@@ -227,9 +230,9 @@ GroupSelection:
 		}
 		clientKeyShare = &hs.clientHello.keyShares[0]
 	}
-	// var curve elliptic.Curve
+	var curve elliptic.Curve
 	var curveOk bool
-	if _, curveOk = curveForCurveID(selectedGroup); selectedGroup != X25519 && !curveOk {
+	if curve, curveOk = curveForCurveID(selectedGroup); selectedGroup != X25519 && !curveOk {
 		c.sendAlert(alertInternalError)
 		return errors.New("gmtls: CurvePreferences includes unsupported curve")
 	}
@@ -239,11 +242,13 @@ GroupSelection:
 		c.sendAlert(alertInternalError)
 		return err
 	}
-	// fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 服务端基于曲线 %s 生成密钥交换算法参数\n", curve.Params().Name)
+	// fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 服务端使用曲线 %s 生成密钥交换算法参数\n", curve.Params().Name)
+	log.Debug("===== 服务端使用曲线 %s 生成密钥交换算法参数", curve.Params().Name)
 	// 设置服务端密钥交换算法参数(曲线ID + 服务端公钥)
 	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
 	// 根据客户端公钥计算共享密钥
 	// fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 使用曲线 %s 与客户端公钥计算共享密钥\n", curve.Params().Name)
+	log.Debug("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curve.Params().Name)
 	hs.sharedKey = params.SharedKey(clientKeyShare.data)
 	if hs.sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)

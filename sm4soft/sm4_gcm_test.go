@@ -76,3 +76,15 @@ func TestSM4GCM(t *testing.T) {
 	}
 
 }
+
+func BenchmarkSm4(t *testing.B) {
+	key := []byte("1234567890abcdef")
+	IV := []byte("1234def567890abc")
+	A := []byte{0x01, 0x23, 0x45, 0x67, 0x89}
+	data := []byte("天行健君子以自强不息12")
+	t.ReportAllocs()
+	for i := 0; i < t.N; i++ {
+		gcmMsg, _, _ := Sm4GCM(key, IV, data, A, true)
+		Sm4GCM(key, IV, gcmMsg, A, false)
+	}
+}

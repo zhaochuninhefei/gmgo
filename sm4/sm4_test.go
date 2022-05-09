@@ -105,3 +105,13 @@ func testGCM(key, data []byte) error {
 	fmt.Printf("GCM plainData : %s\n", plainData)
 	return nil
 }
+
+func BenchmarkSm4(t *testing.B) {
+	key := []byte("1234567890abcdef")
+	data := []byte("天行健君子以自强不息")
+	t.ReportAllocs()
+	for i := 0; i < t.N; i++ {
+		nonce, encryptData, _ := Sm4EncryptGcm(data, key)
+		Sm4DecryptGcm(encryptData, key, nonce)
+	}
+}

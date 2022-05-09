@@ -145,7 +145,7 @@ type ecdheParameters interface {
 	SharedKey(peerPublicKey []byte) []byte
 }
 
-// 基于给定的椭圆曲线ID，获取椭圆曲线并生成ecdhe参数
+// 基于给定的椭圆曲线ID，获取椭圆曲线并生成ecdhe参数，已支持SM2-P-256曲线。
 //  ecdhe : Elliptic Curve Diffie-Hellman Ephemeral, 临时的基于椭圆曲线的笛福赫尔曼密钥交换算法。
 //  ecdheParameters是一个接口，实际对象需要实现该接口的SharedKey等方法,其内部包含曲线ID与对应的公私钥。
 func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, error) {
@@ -168,7 +168,6 @@ func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, 
 	// 生成密钥交换算法参数
 	p := &nistParameters{curveID: curveID}
 	var err error
-	// TODO: 需要验证P256Sm2曲线使用该函数能否正常运行
 	// 利用曲线生成公私钥
 	p.privateKey, p.x, p.y, err = elliptic.GenerateKey(curve, rand)
 	if err != nil {
