@@ -27,12 +27,9 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
-
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
-
 	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
 )
 

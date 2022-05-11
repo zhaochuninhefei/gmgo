@@ -30,13 +30,10 @@ import (
 	"testing"
 	"time"
 
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptrace"
-
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
-
 	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
 )
 

@@ -11,6 +11,7 @@ import (
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 func ExampleResponseRecorder() {
@@ -56,6 +57,10 @@ func ExampleServer() {
 }
 
 func ExampleServer_hTTP2() {
+	zcgologConfig := &zclog.Config{
+		LogLevelGlobal: zclog.LOG_LEVEL_INFO,
+	}
+	zclog.InitLogger(zcgologConfig)
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, %s", r.Proto)
 	}))
@@ -78,6 +83,10 @@ func ExampleServer_hTTP2() {
 }
 
 func ExampleNewTLSServer() {
+	zcgologConfig := &zclog.Config{
+		LogLevelGlobal: zclog.LOG_LEVEL_INFO,
+	}
+	zclog.InitLogger(zcgologConfig)
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello, client")
 	}))

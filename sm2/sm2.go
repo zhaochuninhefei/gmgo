@@ -741,7 +741,7 @@ func encryptGeneric(random io.Reader, pub *PublicKey, msg []byte, opts *Encrypte
 		// c1字节数组 : 根据加密参数中的座标序列化模式，对c1进行序列化转为字节数组
 		c1 := opts.PointMarshalMode.mashal(curve, x1, y1)
 		// 如果C2C3不做ASN1转码，则直接在这里拼接加密结果
-		// TODO: 在 GB/T 32918.4-2016 中只看到直接拼接C2C3的，并没有对C3C2做ASN1转码的描述
+		// 在 GB/T 32918.4-2016 中只看到直接拼接C2C3的，并没有对C3C2做ASN1转码的描述
 		if opts.CiphertextEncoding == ENCODING_PLAIN {
 			switch opts.CiphertextSplicingOrder {
 			case C1C3C2:

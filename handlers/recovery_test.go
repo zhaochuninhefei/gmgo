@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"bytes"
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 	"log"
 	"strings"
 	"testing"
+
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 )
 
 func TestRecoveryLoggerWithDefaultOptions(t *testing.T) {

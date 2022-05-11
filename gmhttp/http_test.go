@@ -91,14 +91,14 @@ func TestCmdGoNoHTTPServer(t *testing.T) {
 	}
 	wantSym := map[string]bool{
 		// Verify these exist: (sanity checking this test)
-		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*Client).do":           true,
-		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*Transport).RoundTrip": true,
+		"net/http.(*Client).do":           true,
+		"net/http.(*Transport).RoundTrip": true,
 
 		// Verify these don't exist:
-		"gitee.com/zhaochuninhefei/gmgo/gmhttp.http2Server":           false,
-		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*Server).Serve":       false,
-		"gitee.com/zhaochuninhefei/gmgo/gmhttp.(*ServeMux).ServeHTTP": false,
-		"gitee.com/zhaochuninhefei/gmgo/gmhttp.DefaultServeMux":       false,
+		"net/http.http2Server":           false,
+		"net/http.(*Server).Serve":       false,
+		"net/http.(*ServeMux).ServeHTTP": false,
+		"net/http.DefaultServeMux":       false,
 	}
 	for sym, want := range wantSym {
 		got := bytes.Contains(out, []byte(sym))

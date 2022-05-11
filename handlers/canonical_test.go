@@ -3,12 +3,13 @@ package handlers
 import (
 	"bufio"
 	"bytes"
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 	"log"
 	"net/url"
 	"strings"
 	"testing"
+
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 )
 
 func TestCleanHost(t *testing.T) {

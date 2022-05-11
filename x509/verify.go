@@ -13,7 +13,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"reflect"
@@ -21,6 +20,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	log "gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 type InvalidReason int
@@ -578,9 +579,9 @@ func (c *Certificate) checkNameConstraints(count *int,
 //  opts 校验参数
 // isValid performs validity checks on c given that it is a candidate to append to the chain in currentChain.
 func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *VerifyOptions) error {
-	// log.Printf("===== x509/verify.go isValid c.NotAfter 3: %s", c.NotAfter.Format(time.RFC3339))
+	// log.Debugf("===== x509/verify.go isValid c.NotAfter 3: %s", c.NotAfter.Format(time.RFC3339))
 	if len(c.UnhandledCriticalExtensions) > 0 {
-		log.Printf("===== x509/verify.go isValid 证书解析时有未完全处理的扩展ID: %#v", c.UnhandledCriticalExtensions)
+		log.Debugf("===== x509/verify.go isValid 证书解析时有未完全处理的扩展ID: %#v", c.UnhandledCriticalExtensions)
 		return UnhandledCriticalExtension{}
 	}
 	if len(currentChain) > 0 {
@@ -595,7 +596,7 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 	if now.IsZero() {
 		now = time.Now()
 	}
-	// log.Printf("===== x509/verify.go isValid c.NotAfter 4: %s , now: %s", c.NotAfter.Format(time.RFC3339), now.Format(time.RFC3339))
+	// log.Debugf("===== x509/verify.go isValid c.NotAfter 4: %s , now: %s", c.NotAfter.Format(time.RFC3339), now.Format(time.RFC3339))
 	if now.Before(c.NotBefore) {
 		return CertificateInvalidError{
 			Cert:   c,
@@ -603,7 +604,7 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 			Detail: fmt.Sprintf("current time %s is before %s", now.Format(time.RFC3339), c.NotBefore.Format(time.RFC3339)),
 		}
 	} else if now.After(c.NotAfter) {
-		// log.Printf("===== x509/verify.go isValid c.NotAfter 5: %s , now: %s", c.NotAfter.Format(time.RFC3339), now.Format(time.RFC3339))
+		// log.Debugf("===== x509/verify.go isValid c.NotAfter 5: %s , now: %s", c.NotAfter.Format(time.RFC3339), now.Format(time.RFC3339))
 		return CertificateInvalidError{
 			Cert:   c,
 			Reason: Expired,
@@ -766,7 +767,7 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 func (c *Certificate) Verify(opts VerifyOptions) (chains [][]*Certificate, err error) {
 	// Platform-specific verification needs the ASN.1 contents so
 	// this makes the behavior consistent across platforms.
-	// log.Printf("===== x509/verify.go Verify c.NotAfter 1: %s", c.NotAfter.Format(time.RFC3339))
+	// log.Debugf("===== x509/verify.go Verify c.NotAfter 1: %s", c.NotAfter.Format(time.RFC3339))
 	if len(c.Raw) == 0 {
 		return nil, errNotParsed
 	}
@@ -792,7 +793,7 @@ func (c *Certificate) Verify(opts VerifyOptions) (chains [][]*Certificate, err e
 			return nil, SystemRootsError{systemRootsErr}
 		}
 	}
-	// log.Printf("===== x509/verify.go Verify c.NotAfter 2: %s", c.NotAfter.Format(time.RFC3339))
+	// log.Debugf("===== x509/verify.go Verify c.NotAfter 2: %s", c.NotAfter.Format(time.RFC3339))
 	// 将目标证书作为叶证书进行有效性检查
 	err = c.isValid(leafCertificate, nil, &opts)
 	if err != nil {

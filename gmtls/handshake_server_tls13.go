@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/x509"
-	"gitee.com/zhaochuninhefei/zcgolog/log"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 // maxClientPSKIdentities is the number of client PSK identities the server will
@@ -190,8 +190,7 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 	}
 	c.cipherSuite = hs.suite.id
 	hs.hello.cipherSuite = hs.suite.id
-	// fmt.Println("===== gmtls/handshake_server_tls13.go processClientHello 服务端协商密码套件: ", CipherSuiteName(hs.suite.id))
-	log.Debug("===== 服务端协商密码套件: %s", CipherSuiteName(hs.suite.id))
+	zclog.Debugf("===== 服务端协商密码套件: %s", CipherSuiteName(hs.suite.id))
 	// 使用密码套件的散列函数作为握手数据摘要函数
 	hs.transcript = hs.suite.hash.New()
 
@@ -242,13 +241,11 @@ GroupSelection:
 		c.sendAlert(alertInternalError)
 		return err
 	}
-	// fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 服务端使用曲线 %s 生成密钥交换算法参数\n", curve.Params().Name)
-	log.Debug("===== 服务端使用曲线 %s 生成密钥交换算法参数", curve.Params().Name)
+	zclog.Debugf("===== 服务端使用曲线 %s 生成密钥交换算法参数", curve.Params().Name)
 	// 设置服务端密钥交换算法参数(曲线ID + 服务端公钥)
 	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
 	// 根据客户端公钥计算共享密钥
-	// fmt.Printf("===== gmtls/handshake_server_tls13.go processClientHello : 使用曲线 %s 与客户端公钥计算共享密钥\n", curve.Params().Name)
-	log.Debug("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curve.Params().Name)
+	zclog.Debugf("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curve.Params().Name)
 	hs.sharedKey = params.SharedKey(clientKeyShare.data)
 	if hs.sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)
@@ -468,7 +465,7 @@ func (hs *serverHandshakeStateTLS13) doHelloRetryRequest(selectedGroup CurveID) 
 	if _, err := c.writeRecord(recordTypeHandshake, helloRetryRequest.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go doHelloRetryRequest : 服务端发送 HelloRetryRequest")
+	zclog.Debug("===== 服务端发送 HelloRetryRequest")
 	if err := hs.sendDummyChangeCipherSpec(); err != nil {
 		return err
 	}
@@ -482,7 +479,7 @@ func (hs *serverHandshakeStateTLS13) doHelloRetryRequest(selectedGroup CurveID) 
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(clientHello, msg)
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go doHelloRetryRequest : 服务端读取到客户端重新发送的 ClientHello")
+	zclog.Debug("===== 服务端读取到客户端重新发送的 ClientHello")
 	if len(clientHello.keyShares) != 1 || clientHello.keyShares[0].group != selectedGroup {
 		c.sendAlert(alertIllegalParameter)
 		return errors.New("gmtls: client sent invalid key share in second ClientHello")
@@ -569,11 +566,11 @@ func (hs *serverHandshakeStateTLS13) sendServerParameters() error {
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerParameters : 服务端发送 ServerHello")
+	zclog.Debug("===== 服务端发送 ServerHello")
 	if err := hs.sendDummyChangeCipherSpec(); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerParameters : 服务端发送 DummyChangeCipherSpec")
+	zclog.Debug("===== 服务端发送 DummyChangeCipherSpec")
 	// 如果是会话恢复，这里已经存在早期机密，如果不存在，则初始化早期机密
 	earlySecret := hs.earlySecret
 	if earlySecret == nil {
@@ -616,7 +613,7 @@ func (hs *serverHandshakeStateTLS13) sendServerParameters() error {
 	if _, err := c.writeRecord(recordTypeHandshake, encryptedExtensions.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerParameters : 服务端发送 EncryptedExtensions")
+	zclog.Debug("===== 服务端发送 EncryptedExtensions")
 
 	return nil
 }
@@ -648,7 +645,7 @@ func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
 		if _, err := c.writeRecord(recordTypeHandshake, certReq.marshal()); err != nil {
 			return err
 		}
-		// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerCertificate : 服务端发送 certificateRequestMsgTLS13")
+		zclog.Debug("===== 服务端发送 certificateRequestMsgTLS13")
 	}
 
 	certMsg := new(certificateMsgTLS13)
@@ -661,7 +658,7 @@ func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
 	if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerCertificate : 服务端发送 certificateMsgTLS13")
+	zclog.Debug("===== 服务端发送 certificateMsgTLS13")
 	certVerifyMsg := new(certificateVerifyMsg)
 	certVerifyMsg.hasSignatureAlgorithm = true
 	certVerifyMsg.signatureAlgorithm = hs.sigAlg
@@ -693,7 +690,7 @@ func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
 	if _, err := c.writeRecord(recordTypeHandshake, certVerifyMsg.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerCertificate : 服务端发送 certificateVerifyMsg")
+	zclog.Debug("===== 服务端发送 certificateVerifyMsg")
 	return nil
 }
 
@@ -709,7 +706,7 @@ func (hs *serverHandshakeStateTLS13) sendServerFinished() error {
 	if _, err := c.writeRecord(recordTypeHandshake, finished.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendServerFinished : 服务端发送 ServerFinished")
+	zclog.Debug("===== 服务端发送 ServerFinished")
 	// Derive secrets that take context through the server Finished.
 	// 重新派生主机密
 	hs.masterSecret = hs.suite.extract(nil,
@@ -749,7 +746,7 @@ func (hs *serverHandshakeStateTLS13) sendServerFinished() error {
 
 func (hs *serverHandshakeStateTLS13) shouldSendSessionTickets() bool {
 	if hs.c.config.SessionTicketsDisabled {
-		// fmt.Println("===== gmtls/handshake_server_tls13.go shouldSendSessionTickets : config.SessionTicketsDisabled is true")
+		zclog.Debug("===== config.SessionTicketsDisabled is true")
 		return false
 	}
 
@@ -773,7 +770,7 @@ func (hs *serverHandshakeStateTLS13) sendSessionTickets() error {
 	hs.transcript.Write(finishedMsg.marshal())
 
 	if !hs.shouldSendSessionTickets() {
-		// fmt.Println("===== gmtls/handshake_server_tls13.go sendSessionTickets : shouldSendSessionTickets is false")
+		zclog.Debug("===== shouldSendSessionTickets is false")
 		return nil
 	}
 	// 派生会话恢复用机密
@@ -805,7 +802,7 @@ func (hs *serverHandshakeStateTLS13) sendSessionTickets() error {
 	if _, err := c.writeRecord(recordTypeHandshake, m.marshal()); err != nil {
 		return err
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go sendSessionTickets : 服务端发出 newSessionTicketMsgTLS13")
+	zclog.Debug("===== 服务端发出 newSessionTicketMsgTLS13")
 	return nil
 }
 
@@ -837,7 +834,7 @@ func (hs *serverHandshakeStateTLS13) readClientCertificate() error {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(certMsg, msg)
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go readClientCertificate : 服务端读取到 ClientCertificate")
+	zclog.Debug("===== 服务端读取到 ClientCertificate")
 	hs.transcript.Write(certMsg.marshal())
 	// 检查客户端证书
 	if err := c.processCertsFromClient(certMsg.certificate); err != nil {
@@ -862,7 +859,7 @@ func (hs *serverHandshakeStateTLS13) readClientCertificate() error {
 			c.sendAlert(alertUnexpectedMessage)
 			return unexpectedMessageError(certVerify, msg)
 		}
-		// fmt.Println("===== gmtls/handshake_server_tls13.go readClientCertificate : 服务端读取到 ClientCertVerify")
+		zclog.Debug("===== 服务端读取到 ClientCertVerify")
 		// See RFC 8446, Section 4.4.3.
 		if !isSupportedSignatureAlgorithm(certVerify.signatureAlgorithm, supportedSignatureAlgorithms) {
 			c.sendAlert(alertIllegalParameter)
@@ -910,7 +907,7 @@ func (hs *serverHandshakeStateTLS13) readClientFinished() error {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(finished, msg)
 	}
-	// fmt.Println("===== gmtls/handshake_server_tls13.go readClientFinished : 服务端读取到 ClientFinished")
+	zclog.Debug("===== 服务端读取到 ClientFinished")
 	if !hmac.Equal(hs.clientFinished, finished.verifyData) {
 		c.sendAlert(alertDecryptError)
 		return errors.New("gmtls: invalid client finished hash")

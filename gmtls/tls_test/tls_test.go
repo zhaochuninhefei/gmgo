@@ -11,13 +11,13 @@ package tls_test
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"testing"
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/gmtls"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 const (
@@ -35,7 +35,7 @@ var end chan bool
 func Test_tls13(t *testing.T) {
 	end = make(chan bool, 64)
 	go ServerRun(true)
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 	go ClientRunTls13()
 	<-end
 	fmt.Println("Test_tls13 over.")
@@ -44,14 +44,22 @@ func Test_tls13(t *testing.T) {
 func Test_gmssl(t *testing.T) {
 	end = make(chan bool, 64)
 	go ServerRun(true)
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 	go ClientRunGMSSL()
 	<-end
-	fmt.Println("Test_tls13 over.")
+	fmt.Println("Test_gmssl over.")
 }
 
 // 启动服务端
 func ServerRun(needClientAuth bool) {
+	zclog.ClearDir("logs")
+	zcgologConfig := &zclog.Config{
+		LogFileDir:        "logs",
+		LogFileNamePrefix: "tlstest",
+		LogMod:            zclog.LOG_MODE_SERVER,
+		LogLevelGlobal:    zclog.LOG_LEVEL_DEBUG,
+	}
+	zclog.InitLogger(zcgologConfig)
 	// 导入tls配置
 	config, err := loadServerConfig(needClientAuth)
 	if err != nil {
@@ -60,7 +68,7 @@ func ServerRun(needClientAuth bool) {
 	// 定义tls监听器
 	ln, err := gmtls.Listen("tcp", ":50052", config)
 	if err != nil {
-		log.Println(err)
+		zclog.Println(err)
 		return
 	}
 	defer ln.Close()
@@ -87,7 +95,7 @@ func ClientRunGMSSL() {
 	// 读取sm2 ca证书
 	cacert, err := ioutil.ReadFile(SM2CaCertPath)
 	if err != nil {
-		log.Fatal(err)
+		zclog.Fatal(err)
 	}
 	// 将sm2ca证书作为根证书加入证书池
 	// 即，客户端相信持有该ca颁发的证书的服务端
@@ -147,7 +155,7 @@ func ClientRunTls13() {
 	// 读取sm2 ca证书
 	cacert, err := ioutil.ReadFile(SM2CaCertPath)
 	if err != nil {
-		log.Fatal(err)
+		zclog.Fatal(err)
 	}
 	// 将sm2ca证书作为根证书加入证书池
 	// 即，客户端相信持有该ca颁发的证书的服务端
@@ -230,4 +238,8 @@ func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
 	}
 
 	return config, nil
+}
+
+func Test_clearLogs(t *testing.T) {
+	zclog.ClearDir("logs")
 }

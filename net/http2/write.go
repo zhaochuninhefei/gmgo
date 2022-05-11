@@ -11,7 +11,6 @@ import (
 	"net/url"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	"gitee.com/zhaochuninhefei/gmgo/net/http/httpguts"
 	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
 )

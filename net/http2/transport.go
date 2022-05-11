@@ -29,12 +29,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptrace"
-
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptrace"
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
-
 	"gitee.com/zhaochuninhefei/gmgo/net/http/httpguts"
 	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
 	"gitee.com/zhaochuninhefei/gmgo/net/idna"

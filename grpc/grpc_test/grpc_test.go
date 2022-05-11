@@ -26,6 +26,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpc_test/echo"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 const (
@@ -41,6 +42,10 @@ const (
 var end chan bool
 
 func Test_credentials(t *testing.T) {
+	zcgologConfig := &zclog.Config{
+		LogLevelGlobal: zclog.LOG_LEVEL_DEBUG,
+	}
+	zclog.InitLogger(zcgologConfig)
 	end = make(chan bool, 64)
 	go serverRun()
 	time.Sleep(1000000)
