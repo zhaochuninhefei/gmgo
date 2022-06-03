@@ -193,3 +193,35 @@ func Sm4DecryptGcm(encryptData, key, nonce []byte) ([]byte, error) {
 	}
 	return out, nil
 }
+
+// sm4加密，GCM模式
+func Sm4EncryptGcmWithNonce(plainData, key, nonce, dst []byte) (encryptData []byte, err error) {
+	block, err := NewCipher([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+	sm4gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	out := sm4gcm.Seal(dst, nonce, plainData, dst)
+	encryptData = out[len(dst):]
+	return
+}
+
+// sm4解密，GCM模式
+func Sm4DecryptGcmWithNonce(encryptData, key, nonce, dst []byte) ([]byte, error) {
+	block, err := NewCipher([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+	sm4gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	out, err := sm4gcm.Open(encryptData[:0], nonce, encryptData, dst)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
