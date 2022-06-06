@@ -1,11 +1,12 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
+// It is by standing on the shoulders of giants.
 
+// This file contains the Go wrapper for the constant-time, 64-bit assembly
+// implementation of P256. The optimizations performed here are described in
+// detail in:
+// S.Gueron and V.Krasnov, "Fast prime field elliptic-curve cryptography with
+//                          256-bit primes"
+// https://link.springer.com/article/10.1007%2Fs13389-014-0090-x
+// https://eprint.iacr.org/2013/816.pdf
 //go:build amd64 || arm64
 // +build amd64 arm64
 
@@ -392,61 +393,64 @@ func (p *p256Point) CopyConditional(src *p256Point, v int) {
 
 // p256Inverse sets out to in^-1 mod p.
 func p256Inverse(out, in []uint64) {
-	var stack [8 * 4]uint64
-	p2 := stack[4*0 : 4*0+4]
-	p4 := stack[4*1 : 4*1+4]
-	p8 := stack[4*2 : 4*2+4]
-	p16 := stack[4*3 : 4*3+4]
-	p32 := stack[4*4 : 4*4+4]
-	p64 := stack[4*5 : 4*5+4]
-	p32m2 := stack[4*6 : 4*6+4]
-	ptmp := stack[4*7 : 4*7+4]
+	// Inversion is calculated through exponentiation by p - 2, per Fermat's
+	// little theorem.
+	//
+	// The sequence of 14 multiplications and 255 squarings is derived from the
+	// following addition chain generated with github.com/mmcloughlin/addchain
+	// v0.4.0.
+	//
+	//      _10      = 2*1
+	//      _11      = 1 + _10
+	//      _110     = 2*_11
+	//      _111     = 1 + _110
+	//      _111000  = _111 << 3
+	//      _111111  = _111 + _111000
+	//      _1111110 = 2*_111111
+	//      _1111111 = 1 + _1111110
+	//      x12      = _1111110 << 5 + _111111
+	//      x24      = x12 << 12 + x12
+	//      x31      = x24 << 7 + _1111111
+	//      i39      = x31 << 2
+	//      i68      = i39 << 29
+	//      x62      = x31 + i68
+	//      i71      = i68 << 2
+	//      x64      = i39 + i71 + _11
+	//      i265     = ((i71 << 32 + x64) << 64 + x64) << 94
+	//      return     (x62 + i265) << 2 + 1
+	var stack [3 * 4]uint64
+	t0 := stack[4*0 : 4*0+4]
+	t1 := stack[4*1 : 4*1+4]
+	t2 := stack[4*2 : 4*2+4]
 
-	p256Sqr(ptmp, in, 1)  // 2^1
-	p256Mul(p2, ptmp, in) // 2^2 - 2^0
-
-	p256Sqr(out, p2, 2)      // 2^4 - 2^2
-	p256Mul(ptmp, out, ptmp) // 2^4 - 2^1
-	p256Mul(p4, out, p2)     // 2^4 - 2^0
-
-	p256Sqr(out, p4, 4)      // 2^8 - 2^4
-	p256Mul(ptmp, out, ptmp) // 2^8 - 2^1
-	p256Mul(p8, out, p4)     // 2^8 - 2^0
-
-	p256Sqr(out, p8, 8)      // 2^16 - 2^8
-	p256Mul(ptmp, out, ptmp) // 2^16 - 2^1
-	p256Mul(p16, out, p8)    // 2^16 - 2^0
-
-	p256Sqr(out, p16, 16)     // 2^32 - 2^16
-	p256Mul(p32m2, out, ptmp) // 2^32 - 2^1
-	p256Mul(p32, out, p16)    // 2^32 - 2^0
-
-	p256Sqr(out, p32, 32)  //2^64 - 2^32
-	p256Mul(p64, out, p32) // 2^64 - 2^0
-
-	p256Sqr(out, p64, 64)  //2^128 - 2^64
-	p256Mul(out, out, p64) // 2^128 - 2^0
-	p256Sqr(ptmp, out, 96) // 2^224 - 2^96
-
-	p256Sqr(out, p32m2, 224) //2^256 - 2^225
-	p256Mul(ptmp, ptmp, out) //2^256 - 2^224 - 2^96
-
-	p256Sqr(out, p32, 16)  // 2^48 - 2^16
-	p256Mul(out, out, p16) // 2^48 - 2^0
-
-	p256Sqr(out, out, 8)  // 2^56 - 2^8
-	p256Mul(out, out, p8) // 2^56 - 2^0
-
-	p256Sqr(out, out, 4)  // 2^60 - 2^4
-	p256Mul(out, out, p4) // 2^60 - 2^0
-
-	p256Sqr(out, out, 2)  // 2^62 - 2^2
-	p256Mul(out, out, p2) // 2^62 - 2^0
-
-	p256Sqr(out, out, 2)  // 2^64 - 2^2
-	p256Mul(out, out, in) //2^64 - 2^2 + 2^0
-
-	p256Mul(out, out, ptmp) //2^256 - 2^224 - 2^96 + 2^64 - 3
+	p256Sqr(out, in, 1)
+	p256Mul(t0, in, out)
+	p256Sqr(out, t0, 1)
+	p256Mul(out, in, out)
+	p256Sqr(t1, out, 3)
+	p256Mul(t1, out, t1)
+	p256Sqr(t2, t1, 1)
+	p256Mul(out, in, t2)
+	p256Sqr(t2, t2, 5)
+	p256Mul(t1, t1, t2)
+	p256Sqr(t2, t1, 12)
+	p256Mul(t1, t1, t2)
+	p256Sqr(t1, t1, 7)
+	p256Mul(out, out, t1)
+	p256Sqr(t2, out, 2)
+	p256Sqr(t1, t2, 29)
+	p256Mul(out, out, t1)
+	p256Sqr(t1, t1, 2)
+	p256Mul(t2, t2, t1)
+	p256Mul(t0, t0, t2)
+	p256Sqr(t1, t1, 32)
+	p256Mul(t1, t0, t1)
+	p256Sqr(t1, t1, 64)
+	p256Mul(t0, t0, t1)
+	p256Sqr(t0, t0, 94)
+	p256Mul(out, out, t0)
+	p256Sqr(out, out, 2)
+	p256Mul(out, in, out)
 }
 
 func (p *p256Point) p256StorePoint(r *[16 * 4 * 3]uint64, index int) {

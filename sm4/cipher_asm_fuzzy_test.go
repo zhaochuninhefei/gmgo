@@ -1,11 +1,3 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 //go:build amd64 || arm64
 // +build amd64 arm64
 
@@ -42,7 +34,7 @@ func TestExpandKey(t *testing.T) {
 		}
 		io.ReadFull(rand.Reader, key)
 		expandKeyGo(key, encRes1, decRes1)
-		expandKeyAsm(&key[0], &ck[0], &encRes2[0], &decRes2[0])
+		expandKey(key, encRes2, decRes2)
 		if !reflect.DeepEqual(encRes1, encRes2) {
 			t.Errorf("expected=%v, result=%v\n", encRes1, encRes2)
 		}

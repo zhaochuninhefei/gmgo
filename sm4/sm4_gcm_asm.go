@@ -1,11 +1,3 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 //go:build amd64 || arm64
 // +build amd64 arm64
 
@@ -20,16 +12,16 @@ import (
 
 // sm4CipherGCM implements crypto/cipher.gcmAble so that crypto/cipher.NewGCM
 // will use the optimised implementation in this file when possible. Instances
-// of this type only exist when hasGCMAsm returns true.
+// of this type only exist when hasGCMAsm and hasAES returns true.
 type sm4CipherGCM struct {
-	sm4CipherAsm
+	*sm4CipherAsm
 }
 
 // Assert that sm4CipherGCM implements the gcmAble interface.
 var _ gcmAble = (*sm4CipherGCM)(nil)
 
 //go:noescape
-func gcmSm4Init(productTable *[256]byte, rk []uint32)
+func gcmSm4Init(productTable *[256]byte, rk []uint32, inst int)
 
 //go:noescape
 func gcmSm4Enc(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32)
@@ -43,6 +35,33 @@ func gcmSm4Data(productTable *[256]byte, data []byte, T *[16]byte)
 //go:noescape
 func gcmSm4Finish(productTable *[256]byte, tagMask, T *[16]byte, pLen, dLen uint64)
 
+// gcmSm4InitInst is used for test
+func gcmSm4InitInst(productTable *[256]byte, rk []uint32) {
+	if supportSM4 {
+		gcmSm4Init(productTable, rk, INST_SM4)
+	} else {
+		gcmSm4Init(productTable, rk, INST_AES)
+	}
+}
+
+// gcmSm4EncInst is used for test
+func gcmSm4EncInst(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32) {
+	if supportSM4 {
+		gcmSm4niEnc(productTable, dst, src, ctr, T, rk)
+	} else {
+		gcmSm4Enc(productTable, dst, src, ctr, T, rk)
+	}
+}
+
+// gcmSm4DecInst is used for test
+func gcmSm4DecInst(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32) {
+	if supportSM4 {
+		gcmSm4niDec(productTable, dst, src, ctr, T, rk)
+	} else {
+		gcmSm4Dec(productTable, dst, src, ctr, T, rk)
+	}
+}
+
 type gcmAsm struct {
 	gcm
 	bytesProductTable [256]byte
@@ -53,10 +72,10 @@ type gcmAsm struct {
 func (c *sm4CipherGCM) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
 	// zclog.Debug("sm4.NewGCM in sm4/sm4_gcm_asm.go")
 	g := &gcmAsm{}
-	g.cipher = &c.sm4CipherAsm
+	g.cipher = c.sm4CipherAsm
 	g.nonceSize = nonceSize
 	g.tagSize = tagSize
-	gcmSm4Init(&g.bytesProductTable, g.cipher.enc)
+	gcmSm4Init(&g.bytesProductTable, g.cipher.enc, INST_AES)
 	return g, nil
 }
 
@@ -155,7 +174,12 @@ func (g *gcmAsm) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	var expectedTag [gcmTagSize]byte
 	gcmSm4Data(&g.bytesProductTable, data, &expectedTag)
 	// zclog.Debugf("expectedTag 1 : %v", expectedTag)
+	// 目前gcmSm4Dec函数的入参dst与src在内存上必须各自独立，因此这里不能直接调用`subtle.SliceForAppend`函数，而是强制另外申请内存来生成ret和out两个切片。
 	ret, out := subtle.SliceForAppend(dst, len(ciphertext))
+	// total := len(dst) + len(ciphertext)
+	// ret := make([]byte, total)
+	// copy(ret, dst)
+	// out := ret[len(dst):]
 	if subtle.InexactOverlap(out, ciphertext) {
 		panic("cipher: invalid buffer overlap")
 	}

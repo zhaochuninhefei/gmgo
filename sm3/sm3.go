@@ -1,11 +1,4 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
+// Package sm3 handle shangmi sm3 hash algorithm
 package sm3
 
 /*
@@ -89,7 +82,7 @@ func (d *digest) UnmarshalBinary(b []byte) error {
 	b, d.h[6] = consumeUint32(b)
 	b, d.h[7] = consumeUint32(b)
 	b = b[copy(d.x[:], b):]
-	_, d.len = consumeUint64(b)
+	b, d.len = consumeUint64(b)
 	d.nx = int(d.len % chunk)
 	return nil
 }

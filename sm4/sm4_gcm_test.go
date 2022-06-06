@@ -1,11 +1,3 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 //go:build amd64 || arm64
 // +build amd64 arm64
 
@@ -19,12 +11,12 @@ import (
 
 func genPrecomputeTable() *gcmAsm {
 	key := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
-	c := sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, 4, 64}
-	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0])
+	c := &sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, 4, 64}
+	expandKey(key, c.enc, c.dec)
 	c1 := &sm4CipherGCM{c}
 	g := &gcmAsm{}
-	g.cipher = &c1.sm4CipherAsm
-	gcmSm4Init(&g.bytesProductTable, g.cipher.enc)
+	g.cipher = c1.sm4CipherAsm
+	gcmSm4InitInst(&g.bytesProductTable, g.cipher.enc)
 	return g
 }
 
@@ -153,13 +145,13 @@ func TestBothDataPlaintext(t *testing.T) {
 
 func createGcm() *gcmAsm {
 	key := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
-	c := sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, 4, 64}
-	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0])
+	c := &sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, 4, 64}
+	expandKey(key, c.enc, c.dec)
 	c1 := &sm4CipherGCM{c}
 	g := &gcmAsm{}
-	g.cipher = &c1.sm4CipherAsm
+	g.cipher = c1.sm4CipherAsm
 	g.tagSize = 16
-	gcmSm4Init(&g.bytesProductTable, g.cipher.enc)
+	gcmSm4InitInst(&g.bytesProductTable, g.cipher.enc)
 	return g
 }
 
@@ -222,7 +214,7 @@ func TestGcmSm4Enc(t *testing.T) {
 
 		out2 := make([]byte, len(test.plaintext)+gcm.tagSize)
 		gcmSm4Data(&gcm.bytesProductTable, []byte("emmansun"), &tagOut2)
-		gcmSm4Enc(&gcm.bytesProductTable, out2, []byte(test.plaintext), &counter2, &tagOut2, gcm.cipher.enc)
+		gcmSm4EncInst(&gcm.bytesProductTable, out2, []byte(test.plaintext), &counter2, &tagOut2, gcm.cipher.enc)
 		if hex.EncodeToString(out1) != hex.EncodeToString(out2) {
 			t.Errorf("#%d: out expected %s, got %s", i, hex.EncodeToString(out1), hex.EncodeToString(out2))
 		}
@@ -252,7 +244,7 @@ func TestGcmSm4Dec(t *testing.T) {
 
 		out2 := make([]byte, len(test.plaintext)+gcm.tagSize)
 		gcmSm4Data(&gcm.bytesProductTable, []byte("emmansun"), &tagOut2)
-		gcmSm4Dec(&gcm.bytesProductTable, out2, out1, &counter2, &tagOut2, gcm.cipher.enc)
+		gcmSm4DecInst(&gcm.bytesProductTable, out2, out1, &counter2, &tagOut2, gcm.cipher.enc)
 
 		if hex.EncodeToString([]byte(test.plaintext)) != hex.EncodeToString(out2[:len(test.plaintext)]) {
 			t.Errorf("#%d: out expected %s, got %s", i, hex.EncodeToString([]byte(test.plaintext)), hex.EncodeToString(out2[:len(test.plaintext)]))

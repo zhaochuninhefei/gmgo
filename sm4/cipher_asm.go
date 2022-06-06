@@ -1,11 +1,3 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 //go:build amd64 || arm64
 // +build amd64 arm64
 
@@ -23,14 +15,19 @@ var supportsAES = cpu.X86.HasAES || cpu.ARM64.HasAES
 var supportsGFMUL = cpu.X86.HasPCLMULQDQ || cpu.ARM64.HasPMULL
 var useAVX2 = cpu.X86.HasAVX2 && cpu.X86.HasBMI2
 
-//go:noescape
-func encryptBlocksAsm(xk *uint32, dst, src []byte)
+const (
+	INST_AES int = iota
+	INST_SM4
+)
 
 //go:noescape
-func encryptBlockAsm(xk *uint32, dst, src *byte)
+func encryptBlocksAsm(xk *uint32, dst, src []byte, inst int)
 
 //go:noescape
-func expandKeyAsm(key *byte, ck, enc, dec *uint32)
+func encryptBlockAsm(xk *uint32, dst, src *byte, inst int)
+
+//go:noescape
+func expandKeyAsm(key *byte, ck, enc, dec *uint32, inst int)
 
 type sm4CipherAsm struct {
 	sm4Cipher
@@ -38,24 +35,64 @@ type sm4CipherAsm struct {
 	blocksSize  int
 }
 
+type sm4CipherNI struct {
+	sm4Cipher
+}
+
+func newCipherNI(key []byte) (cipher.Block, error) {
+	c := &sm4CipherNI{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}}
+	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0], INST_SM4)
+	if supportsGFMUL {
+		return &sm4CipherNIGCM{c}, nil
+	}
+	return c, nil
+}
+
+func (c *sm4CipherNI) Encrypt(dst, src []byte) {
+	if len(src) < BlockSize {
+		panic("sm4: input not full block")
+	}
+	if len(dst) < BlockSize {
+		panic("sm4: output not full block")
+	}
+	if subtle.InexactOverlap(dst[:BlockSize], src[:BlockSize]) {
+		panic("sm4: invalid buffer overlap")
+	}
+	encryptBlockAsm(&c.enc[0], &dst[0], &src[0], INST_SM4)
+}
+
+func (c *sm4CipherNI) Decrypt(dst, src []byte) {
+	if len(src) < BlockSize {
+		panic("sm4: input not full block")
+	}
+	if len(dst) < BlockSize {
+		panic("sm4: output not full block")
+	}
+	if subtle.InexactOverlap(dst[:BlockSize], src[:BlockSize]) {
+		panic("sm4: invalid buffer overlap")
+	}
+	encryptBlockAsm(&c.dec[0], &dst[0], &src[0], INST_SM4)
+}
+
 func newCipher(key []byte) (cipher.Block, error) {
-	// zclog.Debug("sm4.newCipher in sm4/cipher_asm.go")
+	if supportSM4 {
+		return newCipherNI(key)
+	}
+
 	if !supportsAES {
-		// zclog.Debug("!supportsAES")
 		return newCipherGeneric(key)
 	}
+
 	blocks := 4
 	if useAVX2 {
 		blocks = 8
 	}
-	// zclog.Debugf("blocks: %d", blocks)
-	c := sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, blocks, blocks * BlockSize}
-	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0])
-	if supportsAES && supportsGFMUL {
-		// zclog.Debug("use sm4CipherGCM")
+	c := &sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, blocks, blocks * BlockSize}
+	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0], INST_AES)
+	if supportsGFMUL {
 		return &sm4CipherGCM{c}, nil
 	}
-	return &c, nil
+	return c, nil
 }
 
 func (c *sm4CipherAsm) BlockSize() int { return BlockSize }
@@ -72,7 +109,7 @@ func (c *sm4CipherAsm) Encrypt(dst, src []byte) {
 	if subtle.InexactOverlap(dst[:BlockSize], src[:BlockSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlockAsm(&c.enc[0], &dst[0], &src[0])
+	encryptBlockAsm(&c.enc[0], &dst[0], &src[0], INST_AES)
 }
 
 func (c *sm4CipherAsm) EncryptBlocks(dst, src []byte) {
@@ -85,7 +122,7 @@ func (c *sm4CipherAsm) EncryptBlocks(dst, src []byte) {
 	if subtle.InexactOverlap(dst[:c.blocksSize], src[:c.blocksSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlocksAsm(&c.enc[0], dst, src)
+	encryptBlocksAsm(&c.enc[0], dst, src, INST_AES)
 }
 
 func (c *sm4CipherAsm) Decrypt(dst, src []byte) {
@@ -98,7 +135,7 @@ func (c *sm4CipherAsm) Decrypt(dst, src []byte) {
 	if subtle.InexactOverlap(dst[:BlockSize], src[:BlockSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlockAsm(&c.dec[0], &dst[0], &src[0])
+	encryptBlockAsm(&c.dec[0], &dst[0], &src[0], INST_AES)
 }
 
 func (c *sm4CipherAsm) DecryptBlocks(dst, src []byte) {
@@ -111,14 +148,16 @@ func (c *sm4CipherAsm) DecryptBlocks(dst, src []byte) {
 	if subtle.InexactOverlap(dst[:c.blocksSize], src[:c.blocksSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlocksAsm(&c.dec[0], dst, src)
+	encryptBlocksAsm(&c.dec[0], dst, src, INST_AES)
 }
 
 // expandKey is used by BenchmarkExpand to ensure that the asm implementation
 // of key expansion is used for the benchmark when it is available.
 func expandKey(key []byte, enc, dec []uint32) {
-	if supportsAES {
-		expandKeyAsm(&key[0], &ck[0], &enc[0], &dec[0])
+	if supportSM4 {
+		expandKeyAsm(&key[0], &ck[0], &enc[0], &dec[0], INST_SM4)
+	} else if supportsAES {
+		expandKeyAsm(&key[0], &ck[0], &enc[0], &dec[0], INST_AES)
 	} else {
 		expandKeyGo(key, enc, dec)
 	}

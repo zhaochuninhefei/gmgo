@@ -1,11 +1,3 @@
-// Copyright (c) 2022 zhaochun
-// gmgo is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//          http://license.coscl.org.cn/MulanPSL2
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package sm2
 
 import (
@@ -283,5 +275,19 @@ func TestP256CombinedMult(t *testing.T) {
 	x, y = p256.CombinedMult(gx, gy, one, minusOne.Bytes())
 	if x.Sign() != 0 || y.Sign() != 0 {
 		t.Errorf("1×G + (-1)×G = (%d, %d), should be ∞", x, y)
+	}
+}
+
+func TestIssue52075(t *testing.T) {
+	Gx, Gy := P256Sm2().Params().Gx, P256Sm2().Params().Gy
+	scalar := make([]byte, 33)
+	scalar[32] = 1
+	x, y := P256Sm2().ScalarBaseMult(scalar)
+	if x.Cmp(Gx) != 0 || y.Cmp(Gy) != 0 {
+		t.Errorf("unexpected output (%v,%v)", x, y)
+	}
+	x, y = P256Sm2().ScalarMult(Gx, Gy, scalar)
+	if x.Cmp(Gx) != 0 || y.Cmp(Gy) != 0 {
+		t.Errorf("unexpected output (%v,%v)", x, y)
 	}
 }

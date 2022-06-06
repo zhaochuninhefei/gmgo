@@ -399,9 +399,7 @@ func (hc *halfConn) decrypt(record []byte) ([]byte, recordType, error) {
 			}
 
 			var err error
-			// 为避免非avx2 asm实现中复用内存发生验证失败的问题，这里将`payload[:0]`改为nil。
-			// plaintext, err = c.Open(payload[:0], nonce, payload, additionalData)
-			plaintext, err = c.Open(nil, nonce, payload, additionalData)
+			plaintext, err = c.Open(payload[:0], nonce, payload, additionalData)
 			if err != nil {
 				return nil, 0, alertBadRecordMAC
 			}
