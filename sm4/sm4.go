@@ -219,7 +219,7 @@ func Sm4DecryptGcmWithNonce(encryptData, key, nonce, dst []byte) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	out, err := sm4gcm.Open(encryptData[:0], nonce, encryptData, dst)
+	out, err := sm4gcm.Open(nil, nonce, encryptData, dst)
 	if err != nil {
 		return nil, err
 	}

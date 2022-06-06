@@ -29,11 +29,14 @@ func InexactOverlap(x, y []byte) bool {
 // original slice has sufficient capacity then no allocation is performed.
 func SliceForAppend(in []byte, n int) (head, tail []byte) {
 	if total := len(in) + n; cap(in) >= total {
+		// 如果in的当前长度+n 依然在其in的容量范围内，则直接获取in的(len(in) + n)部分作为head
 		head = in[:total]
 	} else {
+		// in的当前长度+n已经超过其容量，则重新申请内存生成head，并将in的(len(in))部分拷贝到新的head切片
 		head = make([]byte, total)
 		copy(head, in)
 	}
+	// 获取head切片的尾部
 	tail = head[len(in):]
 	return
 }
