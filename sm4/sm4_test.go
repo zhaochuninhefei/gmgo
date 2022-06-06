@@ -68,7 +68,6 @@ func testGCMWithNonce(key, data, nonce, dst []byte) error {
 	if err != nil {
 		return err
 	}
-	// fmt.Printf("GCM nonce 16进制 : %x\n", nonce)
 	fmt.Printf("GCM encryptData 16进制 : %x\n", encryptData)
 
 	plainData, err := Sm4DecryptGcmWithNonce(encryptData, key, nonce, dst)
