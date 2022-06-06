@@ -15,7 +15,6 @@ import (
 	"crypto/cipher"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/subtle"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"golang.org/x/sys/cpu"
 )
 
@@ -40,20 +39,20 @@ type sm4CipherAsm struct {
 }
 
 func newCipher(key []byte) (cipher.Block, error) {
-	zclog.Debug("sm4.newCipher in sm4/cipher_asm.go")
+	// zclog.Debug("sm4.newCipher in sm4/cipher_asm.go")
 	if !supportsAES {
-		zclog.Debug("!supportsAES")
+		// zclog.Debug("!supportsAES")
 		return newCipherGeneric(key)
 	}
 	blocks := 4
 	if useAVX2 {
 		blocks = 8
 	}
-	zclog.Debugf("blocks: %d", blocks)
+	// zclog.Debugf("blocks: %d", blocks)
 	c := sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, blocks, blocks * BlockSize}
 	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0])
 	if supportsAES && supportsGFMUL && useAVX2 {
-		zclog.Debug("use sm4CipherGCM")
+		// zclog.Debug("use sm4CipherGCM")
 		return &sm4CipherGCM{c}, nil
 	}
 	return &c, nil

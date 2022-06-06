@@ -19,7 +19,6 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/subtle"
 	"gitee.com/zhaochuninhefei/gmgo/internal/xor"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 // Assert that sm4CipherAsm implements the gcmAble interface.
@@ -28,7 +27,7 @@ var _ gcmAble = (*sm4CipherAsm)(nil)
 // NewGCM returns the SM4 cipher wrapped in Galois Counter Mode. This is only
 // called by crypto/cipher.NewGCM via the gcmAble interface.
 func (c *sm4CipherAsm) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
-	zclog.Debug("sm4.NewGCM in sm4/gcm_cipher_asm.go")
+	// zclog.Debug("sm4.NewGCM in sm4/gcm_cipher_asm.go")
 	var key [gcmBlockSize]byte
 	c.Encrypt(key[:], key[:])
 	g := &gcm{cipher: c, nonceSize: nonceSize, tagSize: tagSize}
@@ -89,7 +88,7 @@ func (g *gcm) Overhead() int {
 }
 
 func (g *gcm) Seal(dst, nonce, plaintext, data []byte) []byte {
-	zclog.Debug("sm4.Seal in sm4/gcm_cipher_asm.go")
+	// zclog.Debug("sm4.Seal in sm4/gcm_cipher_asm.go")
 	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
@@ -120,7 +119,7 @@ func (g *gcm) Seal(dst, nonce, plaintext, data []byte) []byte {
 var errOpen = errors.New("cipher: message authentication failed")
 
 func (g *gcm) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
-	zclog.Debug("sm4.Open in sm4/gcm_cipher_asm.go")
+	// zclog.Debug("sm4.Open in sm4/gcm_cipher_asm.go")
 	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}

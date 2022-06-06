@@ -62,7 +62,7 @@ go test
 测试案例代码: `x509/x509_test.go`
 ```sh
 cd x509
-go test
+go test -v -run "^(TestX509|TestX509WithFile|TestCreateCertFromCA)$"
 
 ```
 

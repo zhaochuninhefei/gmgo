@@ -16,7 +16,6 @@ import (
 	goSubtle "crypto/subtle"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/subtle"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 // sm4CipherGCM implements crypto/cipher.gcmAble so that crypto/cipher.NewGCM
@@ -52,7 +51,7 @@ type gcmAsm struct {
 // NewGCM returns the SM4 cipher wrapped in Galois Counter Mode. This is only
 // called by crypto/cipher.NewGCM via the gcmAble interface.
 func (c *sm4CipherGCM) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
-	zclog.Debug("sm4.NewGCM in sm4/sm4_gcm_asm.go")
+	// zclog.Debug("sm4.NewGCM in sm4/sm4_gcm_asm.go")
 	g := &gcmAsm{}
 	g.cipher = &c.sm4CipherAsm
 	g.nonceSize = nonceSize
@@ -72,8 +71,8 @@ func (g *gcmAsm) Overhead() int {
 // Seal encrypts and authenticates plaintext. See the cipher.AEAD interface for
 // details.
 func (g *gcmAsm) Seal(dst, nonce, plaintext, data []byte) []byte {
-	zclog.Debug("sm4.Seal in sm4/sm4_gcm_asm.go")
-	zclog.Debugf("dst: %v, nonce: %v, plaintext: %v, data: %v", dst, nonce, plaintext, data)
+	// zclog.Debug("sm4.Seal in sm4/sm4_gcm_asm.go")
+	// zclog.Debugf("dst: %v, nonce: %v, plaintext: %v, data: %v", dst, nonce, plaintext, data)
 	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
@@ -97,7 +96,7 @@ func (g *gcmAsm) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	var tagOut [gcmTagSize]byte
 	gcmSm4Data(&g.bytesProductTable, data, &tagOut)
-	zclog.Debugf("tagOut 1 : %v", tagOut)
+	// zclog.Debugf("tagOut 1 : %v", tagOut)
 	ret, out := subtle.SliceForAppend(dst, len(plaintext)+g.tagSize)
 	if subtle.InexactOverlap(out[:len(plaintext)], plaintext) {
 		panic("cipher: invalid buffer overlap")
@@ -105,20 +104,20 @@ func (g *gcmAsm) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	if len(plaintext) > 0 {
 		gcmSm4Enc(&g.bytesProductTable, out, plaintext, &counter, &tagOut, g.cipher.enc)
-		zclog.Debugf("tagOut 2 : %v", tagOut)
+		// zclog.Debugf("tagOut 2 : %v", tagOut)
 	}
 	gcmSm4Finish(&g.bytesProductTable, &tagMask, &tagOut, uint64(len(plaintext)), uint64(len(data)))
-	zclog.Debugf("tagOut 3 : %v", tagOut)
+	// zclog.Debugf("tagOut 3 : %v", tagOut)
 	copy(out[len(plaintext):], tagOut[:])
-	zclog.Debugf("ret: %v", ret)
+	// zclog.Debugf("ret: %v", ret)
 	return ret
 }
 
 // Open authenticates and decrypts ciphertext. See the cipher.AEAD interface
 // for details.
 func (g *gcmAsm) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
-	zclog.Debug("sm4.Open in sm4/sm4_gcm_asm.go")
-	zclog.Debugf("dst: %v, nonce: %v, ciphertext: %v, data: %v", dst, nonce, ciphertext, data)
+	// zclog.Debug("sm4.Open in sm4/sm4_gcm_asm.go")
+	// zclog.Debugf("dst: %v, nonce: %v, ciphertext: %v, data: %v", dst, nonce, ciphertext, data)
 	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
@@ -155,21 +154,19 @@ func (g *gcmAsm) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 
 	var expectedTag [gcmTagSize]byte
 	gcmSm4Data(&g.bytesProductTable, data, &expectedTag)
-	zclog.Debugf("expectedTag 1 : %v", expectedTag)
+	// zclog.Debugf("expectedTag 1 : %v", expectedTag)
 	ret, out := subtle.SliceForAppend(dst, len(ciphertext))
 	if subtle.InexactOverlap(out, ciphertext) {
 		panic("cipher: invalid buffer overlap")
 	}
 	if len(ciphertext) > 0 {
-		// TODO: 这里的计算可能会导致expectedTag的值与Seal中的tagOut不一致
-		// 尝试添加测试案例看是否能够重现，弄一个比较长的测试数据?
-		zclog.Debugf("ProductTable: %v, out: %v, ciphertext: %v, counter: %v, expectedTag: %v, g.cipher.enc: %v", g.bytesProductTable, out, ciphertext, &counter, expectedTag, g.cipher.enc)
+		// zclog.Debugf("ProductTable: %v, out: %v, ciphertext: %v, counter: %v, expectedTag: %v, g.cipher.enc: %v", g.bytesProductTable, out, ciphertext, &counter, expectedTag, g.cipher.enc)
 		gcmSm4Dec(&g.bytesProductTable, out, ciphertext, &counter, &expectedTag, g.cipher.enc)
-		zclog.Debugf("expectedTag 2 : %v", expectedTag)
+		// zclog.Debugf("expectedTag 2 : %v", expectedTag)
 	}
 	gcmSm4Finish(&g.bytesProductTable, &tagMask, &expectedTag, uint64(len(ciphertext)), uint64(len(data)))
-	zclog.Debugf("expectedTag 3 : %v", expectedTag)
-	zclog.Debugf("ret: %v", ret)
+	// zclog.Debugf("expectedTag 3 : %v", expectedTag)
+	// zclog.Debugf("ret: %v", ret)
 	if goSubtle.ConstantTimeCompare(expectedTag[:g.tagSize], tag) != 1 {
 		for i := range out {
 			out[i] = 0
