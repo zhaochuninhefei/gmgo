@@ -52,7 +52,7 @@ func newCipher(key []byte) (cipher.Block, error) {
 	zclog.Debugf("blocks: %d", blocks)
 	c := sm4CipherAsm{sm4Cipher{make([]uint32, rounds), make([]uint32, rounds)}, blocks, blocks * BlockSize}
 	expandKeyAsm(&key[0], &ck[0], &c.enc[0], &c.dec[0])
-	if supportsAES && supportsGFMUL {
+	if supportsAES && supportsGFMUL && useAVX2 {
 		zclog.Debug("use sm4CipherGCM")
 		return &sm4CipherGCM{c}, nil
 	}
