@@ -7,6 +7,10 @@ import (
 	"math/bits"
 )
 
+/*
+sm4/block.go sm4块加密与块解密
+*/
+
 type convert func(uint32) uint32
 
 // Encrypt one block from src into dst, using the expanded key xk.
