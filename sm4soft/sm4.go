@@ -298,14 +298,6 @@ func xor(in, iv []byte) (out []byte) {
 	for i := 0; i < n; i++ {
 		out[i] = in[i] ^ iv[i]
 	}
-	// if len(in) != len(iv) {
-	// 	return nil
-	// }
-
-	// out = make([]byte, len(in))
-	// for i := 0; i < len(in); i++ {
-	// 	out[i] = in[i] ^ iv[i]
-	// }
 	return
 }
 
@@ -345,7 +337,7 @@ func SetIVDefault(iv []byte) error {
 	return nil
 }
 
-// sm4加密(ECB模式)
+// sm4加密(ECB模式)，不需要IV，有PKCS#7填充
 func Sm4Ecb(key []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
@@ -386,7 +378,7 @@ func Sm4Ecb(key []byte, in []byte, encrypt bool) (out []byte, err error) {
 	return out, nil
 }
 
-// sm4加密(CBC模式)，需要IV
+// sm4加密(CBC模式)，需要IV，有PKCS#7填充
 func Sm4Cbc(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
@@ -448,7 +440,7 @@ func Sm4Cbc(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 //https://blog.csdn.net/zy_strive_2012/article/details/102520356
 //https://blog.csdn.net/sinat_23338865/article/details/72869841
 
-// sm4加密(CFB模式)，需要IV，不需要填充
+// sm4加密(CFB模式)，需要IV，没有PKCS#7填充
 func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
 	// 检查密钥长度
 	if len(key) != BlockSize {
@@ -537,7 +529,7 @@ func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 //https://blog.csdn.net/chengqiuming/article/details/82390910
 //https://blog.csdn.net/sinat_23338865/article/details/72869841
 
-// sm4加密(OFB模式)，需要IV
+// sm4加密(OFB模式)，需要IV，没有PKCS#7填充
 func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
