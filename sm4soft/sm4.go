@@ -157,13 +157,16 @@ var sbox3 = [256]uint32{
 	0x78186060, 0x30f3c3c3, 0x897cf5f5, 0x5cefb3b3, 0xd23ae8e8, 0xacdf7373, 0x794c3535, 0xa0208080, 0x9d78e5e5, 0x56edbbbb, 0x235e7d7d, 0xc63ef8f8, 0x8bd45f5f, 0xe7c82f2f, 0xdd39e4e4, 0x68492121,
 }
 
+// 对x做32位循环左移i位
 func rl(x uint32, i uint8) uint32 { return (x << (i % 32)) | (x >> (32 - (i % 32))) }
 
+// 密钥扩展用线性变换 L'
 func l0(b uint32) uint32 { return b ^ rl(b, 13) ^ rl(b, 23) }
 
+// 密钥扩展算法
 func feistel0(x0, x1, x2, x3, rk uint32) uint32 { return x0 ^ l0(p(x1^x2^x3^rk)) }
 
-//非线性变换τ(.)
+// 非线性变换τ(.)
 func p(a uint32) uint32 {
 	return (uint32(sbox[a>>24]) << 24) ^ (uint32(sbox[(a>>16)&0xff]) << 16) ^ (uint32(sbox[(a>>8)&0xff]) << 8) ^ uint32(sbox[(a)&0xff])
 }

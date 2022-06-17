@@ -127,7 +127,7 @@ func _t(in uint32, fn convert) uint32 {
 	for i := 0; i < 4; i++ {
 		bytes[i] = sbox[bytes[i]]
 	}
-	// 调用非线性变换函数
+	// 调用线性变换函数
 	return fn(binary.BigEndian.Uint32(bytes[:]))
 }
 
