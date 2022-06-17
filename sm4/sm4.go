@@ -89,14 +89,13 @@ func Sm4EncryptCfb(plainData, key []byte) (iv, encryptData []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	paddedData := PKCS7Padding(plainData)
-	encryptData = make([]byte, len(paddedData))
+	encryptData = make([]byte, len(plainData))
 	iv = make([]byte, BlockSize)
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, nil, err
 	}
 	mode := cipher.NewCFBEncrypter(block, iv)
-	mode.XORKeyStream(encryptData, paddedData)
+	mode.XORKeyStream(encryptData, plainData)
 	return
 }
 
@@ -106,18 +105,9 @@ func Sm4DecryptCfb(encryptData, key, iv []byte) (plainData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	// 长度检查
-	length := len(encryptData)
-	if length < BlockSize || length%BlockSize != 0 {
-		return nil, fmt.Errorf("sm4.Sm4DecryptCfb: 密文长度不正确,不是Block字节数的整数倍. Block字节数: [%d]", BlockSize)
-	}
-	paddedData := make([]byte, len(encryptData))
+	plainData = make([]byte, len(encryptData))
 	mode := cipher.NewCFBDecrypter(block, iv)
-	mode.XORKeyStream(paddedData, encryptData)
-	plainData, err = PKCS7UnPadding(paddedData)
-	if err != nil {
-		return nil, err
-	}
+	mode.XORKeyStream(plainData, encryptData)
 	return
 }
 
@@ -127,14 +117,13 @@ func Sm4EncryptOfb(plainData, key []byte) (iv, encryptData []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	paddedData := PKCS7Padding(plainData)
-	encryptData = make([]byte, len(paddedData))
+	encryptData = make([]byte, len(plainData))
 	iv = make([]byte, BlockSize)
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, nil, err
 	}
 	mode := cipher.NewOFB(block, iv)
-	mode.XORKeyStream(encryptData, paddedData)
+	mode.XORKeyStream(encryptData, plainData)
 	return
 }
 
@@ -144,18 +133,9 @@ func Sm4DecryptOfb(encryptData, key, iv []byte) (plainData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	// 长度检查
-	length := len(encryptData)
-	if length < BlockSize || length%BlockSize != 0 {
-		return nil, fmt.Errorf("sm4.Sm4DecryptOfb: 密文长度不正确,不是Block字节数的整数倍. Block字节数: [%d]", BlockSize)
-	}
-	paddedData := make([]byte, len(encryptData))
+	plainData = make([]byte, len(encryptData))
 	mode := cipher.NewOFB(block, iv)
-	mode.XORKeyStream(paddedData, encryptData)
-	plainData, err = PKCS7UnPadding(paddedData)
-	if err != nil {
-		return nil, err
-	}
+	mode.XORKeyStream(plainData, encryptData)
 	return
 }
 
