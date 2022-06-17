@@ -14,7 +14,7 @@ sm4soft 是sm4的纯软实现，基于tjfoc国密算法库`tjfoc/gmsm`做了少�
 package sm4soft
 
 /*
-sm4/sm4.go SM4实现
+sm4soft/sm4.go SM4纯软实现
 */
 
 import (
@@ -285,15 +285,27 @@ func (c *Sm4Cipher) Decrypt(dst, src []byte) {
 }
 
 // 异或处理
+//  根据较短的入参，按字节单位异或
 func xor(in, iv []byte) (out []byte) {
-	if len(in) != len(iv) {
+	n := len(in)
+	if len(iv) < n {
+		n = len(iv)
+	}
+	if n == 0 {
 		return nil
 	}
-
-	out = make([]byte, len(in))
-	for i := 0; i < len(in); i++ {
+	out = make([]byte, n)
+	for i := 0; i < n; i++ {
 		out[i] = in[i] ^ iv[i]
 	}
+	// if len(in) != len(iv) {
+	// 	return nil
+	// }
+
+	// out = make([]byte, len(in))
+	// for i := 0; i < len(in); i++ {
+	// 	out[i] = in[i] ^ iv[i]
+	// }
 	return
 }
 
@@ -436,72 +448,86 @@ func Sm4Cbc(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 //https://blog.csdn.net/zy_strive_2012/article/details/102520356
 //https://blog.csdn.net/sinat_23338865/article/details/72869841
 
-// sm4加密(CFB模式)，需要IV
+// sm4加密(CFB模式)，需要IV，不需要填充
 func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
+	// 检查密钥长度
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
 	}
+	// 如果没有传iv，就采用默认iv
 	if iv == nil {
 		iv = make([]byte, BlockSize)
 		copy(iv, IVDefault)
 	}
+	// 检查iv长度
 	if len(iv) != BlockSize {
 		return nil, errors.New("SM4: invalid iv size " + strconv.Itoa(len(iv)))
 	}
 	var inData []byte = in
-	if encrypt {
-		inData = pkcs7Padding(in)
-	} else {
-		inData = in
+	// 计算明文块长度
+	inLength := len(inData)
+	// 计算最后一个明文块的长度
+	lastBlockLen := inLength % BlockSize
+	// 计算明文块数量
+	blockCnt := inLength / BlockSize
+	if lastBlockLen > 0 {
+		blockCnt = blockCnt + 1
 	}
-
+	// 准备密文块数组
 	out = make([]byte, len(inData))
 	c, err := NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-
+	// 异或参数K
 	K := make([]byte, BlockSize)
-	// plainBlock := make([]byte, BlockSize)
 	if encrypt {
-		//加密
+		// 加密分支
+		// 当前密文块
 		cipherBlock := make([]byte, BlockSize)
-		for i := 0; i < len(inData)/16; i++ {
+		for i := 0; i < blockCnt; i++ {
+			// 判断本次循环对应明文块的长度
+			curBlockSize := BlockSize
+			if i == blockCnt-1 {
+				curBlockSize = lastBlockLen
+			}
 			if i == 0 {
 				// 使用块加密计算首组异或参数K
 				c.Encrypt(K, iv)
 				// 本组明文块与本组异或参数K做异或运算得到本组密文块
-				cipherBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
-				copy(out[i*16:i*16+16], cipherBlock)
-				//copy(cipherBlock,out_tmp)
+				cipherBlock = xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+				copy(out[i*BlockSize:i*BlockSize+curBlockSize], cipherBlock)
 				continue
 			}
 			// 利用前一组密文块计算本组异或参数K
 			c.Encrypt(K, cipherBlock)
 			// 本组明文块与本组异或参数K做异或运算得到本组密文块
-			cipherBlock = xor(K[:BlockSize], inData[i*16:i*16+16])
-			copy(out[i*16:i*16+16], cipherBlock)
-			//copy(cipherBlock,out_tmp)
+			cipherBlock = xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+			copy(out[i*BlockSize:i*BlockSize+curBlockSize], cipherBlock)
 		}
 	} else {
-		//解密
+		// 解密分支
 		var i int = 0
-		for ; i < len(inData)/16; i++ {
+		for ; i < blockCnt; i++ {
+			// 判断本次循环对应密文块的长度
+			curBlockSize := BlockSize
+			if i == blockCnt-1 {
+				curBlockSize = lastBlockLen
+			}
 			if i == 0 {
 				// 使用块加密计算首组异或参数K
 				c.Encrypt(K, iv)
 				// 本组密文块与本组异或参数K做异或运算得到本组明文块
-				plainBlock := xor(K[:BlockSize], inData[i*16:i*16+16])
-				copy(out[i*16:i*16+16], plainBlock)
+				plainBlock := xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+				copy(out[i*BlockSize:i*BlockSize+curBlockSize], plainBlock)
 				continue
 			}
 			// 利用前一组密文块计算本组异或参数K
-			c.Encrypt(K, inData[(i-1)*16:(i-1)*16+16])
+			c.Encrypt(K, inData[(i-1)*BlockSize:i*BlockSize])
 			// 本组密文块与本组异或参数K做异或运算得到本组明文块
-			plainBlock := xor(K[:BlockSize], inData[i*16:i*16+16])
-			copy(out[i*16:i*16+16], plainBlock)
+			plainBlock := xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+			copy(out[i*BlockSize:i*BlockSize+curBlockSize], plainBlock)
 		}
-		out, _ = pkcs7UnPadding(out)
 	}
 
 	return out, nil
@@ -524,10 +550,14 @@ func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 		return nil, errors.New("SM4: invalid iv size " + strconv.Itoa(len(iv)))
 	}
 	var inData []byte = in
-	if encrypt {
-		inData = pkcs7Padding(in)
-	} else {
-		inData = in
+	// 计算明文块长度
+	inLength := len(inData)
+	// 计算最后一个明文块的长度
+	lastBlockLen := inLength % BlockSize
+	// 计算明文块数量
+	blockCnt := inLength / BlockSize
+	if lastBlockLen > 0 {
+		blockCnt = blockCnt + 1
 	}
 
 	out = make([]byte, len(inData))
@@ -537,18 +567,21 @@ func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 	}
 
 	K := make([]byte, BlockSize)
-	// cipherBlock := make([]byte, BlockSize)
-	// plainBlock := make([]byte, BlockSize)
 	shiftIV := make([]byte, BlockSize)
 	if encrypt {
-		//加密
-		for i := 0; i < len(inData)/16; i++ {
+		// 加密
+		for i := 0; i < blockCnt; i++ {
+			// 判断本次循环对应明文块的长度
+			curBlockSize := BlockSize
+			if i == blockCnt-1 {
+				curBlockSize = lastBlockLen
+			}
 			if i == 0 {
 				// 使用块加密计算首组异或参数K
 				c.Encrypt(K, iv)
 				// 本组明文与异或参数K做异或运算
-				cipherBlock := xor(K[:BlockSize], inData[i*16:i*16+16])
-				copy(out[i*16:i*16+16], cipherBlock)
+				cipherBlock := xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+				copy(out[i*BlockSize:i*BlockSize+curBlockSize], cipherBlock)
 				// 本组异或参数K作为下一组块加密参数
 				copy(shiftIV, K[:BlockSize])
 				continue
@@ -556,20 +589,25 @@ func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 			// 使用块加密，利用前一组异或参数计算本组异或参数K
 			c.Encrypt(K, shiftIV)
 			// 本组明文与异或参数K做异或运算
-			cipherBlock := xor(K[:BlockSize], inData[i*16:i*16+16])
-			copy(out[i*16:i*16+16], cipherBlock)
+			cipherBlock := xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+			copy(out[i*BlockSize:i*BlockSize+curBlockSize], cipherBlock)
 			// 本组异或参数K作为下一组块加密参数
 			copy(shiftIV, K[:BlockSize])
 		}
 	} else {
-		//解密
-		for i := 0; i < len(inData)/16; i++ {
+		// 解密
+		for i := 0; i < blockCnt; i++ {
+			// 判断本次循环对应密文块的长度
+			curBlockSize := BlockSize
+			if i == blockCnt-1 {
+				curBlockSize = lastBlockLen
+			}
 			if i == 0 {
 				// 使用块加密计算首组异或参数K
 				c.Encrypt(K, iv)
 				// 本组密文与异或参数K做异或运算
-				plainBlock := xor(K[:BlockSize], inData[i*16:i*16+16])
-				copy(out[i*16:i*16+16], plainBlock)
+				plainBlock := xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+				copy(out[i*BlockSize:i*BlockSize+curBlockSize], plainBlock)
 				// 本组异或参数K作为下一组块加密参数
 				copy(shiftIV, K[:BlockSize])
 				continue
@@ -577,12 +615,11 @@ func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 			// 使用块加密，利用前一组异或参数计算本组异或参数K
 			c.Encrypt(K, shiftIV)
 			// 本组密文与异或参数K做异或运算
-			plainBlock := xor(K[:BlockSize], inData[i*16:i*16+16])
-			copy(out[i*16:i*16+16], plainBlock)
+			plainBlock := xor(K[:BlockSize], inData[i*BlockSize:i*BlockSize+curBlockSize])
+			copy(out[i*BlockSize:i*BlockSize+curBlockSize], plainBlock)
 			// 本组异或参数K作为下一组块加密参数
 			copy(shiftIV, K[:BlockSize])
 		}
-		out, _ = pkcs7UnPadding(out)
 	}
 
 	return out, nil
