@@ -386,7 +386,7 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 }
 
 // 根据客户端发出的ClientHello的协议与密码套件决定Server的证书链
-//  当客户端支持tls1.3或gmssl，且客户端支持的密码套件包含 TLS_SM4_128_GCM_SM3 时，服务端证书采用gmSigCert。
+//  当客户端支持tls1.3或gmssl，且客户端支持的密码套件包含 TLS_SM4_GCM_SM3 时，服务端证书采用gmSigCert。
 //  - gmSigCert 国密证书链
 //  - genericCert 一般证书链
 func NewServerConfigByClientHello(gmSigCert, genericCert *Certificate) (*Config, error) {
@@ -396,9 +396,9 @@ func NewServerConfigByClientHello(gmSigCert, genericCert *Certificate) (*Config,
 		// 检查客户端支持的协议中是否包含TLS1.3或GMSSL
 		for _, v := range info.SupportedVersions {
 			if v == VersionGMSSL || v == VersionTLS13 {
-				// 检查客户端支持的密码套件是否包含TLS_SM4_128_GCM_SM3
+				// 检查客户端支持的密码套件是否包含 TLS_SM4_GCM_SM3
 				for _, c := range info.CipherSuites {
-					if c == TLS_SM4_128_GCM_SM3 {
+					if c == TLS_SM4_GCM_SM3 {
 						gmFlag = true
 						break
 					}

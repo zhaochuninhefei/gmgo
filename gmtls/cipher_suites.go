@@ -73,8 +73,8 @@ func CipherSuites() []*CipherSuite {
 		{TLS_AES_128_GCM_SHA256, "TLS_AES_128_GCM_SHA256", supportedOnlyTLS13, false},
 		{TLS_AES_256_GCM_SHA384, "TLS_AES_256_GCM_SHA384", supportedOnlyTLS13, false},
 		{TLS_CHACHA20_POLY1305_SHA256, "TLS_CHACHA20_POLY1305_SHA256", supportedOnlyTLS13, false},
-		// 补充国密套件 TLS_SM4_128_GCM_SM3 ，在 VersionTLS13, VersionGMSSL 中可以使用
-		{TLS_SM4_128_GCM_SM3, "TLS_SM4_128_GCM_SM3", supportedTLS13AndGMSSL, false},
+		// 补充国密套件 TLS_SM4_GCM_SM3 ，在 VersionTLS13, VersionGMSSL 中可以使用
+		{TLS_SM4_GCM_SM3, "TLS_SM4_GCM_SM3", supportedTLS13AndGMSSL, false},
 
 		{TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", supportedUpToTLS12, false},
 		{TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", supportedUpToTLS12, false},
@@ -221,8 +221,8 @@ type cipherSuiteTLS13 struct {
 
 func (cs *cipherSuiteTLS13) ToString() string {
 	switch cs.id {
-	case TLS_SM4_128_GCM_SM3:
-		return "TLS_SM4_128_GCM_SM3"
+	case TLS_SM4_GCM_SM3:
+		return "TLS_SM4_GCM_SM3"
 	case TLS_AES_128_GCM_SHA256:
 		return "TLS_AES_128_GCM_SHA256"
 	case TLS_CHACHA20_POLY1305_SHA256:
@@ -240,7 +240,7 @@ var cipherSuitesTLS13 = []*cipherSuiteTLS13{ // replace with a map.
 	{TLS_CHACHA20_POLY1305_SHA256, 32, aeadChaCha20Poly1305, x509.SHA256},
 	{TLS_AES_256_GCM_SHA384, 32, aeadAESGCMTLS13, x509.SHA384},
 	// 添加国密对应实现
-	{TLS_SM4_128_GCM_SM3, 16, aeadSM4GCMTLS13, x509.SM3},
+	{TLS_SM4_GCM_SM3, 16, aeadSM4GCMTLS13, x509.SM3},
 }
 
 // 选择tls1.0-1.2密码学套件的顺序。暂时没有添加国密密码学套件。
@@ -385,14 +385,14 @@ var (
 // disabled by default TLS 1.3 cipher suites. The same AES vs ChaCha20 logic as
 // cipherSuitesPreferenceOrder applies.
 var defaultCipherSuitesTLS13 = []uint16{
-	TLS_SM4_128_GCM_SM3,
+	TLS_SM4_GCM_SM3,
 	TLS_AES_128_GCM_SHA256,
 	TLS_AES_256_GCM_SHA384,
 	TLS_CHACHA20_POLY1305_SHA256,
 }
 
 var defaultCipherSuitesTLS13NoAES = []uint16{
-	TLS_SM4_128_GCM_SM3,
+	TLS_SM4_GCM_SM3,
 	TLS_CHACHA20_POLY1305_SHA256,
 	TLS_AES_128_GCM_SHA256,
 	TLS_AES_256_GCM_SHA384,
@@ -417,7 +417,7 @@ var aesgcmCiphers = map[uint16]bool{
 	TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: true,
 	TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: true,
 	// TLS 1.3
-	TLS_SM4_128_GCM_SM3:    true,
+	TLS_SM4_GCM_SM3:        true,
 	TLS_AES_128_GCM_SHA256: true,
 	TLS_AES_256_GCM_SHA384: true,
 }
@@ -427,7 +427,7 @@ var aesgcmCiphers = map[uint16]bool{
 // 	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305:   true,
 // 	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305: true,
 // 	// TLS 1.3
-// 	TLS_SM4_128_GCM_SM3:          true,
+// 	TLS_SM4_GCM_SM3:          true,
 // 	TLS_CHACHA20_POLY1305_SHA256: true,
 // }
 
@@ -754,8 +754,8 @@ const (
 	TLS_AES_128_GCM_SHA256       uint16 = 0x1301
 	TLS_AES_256_GCM_SHA384       uint16 = 0x1302
 	TLS_CHACHA20_POLY1305_SHA256 uint16 = 0x1303
-	// 补充国密套件定义
-	TLS_SM4_128_GCM_SM3 uint16 = 0x1304
+	// 补充国密套件定义 TLS_SM4_GCM_SM3 {0x00, 0xc6}
+	TLS_SM4_GCM_SM3 uint16 = 0x00c6
 
 	// TLS_FALLBACK_SCSV isn't a standard cipher suite but an indicator
 	// that the client is doing version fallback. See RFC 7507.

@@ -107,7 +107,7 @@ func ClientRunGMSSL() {
 	cert, _ := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
 
 	// 定义gmtls配置
-	// 选择最高tls协议版本为VersionGMSSL, 服务端选择的默认密码套件将是 TLS_SM4_128_GCM_SM3
+	// 选择最高tls协议版本为VersionGMSSL, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
 	config := &gmtls.Config{
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
@@ -167,7 +167,7 @@ func ClientRunTls13() {
 	cert, _ := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
 
 	// 定义gmtls配置
-	// 默认最高tls协议版本为tls1.3, 服务端选择的默认密码套件将是 TLS_SM4_128_GCM_SM3
+	// 默认最高tls协议版本为tls1.3, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
 	config := &gmtls.Config{
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
