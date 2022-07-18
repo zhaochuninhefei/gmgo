@@ -34,18 +34,25 @@ type SM3 struct {
 	unhandleMsg []byte    // uint8  //
 }
 
+// 布尔函数FF，SM3压缩函数内部迭代在[0,15]区间时使用
 func (sm3 *SM3) ff0(x, y, z uint32) uint32 { return x ^ y ^ z }
 
+// 布尔函数FF，SM3压缩函数内部迭代在[16,63]区间时使用
 func (sm3 *SM3) ff1(x, y, z uint32) uint32 { return (x & y) | (x & z) | (y & z) }
 
+// 布尔函数GG，SM3压缩函数内部迭代在[0,15]区间时使用
 func (sm3 *SM3) gg0(x, y, z uint32) uint32 { return x ^ y ^ z }
 
+// 布尔函数GG，SM3压缩函数内部迭代在[16,63]区间时使用
 func (sm3 *SM3) gg1(x, y, z uint32) uint32 { return (x & y) | (^x & z) }
 
+// 置换函数P0
 func (sm3 *SM3) p0(x uint32) uint32 { return x ^ sm3.leftRotate(x, 9) ^ sm3.leftRotate(x, 17) }
 
+// 置换函数P1
 func (sm3 *SM3) p1(x uint32) uint32 { return x ^ sm3.leftRotate(x, 15) ^ sm3.leftRotate(x, 23) }
 
+// 循环左移
 func (sm3 *SM3) leftRotate(x uint32, i uint32) uint32 { return x<<(i%32) | x>>(32-i%32) }
 
 func (sm3 *SM3) pad() []byte {
