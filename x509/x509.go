@@ -734,7 +734,7 @@ func oidFromExtKeyUsage(eku ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
 }
 
 // gmx509证书结构体
-// A Certificate represents an X.509 certificate.
+//  A Certificate represents an X.509 certificate.
 type Certificate struct {
 	// 完整的 ASN1 DER 证书字节数组(证书+签名算法+签名)
 	// Complete ASN.1 DER content (certificate, signature algorithm and signature).
