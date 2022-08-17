@@ -19,7 +19,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/subtle"
 	"errors"
@@ -150,9 +149,10 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		}
 		// 设置密钥协商的曲线为配置的首个曲线，目前默认是sm2P256
 		curveID := config.curvePreferences()[0]
-		var curve elliptic.Curve
+		// var curve elliptic.Curve
 		var curveOk bool
-		if curve, curveOk = curveForCurveID(curveID); curveID != X25519 && !curveOk {
+		var curveName string
+		if curveName, curveOk = CheckCurveNameById(curveID); !curveOk {
 			return nil, nil, errors.New("gmtls: CurvePreferences includes unsupported curve")
 		}
 		// 生成ecdheParameters
@@ -160,7 +160,7 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		zclog.Debugf("===== 客户端基于曲线 %s 生成密钥交换算法参数\n", curve.Params().Name)
+		zclog.Debugf("===== 客户端基于曲线 %s 生成密钥交换算法参数\n", curveName)
 		// 将曲线ID与客户端公钥设置为ClientHello中的密钥交换算法参数
 		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
 	}
