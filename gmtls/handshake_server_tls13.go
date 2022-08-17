@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rsa"
 	"errors"
@@ -229,9 +228,10 @@ GroupSelection:
 		}
 		clientKeyShare = &hs.clientHello.keyShares[0]
 	}
-	var curve elliptic.Curve
+	// var curve elliptic.Curve
 	var curveOk bool
-	if curve, curveOk = curveForCurveID(selectedGroup); selectedGroup != X25519 && !curveOk {
+	var curveName string
+	if curveName, curveOk = CheckCurveNameById(selectedGroup); !curveOk {
 		c.sendAlert(alertInternalError)
 		return errors.New("gmtls: CurvePreferences includes unsupported curve")
 	}
@@ -241,11 +241,11 @@ GroupSelection:
 		c.sendAlert(alertInternalError)
 		return err
 	}
-	zclog.Debugf("===== 服务端使用曲线 %s 生成密钥交换算法参数", curve.Params().Name)
+	zclog.Debugf("===== 服务端使用曲线 %s 生成密钥交换算法参数", curveName)
 	// 设置服务端密钥交换算法参数(曲线ID + 服务端公钥)
 	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
 	// 根据客户端公钥计算共享密钥
-	zclog.Debugf("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curve.Params().Name)
+	zclog.Debugf("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curveName)
 	hs.sharedKey = params.SharedKey(clientKeyShare.data)
 	if hs.sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)

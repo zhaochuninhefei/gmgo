@@ -193,6 +193,23 @@ func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 	}
 }
 
+func CheckCurveNameById(id CurveID) (string, bool) {
+	switch id {
+	case Curve256Sm2:
+		return sm2.P256Sm2().Params().Name, true
+	case CurveP256:
+		return elliptic.P256().Params().Name, true
+	case CurveP384:
+		return elliptic.P384().Params().Name, true
+	case CurveP521:
+		return elliptic.P521().Params().Name, true
+	case X25519:
+		return "Curve25519", true
+	default:
+		return fmt.Sprintf("unknown CurveID: %d", id), false
+	}
+}
+
 func CurveNameById(id CurveID) string {
 	switch id {
 	// 添加国密SM2曲线
@@ -204,6 +221,8 @@ func CurveNameById(id CurveID) string {
 		return elliptic.P384().Params().Name
 	case CurveP521:
 		return elliptic.P521().Params().Name
+	case X25519:
+		return "Curve25519"
 	default:
 		return fmt.Sprintf("unknown CurveID: %d", id)
 	}
