@@ -503,6 +503,7 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 	return nil
 }
 
+// 完整握手过程 tls1.2
 func (hs *serverHandshakeState) doFullHandshake() error {
 	c := hs.c
 
@@ -637,11 +638,13 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	}
 	hs.finishedHash.Write(ckx.marshal())
 
+	// 获取预主密钥, 分为RSA与ECDHE
 	preMasterSecret, err := keyAgreement.processClientKeyExchange(c.config, hs.cert, ckx, c.vers)
 	if err != nil {
 		c.sendAlert(alertHandshakeFailure)
 		return err
 	}
+	// 根据预主密钥，随机数C、S，使用PRF函数计算主密钥
 	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.clientHello.random, hs.hello.random)
 	if err := c.config.writeKeyLog(keyLogLabelTLS12, hs.clientHello.random, hs.masterSecret); err != nil {
 		c.sendAlert(alertInternalError)
@@ -698,9 +701,10 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	return nil
 }
 
+// 派生会话密钥 tls1.2
 func (hs *serverHandshakeState) establishKeys() error {
 	c := hs.c
-
+	// 根据主密钥、随机数C/S，使用PRF函数派生出6个会话密钥
 	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 

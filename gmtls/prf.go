@@ -114,6 +114,10 @@ func prfForVersion(version uint16, suite *cipherSuite) func(result, secret, labe
 	return prf
 }
 
+// 根据预主密钥计算主密钥
+//  算法使用PRF函数；
+//  使用clientRandom与serverRandom拼接起来的随机数作为种子；
+//
 // masterFromPreMasterSecret generates the master secret from the pre-master
 // secret. See RFC 5246, Section 8.1.
 func masterFromPreMasterSecret(version uint16, suite *cipherSuite, preMasterSecret, clientRandom, serverRandom []byte) []byte {
@@ -126,6 +130,11 @@ func masterFromPreMasterSecret(version uint16, suite *cipherSuite, preMasterSecr
 	return masterSecret
 }
 
+// 根据主密钥派生出会话密钥
+//  算法使用PRF函数；
+//  使用clientRandom与serverRandom拼接起来的随机数作为种子；
+//  派生出六个会话密钥:clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV
+//
 // keysFromMasterSecret generates the connection keys from the master
 // secret, given the lengths of the MAC key, cipher key and IV, as defined in
 // RFC 2246, Section 6.3.

@@ -244,7 +244,7 @@ GroupSelection:
 	zclog.Debugf("===== 服务端使用曲线 %s 生成密钥交换算法参数", curveName)
 	// 设置服务端密钥交换算法参数(曲线ID + 服务端公钥)
 	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
-	// 根据客户端公钥计算共享密钥
+	// 根据客户端公钥与服务端公钥计算预主密钥
 	zclog.Debugf("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curveName)
 	hs.sharedKey = params.SharedKey(clientKeyShare.data)
 	if hs.sharedKey == nil {
@@ -576,14 +576,14 @@ func (hs *serverHandshakeStateTLS13) sendServerParameters() error {
 	if earlySecret == nil {
 		earlySecret = hs.suite.extract(nil, nil)
 	}
-	// 根据之前计算出的共享密钥与早期机密计算出握手机密
+	// 使用HKDF算法,根据之前计算出的预主密钥与早期机密计算出主密钥
 	hs.handshakeSecret = hs.suite.extract(hs.sharedKey,
 		hs.suite.deriveSecret(earlySecret, "derived", nil))
-	// 根据握手机密与目前的握手数据摘要计算出客户端会话机密,并设置到连接通道
+	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出客户端会话机密,并设置到连接通道
 	clientSecret := hs.suite.deriveSecret(hs.handshakeSecret,
 		clientHandshakeTrafficLabel, hs.transcript)
 	c.in.setTrafficSecret(hs.suite, clientSecret)
-	// 根据握手机密与目前的握手数据摘要计算出服务端会话机密,并设置到连接通道
+	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出服务端会话机密,并设置到连接通道
 	serverSecret := hs.suite.deriveSecret(hs.handshakeSecret,
 		serverHandshakeTrafficLabel, hs.transcript)
 	c.out.setTrafficSecret(hs.suite, serverSecret)
