@@ -275,8 +275,8 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 //  对于tls1.3，如果有可用的缓存会话，则会返回以下字段:
 //  - cacheKey 缓存会话key,值是服务端ServerName或ip地址
 //  - session 想要恢复的缓存会话
-//  - earlySecret 早期机密,由session的主机密扩展提炼而来
-//  - binderKey 绑定者密钥,由早期机密派生而来
+//  - earlySecret 早期密钥,由session的主密钥扩展提炼而来
+//  - binderKey 绑定者密钥,由早期密钥派生而来
 //  此外，还会在ClientHello中设置以下字段:
 //  - ticketSupported true,支持使用会话票据
 //  - pskModes 指定使用DHE密钥交换算法模式
@@ -394,12 +394,12 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	// 计算pskBinders
 	hello.pskBinders = [][]byte{make([]byte, cipherSuite.hash.Size())}
 	// Compute the PSK binders. See RFC 8446, Section 4.2.11.2.
-	// 根据会话的主机密扩展出psk(pre-shared-key)
+	// 根据会话的主密钥扩展出psk(pre-shared-key)
 	psk := cipherSuite.expandLabel(session.masterSecret, "resumption",
 		session.nonce, cipherSuite.hash.Size())
-	// 再用psk提炼早期机密
+	// 再用psk提炼早期密钥
 	earlySecret = cipherSuite.extract(psk, nil)
-	// 根据早期机密派生绑定者密钥
+	// 根据早期密钥派生绑定者密钥
 	binderKey = cipherSuite.deriveSecret(earlySecret, resumptionBinderLabel, nil)
 	// 声明一个转录散列函数
 	transcript := cipherSuite.hash.New()

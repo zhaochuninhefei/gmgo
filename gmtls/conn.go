@@ -1281,7 +1281,7 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 	if cipherSuite == nil {
 		return c.in.setErrorLocked(c.sendAlert(alertInternalError))
 	}
-	// 派生新的对方的通信机密并设置到连接通道in
+	// 派生新的对方的通信密钥并设置到连接通道in
 	newSecret := cipherSuite.nextTrafficSecret(c.in.trafficSecret)
 	c.in.setTrafficSecret(cipherSuite, newSecret)
 	// 作为keyUpdate发起方(updateRequested == true)，通知tls通信对方更新会话密钥
@@ -1298,7 +1298,7 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 			return nil
 		}
 		zclog.Debug("===== 客户端/服务端发出 keyUpdateMsg")
-		// 发出 keyUpdateMsg 之后才能派生新的己方通信机密并设置到连接out通道
+		// 发出 keyUpdateMsg 之后才能派生新的己方通信密钥并设置到连接out通道
 		newSecret := cipherSuite.nextTrafficSecret(c.out.trafficSecret)
 		c.out.setTrafficSecret(cipherSuite, newSecret)
 	}

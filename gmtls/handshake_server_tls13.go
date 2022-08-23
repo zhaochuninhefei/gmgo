@@ -325,12 +325,12 @@ func (hs *serverHandshakeStateTLS13) checkForResumption() error {
 		if sessionHasClientCerts && c.config.ClientAuth == NoClientCert {
 			continue
 		}
-		// 使用会话状态中保存的恢复用机密扩展为psk
+		// 使用会话状态中保存的恢复用密钥扩展为psk
 		psk := hs.suite.expandLabel(sessionState.resumptionSecret, "resumption",
 			nil, hs.suite.hash.Size())
-		// 再基于psk派生早期机密
+		// 再基于psk派生早期密钥
 		hs.earlySecret = hs.suite.extract(psk, nil)
-		// 再基于早期机密派生绑定者密钥
+		// 再基于早期密钥派生绑定者密钥
 		binderKey := hs.suite.deriveSecret(hs.earlySecret, resumptionBinderLabel, nil)
 		// 复制一个转录散列函数
 		// Clone the transcript in case a HelloRetryRequest was recorded.
@@ -571,19 +571,19 @@ func (hs *serverHandshakeStateTLS13) sendServerParameters() error {
 		return err
 	}
 	zclog.Debug("===== 服务端发送 DummyChangeCipherSpec")
-	// 如果是会话恢复，这里已经存在早期机密，如果不存在，则初始化早期机密
+	// 如果是会话恢复，这里已经存在早期密钥，如果不存在，则初始化早期密钥
 	earlySecret := hs.earlySecret
 	if earlySecret == nil {
 		earlySecret = hs.suite.extract(nil, nil)
 	}
-	// 使用HKDF算法,根据之前计算出的预主密钥与早期机密计算出主密钥
+	// 使用HKDF算法,根据之前计算出的预主密钥与早期密钥计算出主密钥
 	hs.handshakeSecret = hs.suite.extract(hs.sharedKey,
 		hs.suite.deriveSecret(earlySecret, "derived", nil))
-	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出客户端会话机密,并设置到连接通道
+	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出客户端会话密钥,并设置到连接通道
 	clientSecret := hs.suite.deriveSecret(hs.handshakeSecret,
 		clientHandshakeTrafficLabel, hs.transcript)
 	c.in.setTrafficSecret(hs.suite, clientSecret)
-	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出服务端会话机密,并设置到连接通道
+	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出服务端会话密钥,并设置到连接通道
 	serverSecret := hs.suite.deriveSecret(hs.handshakeSecret,
 		serverHandshakeTrafficLabel, hs.transcript)
 	c.out.setTrafficSecret(hs.suite, serverSecret)
@@ -708,13 +708,13 @@ func (hs *serverHandshakeStateTLS13) sendServerFinished() error {
 	}
 	zclog.Debug("===== 服务端发送 ServerFinished")
 	// Derive secrets that take context through the server Finished.
-	// 重新派生主机密
+	// 重新派生主密钥
 	hs.masterSecret = hs.suite.extract(nil,
 		hs.suite.deriveSecret(hs.handshakeSecret, "derived", nil))
-	// 重新派生客户端通信机密,但暂时不设置到连接通道
+	// 重新派生客户端通信密钥,但暂时不设置到连接通道
 	hs.trafficSecret = hs.suite.deriveSecret(hs.masterSecret,
 		clientApplicationTrafficLabel, hs.transcript)
-	// 重新派生服务端通信机密，并设置到连接通道
+	// 重新派生服务端通信密钥，并设置到连接通道
 	serverSecret := hs.suite.deriveSecret(hs.masterSecret,
 		serverApplicationTrafficLabel, hs.transcript)
 	c.out.setTrafficSecret(hs.suite, serverSecret)
@@ -773,7 +773,7 @@ func (hs *serverHandshakeStateTLS13) sendSessionTickets() error {
 		zclog.Debug("===== shouldSendSessionTickets is false")
 		return nil
 	}
-	// 派生会话恢复用机密
+	// 派生会话恢复用密钥
 	resumptionSecret := hs.suite.deriveSecret(hs.masterSecret,
 		resumptionLabel, hs.transcript)
 	// 创建 newSessionTicketMsgTLS13
@@ -912,7 +912,7 @@ func (hs *serverHandshakeStateTLS13) readClientFinished() error {
 		c.sendAlert(alertDecryptError)
 		return errors.New("gmtls: invalid client finished hash")
 	}
-	// 将之前重新生成的客户端通信机密设置到连接in通道
+	// 将之前重新生成的客户端通信密钥设置到连接in通道
 	c.in.setTrafficSecret(hs.suite, hs.trafficSecret)
 
 	return nil

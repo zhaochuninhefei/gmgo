@@ -71,7 +71,7 @@ func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []by
 	return out
 }
 
-// deriveSecret 机密派生方法，实现 Derive-Secret。
+// deriveSecret 密钥派生方法，实现 Derive-Secret。
 //  - secret 基础密钥
 //  - label 标签
 //  - transcript 转录散列函数
@@ -84,7 +84,7 @@ func (c *cipherSuiteTLS13) deriveSecret(secret []byte, label string, transcript 
 	return c.expandLabel(secret, label, transcript.Sum(nil), c.hash.Size())
 }
 
-// extract 机密提炼方法，实现 HKDF-Extract。
+// extract 密钥提炼方法，实现 HKDF-Extract。
 // extract implements HKDF-Extract with the cipher suite hash.
 func (c *cipherSuiteTLS13) extract(newSecret, currentSecret []byte) []byte {
 	if newSecret == nil {
@@ -94,14 +94,14 @@ func (c *cipherSuiteTLS13) extract(newSecret, currentSecret []byte) []byte {
 	return hkdf.Extract(c.hash.New, newSecret, currentSecret)
 }
 
-// 根据当前的通信机密派生一个新的通信机密。
+// 根据当前的通信密钥派生一个新的通信密钥。
 // nextTrafficSecret generates the next traffic secret, given the current one,
 // according to RFC 8446, Section 7.2.
 func (c *cipherSuiteTLS13) nextTrafficSecret(trafficSecret []byte) []byte {
 	return c.expandLabel(trafficSecret, trafficUpdateLabel, nil, c.hash.Size())
 }
 
-// 根据通信机密派生会话密钥与初始偏移量(对称加密用的key,iv)
+// 根据通信密钥派生会话密钥与初始偏移量(对称加密用的key,iv)
 // trafficKey generates traffic keys according to RFC 8446, Section 7.3.
 func (c *cipherSuiteTLS13) trafficKey(trafficSecret []byte) (key, iv []byte) {
 	key = c.expandLabel(trafficSecret, "key", nil, c.keyLen)
