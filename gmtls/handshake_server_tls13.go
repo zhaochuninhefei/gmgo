@@ -576,14 +576,16 @@ func (hs *serverHandshakeStateTLS13) sendServerParameters() error {
 	if earlySecret == nil {
 		earlySecret = hs.suite.extract(nil, nil)
 	}
-	// 使用HKDF算法,根据之前计算出的预主密钥与早期密钥计算出主密钥
+	// 使用 HKDF-Extract, 根据之前计算出的预主密钥与早期密钥计算出主密钥。
+	//  hs.sharedKey 是预主密钥;
+	//  用deriveSecret函数从earlySecret、"derived"派生出盐值。
 	hs.handshakeSecret = hs.suite.extract(hs.sharedKey,
 		hs.suite.deriveSecret(earlySecret, "derived", nil))
-	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出客户端会话密钥,并设置到连接通道
+	// 使用 HKDF-Expand, 根据主密钥与目前的握手数据摘要计算出客户端会话密钥,并设置到连接通道
 	clientSecret := hs.suite.deriveSecret(hs.handshakeSecret,
 		clientHandshakeTrafficLabel, hs.transcript)
 	c.in.setTrafficSecret(hs.suite, clientSecret)
-	// 使用HKDF算法,根据主密钥与目前的握手数据摘要计算出服务端会话密钥,并设置到连接通道
+	// 使用 HKDF-Expand, 根据主密钥与目前的握手数据摘要计算出服务端会话密钥,并设置到连接通道
 	serverSecret := hs.suite.deriveSecret(hs.handshakeSecret,
 		serverHandshakeTrafficLabel, hs.transcript)
 	c.out.setTrafficSecret(hs.suite, serverSecret)

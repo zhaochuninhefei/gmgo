@@ -47,7 +47,7 @@ const (
 	trafficUpdateLabel            = "traffic upd"
 )
 
-// expandLabel 标签扩展方法，实现 HKDF-Expand-Label。
+// expandLabel 密钥扩展方法，实现 HKDF-Expand-Label。
 //  - secret 基础密钥
 //  - label 标签
 //  - context 消息转录散列
@@ -64,6 +64,10 @@ func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []by
 		b.AddBytes(context)
 	})
 	out := make([]byte, length)
+	// 使用 HKDF-Expand 将 HKDF-Extract 提取的伪随机密钥(主密钥)扩展为长度为length的字节数组
+	//  c.hash.New 为对应HMAC函数的散列函数;
+	//  secret 为 HKDF-Extract 提取的伪随机密钥(主密钥)
+	//  hkdfLabel.BytesOrPanic() 为可选上下文和应用程序特定信息
 	n, err := hkdf.Expand(c.hash.New, secret, hkdfLabel.BytesOrPanic()).Read(out)
 	if err != nil || n != length {
 		panic("gmtls: HKDF-Expand-Label invocation failed unexpectedly")
@@ -71,7 +75,7 @@ func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []by
 	return out
 }
 
-// deriveSecret 密钥派生方法，实现 Derive-Secret。
+// deriveSecret 密钥派生方法，实现 Derive-Secret。内部使用 HKDF-Expand。
 //  - secret 基础密钥
 //  - label 标签
 //  - transcript 转录散列函数
@@ -85,12 +89,16 @@ func (c *cipherSuiteTLS13) deriveSecret(secret []byte, label string, transcript 
 }
 
 // extract 密钥提炼方法，实现 HKDF-Extract。
+//  该方法用于从预主密钥提取主密钥。
 // extract implements HKDF-Extract with the cipher suite hash.
 func (c *cipherSuiteTLS13) extract(newSecret, currentSecret []byte) []byte {
 	if newSecret == nil {
 		newSecret = make([]byte, c.hash.Size())
 	}
-	// 从输入密钥newSecret和可选的独立盐currentSecret生成一个伪随机密钥，用于Expand
+	// 使用 HKDF-Extract 提取一个新的伪随机密钥。
+	//  c.hash.New 为对应HMAC函数的散列函数;
+	//  newSecret 作为原始密钥;
+	//  currentSecret 作为盐值。
 	return hkdf.Extract(c.hash.New, newSecret, currentSecret)
 }
 
