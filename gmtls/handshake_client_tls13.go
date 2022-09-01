@@ -385,8 +385,8 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 // 创建握手密钥
 func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 	c := hs.c
-	// 根据服务端公钥计算共享密钥
-	zclog.Debug("===== 利用服务端公钥计算共享密钥")
+	// 根据服务端公钥计算预主密钥
+	zclog.Debug("===== 利用服务端公钥计算预主密钥")
 	sharedKey := hs.ecdheParams.SharedKey(hs.serverHello.serverShare.data)
 	if sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)
