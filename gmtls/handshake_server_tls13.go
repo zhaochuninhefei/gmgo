@@ -245,7 +245,7 @@ GroupSelection:
 	// 设置服务端密钥交换算法参数(曲线ID + 服务端公钥)
 	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
 	// 根据客户端公钥与服务端公钥计算预主密钥
-	zclog.Debugf("===== 服务端使用曲线 %s 与客户端公钥计算共享密钥", curveName)
+	zclog.Debugf("===== 服务端使用曲线 %s 与客户端公钥计算预主密钥", curveName)
 	hs.sharedKey = params.SharedKey(clientKeyShare.data)
 	if hs.sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)
