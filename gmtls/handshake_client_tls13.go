@@ -398,14 +398,14 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 		// 不是会话恢复场景时，初始化 earlySecret
 		earlySecret = hs.suite.extract(nil, nil)
 	}
-	// 生成本次会话的握手密钥
+	// 生成本次会话的握手阶段密钥
 	handshakeSecret := hs.suite.extract(sharedKey,
 		hs.suite.deriveSecret(earlySecret, "derived", nil))
-	// 派生客户端会话密钥,临时的,后续还要根据最新的握手数据摘要重新派生
+	// 派生握手阶段的客户端会话密钥,后续还要根据最新的握手数据摘要重新派生
 	clientSecret := hs.suite.deriveSecret(handshakeSecret,
 		clientHandshakeTrafficLabel, hs.transcript)
 	c.out.setTrafficSecret(hs.suite, clientSecret)
-	// 派生服务端会话密钥,临时的,后续还要根据最新的握手数据摘要重新派生
+	// 派生握手阶段的服务端会话密钥,后续还要根据最新的握手数据摘要重新派生
 	serverSecret := hs.suite.deriveSecret(handshakeSecret,
 		serverHandshakeTrafficLabel, hs.transcript)
 	c.in.setTrafficSecret(hs.suite, serverSecret)
