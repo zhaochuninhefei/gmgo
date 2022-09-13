@@ -710,7 +710,7 @@ func (hs *serverHandshakeStateTLS13) sendServerFinished() error {
 	}
 	zclog.Debug("===== 服务端发送 ServerFinished")
 	// Derive secrets that take context through the server Finished.
-	//  从握手阶段密钥提取主密钥
+	//  从握手阶段密钥派生新的预主密钥并提取出主密钥
 	hs.masterSecret = hs.suite.extract(nil,
 		hs.suite.deriveSecret(hs.handshakeSecret, "derived", nil))
 	// 重新派生客户端通信密钥,但暂时不设置到连接通道

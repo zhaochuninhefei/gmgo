@@ -420,7 +420,7 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 		c.sendAlert(alertInternalError)
 		return err
 	}
-	// 生成主密钥
+	// 根据握手阶段密钥派生新的预主密钥并提取出主密钥
 	// tls1.3的密钥协商算法不再需要使用 ClientRadom与ServerRandom
 	hs.masterSecret = hs.suite.extract(nil,
 		hs.suite.deriveSecret(handshakeSecret, "derived", nil))
