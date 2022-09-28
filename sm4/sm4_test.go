@@ -9,6 +9,9 @@
 package sm4
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
 	"fmt"
 	"runtime"
 	"testing"
@@ -44,6 +47,28 @@ func TestSm4(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestAesGCM1(t *testing.T) {
+	key, _ := hex.DecodeString("c64b7140c02e9cbe38626ea772794f57")
+	iv, _ := hex.DecodeString("11b413b9f5757aa64a803152")
+	ciphertext, _ := hex.DecodeString("863286881f10c94e642c7694ac605aa3427a14a84f6a681c056b21770f1b9abe241a2ecee0b8c369ffe16ad42b50ced2abd0bc90a161979b0f793371ebd53e97")
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	plaintext, err := aesgcm.Open(nil, iv, ciphertext, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Printf("plaintext: %s\n", plaintext)
 }
 
 func TestGcmAsmWithNonce(t *testing.T) {
