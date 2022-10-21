@@ -65,8 +65,8 @@ import (
 )
 
 // PKIX格式公钥结构体，用于x509证书中的公钥部分。
-// pkixPublicKey reflects a PKIX public key structure. See SubjectPublicKeyInfo
-// in RFC 3280.
+// pkixPublicKey reflects a PKIX public key structure.
+// See SubjectPublicKeyInfo in RFC 3280.
 type pkixPublicKey struct {
 	Algo      pkix.AlgorithmIdentifier
 	BitString asn1.BitString

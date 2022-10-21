@@ -3218,6 +3218,8 @@ func TestAuthKeyIdOptional(t *testing.T) {
 	}
 }
 
+// 国密相关测试案例
+
 func TestX509(t *testing.T) {
 	// 生成sm2密钥对
 	// priv, err := sm2.GenerateKey(nil)
