@@ -23,3 +23,4 @@ bk_CHANGELOG.md
 sm4/*.log
 gmtls/tls_test/logs/*.log
 go.sum
+.idea/
