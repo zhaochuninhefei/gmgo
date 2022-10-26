@@ -106,3 +106,8 @@ go test
 - `https://github.com/prometheus/client_golang`
 
 对应的版权声明参见目录`thrid_licenses`。
+
+# JetBrains support
+Thanks to JetBrains for supporting open source projects.
+
+<a href="https://jb.gg/OpenSourceSupport" target="_blank">https://jb.gg/OpenSourceSupport.</a>
