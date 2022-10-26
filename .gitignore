@@ -22,3 +22,4 @@ bk_CHANGELOG.md
 .vscode/launch.json
 sm4/*.log
 gmtls/tls_test/logs/*.log
+go.sum
