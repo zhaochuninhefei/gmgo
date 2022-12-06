@@ -24,3 +24,4 @@ sm4/*.log
 gmtls/tls_test/logs/*.log
 go.sum
 .idea/
+x509/testdata
