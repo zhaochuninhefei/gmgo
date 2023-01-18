@@ -3,6 +3,8 @@ package sm2test
 import (
 	"crypto/rand"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"io/ioutil"
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -225,4 +227,38 @@ func convertPrivFromHard2Soft(privHard *sm2.PrivateKey) *sm2soft.PrivateKey {
 	privSoft.Y = privHard.Y
 	privSoft.Curve = privHard.Curve
 	return privSoft
+}
+
+func Test_sm2keyWithOtherLanguage(t *testing.T) {
+	private, _ := sm2.GenerateKey(rand.Reader)
+	public := &private.PublicKey
+
+	derPriv, err := x509.MarshalPKCS8PrivateKey(private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile("testdata/sm2_pri_key.der", derPriv, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	derPub, err := x509.MarshalPKIXPublicKey(public)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile("testdata/sm2_pub_key.der", derPub, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 生成私钥pem文件
+	_, err = x509.WritePrivateKeytoPemFile("testdata/sm2_pri_key.pem", private, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 生成公钥pem文件
+	_, err = x509.WritePublicKeytoPemFile("testdata/sm2_pub_key.pem", public)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
