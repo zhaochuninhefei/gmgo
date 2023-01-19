@@ -46,6 +46,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -318,10 +319,10 @@ func WriteSm2PubToHex(key *sm2.PublicKey) string {
 	x := key.X.Bytes()
 	y := key.Y.Bytes()
 	if n := len(x); n < 32 {
-		x = append(zeroByteSlice()[:32-n], x...)
+		x = append(utils.ZeroByteSlice()[:32-n], x...)
 	}
 	if n := len(y); n < 32 {
-		y = append(zeroByteSlice()[:32-n], y...)
+		y = append(utils.ZeroByteSlice()[:32-n], y...)
 	}
 	c := []byte{}
 	c = append(c, x...)
@@ -482,18 +483,4 @@ func GetRandBigInt() *big.Int {
 		panic(err)
 	}
 	return sn
-}
-
-// 32byte
-func zeroByteSlice() []byte {
-	return []byte{
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-	}
 }
