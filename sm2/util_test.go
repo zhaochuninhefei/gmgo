@@ -10,7 +10,9 @@ package sm2
 
 import (
 	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -83,5 +85,39 @@ func Test_toPointXY(t *testing.T) {
 				t.Errorf("toPointXY() = %v, want %v", got, expectedInt)
 			}
 		})
+	}
+}
+
+func TestSm2KeyHex(t *testing.T) {
+	priKey, err := GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pubKey := &priKey.PublicKey
+
+	priKeyStr := WriteSm2PrivToHex(priKey)
+	fmt.Printf("priKeyStr : %s\n", priKeyStr)
+
+	pubKeyStr := WriteSm2PubToHex(pubKey)
+	fmt.Printf("pubKeyStr : %s\n", pubKeyStr)
+
+	priKeyA, err := ReadSm2PrivFromHex(priKeyStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reflect.DeepEqual(priKey, priKeyA) {
+		fmt.Println("ReadSm2PrivFromHex OK")
+	} else {
+		fmt.Println("ReadSm2PrivFromHex NG")
+	}
+
+	pubKeyA, err := ReadSm2PubFromHex(pubKeyStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reflect.DeepEqual(pubKey, pubKeyA) {
+		fmt.Println("ReadSm2PubFromHex OK")
+	} else {
+		fmt.Println("ReadSm2PubFromHex NG")
 	}
 }
