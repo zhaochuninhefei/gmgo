@@ -25,4 +25,5 @@ func init() {
 }
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func block(dig *digest, p []byte)
