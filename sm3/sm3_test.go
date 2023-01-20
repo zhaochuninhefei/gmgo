@@ -50,11 +50,20 @@ func TestGolden(t *testing.T) {
 		c := New()
 		for j := 0; j < 3; j++ {
 			if j < 2 {
-				io.WriteString(c, g.in)
+				_, err := io.WriteString(c, g.in)
+				if err != nil {
+					t.Fatal(err)
+				}
 			} else {
-				io.WriteString(c, g.in[0:len(g.in)/2])
+				_, err := io.WriteString(c, g.in[0:len(g.in)/2])
+				if err != nil {
+					t.Fatal(err)
+				}
 				c.Sum(nil)
-				io.WriteString(c, g.in[len(g.in)/2:])
+				_, err = io.WriteString(c, g.in[len(g.in)/2:])
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			s := fmt.Sprintf("%x", c.Sum(nil))
 			if s != g.out {
@@ -80,7 +89,10 @@ func TestGoldenMarshal(t *testing.T) {
 				h := tt.newHash()
 				h2 := tt.newHash()
 
-				io.WriteString(h, g.in[:len(g.in)/2])
+				_, err := io.WriteString(h, g.in[:len(g.in)/2])
+				if err != nil {
+					t.Fatal(err)
+				}
 
 				state, err := h.(encoding.BinaryMarshaler).MarshalBinary()
 				if err != nil {
@@ -98,8 +110,14 @@ func TestGoldenMarshal(t *testing.T) {
 					continue
 				}
 
-				io.WriteString(h, g.in[len(g.in)/2:])
-				io.WriteString(h2, g.in[len(g.in)/2:])
+				_, err = io.WriteString(h, g.in[len(g.in)/2:])
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = io.WriteString(h2, g.in[len(g.in)/2:])
+				if err != nil {
+					t.Fatal(err)
+				}
 
 				if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
 					t.Errorf("sm3%s(%q) = 0x%x != marshaled 0x%x", tt.name, g.in, actual, actual2)
@@ -177,10 +195,10 @@ func TestSm3(t *testing.T) {
 	// 添加散列内容
 	hw.Write(msg)
 	// 散列计算
-	hash := hw.Sum(nil)
-	fmt.Println("hash值: ", hash)
-	fmt.Printf("hash长度 : %d\n", len(hash))
-	fmt.Printf("hash字符串 : %s\n", hex.EncodeToString(hash))
+	sum := hw.Sum(nil)
+	fmt.Println("hash值: ", sum)
+	fmt.Printf("hash长度 : %d\n", len(sum))
+	fmt.Printf("hash字符串 : %s\n", hex.EncodeToString(sum))
 	// 直接sm3计算
 	hash1 := Sm3Sum(msg)
 	fmt.Println("hash1值: ", hash1)

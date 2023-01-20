@@ -12,14 +12,14 @@ import (
 	"hash"
 )
 
-// SM3校验和字节数，即散列结果的字节长度
+// Size SM3校验和字节数，即散列结果的字节长度
 const Size int = 32
 
-// SM3散列块字节数
+// BlockSize SM3散列块字节数
 const BlockSize int = 64
 
 // 编译运行本模块代码的平台的CPU架构
-var cpuType string = "unknown"
+var cpuType = "unknown"
 
 const (
 	chunk = 64
@@ -46,7 +46,7 @@ const (
 	marshaledSize = len(magic256) + 8*4 + chunk + 8
 )
 
-// 将摘要digest序列化为字节数组
+// MarshalBinary 将摘要digest序列化为字节数组
 func (d *digest) MarshalBinary() ([]byte, error) {
 	b := make([]byte, 0, marshaledSize)
 	b = append(b, magic256...)
@@ -59,12 +59,12 @@ func (d *digest) MarshalBinary() ([]byte, error) {
 	b = appendUint32(b, d.h[6])
 	b = appendUint32(b, d.h[7])
 	b = append(b, d.x[:d.nx]...)
-	b = b[:len(b)+len(d.x)-int(d.nx)] // already zero
+	b = b[:len(b)+len(d.x)-d.nx] // already zero
 	b = appendUint64(b, d.len)
 	return b, nil
 }
 
-// 将字节数组反序列化为摘要digest
+// UnmarshalBinary 将字节数组反序列化为摘要digest
 func (d *digest) UnmarshalBinary(b []byte) error {
 	if len(b) < len(magic256) || (string(b[:len(magic256)]) != magic256) {
 		return errors.New("sm3: invalid hash state identifier")
@@ -112,7 +112,7 @@ func consumeUint32(b []byte) ([]byte, uint32) {
 	return b[4:], x
 }
 
-// New生成一个新的hash.Hash，用来计算SM3校验和。
+// New 生成一个新的hash.Hash，用来计算SM3校验和。
 // New returns a new hash.Hash computing the SM3 checksum. The Hash
 // also implements encoding.BinaryMarshaler and
 // encoding.BinaryUnmarshaler to marshal and unmarshal the internal
@@ -129,24 +129,33 @@ func New() hash.Hash {
 func (d *digest) Sum(in []byte) []byte {
 	// Make a copy of d so that caller can keep writing and summing.
 	d0 := *d
-	hash := d0.checkSum()
-	return append(in, hash[:]...)
+	checkSum := d0.checkSum()
+	return append(in, checkSum[:]...)
 }
 
 func (d *digest) checkSum() []byte {
-	len := d.len
+	length := d.len
 	// Padding. Add a 1 bit and 0 bits until 56 bytes mod 64.
 	var tmp [64]byte
 	tmp[0] = 0x80
-	if len%64 < 56 {
-		d.Write(tmp[0 : 56-len%64])
+	if length%64 < 56 {
+		_, err := d.Write(tmp[0 : 56-length%64])
+		if err != nil {
+			panic(err)
+		}
 	} else {
-		d.Write(tmp[0 : 64+56-len%64])
+		_, err := d.Write(tmp[0 : 64+56-length%64])
+		if err != nil {
+			panic(err)
+		}
 	}
 	// Length in bits.
-	len <<= 3
-	binary.BigEndian.PutUint64(tmp[:], len)
-	d.Write(tmp[0:8])
+	length <<= 3
+	binary.BigEndian.PutUint64(tmp[:], length)
+	_, err := d.Write(tmp[0:8])
+	if err != nil {
+		panic(err)
+	}
 
 	if d.nx != 0 {
 		panic("d.nx != 0")
@@ -210,15 +219,31 @@ func (d *digest) Reset() {
 }
 
 // Sm3Sum returns the SM3 checksum of the data.
+//goland:noinspection GoNameStartsWithPackageName
 func Sm3Sum(data []byte) []byte {
 	var d digest
 	d.Reset()
-	d.Write(data)
+	_, err := d.Write(data)
+	if err != nil {
+		panic(err)
+	}
 	return d.checkSum()
 }
 
-func Sm3SumArr(data []byte) (sum_sm3 [Size]byte) {
+// Sm3SumArr 计算Sm3散列值，返回长度32的字节数组
+//  @param data 散列对象
+//  @return sumSm3 长度32的字节数组
+//goland:noinspection GoNameStartsWithPackageName
+func Sm3SumArr(data []byte) (sumSm3 [Size]byte) {
 	sum := Sm3Sum(data)
-	copy(sum_sm3[:], sum[:Size])
+	copy(sumSm3[:], sum[:Size])
 	return
+}
+
+// Sum 计算sm3散列值，返回长度32的字节数组
+//  @param data 散列对象
+//  @return [Size]byte 长度32的字节数组
+//goland:noinspection GoUnusedExportedFunction
+func Sum(data []byte) [Size]byte {
+	return Sm3SumArr(data)
 }
