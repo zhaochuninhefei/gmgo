@@ -11,9 +11,11 @@ import (
 )
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4niEnc(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4niDec(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32)
 
 // sm4CipherNIGCM implements crypto/cipher.gcmAble so that crypto/cipher.NewGCM

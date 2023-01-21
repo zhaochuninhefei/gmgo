@@ -21,18 +21,23 @@ type sm4CipherGCM struct {
 var _ gcmAble = (*sm4CipherGCM)(nil)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4Init(productTable *[256]byte, rk []uint32, inst int)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4Enc(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4Dec(productTable *[256]byte, dst, src []byte, ctr, T *[16]byte, rk []uint32)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4Data(productTable *[256]byte, data []byte, T *[16]byte)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func gcmSm4Finish(productTable *[256]byte, tagMask, T *[16]byte, pLen, dLen uint64)
 
 // gcmSm4InitInst is used for test

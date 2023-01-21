@@ -173,7 +173,10 @@ func BenchmarkSm4(t *testing.B) {
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
 		nonce, encryptData, _ := Sm4EncryptGcm(data, key)
-		Sm4DecryptGcm(encryptData, key, nonce)
+		_, err := Sm4DecryptGcm(encryptData, key, nonce)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
