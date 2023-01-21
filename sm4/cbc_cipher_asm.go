@@ -19,10 +19,10 @@ type cbc struct {
 	tmp []byte
 }
 
-func (b *sm4CipherAsm) NewCBCDecrypter(iv []byte) cipher.BlockMode {
+func (sm4c *sm4CipherAsm) NewCBCDecrypter(iv []byte) cipher.BlockMode {
 	// fmt.Println("sm4.NewCBCDecrypter in sm4/cbc_cipher_asm.go")
 	var c cbc
-	c.b = b
+	c.b = sm4c
 	c.iv = make([]byte, BlockSize)
 	c.tmp = make([]byte, BlockSize)
 	copy(c.iv, iv)
@@ -48,8 +48,8 @@ func (x *cbc) CryptBlocks(dst, src []byte) {
 	end := len(src)
 	copy(x.tmp, src[end-BlockSize:end])
 	start := end - x.b.blocksSize
-	var temp []byte = make([]byte, x.b.blocksSize)
-	var batchSrc []byte = make([]byte, x.b.blocksSize)
+	var temp = make([]byte, x.b.blocksSize)
+	var batchSrc = make([]byte, x.b.blocksSize)
 	for start > 0 {
 		x.b.DecryptBlocks(temp, src[start:end])
 		for i := 0; i < x.b.batchBlocks; i++ {

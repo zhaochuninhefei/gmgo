@@ -24,22 +24,23 @@ const streamBufferSize = 512
 
 // NewCTR returns a Stream which encrypts/decrypts using the SM4 block
 // cipher in counter mode. The length of iv must be the same as BlockSize.
-func (c *sm4CipherAsm) NewCTR(iv []byte) cipher.Stream {
+func (sm4c *sm4CipherAsm) NewCTR(iv []byte) cipher.Stream {
 	if len(iv) != BlockSize {
 		panic("cipher.NewCTR: IV length must equal block size")
 	}
 	bufSize := streamBufferSize
+	//goland:noinspection GoBoolExpressions
 	if bufSize < BlockSize {
 		bufSize = BlockSize
 	}
 	s := &ctr{
-		b:       c,
-		ctr:     make([]byte, c.batchBlocks*len(iv)),
+		b:       sm4c,
+		ctr:     make([]byte, sm4c.batchBlocks*len(iv)),
 		out:     make([]byte, 0, bufSize),
 		outUsed: 0,
 	}
 	copy(s.ctr, iv)
-	for i := 1; i < c.batchBlocks; i++ {
+	for i := 1; i < sm4c.batchBlocks; i++ {
 		s.genCtr(i * BlockSize)
 	}
 	return s

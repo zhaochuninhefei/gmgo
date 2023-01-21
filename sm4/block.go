@@ -30,35 +30,35 @@ func encryptBlockGo(xk []uint32, dst, src []byte) {
 	b2 ^= t(b3 ^ b0 ^ b1 ^ xk[2])
 	b3 ^= t(b0 ^ b1 ^ b2 ^ xk[3])
 	// 5~8轮
-	b0 ^= precompute_t(b1 ^ b2 ^ b3 ^ xk[4])
-	b1 ^= precompute_t(b2 ^ b3 ^ b0 ^ xk[5])
-	b2 ^= precompute_t(b3 ^ b0 ^ b1 ^ xk[6])
-	b3 ^= precompute_t(b0 ^ b1 ^ b2 ^ xk[7])
+	b0 ^= precomputeT(b1 ^ b2 ^ b3 ^ xk[4])
+	b1 ^= precomputeT(b2 ^ b3 ^ b0 ^ xk[5])
+	b2 ^= precomputeT(b3 ^ b0 ^ b1 ^ xk[6])
+	b3 ^= precomputeT(b0 ^ b1 ^ b2 ^ xk[7])
 	// 9~12轮
-	b0 ^= precompute_t(b1 ^ b2 ^ b3 ^ xk[8])
-	b1 ^= precompute_t(b2 ^ b3 ^ b0 ^ xk[9])
-	b2 ^= precompute_t(b3 ^ b0 ^ b1 ^ xk[10])
-	b3 ^= precompute_t(b0 ^ b1 ^ b2 ^ xk[11])
+	b0 ^= precomputeT(b1 ^ b2 ^ b3 ^ xk[8])
+	b1 ^= precomputeT(b2 ^ b3 ^ b0 ^ xk[9])
+	b2 ^= precomputeT(b3 ^ b0 ^ b1 ^ xk[10])
+	b3 ^= precomputeT(b0 ^ b1 ^ b2 ^ xk[11])
 	// 13~16轮
-	b0 ^= precompute_t(b1 ^ b2 ^ b3 ^ xk[12])
-	b1 ^= precompute_t(b2 ^ b3 ^ b0 ^ xk[13])
-	b2 ^= precompute_t(b3 ^ b0 ^ b1 ^ xk[14])
-	b3 ^= precompute_t(b0 ^ b1 ^ b2 ^ xk[15])
+	b0 ^= precomputeT(b1 ^ b2 ^ b3 ^ xk[12])
+	b1 ^= precomputeT(b2 ^ b3 ^ b0 ^ xk[13])
+	b2 ^= precomputeT(b3 ^ b0 ^ b1 ^ xk[14])
+	b3 ^= precomputeT(b0 ^ b1 ^ b2 ^ xk[15])
 	// 17~20轮
-	b0 ^= precompute_t(b1 ^ b2 ^ b3 ^ xk[16])
-	b1 ^= precompute_t(b2 ^ b3 ^ b0 ^ xk[17])
-	b2 ^= precompute_t(b3 ^ b0 ^ b1 ^ xk[18])
-	b3 ^= precompute_t(b0 ^ b1 ^ b2 ^ xk[19])
+	b0 ^= precomputeT(b1 ^ b2 ^ b3 ^ xk[16])
+	b1 ^= precomputeT(b2 ^ b3 ^ b0 ^ xk[17])
+	b2 ^= precomputeT(b3 ^ b0 ^ b1 ^ xk[18])
+	b3 ^= precomputeT(b0 ^ b1 ^ b2 ^ xk[19])
 	// 21~24轮
-	b0 ^= precompute_t(b1 ^ b2 ^ b3 ^ xk[20])
-	b1 ^= precompute_t(b2 ^ b3 ^ b0 ^ xk[21])
-	b2 ^= precompute_t(b3 ^ b0 ^ b1 ^ xk[22])
-	b3 ^= precompute_t(b0 ^ b1 ^ b2 ^ xk[23])
+	b0 ^= precomputeT(b1 ^ b2 ^ b3 ^ xk[20])
+	b1 ^= precomputeT(b2 ^ b3 ^ b0 ^ xk[21])
+	b2 ^= precomputeT(b3 ^ b0 ^ b1 ^ xk[22])
+	b3 ^= precomputeT(b0 ^ b1 ^ b2 ^ xk[23])
 	// 24～28轮
-	b0 ^= precompute_t(b1 ^ b2 ^ b3 ^ xk[24])
-	b1 ^= precompute_t(b2 ^ b3 ^ b0 ^ xk[25])
-	b2 ^= precompute_t(b3 ^ b0 ^ b1 ^ xk[26])
-	b3 ^= precompute_t(b0 ^ b1 ^ b2 ^ xk[27])
+	b0 ^= precomputeT(b1 ^ b2 ^ b3 ^ xk[24])
+	b1 ^= precomputeT(b2 ^ b3 ^ b0 ^ xk[25])
+	b2 ^= precomputeT(b3 ^ b0 ^ b1 ^ xk[26])
+	b3 ^= precomputeT(b0 ^ b1 ^ b2 ^ xk[27])
 	// 29~32轮
 	b0 ^= t(b1 ^ b2 ^ b3 ^ xk[28])
 	b1 ^= t(b2 ^ b3 ^ b0 ^ xk[29])
@@ -145,9 +145,9 @@ func t2(in uint32) uint32 {
 
 // 优化的轮函数用合成置换函数
 //  5~28轮使用
-func precompute_t(in uint32) uint32 {
-	return sbox_t0[byte(in>>24)] ^
-		sbox_t1[byte(in>>16)] ^
-		sbox_t2[byte(in>>8)] ^
-		sbox_t3[byte(in)]
+func precomputeT(in uint32) uint32 {
+	return sboxT0[byte(in>>24)] ^
+		sboxT1[byte(in>>16)] ^
+		sboxT2[byte(in>>8)] ^
+		sboxT3[byte(in)]
 }

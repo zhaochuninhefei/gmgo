@@ -32,7 +32,10 @@ func TestExpandKey(t *testing.T) {
 			return
 		default:
 		}
-		io.ReadFull(rand.Reader, key)
+		_, err := io.ReadFull(rand.Reader, key)
+		if err != nil {
+			t.Fatal(err)
+		}
 		expandKeyGo(key, encRes1, decRes1)
 		expandKey(key, encRes2, decRes2)
 		if !reflect.DeepEqual(encRes1, encRes2) {

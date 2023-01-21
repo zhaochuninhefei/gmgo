@@ -15,18 +15,22 @@ var supportsAES = cpu.X86.HasAES || cpu.ARM64.HasAES
 var supportsGFMUL = cpu.X86.HasPCLMULQDQ || cpu.ARM64.HasPMULL
 var useAVX2 = cpu.X86.HasAVX2 && cpu.X86.HasBMI2
 
+//goland:noinspection GoSnakeCaseUsage
 const (
 	INST_AES int = iota
 	INST_SM4
 )
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func encryptBlocksAsm(xk *uint32, dst, src []byte, inst int)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func encryptBlockAsm(xk *uint32, dst, src *byte, inst int)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func expandKeyAsm(key *byte, ck, enc, dec *uint32, inst int)
 
 type sm4CipherAsm struct {
@@ -95,11 +99,11 @@ func newCipher(key []byte) (cipher.Block, error) {
 	return c, nil
 }
 
-func (c *sm4CipherAsm) BlockSize() int { return BlockSize }
+func (sm4c *sm4CipherAsm) BlockSize() int { return BlockSize }
 
-func (c *sm4CipherAsm) Concurrency() int { return c.batchBlocks }
+func (sm4c *sm4CipherAsm) Concurrency() int { return sm4c.batchBlocks }
 
-func (c *sm4CipherAsm) Encrypt(dst, src []byte) {
+func (sm4c *sm4CipherAsm) Encrypt(dst, src []byte) {
 	if len(src) < BlockSize {
 		panic("sm4: input not full block")
 	}
@@ -109,23 +113,23 @@ func (c *sm4CipherAsm) Encrypt(dst, src []byte) {
 	if subtle.InexactOverlap(dst[:BlockSize], src[:BlockSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlockAsm(&c.enc[0], &dst[0], &src[0], INST_AES)
+	encryptBlockAsm(&sm4c.enc[0], &dst[0], &src[0], INST_AES)
 }
 
-func (c *sm4CipherAsm) EncryptBlocks(dst, src []byte) {
-	if len(src) < c.blocksSize {
+func (sm4c *sm4CipherAsm) EncryptBlocks(dst, src []byte) {
+	if len(src) < sm4c.blocksSize {
 		panic("sm4: input not full blocks")
 	}
-	if len(dst) < c.blocksSize {
+	if len(dst) < sm4c.blocksSize {
 		panic("sm4: output not full blocks")
 	}
-	if subtle.InexactOverlap(dst[:c.blocksSize], src[:c.blocksSize]) {
+	if subtle.InexactOverlap(dst[:sm4c.blocksSize], src[:sm4c.blocksSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlocksAsm(&c.enc[0], dst, src, INST_AES)
+	encryptBlocksAsm(&sm4c.enc[0], dst, src, INST_AES)
 }
 
-func (c *sm4CipherAsm) Decrypt(dst, src []byte) {
+func (sm4c *sm4CipherAsm) Decrypt(dst, src []byte) {
 	if len(src) < BlockSize {
 		panic("sm4: input not full block")
 	}
@@ -135,20 +139,20 @@ func (c *sm4CipherAsm) Decrypt(dst, src []byte) {
 	if subtle.InexactOverlap(dst[:BlockSize], src[:BlockSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlockAsm(&c.dec[0], &dst[0], &src[0], INST_AES)
+	encryptBlockAsm(&sm4c.dec[0], &dst[0], &src[0], INST_AES)
 }
 
-func (c *sm4CipherAsm) DecryptBlocks(dst, src []byte) {
-	if len(src) < c.blocksSize {
+func (sm4c *sm4CipherAsm) DecryptBlocks(dst, src []byte) {
+	if len(src) < sm4c.blocksSize {
 		panic("sm4: input not full blocks")
 	}
-	if len(dst) < c.blocksSize {
+	if len(dst) < sm4c.blocksSize {
 		panic("sm4: output not full blocks")
 	}
-	if subtle.InexactOverlap(dst[:c.blocksSize], src[:c.blocksSize]) {
+	if subtle.InexactOverlap(dst[:sm4c.blocksSize], src[:sm4c.blocksSize]) {
 		panic("sm4: invalid buffer overlap")
 	}
-	encryptBlocksAsm(&c.dec[0], dst, src, INST_AES)
+	encryptBlocksAsm(&sm4c.dec[0], dst, src, INST_AES)
 }
 
 // expandKey is used by BenchmarkExpand to ensure that the asm implementation
