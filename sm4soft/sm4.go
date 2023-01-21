@@ -24,17 +24,16 @@ import (
 	"strconv"
 )
 
-// 分组长度 16字节
+// BlockSize 分组长度 16字节
 const BlockSize = 16
 
-// 默认初始化向量 IVDefault
+// IVDefault 默认初始化向量 IVDefault
 var IVDefault = make([]byte, BlockSize)
 
-// sm4密钥
+// SM4Key sm4密钥
 type SM4Key []byte
 
-// Cipher is an instance of SM4 encryption.
-// sm4加密实例结构体
+// Sm4Cipher sm4加密实例结构体
 type Sm4Cipher struct {
 	// 轮密钥 长度32的uint32切片，每个元素是32bit的integer，即一个word
 	subkeys []uint32
@@ -272,17 +271,17 @@ func NewCipher(key []byte) (cipher.Block, error) {
 	return c, nil
 }
 
-// 获取分组长度(字节数量)
+// BlockSize 获取分组长度(字节数量)
 func (c *Sm4Cipher) BlockSize() int {
 	return BlockSize
 }
 
-// 块加密
+// Encrypt 块加密
 func (c *Sm4Cipher) Encrypt(dst, src []byte) {
 	cryptBlock(c.subkeys, c.block1, c.block2, dst, src, false)
 }
 
-// 块解密
+// Decrypt 块解密
 func (c *Sm4Cipher) Decrypt(dst, src []byte) {
 	cryptBlock(c.subkeys, c.block1, c.block2, dst, src, true)
 }
@@ -332,6 +331,7 @@ func pkcs7UnPadding(src []byte) ([]byte, error) {
 	return src[:(length - unpadding)], nil
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func SetIVDefault(iv []byte) error {
 	if len(iv) != BlockSize {
 		return errors.New("SM4: invalid iv size")
@@ -340,7 +340,7 @@ func SetIVDefault(iv []byte) error {
 	return nil
 }
 
-// sm4加密(ECB模式)，不需要IV，有PKCS#7填充
+// Sm4Ecb sm4加密(ECB模式)，不需要IV，有PKCS#7填充
 func Sm4Ecb(key []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
@@ -360,19 +360,19 @@ func Sm4Ecb(key []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if encrypt {
 		// 加密
 		for i := 0; i < len(inData)/16; i++ {
-			in_tmp := inData[i*16 : i*16+16]
-			out_tmp := make([]byte, 16)
+			inTmp := inData[i*16 : i*16+16]
+			outTmp := make([]byte, 16)
 			// 本组明文块加密
-			c.Encrypt(out_tmp, in_tmp)
-			copy(out[i*16:i*16+16], out_tmp)
+			c.Encrypt(outTmp, inTmp)
+			copy(out[i*16:i*16+16], outTmp)
 		}
 	} else {
 		for i := 0; i < len(inData)/16; i++ {
-			in_tmp := inData[i*16 : i*16+16]
-			out_tmp := make([]byte, 16)
+			inTmp := inData[i*16 : i*16+16]
+			outTmp := make([]byte, 16)
 			// 本组密文块解密
-			c.Decrypt(out_tmp, in_tmp)
-			copy(out[i*16:i*16+16], out_tmp)
+			c.Decrypt(outTmp, inTmp)
+			copy(out[i*16:i*16+16], outTmp)
 		}
 		// 解密后去除填充
 		out, _ = pkcs7UnPadding(out)
@@ -381,7 +381,7 @@ func Sm4Ecb(key []byte, in []byte, encrypt bool) (out []byte, err error) {
 	return out, nil
 }
 
-// sm4加密(CBC模式)，需要IV，有PKCS#7填充
+// Sm4Cbc sm4加密(CBC模式)，需要IV，有PKCS#7填充
 func Sm4Cbc(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
@@ -411,26 +411,26 @@ func Sm4Cbc(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 		// 加密
 		for i := 0; i < len(inData)/16; i++ {
 			// 本组明文块和前一组密文块做异或运算
-			in_tmp := xor(inData[i*16:i*16+16], iv)
-			out_tmp := make([]byte, 16)
+			inTmp := xor(inData[i*16:i*16+16], iv)
+			outTmp := make([]byte, 16)
 			// 对异或结果做块加密
-			c.Encrypt(out_tmp, in_tmp)
-			copy(out[i*16:i*16+16], out_tmp)
+			c.Encrypt(outTmp, inTmp)
+			copy(out[i*16:i*16+16], outTmp)
 			// 本组密文块作为下组块的异或运算参数
-			iv = out_tmp
+			iv = outTmp
 		}
 	} else {
 		// 解密
 		for i := 0; i < len(inData)/16; i++ {
-			in_tmp := inData[i*16 : i*16+16]
-			out_tmp := make([]byte, 16)
+			inTmp := inData[i*16 : i*16+16]
+			outTmp := make([]byte, 16)
 			// 对本组密文块做块解密
-			c.Decrypt(out_tmp, in_tmp)
+			c.Decrypt(outTmp, inTmp)
 			// 本组块解密结果与前一组密文块做异或运算
-			out_tmp = xor(out_tmp, iv)
-			copy(out[i*16:i*16+16], out_tmp)
+			outTmp = xor(outTmp, iv)
+			copy(out[i*16:i*16+16], outTmp)
 			// 本组密文块作为下组块的异或运算参数
-			iv = in_tmp
+			iv = inTmp
 		}
 		// 解密后去除填充
 		out, _ = pkcs7UnPadding(out)
@@ -443,7 +443,7 @@ func Sm4Cbc(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 //https://blog.csdn.net/zy_strive_2012/article/details/102520356
 //https://blog.csdn.net/sinat_23338865/article/details/72869841
 
-// sm4加密(CFB模式)，需要IV，没有PKCS#7填充
+// Sm4CFB sm4加密(CFB模式)，需要IV，没有PKCS#7填充
 func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
 	// 检查密钥长度
 	if len(key) != BlockSize {
@@ -458,7 +458,7 @@ func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 	if len(iv) != BlockSize {
 		return nil, errors.New("SM4: invalid iv size " + strconv.Itoa(len(iv)))
 	}
-	var inData []byte = in
+	var inData = in
 	// 计算明文块长度
 	inLength := len(inData)
 	// 计算最后一个明文块的长度
@@ -502,7 +502,7 @@ func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 		}
 	} else {
 		// 解密分支
-		var i int = 0
+		var i = 0
 		for ; i < blockCnt; i++ {
 			// 判断本次循环对应密文块的长度
 			curBlockSize := BlockSize
@@ -532,7 +532,7 @@ func Sm4CFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 //https://blog.csdn.net/chengqiuming/article/details/82390910
 //https://blog.csdn.net/sinat_23338865/article/details/72869841
 
-// sm4加密(OFB模式)，需要IV，没有PKCS#7填充
+// Sm4OFB sm4加密(OFB模式)，需要IV，没有PKCS#7填充
 func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err error) {
 	if len(key) != BlockSize {
 		return nil, errors.New("SM4: invalid key size " + strconv.Itoa(len(key)))
@@ -544,7 +544,7 @@ func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 	if len(iv) != BlockSize {
 		return nil, errors.New("SM4: invalid iv size " + strconv.Itoa(len(iv)))
 	}
-	var inData []byte = in
+	var inData = in
 	// 计算明文块长度
 	inLength := len(inData)
 	// 计算最后一个明文块的长度
@@ -620,13 +620,15 @@ func Sm4OFB(key []byte, iv []byte, in []byte, encrypt bool) (out []byte, err err
 	return out, nil
 }
 
-// 分组加密
+// EncryptBlock 分组加密
+//goland:noinspection GoUnusedExportedFunction
 func EncryptBlock(key SM4Key, dst, src []byte) {
 	subkeys := generateSubKeys(key)
 	cryptBlock(subkeys, make([]uint32, 4), make([]byte, 16), dst, src, false)
 }
 
-// 分组解密
+// DecryptBlock 分组解密
+//goland:noinspection GoUnusedExportedFunction
 func DecryptBlock(key SM4Key, dst, src []byte) {
 	subkeys := generateSubKeys(key)
 	cryptBlock(subkeys, make([]uint32, 4), make([]byte, 16), dst, src, true)

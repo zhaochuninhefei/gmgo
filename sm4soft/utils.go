@@ -57,6 +57,7 @@ func ReadKeyFromPemFile(FileName string, pwd []byte) (SM4Key, error) {
 }
 
 // WriteKeyToPem will convert SM4Key to PEM format data and return it.
+//goland:noinspection GoUnusedExportedFunction
 func WriteKeyToPem(key SM4Key, pwd []byte) ([]byte, error) {
 	if pwd != nil {
 		block, err := gmx509.EncryptPEMBlock(rand.Reader,
@@ -99,7 +100,8 @@ func WriteKeyToPemFile(FileName string, key SM4Key, pwd []byte) error {
 	return nil
 }
 
-// sm4密钥转为pem字节数组
+// WriteKeytoMem sm4密钥转为pem字节数组
+//goland:noinspection GoUnusedExportedFunction
 func WriteKeytoMem(key SM4Key, pwd []byte) ([]byte, error) {
 	if pwd != nil {
 		block, err := gmx509.EncryptPEMBlock(rand.Reader,
@@ -117,7 +119,8 @@ func WriteKeytoMem(key SM4Key, pwd []byte) ([]byte, error) {
 	}
 }
 
-// 将pem字节数组转为sm4密钥
+// ReadKeyFromMem 将pem字节数组转为sm4密钥
+//goland:noinspection GoUnusedExportedFunction
 func ReadKeyFromMem(data []byte, pwd []byte) (SM4Key, error) {
 	block, _ := pem.Decode(data)
 	if gmx509.IsEncryptedPEMBlock(block) {

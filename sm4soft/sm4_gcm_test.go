@@ -85,6 +85,9 @@ func BenchmarkSm4(t *testing.B) {
 	t.ReportAllocs()
 	for i := 0; i < t.N; i++ {
 		gcmMsg, _, _ := Sm4GCM(key, IV, data, A, true)
-		Sm4GCM(key, IV, gcmMsg, A, false)
+		_, _, err := Sm4GCM(key, IV, gcmMsg, A, false)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
