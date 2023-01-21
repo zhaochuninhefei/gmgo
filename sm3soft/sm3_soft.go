@@ -22,10 +22,10 @@ import (
 	"hash"
 )
 
-// SM3散列结果的字节长度，对应bit长度为256位
+// Size SM3散列结果的字节长度，对应bit长度为256位
 const Size = 32
 
-// SM3散列时一个Block的字节长度，对应bit长度为512位
+// BlockSize SM3散列时一个Block的字节长度，对应bit长度为512位
 const BlockSize = 64
 
 type SM3 struct {
@@ -193,7 +193,7 @@ func (sm3 *SM3) update2(msg []byte) [8]uint32 {
 	return digest
 }
 
-// 创建哈希计算实例
+// New 创建哈希计算实例
 func New() hash.Hash {
 	var sm3 SM3
 
@@ -241,7 +241,7 @@ func (sm3 *SM3) Write(p []byte) (int, error) {
 	return toWrite, nil
 }
 
-// 返回SM3哈希算法摘要值
+// Sum 返回SM3哈希算法摘要值
 // Sum appends the current hash to b and returns the resulting slice.
 // It does not change the underlying hash state.
 func (sm3 *SM3) Sum(in []byte) []byte {
