@@ -34,8 +34,14 @@ func TestFuzz(t *testing.T) {
 		default:
 		}
 
-		io.ReadFull(rand.Reader, scalar1[:])
-		io.ReadFull(rand.Reader, scalar2[:])
+		_, err := io.ReadFull(rand.Reader, scalar1[:])
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = io.ReadFull(rand.Reader, scalar2[:])
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		x, y := p256.ScalarBaseMult(scalar1[:])
 		x2, y2 := p256Generic.ScalarBaseMult(scalar1[:])

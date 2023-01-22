@@ -152,7 +152,10 @@ func TestFuzzyP256Sqr(t *testing.T) {
 			return
 		default:
 		}
-		io.ReadFull(rand.Reader, scalar1[:])
+		_, err := io.ReadFull(rand.Reader, scalar1[:])
+		if err != nil {
+			t.Fatal(err)
+		}
 		x := new(big.Int).SetBytes(scalar1[:])
 		p256SqrTest(t, x, p, r)
 	}
@@ -198,8 +201,14 @@ func TestFuzzyP256Mul(t *testing.T) {
 			return
 		default:
 		}
-		io.ReadFull(rand.Reader, scalar1[:])
-		io.ReadFull(rand.Reader, scalar2[:])
+		_, err := io.ReadFull(rand.Reader, scalar1[:])
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = io.ReadFull(rand.Reader, scalar2[:])
+		if err != nil {
+			t.Fatal(err)
+		}
 		x := new(big.Int).SetBytes(scalar1[:])
 		y := new(big.Int).SetBytes(scalar2[:])
 		p256MulTest(t, x, y, p, r)

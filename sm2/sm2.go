@@ -84,7 +84,7 @@ import (
 	"golang.org/x/crypto/cryptobyte/asn1"
 )
 
-// SM2公钥结构体
+// PublicKey SM2公钥结构体
 type PublicKey struct {
 	elliptic.Curve          // 椭圆曲线
 	X, Y           *big.Int // 公钥座标
@@ -103,13 +103,13 @@ func (pub *PublicKey) Equal(x crypto.PublicKey) bool {
 		pub.Curve == xx.Curve
 }
 
-// SM2私钥结构体
+// PrivateKey SM2私钥结构体
 type PrivateKey struct {
 	PublicKey          // 公钥
 	D         *big.Int // 私钥，[1,n-1]区间的随机数
 }
 
-// The SM2's private key contains the public key
+// Public The SM2's private key contains the public key
 func (priv *PrivateKey) Public() crypto.PublicKey {
 	return &priv.PublicKey
 }
@@ -127,7 +127,7 @@ var (
 	initonce sync.Once
 )
 
-// 获取sm2p256曲线
+// P256Sm2 获取sm2p256曲线
 // P256Sm2 init and return the singleton.
 func P256Sm2() elliptic.Curve {
 	initonce.Do(initP256)
@@ -152,7 +152,7 @@ func randFieldElement(c elliptic.Curve, rand io.Reader) (k *big.Int, err error) 
 	return
 }
 
-// 生成sm2的公私钥对
+// GenerateKey 生成sm2的公私钥对
 // GenerateKey generates a public and private key pair.
 func GenerateKey(rand io.Reader) (*PrivateKey, error) {
 	c := P256Sm2()
@@ -174,6 +174,7 @@ func GenerateKey(rand io.Reader) (*PrivateKey, error) {
 var errZeroParam = errors.New("zero parameter")
 
 // IsSM2PublicKey check if given public key is a SM2 public key or not
+//goland:noinspection GoUnusedExportedFunction
 func IsSM2PublicKey(publicKey interface{}) bool {
 	pub, ok := publicKey.(*PublicKey)
 	return ok && strings.EqualFold(P256Sm2().Params().Name, pub.Curve.Params().Name)
@@ -187,9 +188,10 @@ var defaultUID = []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x
 // should be performed.
 var directSigning crypto.Hash = 0
 
-// sm2签名参数
+// SM2SignerOption sm2签名参数
 // SM2SignerOption implements crypto.SignerOpts interface.
 // It is specific for SM2, used in private key's Sign method.
+//goland:noinspection GoNameStartsWithPackageName
 type SM2SignerOption struct {
 	// ZA计算用唯一标识符，只在ForceZA为true时使用。
 	UID []byte
@@ -198,7 +200,7 @@ type SM2SignerOption struct {
 	ForceZA bool
 }
 
-// 生成一个新的sm2签名参数
+// NewSM2SignerOption 生成一个新的sm2签名参数
 //  forceZA为true而uid为空时，使用defaultUID
 func NewSM2SignerOption(forceZA bool, uid []byte) *SM2SignerOption {
 	opt := &SM2SignerOption{
@@ -212,7 +214,7 @@ func NewSM2SignerOption(forceZA bool, uid []byte) *SM2SignerOption {
 	return opt
 }
 
-// 生成一个默认的sm2签名参数
+// DefaultSM2SignerOption 生成一个默认的sm2签名参数
 func DefaultSM2SignerOption() *SM2SignerOption {
 	return &SM2SignerOption{
 		UID:     defaultUID,
@@ -220,7 +222,7 @@ func DefaultSM2SignerOption() *SM2SignerOption {
 	}
 }
 
-// 为sm2.SM2SignerOption实现crypto.SignerOpts接口
+// HashFunc 为sm2.SM2SignerOption实现crypto.SignerOpts接口
 func (*SM2SignerOption) HashFunc() crypto.Hash {
 	return directSigning
 }
@@ -230,7 +232,7 @@ type Signer interface {
 	SignWithZA(rand io.Reader, uid, msg []byte) ([]byte, error)
 }
 
-// 为sm2.PrivateKey实现SignWithZA方法。
+// SignWithZA 为sm2.PrivateKey实现SignWithZA方法。
 //  该方法强制对msg做ZA混合散列
 // SignWithZA signs uid, msg with priv, reading randomness from rand. Compliance with GB/T 32918.2-2016.
 // Deprecated: please use Sign method directly.
@@ -238,20 +240,21 @@ func (priv *PrivateKey) SignWithZA(rand io.Reader, uid, msg []byte) ([]byte, err
 	return priv.Sign(rand, msg, NewSM2SignerOption(true, uid))
 }
 
-// SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
+// SignASN1WithOpts SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
 //  是否对hash做ZA混合散列取决于opts类型是否*sm2.SM2SignerOption且opts.ForceGMSign为true。
 //  如果opts传nil，则对hash做ZA混合散列。
+//goland:noinspection GoUnusedExportedFunction
 func SignASN1WithOpts(rand io.Reader, priv *PrivateKey, hash []byte, opts crypto.SignerOpts) ([]byte, error) {
 	return priv.Sign(rand, hash, opts)
 }
 
-// SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
+// SignASN1 SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
 //  会对hash做ZA混合散列。
 func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
 	return priv.Sign(rand, hash, nil)
 }
 
-// 为sm2.PrivateKey实现Sign方法。
+// Sign 为sm2.PrivateKey实现Sign方法。
 //  如果opts类型是*sm2.SM2SignerOption且opts.ForceGMSign为true，或opts传nil，
 // 则将对digest进行ZA混合散列后再对其进行签名。
 func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
@@ -285,21 +288,22 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	return b.Bytes()
 }
 
-// Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
+// Sign Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
 //  会对hash做ZA混合散列。
 func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error) {
 	r, s, err = SignWithZA(rand, priv, defaultUID, hash)
 	return
 }
 
-// Sm2Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
+// Sm2Sign Sm2Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
 //  会对hash做ZA混合散列。
+//goland:noinspection GoUnusedExportedFunction,GoNameStartsWithPackageName,GoUnusedParameter
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	r, s, err = SignWithZA(random, priv, defaultUID, msg)
 	return
 }
 
-// SignWithZA对msg做ZA混合散列后再对得到的校验和进行签名。
+// SignWithZA 对msg做ZA混合散列后再对得到的校验和进行签名。
 //  混合散列使用sm3
 // SignWithZA follow sm2 dsa standards for hash part, compliance with GB/T 32918.2-2016.
 func SignWithZA(rand io.Reader, priv *PrivateKey, uid, msg []byte) (r, s *big.Int, err error) {
@@ -319,7 +323,7 @@ func SignWithZA(rand io.Reader, priv *PrivateKey, uid, msg []byte) (r, s *big.In
 	return SignAfterZA(rand, priv, md.Sum(nil))
 }
 
-// sm2签名函数
+// SignAfterZA sm2签名函数
 //   1.内部不对签名内容hash进行混入ZA的散列处理。
 //   2.内部会根据rand与hash使用aes生成一个后续签名生成随机数用的csprng，即本函数在签名时获取随机数时不是直接使用rand。
 func SignAfterZA(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error) {
@@ -419,13 +423,13 @@ func signGeneric(priv *PrivateKey, csprng *cipher.StreamReader, hash []byte) (r,
 	return
 }
 
-// sm2公钥验签
+// Verify sm2公钥验签
 //  对msg做ZA混合散列
 func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 	return VerifyASN1(pub, msg, sig)
 }
 
-// VerifyASN1将asn1格式字节数组的签名转为(r,s)在调用sm2的验签函数。
+// VerifyASN1 VerifyASN1将asn1格式字节数组的签名转为(r,s)在调用sm2的验签函数。
 //  对msg做ZA混合散列
 func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 	var (
@@ -443,8 +447,9 @@ func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 	return VerifyWithZA(pub, nil, msg, r, s)
 }
 
-// VerifyASN1WithoutZA将asn1格式字节数组的签名转为(r,s)，再做验签。
+// VerifyASN1WithoutZA 将asn1格式字节数组的签名转为(r,s)，再做验签。
 // 不对hash再做ZA混合散列。
+//goland:noinspection GoUnusedExportedFunction
 func VerifyASN1WithoutZA(pub *PublicKey, hash, sig []byte) bool {
 	var (
 		r, s  = &big.Int{}, &big.Int{}
@@ -461,19 +466,21 @@ func VerifyASN1WithoutZA(pub *PublicKey, hash, sig []byte) bool {
 	return verifyGeneric(pub, hash, r, s)
 }
 
-// sm2验签
+// Verify sm2验签
 //  对msg做ZA混合散列
+//goland:noinspection GoUnusedExportedFunction
 func Verify(pub *PublicKey, msg []byte, r, s *big.Int) bool {
 	return VerifyWithZA(pub, nil, msg, r, s)
 }
 
-// sm2验签
+// Sm2Verify sm2验签
 //  对msg做ZA混合散列
+//goland:noinspection GoUnusedExportedFunction,GoNameStartsWithPackageName
 func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 	return VerifyWithZA(pub, uid, msg, r, s)
 }
 
-// VerifyWithZA将对msg进行ZA混合散列后再进行验签。
+// VerifyWithZA 将对msg进行ZA混合散列后再进行验签。
 func VerifyWithZA(pub *PublicKey, uid, msg []byte, r, s *big.Int) bool {
 	if len(uid) == 0 {
 		uid = defaultUID
@@ -531,11 +538,12 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	return x.Cmp(r) == 0
 }
 
-// ZA计算。
+// CalculateZA ZA计算。
 //  SM2签名与验签之前，先对签名内容做一次混入ZA的散列。
 //  ZA的值是根据公钥与uid计算出来的。
 //  CalculateZA ZA = H256(ENTLA || IDA || a || b || xG || yG || xA || yA).
 //  Compliance with GB/T 32918.2-2016 5.5
+//goland:noinspection GoUnusedExportedFunction
 func CalculateZA(pub *PublicKey, uid []byte) ([]byte, error) {
 	return calculateZA(pub, uid)
 }
@@ -600,7 +608,7 @@ var zeroReader = &zr{}
 
 // A invertible implements fast inverse in GF(N).
 type invertible interface {
-	// mod Params().N 的倒数运算
+	// Inverse mod Params().N 的倒数运算
 	// Inverse returns the inverse of k mod Params().N.
 	Inverse(k *big.Int) *big.Int
 }
@@ -635,63 +643,66 @@ const (
 
 // ↓↓↓↓↓↓↓↓↓↓ 非对称加解密 ↓↓↓↓↓↓↓↓↓↓
 
-// sm2公钥加密, C1C3C2, C1不压缩, C3C2做ASN1转码
+// EncryptAsn1 sm2公钥加密, C1C3C2, C1不压缩, C3C2做ASN1转码
 func (pub *PublicKey) EncryptAsn1(data []byte, random io.Reader) ([]byte, error) {
 	return EncryptAsn1(pub, data, random)
 }
 
-// sm2私钥解密, C1C3C2, C1不压缩, C3C2做ASN1转码
+// DecryptAsn1 sm2私钥解密, C1C3C2, C1不压缩, C3C2做ASN1转码
 func (priv *PrivateKey) DecryptAsn1(data []byte) ([]byte, error) {
 	return DecryptAsn1(priv, data)
 }
 
-// sm2公钥加密
+// Encrypt sm2公钥加密
 //  opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
 func (pub *PublicKey) Encrypt(rand io.Reader, msg []byte, opts *EncrypterOpts) (ciphertext []byte, err error) {
 	return encryptGeneric(rand, pub, msg, opts)
 }
 
-// sm2私钥解密
+// Decrypt sm2私钥解密
 //  opts传nil代表C1C3C2模式
+//goland:noinspection GoUnusedParameter
 func (priv *PrivateKey) Decrypt(rand io.Reader, msg []byte, opts *DecrypterOpts) (plaintext []byte, err error) {
 	return decryptGeneric(priv, msg, opts)
 }
 
-// sm2公钥加密
+// Encrypt sm2公钥加密
 //  opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
 func Encrypt(pub *PublicKey, data []byte, random io.Reader, opts *EncrypterOpts) ([]byte, error) {
 	return encryptGeneric(random, pub, data, opts)
 }
 
-// sm2私钥解密
+// Decrypt sm2私钥解密
 //  opts传nil代表C1C3C2模式
 func Decrypt(priv *PrivateKey, data []byte, opts *DecrypterOpts) ([]byte, error) {
 	return decryptGeneric(priv, data, opts)
 }
 
-// sm2公钥加密
+// EncryptDefault sm2公钥加密
 //  默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
+//goland:noinspection GoUnusedExportedFunction
 func EncryptDefault(pub *PublicKey, data []byte, random io.Reader) ([]byte, error) {
 	return encryptGeneric(random, pub, data, nil)
 }
 
-// sm2公钥加密
+// EncryptAsn1 sm2公钥加密
 //  默认模式: C1C3C2, C1不压缩, C3C2做ASN1转码
 func EncryptAsn1(pub *PublicKey, data []byte, random io.Reader) ([]byte, error) {
 	return encryptGeneric(random, pub, data, ASN1EncrypterOpts)
 }
 
-// sm2私钥解密, C1C3C2模式
+// DecryptDefault sm2私钥解密, C1C3C2模式
+//goland:noinspection GoUnusedExportedFunction
 func DecryptDefault(priv *PrivateKey, ciphertext []byte) ([]byte, error) {
 	return decryptGeneric(priv, ciphertext, nil)
 }
 
-// sm2私钥解密, C1C3C2, C3C2做ASN1转码
+// DecryptAsn1 sm2私钥解密, C1C3C2, C3C2做ASN1转码
 func DecryptAsn1(priv *PrivateKey, ciphertext []byte) ([]byte, error) {
 	return decryptGeneric(priv, ciphertext, ASN1DecrypterOpts)
 }
 
-// sm2公钥加密实现
+// encryptGeneric sm2公钥加密实现
 //  opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
 //  参考: GB/T 32918.4-2016 chapter 6
 func encryptGeneric(random io.Reader, pub *PublicKey, msg []byte, opts *EncrypterOpts) ([]byte, error) {
@@ -720,7 +731,7 @@ func encryptGeneric(random io.Reader, pub *PublicKey, msg []byte, opts *Encrypte
 		x1, y1 := curve.ScalarBaseMult(k.Bytes())
 		// 3.计算点(x2,y2) = k*pub，利用公钥计算出一个随机点(x2,y2)
 		x2, y2 := curve.ScalarMult(pub.X, pub.Y, k.Bytes())
-		var kdfCount int = 0
+		var kdfCount = 0
 		// 4.使用密钥派生函数kdf，基于P计算长度等于data长度的派生密钥 t=KDF(x2||y2, klen)
 		t, success := kdf(append(toBytes(curve, x2), toBytes(curve, y2)...), msgLen)
 		if !success {
@@ -852,13 +863,13 @@ func rawDecrypt(priv *PrivateKey, x1, y1 *big.Int, c2, c3 []byte) ([]byte, error
 	return msg, nil
 }
 
-// sm2加密结果去除ASN1转码
+// ASN1Ciphertext2Plain sm2加密结果去除ASN1转码
 // ASN1Ciphertext2Plain utility method to convert ASN.1 encoding ciphertext to plain encoding format
 func ASN1Ciphertext2Plain(ciphertext []byte, opts *EncrypterOpts) ([]byte, error) {
 	if opts == nil {
 		opts = defaultEncrypterOpts
 	}
-	x1, y1, c2, c3, err := unmarshalASN1Ciphertext((ciphertext))
+	x1, y1, c2, c3, err := unmarshalASN1Ciphertext(ciphertext)
 	if err != nil {
 		return nil, err
 	}
@@ -872,7 +883,7 @@ func ASN1Ciphertext2Plain(ciphertext []byte, opts *EncrypterOpts) ([]byte, error
 	return append(append(c1, c2...), c3...), nil
 }
 
-// sm2加密结果改为ASN1转码
+// PlainCiphertext2ASN1 sm2加密结果改为ASN1转码
 // PlainCiphertext2ASN1 utility method to convert plain encoding ciphertext to ASN.1 encoding format
 func PlainCiphertext2ASN1(ciphertext []byte, from ciphertextSplicingOrder) ([]byte, error) {
 	if ciphertext[0] == 0x30 {
@@ -901,7 +912,7 @@ func PlainCiphertext2ASN1(ciphertext []byte, from ciphertextSplicingOrder) ([]by
 	return mashalASN1Ciphertext(x1, y1, c2, c3)
 }
 
-// 修改sm2加密结果的C2C3拼接顺序
+// AdjustCiphertextSplicingOrder 修改sm2加密结果的C2C3拼接顺序
 // AdjustCiphertextSplicingOrder utility method to change c2 c3 order
 func AdjustCiphertextSplicingOrder(ciphertext []byte, from, to ciphertextSplicingOrder) ([]byte, error) {
 	curve := P256Sm2()
@@ -1005,14 +1016,14 @@ const (
 type pointMarshalMode byte
 
 const (
-	// C1不压缩序列化
-	//MarshalUncompressed uncompressed mashal mode
+	// MarshalUncompressed C1不压缩序列化
+	// MarshalUncompressed uncompressed mashal mode
 	MarshalUncompressed pointMarshalMode = iota
-	// C1压缩序列化
-	//MarshalCompressed compressed mashal mode
+	// MarshalCompressed C1压缩序列化
+	// MarshalCompressed compressed mashal mode
 	MarshalCompressed
-	// C1混合序列化
-	//MarshalMixed mixed mashal mode
+	// MarshalMixed C1混合序列化
+	// MarshalMixed mixed mashal mode
 	MarshalMixed
 )
 
@@ -1020,7 +1031,7 @@ const (
 type ciphertextSplicingOrder byte
 
 const (
-	// 默认使用 C1C3C2
+	// C1C3C2 默认使用 C1C3C2
 	C1C3C2 ciphertextSplicingOrder = iota
 	C1C2C3
 )
@@ -1028,14 +1039,15 @@ const (
 // sm2 C2C3转码规则
 type ciphertextEncoding byte
 
+//goland:noinspection GoSnakeCaseUsage
 const (
-	// 平文，即不对C2C3做ASN1转码
+	// ENCODING_PLAIN 平文，即不对C2C3做ASN1转码
 	ENCODING_PLAIN ciphertextEncoding = iota
-	// ASN1，即对C2C3做ASN1转码
+	// ENCODING_ASN1 ASN1，即对C2C3做ASN1转码
 	ENCODING_ASN1
 )
 
-// 加密参数
+// EncrypterOpts 加密参数
 // EncrypterOpts encryption options
 type EncrypterOpts struct {
 	// C2C3转码规则
@@ -1046,7 +1058,7 @@ type EncrypterOpts struct {
 	CiphertextSplicingOrder ciphertextSplicingOrder
 }
 
-// 解密参数
+// DecrypterOpts 解密参数
 // DecrypterOpts decryption options
 type DecrypterOpts struct {
 	// 转码规则
@@ -1055,12 +1067,12 @@ type DecrypterOpts struct {
 	CipherTextSplicingOrder ciphertextSplicingOrder
 }
 
-// 生成不做ASN1转码的sm2加密参数
+// NewPlainEncrypterOpts 生成不做ASN1转码的sm2加密参数
 func NewPlainEncrypterOpts(marhsalMode pointMarshalMode, splicingOrder ciphertextSplicingOrder) *EncrypterOpts {
 	return &EncrypterOpts{ENCODING_PLAIN, marhsalMode, splicingOrder}
 }
 
-// 生成不做ASN1转码的sm2解密参数
+// NewPlainDecrypterOpts 生成不做ASN1转码的sm2解密参数
 func NewPlainDecrypterOpts(splicingOrder ciphertextSplicingOrder) *DecrypterOpts {
 	return &DecrypterOpts{ENCODING_PLAIN, splicingOrder}
 }
@@ -1083,10 +1095,10 @@ func (mode pointMarshalMode) mashal(curve elliptic.Curve, x, y *big.Int) []byte 
 // 默认加密参数: C1C3C2, C1不压缩, C3C2不做ASN1转码
 var defaultEncrypterOpts = &EncrypterOpts{ENCODING_PLAIN, MarshalUncompressed, C1C3C2}
 
-// ASN1转码加密参数: C1C3C2, C1不压缩, C3C2做ASN1转码
+// ASN1EncrypterOpts ASN1转码加密参数: C1C3C2, C1不压缩, C3C2做ASN1转码
 var ASN1EncrypterOpts = &EncrypterOpts{ENCODING_ASN1, MarshalUncompressed, C1C3C2}
 
-// ASN1转码解密参数: C1C3C2, C3C2做ASN1转码
+// ASN1DecrypterOpts ASN1转码解密参数: C1C3C2, C3C2做ASN1转码
 var ASN1DecrypterOpts = &DecrypterOpts{ENCODING_ASN1, C1C3C2}
 
 // ↑↑↑↑↑↑↑↑↑↑ 非对称加解密 ↑↑↑↑↑↑↑↑↑↑

@@ -50,7 +50,7 @@ func initP256() {
 	p256.BitSize = 256
 }
 
-// 获取sm2p256曲线参数
+// Params 获取sm2p256曲线参数
 func (curve p256Curve) Params() *elliptic.CurveParams {
 	return curve.CurveParams
 }
@@ -60,60 +60,71 @@ func (curve p256Curve) Params() *elliptic.CurveParams {
 // Functions implemented in p256_asm_*64.s
 // Montgomery multiplication modulo P256
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256Mul(res, in1, in2 []uint64)
 
 // p256曲线的蒙哥马利幂方运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery square modulo P256, repeated n times (n >= 1)
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256Sqr(res, in []uint64, n int)
 
 // p256曲线的蒙哥马利乘1运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery multiplication by 1
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256FromMont(res, in []uint64)
 
 // p256曲线的按条件求补(取反)指令。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // iff cond == 1  val <- -val
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256NegCond(val []uint64, cond int)
 
 // p256曲线的按条件传送指令。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // if cond == 0 res <- b; else res <- a
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256MovCond(res, a, b []uint64, cond int)
 
 // p256曲线的字节序交换运算(大端序转小端序)。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Endianness swap
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256BigToLittle(res []uint64, in []byte)
 
 // p256曲线的字节序交换运算(小端序转大端序)。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256LittleToBig(res []byte, in []uint64)
 
 // Constant time table access
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256Select(point, table []uint64, idx int)
 
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256SelectBase(point *[12]uint64, table string, idx int)
 
 // p256曲线的蒙哥马利Ord(G)模乘运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery multiplication modulo Ord(G)
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256OrdMul(res, in1, in2 []uint64)
 
 // p256曲线的蒙哥马利 Ord(G)幂方运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery square modulo Ord(G), repeated n times
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256OrdSqr(res, in []uint64, n int)
 
 // Point add with in2 being affine point
@@ -121,21 +132,24 @@ func p256OrdSqr(res, in []uint64, n int)
 // If sel == 0 -> res = in1
 // if zero == 0 -> res = in2
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256PointAddAffineAsm(res, in1, in2 []uint64, sign, sel, zero int)
 
 // Point add. Returns one if the two input points were equal and zero
 // otherwise. (Note that, due to the way that the equations work out, some
 // representations of ∞ are considered equal to everything by this function.)
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256PointAddAsm(res, in1, in2 []uint64) int
 
 // Point double
 //go:noescape
+//goland:noinspection GoUnusedParameter
 func p256PointDoubleAsm(res, in []uint64)
 
 var p256one = []uint64{0x0000000000000001, 0x00000000ffffffff, 0x0000000000000000, 0x0000000100000000}
 
-// 利用amd64或arm64架构的CPU实现快速的 mod Params().N 的倒数运算
+// Inverse 利用amd64或arm64架构的CPU实现快速的 mod Params().N 的倒数运算
 // Inverse, implements invertible interface, used by Sign()
 // n-2 =
 // 1111111111111111111111111111111011111111111111111111111111111111
@@ -273,7 +287,7 @@ func maybeReduceModP(in *big.Int) *big.Int {
 	return new(big.Int).Mod(in, p256.P)
 }
 
-// 利用amd64或arm64架构的cpu指令集功能加速曲线上的乘法运算
+// CombinedMult 利用amd64或arm64架构的cpu指令集功能加速曲线上的乘法运算
 func (curve p256Curve) CombinedMult(bigX, bigY *big.Int, baseScalar, scalar []byte) (x, y *big.Int) {
 	scalarReversed := make([]uint64, 4)
 	var r1, r2 p256Point
@@ -306,7 +320,7 @@ func (curve p256Curve) CombinedMult(bigX, bigY *big.Int, baseScalar, scalar []by
 	return sum.p256PointToAffine()
 }
 
-// sm2p256曲线基点乘法: k*G , k是随机数，G是曲线基点座标。
+// ScalarBaseMult sm2p256曲线基点乘法: k*G , k是随机数，G是曲线基点座标。
 // 实现的是 elliptic.Curve 接口。
 // ScalarBaseMult returns k*G, where G is the base point of the group
 // and k is an integer in big-endian form.
@@ -319,7 +333,7 @@ func (curve p256Curve) ScalarBaseMult(scalar []byte) (x, y *big.Int) {
 	return r.p256PointToAffine()
 }
 
-// sm2p256曲线乘法: k*G , k是随机数，(Bx,By)是曲线上某点座标。
+// ScalarMult sm2p256曲线乘法: k*G , k是随机数，(Bx,By)是曲线上某点座标。
 // 实现的是 elliptic.Curve 接口。
 // ScalarMult returns k*(Bx,By) where k is a number in big-endian form.
 func (curve p256Curve) ScalarMult(bigX, bigY *big.Int, scalar []byte) (x, y *big.Int) {
@@ -468,16 +482,16 @@ func (p *p256Point) p256StorePoint(r *[16 * 4 * 3]uint64, index int) {
 // https://github.com/openssl/openssl/blob/master/crypto/ec/ecp_nistputil.c
 // https://github.com/google/boringssl/blob/master/crypto/fipsmodule/ec/util.c
 func boothW5(in uint) (int, int) {
-	var s uint = ^((in >> 5) - 1)  // sets all bits to MSB(in), 'in' seen as 6-bit value
-	var d uint = (1 << 6) - in - 1 // d = 63 - in, or d = ^in & 0x3f
-	d = (d & s) | (in & (^s))      // d = in if in < 2^5; otherwise, d = 63 - in
-	d = (d >> 1) + (d & 1)         // d = (d + 1) / 2
+	var s = ^((in >> 5) - 1)  // sets all bits to MSB(in), 'in' seen as 6-bit value
+	var d = (1 << 6) - in - 1 // d = 63 - in, or d = ^in & 0x3f
+	d = (d & s) | (in & (^s)) // d = in if in < 2^5; otherwise, d = 63 - in
+	d = (d >> 1) + (d & 1)    // d = (d + 1) / 2
 	return int(d), int(s & 1)
 }
 
 func boothW6(in uint) (int, int) {
-	var s uint = ^((in >> 6) - 1)
-	var d uint = (1 << 7) - in - 1
+	var s = ^((in >> 6) - 1)
+	var d = (1 << 7) - in - 1
 	d = (d & s) | (in & (^s))
 	d = (d >> 1) + (d & 1)
 	return int(d), int(s & 1)

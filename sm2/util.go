@@ -192,10 +192,14 @@ func maybeReadByte(r io.Reader) {
 		return
 	case <-closedChan:
 		var buf [1]byte
-		r.Read(buf[:])
+		_, err := r.Read(buf[:])
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func ConvertSM2Priv2ECPriv(sm2Priv *PrivateKey) (*ecdsa.PrivateKey, error) {
 	ecPriv := &ecdsa.PrivateKey{}
 	ecPriv.Curve = sm2Priv.Curve
@@ -205,6 +209,7 @@ func ConvertSM2Priv2ECPriv(sm2Priv *PrivateKey) (*ecdsa.PrivateKey, error) {
 	return ecPriv, nil
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func ConvertECPriv2SM2Priv(ecPriv *ecdsa.PrivateKey) (*PrivateKey, error) {
 	sm2Priv := &PrivateKey{}
 	sm2Priv.Curve = ecPriv.Curve

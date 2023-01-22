@@ -177,6 +177,7 @@ func TestP256BaseMult(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedFunction
 func generateP256MultTests() {
 	p256 := P256Sm2()
 	p256Generic := genericParamsForCurve(p256)
