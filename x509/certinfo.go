@@ -55,7 +55,7 @@ func certUniqueIDs(tbsAsnData []byte) (issuerUniqueID, subjectUniqueID []byte, e
 // printName prints the fields of a distinguished name, which include such
 // things as its common name and locality.
 func printName(names []pkix.AttributeTypeAndValue, buf *bytes.Buffer) []string {
-	values := []string{}
+	var values []string
 	for _, name := range names {
 		oid := name.Type
 		if len(oid) == 4 && oid[0] == 2 && oid[1] == 5 && oid[2] == 4 {
@@ -310,7 +310,7 @@ func CertificateText(cert *Certificate) (string, error) {
 					} else {
 						buf.WriteString("\n")
 					}
-					usages := []string{}
+					var usages []string
 					if cert.KeyUsage&KeyUsageDigitalSignature > 0 {
 						usages = append(usages, "Digital Signature")
 					}
@@ -541,6 +541,7 @@ func CertificateText(cert *Certificate) (string, error) {
 // CertificateRequestText returns a human-readable string representation
 // of the certificate request csr. The format is similar (but not identical)
 // to the OpenSSL way of printing certificates.
+//goland:noinspection GoUnusedExportedFunction
 func CertificateRequestText(csr *CertificateRequest) (string, error) {
 	var buf bytes.Buffer
 	buf.Grow(4096) // 4KiB should be enough

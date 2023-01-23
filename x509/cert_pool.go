@@ -19,7 +19,7 @@ import (
 )
 
 // 将`sha256.Sum224`改为`sm3.Sm3SumArr`
-type sum_sm3 [sm3.Size]byte
+type sumSm3 [sm3.Size]byte
 
 // CertPool is a set of certificates.
 type CertPool struct {
@@ -34,7 +34,7 @@ type CertPool struct {
 	// calls in the AddCert path (because the contains method can
 	// call getCert and otherwise negate savings from lazy getCert
 	// funcs).
-	haveSum map[sum_sm3]bool
+	haveSum map[sumSm3]bool
 }
 
 // lazyCert is minimal metadata about a Cert and a func to retrieve it
@@ -61,7 +61,7 @@ type lazyCert struct {
 func NewCertPool() *CertPool {
 	return &CertPool{
 		byName:  make(map[string][]int),
-		haveSum: make(map[sum_sm3]bool),
+		haveSum: make(map[sumSm3]bool),
 	}
 }
 
@@ -83,7 +83,7 @@ func (s *CertPool) copy() *CertPool {
 	p := &CertPool{
 		byName:    make(map[string][]int, len(s.byName)),
 		lazyCerts: make([]lazyCert, len(s.lazyCerts)),
-		haveSum:   make(map[sum_sm3]bool, len(s.haveSum)),
+		haveSum:   make(map[sumSm3]bool, len(s.haveSum)),
 	}
 	for k, v := range s.byName {
 		indexes := make([]int, len(v))
@@ -185,7 +185,7 @@ func (s *CertPool) AddCert(cert *Certificate) {
 //
 // The rawSubject is Certificate.RawSubject and must be non-empty.
 // The getCert func may be called 0 or more times.
-func (s *CertPool) addCertFunc(rawSumSm3 sum_sm3, rawSubject string, getCert func() (*Certificate, error)) {
+func (s *CertPool) addCertFunc(rawSumSm3 sumSm3, rawSubject string, getCert func() (*Certificate, error)) {
 	if getCert == nil {
 		panic("getCert can't be nil")
 	}
