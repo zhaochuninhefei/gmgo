@@ -267,7 +267,10 @@ func TestSm4(t *testing.T) {
 	if err != nil {
 		t.Fatal("encrypt: ", err)
 	}
-	pem.Encode(file, block)
+	err = pem.Encode(file, block)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !IsEncryptedPEMBlock(block) {
 		t.Fatal("PEM block does not appear to be encrypted")
 	}
@@ -289,11 +292,11 @@ func TestSm4(t *testing.T) {
 func TestSM2Key(t *testing.T) {
 	password := []byte("testsm2key")
 	sm2PrivKey, _ := sm2.GenerateKey(rand.Reader)
-	pem, err := WritePrivateKeyToPem(sm2PrivKey, password)
+	privateKeyToPem, err := WritePrivateKeyToPem(sm2PrivKey, password)
 	if err != nil {
 		t.Fatal("x509/pem_decrypt_test.go TestSM2Key WritePrivateKeyToPem faild", err)
 	}
-	keySm2, err := ReadPrivateKeyFromPem(pem, password)
+	keySm2, err := ReadPrivateKeyFromPem(privateKeyToPem, password)
 	if err != nil {
 		t.Fatal("x509/pem_decrypt_test.go TestSM2Key ReadPrivateKeyFromPem faild", err)
 	}
@@ -301,11 +304,11 @@ func TestSM2Key(t *testing.T) {
 		t.Fatal("加密再解密后的pem内容不一致")
 	}
 
-	writeFileOK, err := WritePrivateKeytoPemFile("testdata/encrypt_pem_sm2_privkey.pem", sm2PrivKey, password)
+	writeFileOK, err := WritePrivateKeytoPemFile("testdata/encrypt_pem_sm2_privkey.privateKeyToPem", sm2PrivKey, password)
 	if !writeFileOK || err != nil {
 		t.Fatal("x509/pem_decrypt_test.go TestSM2Key WritePrivateKeytoPemFile faild", err)
 	}
-	keySm2FromFile, err := ReadPrivateKeyFromPemFile("testdata/encrypt_pem_sm2_privkey.pem", password)
+	keySm2FromFile, err := ReadPrivateKeyFromPemFile("testdata/encrypt_pem_sm2_privkey.privateKeyToPem", password)
 	if err != nil {
 		t.Fatal("x509/pem_decrypt_test.go TestSM2Key ReadPrivateKeyFromPemFile faild", err)
 	}
