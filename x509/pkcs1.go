@@ -45,7 +45,7 @@ type pkcs1PublicKey struct {
 	E int
 }
 
-// 将PKCS #1, ASN.1 DER格式字节数组转为RSA私钥
+// ParsePKCS1PrivateKey 将PKCS #1, ASN.1 DER格式字节数组转为RSA私钥
 // ParsePKCS1PrivateKey parses an RSA private key in PKCS #1, ASN.1 DER form.
 //
 // This kind of key is commonly encoded in PEM blocks of type "RSA PRIVATE KEY".
@@ -101,7 +101,7 @@ func ParsePKCS1PrivateKey(der []byte) (*rsa.PrivateKey, error) {
 	return key, nil
 }
 
-// 将RSA私钥转为PKCS #1, ASN.1 DER格式字节数组
+// MarshalPKCS1PrivateKey 将RSA私钥转为PKCS #1, ASN.1 DER格式字节数组
 // MarshalPKCS1PrivateKey converts an RSA private key to PKCS #1, ASN.1 DER form.
 //
 // This kind of key is commonly encoded in PEM blocks of type "RSA PRIVATE KEY".
@@ -138,7 +138,7 @@ func MarshalPKCS1PrivateKey(key *rsa.PrivateKey) []byte {
 	return b
 }
 
-// 将PKCS #1, ASN.1 DER字节数组转为RSA公钥
+// ParsePKCS1PublicKey 将PKCS #1, ASN.1 DER字节数组转为RSA公钥
 // ParsePKCS1PublicKey parses an RSA public key in PKCS #1, ASN.1 DER form.
 //
 // This kind of key is commonly encoded in PEM blocks of type "RSA PUBLIC KEY".
@@ -168,7 +168,7 @@ func ParsePKCS1PublicKey(der []byte) (*rsa.PublicKey, error) {
 	}, nil
 }
 
-// 将RSA公钥转为PKCS #1, ASN.1 DER字节数组
+// MarshalPKCS1PublicKey 将RSA公钥转为PKCS #1, ASN.1 DER字节数组
 // MarshalPKCS1PublicKey converts an RSA public key to PKCS #1, ASN.1 DER form.
 //
 // This kind of key is commonly encoded in PEM blocks of type "RSA PUBLIC KEY".
