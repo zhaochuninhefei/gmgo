@@ -87,8 +87,14 @@ func TestEnvVars(t *testing.T) {
 	defer func() {
 		certFiles = origCertFiles
 		certDirectories = origCertDirectories
-		os.Setenv(certFileEnv, origFile)
-		os.Setenv(certDirEnv, origDir)
+		err := os.Setenv(certFileEnv, origFile)
+		if err != nil {
+			panic(err)
+		}
+		err = os.Setenv(certDirEnv, origDir)
+		if err != nil {
+			panic(err)
+		}
 	}()
 
 	for _, tc := range testCases {
@@ -139,12 +145,21 @@ func TestLoadSystemCertsLoadColonSeparatedDirs(t *testing.T) {
 	// through "SSL_CERT_FILE" or from known "certFiles",
 	// clear them all, and they'll be reverting on defer.
 	certFiles = certFiles[:0]
-	os.Setenv(certFileEnv, "")
+	err := os.Setenv(certFileEnv, "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	defer func() {
 		certFiles = origCertFiles[:]
-		os.Setenv(certDirEnv, origDir)
-		os.Setenv(certFileEnv, origFile)
+		err := os.Setenv(certDirEnv, origDir)
+		if err != nil {
+			panic(err)
+		}
+		err = os.Setenv(certFileEnv, origFile)
+		if err != nil {
+			panic(err)
+		}
 	}()
 
 	tmpDir := t.TempDir()
@@ -175,7 +190,10 @@ func TestLoadSystemCertsLoadColonSeparatedDirs(t *testing.T) {
 
 	// Now finally concatenate them with a colon.
 	colonConcatCertDirs := strings.Join(certDirs, ":")
-	os.Setenv(certDirEnv, colonConcatCertDirs)
+	err = os.Setenv(certDirEnv, colonConcatCertDirs)
+	if err != nil {
+		t.Fatal(err)
+	}
 	gotPool, err := loadSystemRoots()
 	if err != nil {
 		t.Fatalf("Failed to load system roots: %v", err)
@@ -206,7 +224,10 @@ func TestReadUniqueDirectoryEntries(t *testing.T) {
 	if f, err := os.Create(temp("file")); err != nil {
 		t.Fatal(err)
 	} else {
-		f.Close()
+		err := f.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := os.Symlink("target-in", temp("link-in")); err != nil {
 		t.Fatal(err)
@@ -218,7 +239,7 @@ func TestReadUniqueDirectoryEntries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gotNames := []string{}
+	var gotNames []string
 	for _, fi := range got {
 		gotNames = append(gotNames, fi.Name())
 	}

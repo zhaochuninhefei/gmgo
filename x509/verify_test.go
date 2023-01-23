@@ -1335,6 +1335,7 @@ vRAvOtNiKtPzFeQVdbRPOskC4rcHyPeiDAMAMixeLi63+CFty4da3r5lRezeedCE
 cw3ESZzThBwWqvPOtJdpXdm+r57pDW8qD+/0lY8wfImMNkQAyCUCLg/1Lxt/hrBj
 -----END CERTIFICATE-----`
 
+//goland:noinspection GoUnusedConst
 const issuerSubjectMatchRoot = `-----BEGIN CERTIFICATE-----
 MIICIDCCAYmgAwIBAgIIAj5CwoHlWuYwDQYJKoZIhvcNAQELBQAwIzEPMA0GA1UE
 ChMGR29sYW5nMRAwDgYDVQQDEwdSb290IGNhMB4XDTE1MDEwMTAwMDAwMFoXDTI1
@@ -1350,6 +1351,7 @@ RGEz33Fsxa/tFoy/gvlJu+MqB1M2NyV33pGkdwl/b7KRWMQFieqO+uE7Ge/49pS3
 eyfm5ITdK/WT9TzYhsU4AVZcn20=
 -----END CERTIFICATE-----`
 
+//goland:noinspection GoUnusedConst
 const issuerSubjectMatchLeaf = `-----BEGIN CERTIFICATE-----
 MIICODCCAaGgAwIBAgIJAOjwnT/iW+qmMA0GCSqGSIb3DQEBCwUAMCMxDzANBgNV
 BAoTBkdvbGFuZzEQMA4GA1UEAxMHUm9vdCBDQTAeFw0xNTAxMDEwMDAwMDBaFw0y

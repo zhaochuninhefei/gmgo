@@ -60,7 +60,7 @@ import (
 	_ "crypto/sha512"
 
 	"golang.org/x/crypto/cryptobyte"
-	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
+	cryptobyteasn1 "golang.org/x/crypto/cryptobyte/asn1"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -157,7 +157,7 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 	return publicKeyBytes, publicKeyAlgorithm, nil
 }
 
-// MarshalPKIXPublicKey将公钥转为PKIX, ASN.1 DER格式字节数组。
+// MarshalPKIXPublicKey 将公钥转为PKIX, ASN.1 DER格式字节数组。
 // 公钥支持 *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey ，
 // 这些公钥的pem类型是"PUBLIC KEY"。
 //
@@ -178,7 +178,7 @@ func MarshalPKIXPublicKey(pub interface{}) ([]byte, error) {
 		return nil, err
 	}
 	// 生成PKIX公钥
-	pkix := pkixPublicKey{
+	pkixPk := pkixPublicKey{
 		Algo: publicKeyAlgorithm,
 		BitString: asn1.BitString{
 			Bytes:     publicKeyBytes,
@@ -186,7 +186,7 @@ func MarshalPKIXPublicKey(pub interface{}) ([]byte, error) {
 		},
 	}
 	// PKIX公钥字节数组，用于x509证书的公钥部分。
-	ret, _ := asn1.Marshal(pkix)
+	ret, _ := asn1.Marshal(pkixPk)
 	return ret, nil
 }
 
@@ -215,6 +215,7 @@ type tbsCertificate struct {
 	Extensions         []pkix.Extension `asn1:"optional,explicit,tag:3"`
 }
 
+//goland:noinspection GoUnusedType
 type dsaAlgorithmParameters struct {
 	P, Q, G *big.Int
 }
@@ -254,7 +255,7 @@ func init() {
 	RegisterHash(SM3, sm3.New)
 }
 
-// 签名算法
+// SignatureAlgorithm 签名算法
 type SignatureAlgorithm int
 
 const (
@@ -297,7 +298,7 @@ func (algo SignatureAlgorithm) String() string {
 	return strconv.Itoa(int(algo))
 }
 
-// 公钥算法
+// PublicKeyAlgorithm 公钥算法
 type PublicKeyAlgorithm int
 
 const (
@@ -379,6 +380,7 @@ func (algo PublicKeyAlgorithm) String() string {
 //
 // id-Ed25519   OBJECT IDENTIFIER ::= { 1 3 101 112 }
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	oidSignatureMD2WithRSA      = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 2}
 	oidSignatureMD5WithRSA      = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 4}
@@ -626,7 +628,7 @@ func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 	return nil, false
 }
 
-// 公钥用途，即证书用途。
+// KeyUsage 公钥用途，即证书用途。
 // KeyUsage represents the set of actions that are valid for a given key. It's
 // a bitmap of the KeyUsage* constants.
 type KeyUsage int
@@ -672,7 +674,7 @@ var (
 	oidExtKeyUsageMicrosoftKernelCodeSigning     = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 61, 1, 1}
 )
 
-// 公钥(证书)扩展用途
+// ExtKeyUsage 公钥(证书)扩展用途
 // ExtKeyUsage represents an extended set of actions that are valid for a given key.
 // Each of the ExtKeyUsage* constants define a unique action.
 type ExtKeyUsage int
@@ -733,7 +735,7 @@ func oidFromExtKeyUsage(eku ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
 	return
 }
 
-// gmx509证书结构体
+// Certificate gmx509证书结构体
 //  A Certificate represents an X.509 certificate.
 type Certificate struct {
 	// 完整的 ASN1 DER 证书字节数组(证书+签名算法+签名)
@@ -900,7 +902,7 @@ func (c *Certificate) hasSANExtension() bool {
 	return oidInExtensions(oidExtensionSubjectAltName, c.Extensions)
 }
 
-// 检查对c做的签名是否是父证书拥有者的有效签名(使用父证书中的公钥验签)
+// CheckSignatureFrom 检查对c做的签名是否是父证书拥有者的有效签名(使用父证书中的公钥验签)
 // CheckSignatureFrom verifies that the signature on c is a valid signature
 // from parent.
 func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
@@ -927,7 +929,7 @@ func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
 	return parent.CheckSignature(c.SignatureAlgorithm, c.RawTBSCertificate, c.Signature)
 }
 
-// 使用c的公钥检查签名是否有效
+// CheckSignature 使用c的公钥检查签名是否有效
 //  - algo : 签名算法
 //  - signed : 签名内容
 //  - signature : 签名DER字节数组
@@ -1028,7 +1030,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 	return ErrUnsupportedAlgorithm
 }
 
-// 检查证书撤销列表CRL是否由c签名。
+// CheckCRLSignature 检查证书撤销列表CRL是否由c签名。
 // CheckCRLSignature checks that the signature in crl is from c.
 func (c *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
 	algo := getSignatureAlgorithmFromAI(crl.SignatureAlgorithm)
@@ -1299,16 +1301,16 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 					return nil, err
 				}
 
-				b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-					b.AddASN1(cryptobyte_asn1.Tag(2).ContextSpecific(), func(b *cryptobyte.Builder) {
+				b.AddASN1(cryptobyteasn1.SEQUENCE, func(b *cryptobyte.Builder) {
+					b.AddASN1(cryptobyteasn1.Tag(2).ContextSpecific(), func(b *cryptobyte.Builder) {
 						b.AddBytes([]byte(name))
 					})
 				})
 			}
 
 			for _, ipNet := range ips {
-				b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-					b.AddASN1(cryptobyte_asn1.Tag(7).ContextSpecific(), func(b *cryptobyte.Builder) {
+				b.AddASN1(cryptobyteasn1.SEQUENCE, func(b *cryptobyte.Builder) {
+					b.AddASN1(cryptobyteasn1.Tag(7).ContextSpecific(), func(b *cryptobyte.Builder) {
 						b.AddBytes(ipAndMask(ipNet))
 					})
 				})
@@ -1319,8 +1321,8 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 					return nil, err
 				}
 
-				b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-					b.AddASN1(cryptobyte_asn1.Tag(1).ContextSpecific(), func(b *cryptobyte.Builder) {
+				b.AddASN1(cryptobyteasn1.SEQUENCE, func(b *cryptobyte.Builder) {
+					b.AddASN1(cryptobyteasn1.Tag(1).ContextSpecific(), func(b *cryptobyte.Builder) {
 						b.AddBytes([]byte(email))
 					})
 				})
@@ -1331,8 +1333,8 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 					return nil, err
 				}
 
-				b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-					b.AddASN1(cryptobyte_asn1.Tag(6).ContextSpecific(), func(b *cryptobyte.Builder) {
+				b.AddASN1(cryptobyteasn1.SEQUENCE, func(b *cryptobyte.Builder) {
+					b.AddASN1(cryptobyteasn1.Tag(6).ContextSpecific(), func(b *cryptobyte.Builder) {
 						b.AddBytes([]byte(uriDomain))
 					})
 				})
@@ -1352,15 +1354,15 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		}
 
 		var b cryptobyte.Builder
-		b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
+		b.AddASN1(cryptobyteasn1.SEQUENCE, func(b *cryptobyte.Builder) {
 			if len(permitted) > 0 {
-				b.AddASN1(cryptobyte_asn1.Tag(0).ContextSpecific().Constructed(), func(b *cryptobyte.Builder) {
+				b.AddASN1(cryptobyteasn1.Tag(0).ContextSpecific().Constructed(), func(b *cryptobyte.Builder) {
 					b.AddBytes(permitted)
 				})
 			}
 
 			if len(excluded) > 0 {
-				b.AddASN1(cryptobyte_asn1.Tag(1).ContextSpecific().Constructed(), func(b *cryptobyte.Builder) {
+				b.AddASN1(cryptobyteasn1.Tag(1).ContextSpecific().Constructed(), func(b *cryptobyte.Builder) {
 					b.AddBytes(excluded)
 				})
 			}
@@ -1598,7 +1600,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 // just an empty SEQUENCE.
 var emptyASN1Subject = []byte{0x30, 0}
 
-// 根据证书模板生成gmx509证书(v3)的DER字节数组
+// CreateCertificate 根据证书模板生成gmx509证书(v3)的DER字节数组
 //  - template : 证书模板
 //  - parent : 父证书(自签名时与template传入相同参数即可)
 //  - pub : 证书拥有者的公钥
@@ -1801,7 +1803,7 @@ var pemCRLPrefix = []byte("-----BEGIN X509 CRL")
 // pemType is the type of a PEM encoded CRL.
 var pemType = "X509 CRL"
 
-// ParseCRL将给定的字节数组(PEM/DER)转为CRL。
+// ParseCRL 将给定的字节数组(PEM/DER)转为CRL。
 // ParseCRL parses a CRL from the given bytes. It's often the case that PEM
 // encoded CRLs will appear where they should be DER encoded, so this function
 // will transparently handle PEM encoding as long as there isn't any leading
@@ -1816,7 +1818,7 @@ func ParseCRL(crlBytes []byte) (*pkix.CertificateList, error) {
 	return ParseDERCRL(crlBytes)
 }
 
-// ParseDERCRL将DER字节数组转为CRL。
+// ParseDERCRL 将DER字节数组转为CRL。
 // ParseDERCRL parses a DER encoded CRL from the given bytes.
 func ParseDERCRL(derBytes []byte) (*pkix.CertificateList, error) {
 	certList := new(pkix.CertificateList)
@@ -1828,7 +1830,7 @@ func ParseDERCRL(derBytes []byte) (*pkix.CertificateList, error) {
 	return certList, nil
 }
 
-// 创建一个CRL
+// CreateCRL 创建一个CRL
 //  - priv : 撤销证书列表的签署者私钥
 //  - revokedCerts : 撤销证书列表
 //
@@ -1900,7 +1902,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	})
 }
 
-// 证书申请
+// CertificateRequest 证书申请
 // CertificateRequest represents a PKCS #10, certificate signature request.
 type CertificateRequest struct {
 	Raw                      []byte // Complete ASN.1 DER content (CSR, signature algorithm and signature).
@@ -2033,7 +2035,7 @@ func parseCSRExtensions(rawAttributes []asn1.RawValue) ([]pkix.Extension, error)
 	return ret, nil
 }
 
-// CreateCertificateRequest基于证书申请模板生成一个新的证书申请。
+// CreateCertificateRequest 基于证书申请模板生成一个新的证书申请。
 // 注意，证书申请内部的公钥信息就是签名者的公钥，即，证书申请是申请者自签名的。
 //  - rand : 随机数获取用
 //  - template : 证书申请模板
@@ -2083,7 +2085,9 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 		return nil, err
 	}
 	// Make a copy of template.Attributes because we may alter it below.
+	//goland:noinspection GoDeprecation
 	attributes := make([]pkix.AttributeTypeAndValueSET, 0, len(template.Attributes))
+	//goland:noinspection GoDeprecation
 	for _, attr := range template.Attributes {
 		values := make([][]pkix.AttributeTypeAndValue, len(attr.Value))
 		copy(values, attr.Value)
@@ -2201,7 +2205,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	})
 }
 
-// ParseCertificateRequest将DER字节数组转为单个证书申请。
+// ParseCertificateRequest 将DER字节数组转为单个证书申请。
 // ParseCertificateRequest parses a single certificate request from the
 // given ASN.1 DER data.
 func ParseCertificateRequest(asn1Data []byte) (*CertificateRequest, error) {
@@ -2218,6 +2222,7 @@ func ParseCertificateRequest(asn1Data []byte) (*CertificateRequest, error) {
 }
 
 func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error) {
+	//goland:noinspection GoDeprecation
 	out := &CertificateRequest{
 		Raw:                      in.Raw,
 		RawTBSCertificateRequest: in.TBSCSR.Raw,
@@ -2265,13 +2270,13 @@ func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error
 	return out, nil
 }
 
-// 检查证书申请c的签名是否有效
+// CheckSignature 检查证书申请c的签名是否有效
 // CheckSignature reports whether the signature on c is valid.
 func (c *CertificateRequest) CheckSignature() error {
 	return checkSignature(c.SignatureAlgorithm, c.RawTBSCertificateRequest, c.Signature, c.PublicKey)
 }
 
-// gmx509转x509
+// ToX509Certificate gmx509转x509
 func (c *Certificate) ToX509Certificate() *x509.Certificate {
 	x509cert := &x509.Certificate{
 		Raw:                         c.Raw,
@@ -2335,7 +2340,7 @@ func (c *Certificate) ToX509Certificate() *x509.Certificate {
 	return x509cert
 }
 
-// x509转gmx509
+// FromX509Certificate x509转gmx509
 func (c *Certificate) FromX509Certificate(x509Cert *x509.Certificate) {
 	c.Raw = x509Cert.Raw
 	c.RawTBSCertificate = x509Cert.RawTBSCertificate

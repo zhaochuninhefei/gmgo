@@ -39,7 +39,7 @@ type ecPrivateKey struct {
 	PublicKey     asn1.BitString        `asn1:"optional,explicit,tag:1"`
 }
 
-// ParseECPrivateKey将SEC 1, ASN.1 DER格式字节数组转为EC(椭圆曲线)私钥
+// ParseECPrivateKey 将SEC 1, ASN.1 DER格式字节数组转为EC(椭圆曲线)私钥
 // 私钥目前支持: *sm2.PrivateKey, *ecdsa.PrivateKey
 //
 // ParseECPrivateKey parses an EC private key in SEC 1, ASN.1 DER form.
@@ -48,7 +48,7 @@ func ParseECPrivateKey(der []byte) (interface{}, error) {
 	return parseECPrivateKey(nil, der)
 }
 
-// MarshalECPrivateKey将EC(椭圆曲线)私钥转为SEC 1, ASN.1 DER格式字节数组
+// MarshalECPrivateKey 将EC(椭圆曲线)私钥转为SEC 1, ASN.1 DER格式字节数组
 // 私钥目前支持: *sm2.PrivateKey, *ecdsa.PrivateKey
 //
 // MarshalECPrivateKey converts an EC private key to SEC 1, ASN.1 DER form.
