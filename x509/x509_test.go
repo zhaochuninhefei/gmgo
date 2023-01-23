@@ -174,6 +174,7 @@ func fromBase10(base10 string) *big.Int {
 	return i
 }
 
+//goland:noinspection GoUnusedFunction
 func bigFromHexString(s string) *big.Int {
 	ret := new(big.Int)
 	ret.SetString(s, 16)
@@ -552,11 +553,11 @@ var certBytes = "MIIE0jCCA7qgAwIBAgIQWcvS+TTB3GwCAAAAAGEAWzANBgkqhkiG9w0BAQsFADB
 	"t63yr/tQri/hlQ3zRq2dnPXK"
 
 func parseCIDR(s string) *net.IPNet {
-	_, net, err := net.ParseCIDR(s)
+	_, n, err := net.ParseCIDR(s)
 	if err != nil {
 		panic(err)
 	}
-	return net
+	return n
 }
 
 func parseURI(s string) *url.URL {
@@ -602,6 +603,7 @@ func TestCreateSelfSignedCertificate(t *testing.T) {
 
 	for _, test := range tests {
 		commonName := "test.example.com"
+		//goland:noinspection HttpUrlsUsage
 		template := Certificate{
 			// SerialNumber is negative to ensure that negative
 			// values are parsed. This is due to the prevalence of
@@ -1493,6 +1495,7 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	// extra extensions should be added to it rather than creating a CSR
 	// with two extension attributes.
 
+	//goland:noinspection GoDeprecation
 	template.Attributes = []pkix.AttributeTypeAndValueSET{
 		{
 			Type: oidExtensionRequest,
@@ -1508,10 +1511,12 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	}
 
 	csr = marshalAndParseCSR(t, &template)
+	//goland:noinspection GoDeprecation
 	if l := len(csr.Attributes); l != 1 {
 		t.Errorf("incorrect number of attributes: %d\n", l)
 	}
 
+	//goland:noinspection GoDeprecation
 	if !csr.Attributes[0].Type.Equal(oidExtensionRequest) ||
 		len(csr.Attributes[0].Value) != 1 ||
 		len(csr.Attributes[0].Value[0]) != 2 {
@@ -1524,6 +1529,7 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	}
 
 	// Extensions in Attributes should override those in ExtraExtensions.
+	//goland:noinspection GoDeprecation
 	template.Attributes[0].Value[0] = append(template.Attributes[0].Value[0], pkix.AttributeTypeAndValue{
 		Type:  oidExtensionSubjectAltName,
 		Value: sanContents2,
@@ -2036,6 +2042,7 @@ func TestPKIXNameString(t *testing.T) {
 	}
 
 	// Check that parsed non-standard attributes are printed.
+	//goland:noinspection GoRedundantConversion
 	rdns := pkix.Name{
 		Locality: []string{"Gophertown"},
 		ExtraNames: []pkix.AttributeTypeAndValue{
@@ -2345,6 +2352,7 @@ func TestMultipleURLsInCRLDP(t *testing.T) {
 		t.Fatalf("failed to parse certificate: %s", err)
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	want := []string{
 		"http://epscd.catcert.net/crl/ec-acc.crl",
 		"http://epscd2.catcert.net/crl/ec-acc.crl",
@@ -3277,6 +3285,7 @@ func TestX509(t *testing.T) {
 	extraExtensionData := []byte("extra extension")
 	commonName := "pangzi.com"
 	// 定义证书模板
+	//goland:noinspection HttpUrlsUsage
 	template := Certificate{
 		// SerialNumber is negative to ensure that negative
 		// values are parsed. This is due to the prevalence of
@@ -3428,6 +3437,7 @@ func TestX509WithFile(t *testing.T) {
 	extraExtensionData := []byte("extra extension")
 	commonName := "test.pangzi.com"
 	// 定义证书模板
+	//goland:noinspection HttpUrlsUsage
 	template := Certificate{
 		SerialNumber: big.NewInt(-1),
 		Subject: pkix.Name{
@@ -3546,6 +3556,7 @@ func createCACert() (*sm2.PrivateKey, *Certificate, error) {
 		return nil, nil, err
 	}
 	userKeyUsage := KeyUsageCertSign + KeyUsageCRLSign
+	//goland:noinspection GoPreferNilSlice
 	userExtKeyUsage := []ExtKeyUsage{
 		// ExtKeyUsageAny,
 		// ExtKeyUsageServerAuth,
@@ -3625,6 +3636,7 @@ func createEncCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		return err
 	}
 	userKeyUsage := KeyUsageKeyEncipherment + KeyUsageDataEncipherment
+	//goland:noinspection GoPreferNilSlice
 	userExtKeyUsage := []ExtKeyUsage{
 		// ExtKeyUsageAny,
 		// ExtKeyUsageServerAuth,
@@ -3767,6 +3779,7 @@ func createCertSignParent(cn string, o string, c string, st string, bcs bool, is
 	return cert, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func createTemplate(cn string, o string, c string, st string, bcs bool, isca bool, sId []byte,
 	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
 	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) *Certificate {
