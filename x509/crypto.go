@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-// 重写Hash相关定义，用来代替`crypto.Hash`
+// Hash 重写Hash相关定义，用来代替`crypto.Hash`
 // Hash identifies a cryptographic hash function that is implemented in another
 // package.
 type Hash uint
@@ -68,6 +68,7 @@ func (h Hash) String() string {
 	}
 }
 
+//goland:noinspection GoSnakeCaseUsage
 const (
 	MD4         Hash = 1 + iota // import golang.org/x/crypto/md4
 	MD5                         // import crypto/md5
@@ -154,6 +155,7 @@ func RegisterHash(h Hash, f func() hash.Hash) {
 	hashes[h] = f
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func Convert2CryptoHash(h Hash) (crypto.Hash, error) {
 	if h < SM3 {
 		return h.HashFunc(), nil

@@ -60,6 +60,7 @@ type leafSpec struct {
 	cn   string
 }
 
+//goland:noinspection HttpUrlsUsage
 var nameConstraintsTests = []nameConstraintsTest{
 	// #0: dummy test for the certificate generation process itself.
 	{
@@ -1599,7 +1600,10 @@ var nameConstraintsTests = []nameConstraintsTest{
 
 func makeConstraintsCACert(constraints constraintsSpec, name string, key *ecdsa.PrivateKey, parent *Certificate, parentKey *ecdsa.PrivateKey) (*Certificate, error) {
 	var serialBytes [16]byte
-	rand.Read(serialBytes[:])
+	_, err := rand.Read(serialBytes[:])
+	if err != nil {
+		return nil, err
+	}
 
 	template := &Certificate{
 		SerialNumber: new(big.Int).SetBytes(serialBytes[:]),
@@ -1635,7 +1639,10 @@ func makeConstraintsCACert(constraints constraintsSpec, name string, key *ecdsa.
 
 func makeConstraintsLeafCert(leaf leafSpec, key *ecdsa.PrivateKey, parent *Certificate, parentKey *ecdsa.PrivateKey) (*Certificate, error) {
 	var serialBytes [16]byte
-	rand.Read(serialBytes[:])
+	_, err := rand.Read(serialBytes[:])
+	if err != nil {
+		return nil, err
+	}
 
 	template := &Certificate{
 		SerialNumber: new(big.Int).SetBytes(serialBytes[:]),
@@ -1667,7 +1674,7 @@ func makeConstraintsLeafCert(leaf leafSpec, key *ecdsa.PrivateKey, parent *Certi
 			if err != nil {
 				return nil, fmt.Errorf("cannot parse invalid IP: %s", err)
 			}
-			template.IPAddresses = append(template.IPAddresses, net.IP(ipBytes))
+			template.IPAddresses = append(template.IPAddresses, ipBytes)
 
 		case strings.HasPrefix(name, "email:"):
 			template.EmailAddresses = append(template.EmailAddresses, name[6:])
@@ -1703,7 +1710,7 @@ func makeConstraintsLeafCert(leaf leafSpec, key *ecdsa.PrivateKey, parent *Certi
 		}
 	}
 
-	var err error
+	//var err error
 	if template.ExtKeyUsage, template.UnknownExtKeyUsage, err = parseEKUs(leaf.ekus); err != nil {
 		return nil, err
 	}
@@ -1915,6 +1922,7 @@ func TestConstraintCases(t *testing.T) {
 
 		// Skip tests with CommonName set because OpenSSL will try to match it
 		// against name constraints, while we ignore it when it's not hostname-looking.
+		//goland:noinspection GoBoolExpressions
 		if !test.noOpenSSL && testNameConstraintsAgainstOpenSSL && test.leaf.cn == "" {
 			output, err := testChainAgainstOpenSSL(t, leafCert, intermediatePool, rootPool)
 			if err == nil && len(test.expectedError) > 0 {
@@ -1964,7 +1972,10 @@ func TestConstraintCases(t *testing.T) {
 		if logInfo {
 			certAsPEM := func(cert *Certificate) string {
 				var buf bytes.Buffer
-				pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+				err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+				if err != nil {
+					t.Fatal(err)
+				}
 				return buf.String()
 			}
 			t.Errorf("#%d: root:\n%s", i, certAsPEM(rootPool.mustCert(t, 0)))
@@ -1986,7 +1997,10 @@ func writePEMsToTempFile(certs []*Certificate) *os.File {
 	pemBlock := &pem.Block{Type: "CERTIFICATE"}
 	for _, cert := range certs {
 		pemBlock.Bytes = cert.Raw
-		pem.Encode(file, pemBlock)
+		err := pem.Encode(file, pemBlock)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return file
@@ -1999,7 +2013,12 @@ func testChainAgainstOpenSSL(t *testing.T, leaf *Certificate, intermediates, roo
 	if debugOpenSSLFailure {
 		println("roots file:", rootsFile.Name())
 	} else {
-		defer os.Remove(rootsFile.Name())
+		defer func(name string) {
+			err := os.Remove(name)
+			if err != nil {
+				panic(err)
+			}
+		}(rootsFile.Name())
 	}
 	args = append(args, "-CAfile", rootsFile.Name())
 
@@ -2008,7 +2027,12 @@ func testChainAgainstOpenSSL(t *testing.T, leaf *Certificate, intermediates, roo
 		if debugOpenSSLFailure {
 			println("intermediates file:", intermediatesFile.Name())
 		} else {
-			defer os.Remove(intermediatesFile.Name())
+			defer func(name string) {
+				err := os.Remove(name)
+				if err != nil {
+					panic(err)
+				}
+			}(intermediatesFile.Name())
 		}
 		args = append(args, "-untrusted", intermediatesFile.Name())
 	}
@@ -2017,7 +2041,12 @@ func testChainAgainstOpenSSL(t *testing.T, leaf *Certificate, intermediates, roo
 	if debugOpenSSLFailure {
 		println("leaf file:", leafFile.Name())
 	} else {
-		defer os.Remove(leafFile.Name())
+		defer func(name string) {
+			err := os.Remove(name)
+			if err != nil {
+				panic(err)
+			}
+		}(leafFile.Name())
 	}
 	args = append(args, leafFile.Name())
 
