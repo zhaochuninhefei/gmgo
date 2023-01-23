@@ -26,6 +26,7 @@ const (
 	certDirEnv = "SSL_CERT_DIR"
 )
 
+//goland:noinspection GoUnusedParameter
 func (c *Certificate) systemVerify(opts *VerifyOptions) (chains [][]*Certificate, err error) {
 	return nil, nil
 }

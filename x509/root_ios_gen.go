@@ -42,6 +42,7 @@ func main() {
 	var version = flag.String("version", "", "security_certificates version")
 	flag.Parse()
 	if *version == "" {
+		//goland:noinspection SqlNoDataSourceInspection
 		log.Fatal("Select the latest security_certificates version from " +
 			"https://opensource.apple.com/source/security_certificates/")
 	}
