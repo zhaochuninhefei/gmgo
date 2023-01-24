@@ -11,6 +11,7 @@ package tls_test
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	SM2CaCertPath   = "./certs/sm2_ca_cert.cer"
 	SM2AuthCertPath = "./certs/sm2_auth_cert.cer"
@@ -52,7 +54,10 @@ func Test_gmssl(t *testing.T) {
 
 // 启动服务端
 func ServerRun(needClientAuth bool) {
-	zclog.ClearDir("logs")
+	err := zclog.ClearDir("logs")
+	if err != nil {
+		panic(err)
+	}
 	zcgologConfig := &zclog.Config{
 		LogFileDir:        "logs",
 		LogFileNamePrefix: "tlstest",
@@ -71,14 +76,22 @@ func ServerRun(needClientAuth bool) {
 		zclog.Println(err)
 		return
 	}
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	// 定义http请求处理
 	http.HandleFunc("/test", func(writer http.ResponseWriter, request *http.Request) {
 		clientName := request.URL.Query().Get("clientName")
 		fmt.Printf("接受到来自 %s 的http请求...\n", clientName)
 		// 在http响应中写入内容
-		fmt.Fprintf(writer, "你好, %s ! \n", clientName)
+		_, err := fmt.Fprintf(writer, "你好, %s ! \n", clientName)
+		if err != nil {
+			panic(err)
+		}
 	})
 	// fmt.Println("============ HTTP服务(基于GMSSL或TLS) 已启动 ============")
 
@@ -122,7 +135,12 @@ func ClientRunGMSSL() {
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
+	defer func(conn *gmtls.Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 
 	// fmt.Println("============ gmtls客户端(gmssl)连接服务端，握手成功 ============")
 	// time.Sleep(time.Minute)
@@ -184,7 +202,12 @@ func ClientRunTls13() {
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
+	defer func(conn *gmtls.Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 
 	// fmt.Println("============ gmtls客户端(tls1.3)连接服务端，握手成功 ============")
 	// time.Sleep(time.Minute)
@@ -241,5 +264,8 @@ func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
 }
 
 func Test_clearLogs(t *testing.T) {
-	zclog.ClearDir("logs")
+	err := zclog.ClearDir("logs")
+	if err != nil {
+		panic(err)
+	}
 }
