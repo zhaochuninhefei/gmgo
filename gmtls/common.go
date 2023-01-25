@@ -284,7 +284,7 @@ type ConnectionState struct {
 
 	// NegotiatedProtocolIsMutual used to indicate a mutual NPN negotiation.
 	//
-	// Deprecated: this value is always true.
+	// ToDeprecated: this value is always true.
 	NegotiatedProtocolIsMutual bool
 
 	// ServerName is the value of the Server Name Indication extension sent by
