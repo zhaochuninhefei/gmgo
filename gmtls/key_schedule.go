@@ -53,7 +53,7 @@ const (
 //  - context 消息转录散列
 //  - length 散列长度
 // expandLabel implements HKDF-Expand-Label from RFC 8446, Section 7.1.
-func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []byte, length int) []byte {
+func (cs *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []byte, length int) []byte {
 	var hkdfLabel cryptobyte.Builder
 	hkdfLabel.AddUint16(uint16(length))
 	hkdfLabel.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
@@ -68,7 +68,7 @@ func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []by
 	//  c.hash.New 为对应HMAC函数的散列函数;
 	//  secret 为 HKDF-Extract 提取的伪随机密钥(主密钥)
 	//  hkdfLabel.BytesOrPanic() 为可选上下文和应用程序特定信息
-	n, err := hkdf.Expand(c.hash.New, secret, hkdfLabel.BytesOrPanic()).Read(out)
+	n, err := hkdf.Expand(cs.hash.New, secret, hkdfLabel.BytesOrPanic()).Read(out)
 	if err != nil || n != length {
 		panic("gmtls: HKDF-Expand-Label invocation failed unexpectedly")
 	}
@@ -80,40 +80,40 @@ func (c *cipherSuiteTLS13) expandLabel(secret []byte, label string, context []by
 //  - label 标签
 //  - transcript 转录散列函数
 // deriveSecret implements Derive-Secret from RFC 8446, Section 7.1.
-func (c *cipherSuiteTLS13) deriveSecret(secret []byte, label string, transcript hash.Hash) []byte {
+func (cs *cipherSuiteTLS13) deriveSecret(secret []byte, label string, transcript hash.Hash) []byte {
 	if transcript == nil {
 		// transcript默认使用tls1.3密码套件的散列函数
-		transcript = c.hash.New()
+		transcript = cs.hash.New()
 	}
-	return c.expandLabel(secret, label, transcript.Sum(nil), c.hash.Size())
+	return cs.expandLabel(secret, label, transcript.Sum(nil), cs.hash.Size())
 }
 
 // extract 密钥提炼方法，实现 HKDF-Extract。
 //  该方法用于从预主密钥提取主密钥。
 // extract implements HKDF-Extract with the cipher suite hash.
-func (c *cipherSuiteTLS13) extract(newSecret, currentSecret []byte) []byte {
+func (cs *cipherSuiteTLS13) extract(newSecret, currentSecret []byte) []byte {
 	if newSecret == nil {
-		newSecret = make([]byte, c.hash.Size())
+		newSecret = make([]byte, cs.hash.Size())
 	}
 	// 使用 HKDF-Extract 提取一个新的伪随机密钥。
 	//  c.hash.New 为对应HMAC函数的散列函数;
 	//  newSecret 作为原始密钥;
 	//  currentSecret 作为盐值。
-	return hkdf.Extract(c.hash.New, newSecret, currentSecret)
+	return hkdf.Extract(cs.hash.New, newSecret, currentSecret)
 }
 
 // 根据当前的通信密钥派生一个新的通信密钥。
 // nextTrafficSecret generates the next traffic secret, given the current one,
 // according to RFC 8446, Section 7.2.
-func (c *cipherSuiteTLS13) nextTrafficSecret(trafficSecret []byte) []byte {
-	return c.expandLabel(trafficSecret, trafficUpdateLabel, nil, c.hash.Size())
+func (cs *cipherSuiteTLS13) nextTrafficSecret(trafficSecret []byte) []byte {
+	return cs.expandLabel(trafficSecret, trafficUpdateLabel, nil, cs.hash.Size())
 }
 
 // 根据通信密钥派生会话密钥与初始偏移量(对称加密用的key,iv)
 // trafficKey generates traffic keys according to RFC 8446, Section 7.3.
-func (c *cipherSuiteTLS13) trafficKey(trafficSecret []byte) (key, iv []byte) {
-	key = c.expandLabel(trafficSecret, "key", nil, c.keyLen)
-	iv = c.expandLabel(trafficSecret, "iv", nil, aeadNonceLength)
+func (cs *cipherSuiteTLS13) trafficKey(trafficSecret []byte) (key, iv []byte) {
+	key = cs.expandLabel(trafficSecret, "key", nil, cs.keyLen)
+	iv = cs.expandLabel(trafficSecret, "iv", nil, aeadNonceLength)
 	return
 }
 
@@ -121,22 +121,22 @@ func (c *cipherSuiteTLS13) trafficKey(trafficSecret []byte) (key, iv []byte) {
 // finishedHash generates the Finished verify_data or PskBinderEntry according
 // to RFC 8446, Section 4.4.4. See sections 4.4 and 4.2.11.2 for the baseKey
 // selection.
-func (c *cipherSuiteTLS13) finishedHash(baseKey []byte, transcript hash.Hash) []byte {
-	finishedKey := c.expandLabel(baseKey, "finished", nil, c.hash.Size())
-	verifyData := hmac.New(c.hash.New, finishedKey)
+func (cs *cipherSuiteTLS13) finishedHash(baseKey []byte, transcript hash.Hash) []byte {
+	finishedKey := cs.expandLabel(baseKey, "finished", nil, cs.hash.Size())
+	verifyData := hmac.New(cs.hash.New, finishedKey)
 	verifyData.Write(transcript.Sum(nil))
 	return verifyData.Sum(nil)
 }
 
 // exportKeyingMaterial implements RFC5705 exporters for TLS 1.3 according to
 // RFC 8446, Section 7.5.
-func (c *cipherSuiteTLS13) exportKeyingMaterial(masterSecret []byte, transcript hash.Hash) func(string, []byte, int) ([]byte, error) {
-	expMasterSecret := c.deriveSecret(masterSecret, exporterLabel, transcript)
+func (cs *cipherSuiteTLS13) exportKeyingMaterial(masterSecret []byte, transcript hash.Hash) func(string, []byte, int) ([]byte, error) {
+	expMasterSecret := cs.deriveSecret(masterSecret, exporterLabel, transcript)
 	return func(label string, context []byte, length int) ([]byte, error) {
-		secret := c.deriveSecret(expMasterSecret, label, nil)
-		h := c.hash.New()
+		secret := cs.deriveSecret(expMasterSecret, label, nil)
+		h := cs.hash.New()
 		h.Write(context)
-		return c.expandLabel(secret, "exporter", h.Sum(nil), length), nil
+		return cs.expandLabel(secret, "exporter", h.Sum(nil), length), nil
 	}
 }
 
@@ -145,11 +145,11 @@ func (c *cipherSuiteTLS13) exportKeyingMaterial(masterSecret []byte, transcript 
 // ecdheParameters implements Diffie-Hellman with either NIST curves or X25519,
 // according to RFC 8446, Section 4.2.8.2.
 type ecdheParameters interface {
-	// 曲线ID
+	// CurveID 曲线ID
 	CurveID() CurveID
-	// 获取公钥
+	// PublicKey 获取公钥
 	PublicKey() []byte
-	// 计算共享密钥 : 己方私钥 * 对方公钥peerPublicKey
+	// SharedKey 计算共享密钥 : 己方私钥 * 对方公钥peerPublicKey
 	SharedKey(peerPublicKey []byte) []byte
 }
 
@@ -218,6 +218,7 @@ func CheckCurveNameById(id CurveID) (string, bool) {
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func CurveNameById(id CurveID) string {
 	switch id {
 	// 添加国密SM2曲线

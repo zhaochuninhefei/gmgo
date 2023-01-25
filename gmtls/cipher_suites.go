@@ -31,7 +31,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
-// 密码学套件结构体
+// CipherSuite 密码学套件结构体
 // CipherSuite is a TLS cipher suite. Note that most functions in this package
 // accept and expose cipher suite IDs instead of this type.
 type CipherSuite struct {
@@ -445,9 +445,10 @@ func aesgcmPreferred(ciphers []uint16) bool {
 	return false
 }
 
+//goland:noinspection GoUnusedParameter
 func cipherRC4(key, iv []byte, isRead bool) interface{} {
-	cipher, _ := rc4.NewCipher(key)
-	return cipher
+	newCipher, _ := rc4.NewCipher(key)
+	return newCipher
 }
 
 func cipher3DES(key, iv []byte, isRead bool) interface{} {
@@ -555,11 +556,11 @@ func aeadAESGCM(key, noncePrefix []byte) aead {
 	if len(noncePrefix) != noncePrefixLength {
 		panic("gmtls: internal error: wrong nonce length")
 	}
-	aes, err := aes.NewCipher(key)
+	newCipher, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
 	}
-	aead, err := cipher.NewGCM(aes)
+	aead, err := cipher.NewGCM(newCipher)
 	if err != nil {
 		panic(err)
 	}
@@ -573,11 +574,11 @@ func aeadAESGCMTLS13(key, nonceMask []byte) aead {
 	if len(nonceMask) != aeadNonceLength {
 		panic("gmtls: internal error: wrong nonce length")
 	}
-	aes, err := aes.NewCipher(key)
+	newCipher, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
 	}
-	aead, err := cipher.NewGCM(aes)
+	aead, err := cipher.NewGCM(newCipher)
 	if err != nil {
 		panic(err)
 	}
@@ -657,6 +658,7 @@ func tls10MAC(h hash.Hash, out, seq, header, data, extra []byte) []byte {
 	return res
 }
 
+//goland:noinspection GoUnusedParameter
 func rsaKA(version uint16) keyAgreement {
 	return rsaKeyAgreement{}
 }
@@ -723,6 +725,7 @@ func cipherSuiteTLS13ByID(id uint16) *cipherSuiteTLS13 {
 // package.
 //
 // See https://www.iana.org/assignments/tls-parameters/tls-parameters.xml
+//goland:noinspection GoCommentStart,GoSnakeCaseUsage
 const (
 	// TLS 1.0 - 1.2 cipher suites.
 	TLS_RSA_WITH_RC4_128_SHA                      uint16 = 0x0005

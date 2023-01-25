@@ -116,13 +116,19 @@ func signedMessage(sigHash x509.Hash, context string, transcript hash.Hash) []by
 	if sigHash == directSigning {
 		b := &bytes.Buffer{}
 		b.Write(signaturePadding)
-		io.WriteString(b, context)
+		_, err := io.WriteString(b, context)
+		if err != nil {
+			panic(err)
+		}
 		b.Write(transcript.Sum(nil))
 		return b.Bytes()
 	}
 	h := sigHash.New()
 	h.Write(signaturePadding)
-	io.WriteString(h, context)
+	_, err := io.WriteString(h, context)
+	if err != nil {
+		panic(err)
+	}
 	h.Write(transcript.Sum(nil))
 	return h.Sum(nil)
 }
