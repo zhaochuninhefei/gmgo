@@ -36,6 +36,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
+//goland:noinspection GoCommentStart
 const (
 	// 国密SSL版本定义 GM/T 0024-2014
 	VersionGMSSL = 0x0101
@@ -44,7 +45,7 @@ const (
 	VersionTLS12 = 0x0303
 	VersionTLS13 = 0x0304
 
-	// Deprecated: SSLv3 is cryptographically broken, and is no longer
+	// TO Deprecated: SSLv3 is cryptographically broken, and is no longer
 	// supported by this package. See golang.org/issue/32716.
 	VersionSSL30 = 0x0300
 )
@@ -92,6 +93,7 @@ const (
 )
 
 // TLS handshake message types.
+//goland:noinspection GoUnusedConst
 const (
 	typeHelloRequest        uint8 = 0
 	typeClientHello         uint8 = 1
@@ -260,7 +262,7 @@ const (
 // include downgrade canaries even if it's using its highers supported version.
 var testingOnlyForceDowngradeCanary bool
 
-// TLS握手过程中的连接状态管理用
+// ConnectionState TLS握手过程中的连接状态管理用
 // ConnectionState records basic TLS details about the connection.
 type ConnectionState struct {
 	// Version is the TLS version used by the connection (e.g. VersionTLS12).
@@ -319,7 +321,7 @@ type ConnectionState struct {
 	// Section 3). This value will be nil for TLS 1.3 connections and for all
 	// resumed connections.
 	//
-	// Deprecated: there are conditions in which this value might not be unique
+	// ToDeprecated: there are conditions in which this value might not be unique
 	// to a connection. See the Security Considerations sections of RFC 5705 and
 	// RFC 7627, and https://mitls.org/pages/attacks/3SHAKE#channelbindings.
 	TLSUnique []byte
@@ -418,6 +420,7 @@ type ClientSessionCache interface {
 // RFC 8446, Section 4.2.3.
 type SignatureScheme uint16
 
+//goland:noinspection GoCommentStart
 const (
 	// RSASSA-PKCS1-v1_5 algorithms.
 	PKCS1WithSHA256 SignatureScheme = 0x0401
@@ -502,8 +505,8 @@ type ClientHelloInfo struct {
 // Context returns the context of the handshake that is in progress.
 // This context is a child of the context passed to HandshakeContext,
 // if any, and is canceled when the handshake concludes.
-func (c *ClientHelloInfo) Context() context.Context {
-	return c.ctx
+func (chi *ClientHelloInfo) Context() context.Context {
+	return chi.ctx
 }
 
 // CertificateRequestInfo contains information from a server's
@@ -530,8 +533,8 @@ type CertificateRequestInfo struct {
 // Context returns the context of the handshake that is in progress.
 // This context is a child of the context passed to HandshakeContext,
 // if any, and is canceled when the handshake concludes.
-func (c *CertificateRequestInfo) Context() context.Context {
-	return c.ctx
+func (cri *CertificateRequestInfo) Context() context.Context {
+	return cri.ctx
 }
 
 // RenegotiationSupport enumerates the different levels of support for TLS
@@ -563,7 +566,7 @@ const (
 	RenegotiateFreelyAsClient
 )
 
-// TLS通信配置
+// Config TLS通信配置
 // A Config structure is used to configure a TLS client or server.
 // After one has been passed to a TLS function it must not be
 // modified. A Config may be reused; the tls package will also not
@@ -603,7 +606,7 @@ type Config struct {
 	// Certificates. Note that a certificate name can be of the form
 	// '*.example.com' and so doesn't have to be a domain name as such.
 	//
-	// Deprecated: NameToCertificate only allows associating a single
+	// ToDeprecated: NameToCertificate only allows associating a single
 	// certificate with a given name. Leave this field nil to let the library
 	// select the first compatible chain from Certificates.
 	NameToCertificate map[string]*Certificate
@@ -761,7 +764,7 @@ type Config struct {
 	// See RFC 5077 and the PSK mode of RFC 8446. If zero, it will be filled
 	// with random data before the first server handshake.
 	//
-	// Deprecated: if this field is left at zero, session ticket keys will be
+	// ToDeprecated: if this field is left at zero, session ticket keys will be
 	// automatically rotated every day and dropped after seven days. For
 	// customizing the rotation schedule or synchronizing servers that are
 	// terminating connections for the same host, use SetSessionTicketKeys.
@@ -1036,8 +1039,8 @@ func (c *Config) SetSessionTicketKeys(keys [][32]byte) {
 	}
 
 	newKeys := make([]ticketKey, len(keys))
-	for i, bytes := range keys {
-		newKeys[i] = c.ticketKeyFromBytes(bytes)
+	for i, key := range keys {
+		newKeys[i] = c.ticketKeyFromBytes(key)
 	}
 
 	c.mutex.Lock()
@@ -1434,7 +1437,7 @@ func (cri *CertificateRequestInfo) SupportsCertificate(c *Certificate) error {
 // from the CommonName and SubjectAlternateName fields of each of the leaf
 // certificates.
 //
-// Deprecated: NameToCertificate only allows associating a single certificate
+// ToDeprecated: NameToCertificate only allows associating a single certificate
 // with a given name. Leave that field nil to let the library select the first
 // compatible chain from Certificates.
 func (c *Config) BuildNameToCertificate() {
@@ -1482,7 +1485,7 @@ func (c *Config) writeKeyLog(label string, clientRandom, secret []byte) error {
 // and is only for debugging, so a global mutex saves space.
 var writerMutex sync.Mutex
 
-// 证书链, 子证书在前
+// Certificate 证书链, 子证书在前
 // A Certificate is a chain of one or more certificates, leaf first.
 type Certificate struct {
 	// 证书列表
@@ -1558,7 +1561,7 @@ func NewLRUClientSessionCache(capacity int) ClientSessionCache {
 	}
 }
 
-// 存储会话到缓存, 实现了 ClientSessionCache 接口
+// Put 存储会话到缓存, 实现了 ClientSessionCache 接口
 // Put adds the provided (sessionKey, cs) pair to the cache. If cs is nil, the entry
 // corresponding to sessionKey is removed from the cache instead.
 func (c *lruSessionCache) Put(sessionKey string, cs *ClientSessionState) {
@@ -1592,7 +1595,7 @@ func (c *lruSessionCache) Put(sessionKey string, cs *ClientSessionState) {
 	c.m[sessionKey] = elem
 }
 
-// 从缓存获取会话, 实现了 ClientSessionCache 接口
+// Get 从缓存获取会话, 实现了 ClientSessionCache 接口
 // Get returns the ClientSessionState value associated with a given key. It
 // returns (nil, false) if no value is found.
 func (c *lruSessionCache) Get(sessionKey string) (*ClientSessionState, bool) {
