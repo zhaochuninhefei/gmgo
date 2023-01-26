@@ -149,7 +149,12 @@ func runDynamicRecordSizingTest(t *testing.T, config *Config) {
 		// then reads TLS records until EOF. It writes a slice that
 		// contains all the record sizes to recordSizesChan.
 		defer close(recordSizesChan)
-		defer clientConn.Close()
+		defer func(clientConn net.Conn) {
+			err := clientConn.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(clientConn)
 
 		tlsConn := Client(clientConn, config)
 		if err := tlsConn.Handshake(); err != nil {
@@ -280,8 +285,18 @@ func TestHairpinInClose(t *testing.T) {
 	// This tests that the underlying net.Conn can call back into the
 	// tls.Conn when being closed without deadlocking.
 	client, server := localPipe(t)
-	defer server.Close()
-	defer client.Close()
+	defer func(server net.Conn) {
+		err := server.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(server)
+	defer func(client net.Conn) {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(client)
 
 	conn := &hairpinConn{client, nil}
 	tlsConn := Server(conn, &Config{
@@ -292,5 +307,8 @@ func TestHairpinInClose(t *testing.T) {
 	conn.tlsConn = tlsConn
 
 	// This call should not deadlock.
-	tlsConn.Close()
+	err := tlsConn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
