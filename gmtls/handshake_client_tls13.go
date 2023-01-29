@@ -388,7 +388,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if bytes.Equal(hs.serverHello.random, helloRetryRequestRandom) {
 		err := c.sendAlert(alertUnexpectedMessage)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server sent two HelloRetryRequest messages. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server sent two HelloRetryRequest messages")
 	}
@@ -396,7 +396,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if len(hs.serverHello.cookie) != 0 {
 		err := c.sendAlert(alertUnsupportedExtension)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server sent a cookie in a normal ServerHello. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server sent a cookie in a normal ServerHello")
 	}
@@ -404,7 +404,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if hs.serverHello.selectedGroup != 0 {
 		err := c.sendAlert(alertDecodeError)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: malformed key_share extension. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: malformed key_share extension")
 	}
@@ -412,7 +412,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if hs.serverHello.serverShare.group == 0 {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server did not send a key share. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server did not send a key share")
 	}
@@ -420,7 +420,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if hs.serverHello.serverShare.group != hs.ecdheParams.CurveID() {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected unsupported group. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected unsupported group")
 	}
@@ -432,7 +432,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if int(hs.serverHello.selectedIdentity) >= len(hs.hello.pskIdentities) {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected an invalid PSK. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected an invalid PSK")
 	}
@@ -447,7 +447,7 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	if pskSuite.hash != hs.suite.hash {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected an invalid PSK and cipher suite pair. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected an invalid PSK and cipher suite pair")
 	}
