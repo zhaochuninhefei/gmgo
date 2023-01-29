@@ -470,7 +470,7 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 	if sharedKey == nil {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: invalid server key share. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: invalid server key share")
 	}
@@ -496,17 +496,17 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 	if err != nil {
 		err1 := c.sendAlert(alertInternalError)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("gmtls: 写入clientSecret日志时发生错误: %s. Error happened when sendAlert: %s", err, err1)
 		}
-		return err
+		return fmt.Errorf("gmtls: 写入clientSecret日志时发生错误: %s", err)
 	}
 	err = c.config.writeKeyLog(keyLogLabelServerHandshake, hs.hello.random, serverSecret)
 	if err != nil {
 		err1 := c.sendAlert(alertInternalError)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("gmtls: 写入serverSecret日志时发生错误: %s. Error happened when sendAlert: %s", err, err1)
 		}
-		return err
+		return fmt.Errorf("gmtls: 写入serverSecret日志时发生错误: %s", err)
 	}
 	// 根据握手阶段密钥派生新的预主密钥并提取出主密钥
 	// tls1.3的密钥协商算法不再需要使用 ClientRadom与ServerRandom
@@ -526,11 +526,12 @@ func (hs *clientHandshakeStateTLS13) readServerParameters() error {
 	}
 	encryptedExtensions, ok := msg.(*encryptedExtensionsMsg)
 	if !ok {
+		err = unexpectedMessageError(encryptedExtensions, msg)
 		err1 := c.sendAlert(alertUnexpectedMessage)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
-		return unexpectedMessageError(encryptedExtensions, msg)
+		return err
 	}
 	hs.transcript.Write(encryptedExtensions.marshal())
 	zclog.Debug("===== 客户端读取到 encryptedExtensionsMsg")
@@ -538,7 +539,7 @@ func (hs *clientHandshakeStateTLS13) readServerParameters() error {
 	if err := checkALPN(hs.hello.alpnProtocols, encryptedExtensions.alpnProtocol); err != nil {
 		err1 := c.sendAlert(alertUnsupportedExtension)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
 		return err
 	}
