@@ -326,7 +326,11 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	if len(hs.hello.pskIdentities) > 0 {
 		pskSuite := cipherSuiteTLS13ByID(hs.session.cipherSuite)
 		if pskSuite == nil {
-			return c.sendAlert(alertInternalError)
+			err := c.sendAlert(alertInternalError)
+			if err != nil {
+				return fmt.Errorf("gmtls: 密钥套件匹配失败. Error happened when sendAlert: %s", err)
+			}
+			return nil
 		}
 		if pskSuite.hash == hs.suite.hash {
 			// Update binders and obfuscated_ticket_age.
