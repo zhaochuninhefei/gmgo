@@ -861,7 +861,11 @@ func (c *Conn) handleNewSessionTicket(msg *newSessionTicketMsgTLS13) error {
 
 	cipherSuite := cipherSuiteTLS13ByID(c.cipherSuite)
 	if cipherSuite == nil || c.resumptionSecret == nil {
-		return c.sendAlert(alertInternalError)
+		err := c.sendAlert(alertInternalError)
+		if err != nil {
+			return fmt.Errorf("gmtls: 密钥套件匹配失败. Error happened when sendAlert: %s", err)
+		}
+		return nil
 	}
 
 	// Save the resumption_master_secret and nonce instead of deriving the PSK
