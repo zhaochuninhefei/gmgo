@@ -674,11 +674,12 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 	}
 	finished, ok := msg.(*finishedMsg)
 	if !ok {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
+		err = unexpectedMessageError(finished, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
-		return unexpectedMessageError(finished, msg)
+		return err
 	}
 	zclog.Debug("===== 客户端读取到 ServerFinished")
 	// 计算期望的finished散列并与接收的值比较
@@ -686,7 +687,7 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 	if !hmac.Equal(expectedMAC, finished.verifyData) {
 		err := c.sendAlert(alertDecryptError)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: invalid server finished hash. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: invalid server finished hash")
 	}
@@ -705,19 +706,21 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 
 	err = c.config.writeKeyLog(keyLogLabelClientTraffic, hs.hello.random, hs.trafficSecret)
 	if err != nil {
+		errNew := fmt.Errorf("gmtls: 写入trafficSecret日志时发生错误: %s", err)
 		err1 := c.sendAlert(alertInternalError)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
 		}
-		return err
+		return errNew
 	}
 	err = c.config.writeKeyLog(keyLogLabelServerTraffic, hs.hello.random, serverSecret)
 	if err != nil {
+		errNew := fmt.Errorf("gmtls: 写入trafficSecret日志时发生错误: %s", err)
 		err1 := c.sendAlert(alertInternalError)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
 		}
-		return err
+		return errNew
 	}
 
 	c.ekm = hs.suite.exportKeyingMaterial(hs.masterSecret, hs.transcript)
