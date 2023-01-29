@@ -364,11 +364,12 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	}
 	serverHello, ok := msg.(*serverHelloMsg)
 	if !ok {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
+		err := unexpectedMessageError(serverHello, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
-		return unexpectedMessageError(serverHello, msg)
+		return err
 	}
 	hs.serverHello = serverHello
 	zclog.Debug("===== 客户端再次读取到ServerHello(HelloRetryRequest)")
