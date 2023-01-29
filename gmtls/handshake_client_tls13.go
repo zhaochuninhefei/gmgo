@@ -291,21 +291,21 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 		if !curveOK {
 			err := c.sendAlert(alertIllegalParameter)
 			if err != nil {
-				return err
+				return fmt.Errorf("gmtls: server selected unsupported group. Error happened when sendAlert: %s", err)
 			}
 			return errors.New("gmtls: server selected unsupported group")
 		}
 		if hs.ecdheParams.CurveID() == curveID {
 			err := c.sendAlert(alertIllegalParameter)
 			if err != nil {
-				return err
+				return fmt.Errorf("gmtls: server sent an unnecessary HelloRetryRequest key_share. Error happened when sendAlert: %s", err)
 			}
 			return errors.New("gmtls: server sent an unnecessary HelloRetryRequest key_share")
 		}
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
 			err := c.sendAlert(alertInternalError)
 			if err != nil {
-				return err
+				return fmt.Errorf("gmtls: CurvePreferences includes unsupported curve. Error happened when sendAlert: %s", err)
 			}
 			return errors.New("gmtls: CurvePreferences includes unsupported curve")
 		}
@@ -314,9 +314,9 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 		if err != nil {
 			err1 := c.sendAlert(alertInternalError)
 			if err1 != nil {
-				return err1
+				return fmt.Errorf("gmtls: ECDHE密钥协商失败: %s. Error happened when sendAlert: %s", err, err1)
 			}
-			return err
+			return fmt.Errorf("gmtls: ECDHE密钥协商失败: %s", err)
 		}
 		hs.ecdheParams = params
 		hs.hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
