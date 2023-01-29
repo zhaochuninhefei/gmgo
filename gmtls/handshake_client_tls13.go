@@ -715,7 +715,7 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 	}
 	err = c.config.writeKeyLog(keyLogLabelServerTraffic, hs.hello.random, serverSecret)
 	if err != nil {
-		errNew := fmt.Errorf("gmtls: 写入trafficSecret日志时发生错误: %s", err)
+		errNew := fmt.Errorf("gmtls: 写入serverSecret日志时发生错误: %s", err)
 		err1 := c.sendAlert(alertInternalError)
 		if err1 != nil {
 			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
@@ -772,7 +772,7 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 		// CertificateRequestInfo supported signature algorithms.
 		err1 := c.sendAlert(alertHandshakeFailure)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
 		return err
 	}
@@ -790,11 +790,12 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 	// 使用证书私钥进行签名
 	sig, err := cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), signed, signOpts)
 	if err != nil {
+		errNew := errors.New("gmtls: failed to sign handshake: " + err.Error())
 		err1 := c.sendAlert(alertInternalError)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
 		}
-		return errors.New("gmtls: failed to sign handshake: " + err.Error())
+		return errNew
 	}
 	certVerifyMsg.signature = sig
 	// 向握手数据摘要写入证书认证消息并发送给服务端
