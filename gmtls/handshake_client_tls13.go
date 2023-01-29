@@ -837,7 +837,7 @@ func (c *Conn) handleNewSessionTicket(msg *newSessionTicketMsgTLS13) error {
 	if !c.isClient {
 		err := c.sendAlert(alertUnexpectedMessage)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: received new session ticket from a client. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: received new session ticket from a client")
 	}
@@ -854,7 +854,7 @@ func (c *Conn) handleNewSessionTicket(msg *newSessionTicketMsgTLS13) error {
 	if lifetime > maxSessionTicketLifetime {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: received a session ticket with invalid lifetime. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: received a session ticket with invalid lifetime")
 	}
