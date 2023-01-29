@@ -59,7 +59,10 @@ func (hs *clientHandshakeStateTLS13) handshake() error {
 	// The server must not select TLS 1.3 in a renegotiation. See RFC 8446,
 	// sections 4.1.2 and 4.1.3.
 	if c.handshakes > 0 {
-		c.sendAlert(alertProtocolVersion)
+		err := c.sendAlert(alertProtocolVersion)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected TLS 1.3 in a renegotiation")
 	}
 
@@ -139,17 +142,26 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	c := hs.c
 
 	if hs.serverHello.supportedVersion == 0 {
-		c.sendAlert(alertMissingExtension)
+		err := c.sendAlert(alertMissingExtension)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected TLS 1.3 using the legacy version field")
 	}
 	// GMSSL采取相同处理
 	if hs.serverHello.supportedVersion != VersionTLS13 && hs.serverHello.supportedVersion != VersionGMSSL {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected an invalid version after a HelloRetryRequest")
 	}
 	// 出于兼容性原因，vers只能写VersionTLS12
 	if hs.serverHello.vers != VersionTLS12 {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server sent an incorrect legacy version")
 	}
 	// 检查ServerHello是否包含tls1.3禁用的扩展信息
@@ -159,27 +171,42 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 		len(hs.serverHello.secureRenegotiation) != 0 ||
 		len(hs.serverHello.alpnProtocol) != 0 ||
 		len(hs.serverHello.scts) != 0 {
-		c.sendAlert(alertUnsupportedExtension)
+		err := c.sendAlert(alertUnsupportedExtension)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server sent a ServerHello extension forbidden in TLS 1.3")
 	}
 	// 检查双方sessionID是否一致
 	if !bytes.Equal(hs.hello.sessionId, hs.serverHello.sessionId) {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server did not echo the legacy session ID")
 	}
 	// 检查是否不支持压缩,tls1.3不再支持压缩
 	if hs.serverHello.compressionMethod != compressionNone {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected unsupported compression format")
 	}
 	// 协商tls1.3密码套件
 	selectedSuite := mutualCipherSuiteTLS13(hs.hello.cipherSuites, hs.serverHello.cipherSuite)
 	if hs.suite != nil && selectedSuite != hs.suite {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server changed cipher suite after a HelloRetryRequest")
 	}
 	if selectedSuite == nil {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server chose an unconfigured cipher suite")
 	}
 	zclog.Debugf("===== 客户端确认协商好的密码套件: %s", CipherSuiteName(selectedSuite.id))
@@ -224,7 +251,10 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	// cookie, and clients must abort the handshake if the HRR would not result
 	// in any change in the ClientHello.
 	if hs.serverHello.selectedGroup == 0 && hs.serverHello.cookie == nil {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server sent an unnecessary HelloRetryRequest message")
 	}
 
@@ -233,7 +263,10 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	}
 
 	if hs.serverHello.serverShare.group != 0 {
-		c.sendAlert(alertDecodeError)
+		err := c.sendAlert(alertDecodeError)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: received malformed key_share extension")
 	}
 
@@ -251,21 +284,33 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 			}
 		}
 		if !curveOK {
-			c.sendAlert(alertIllegalParameter)
+			err := c.sendAlert(alertIllegalParameter)
+			if err != nil {
+				return err
+			}
 			return errors.New("gmtls: server selected unsupported group")
 		}
 		if hs.ecdheParams.CurveID() == curveID {
-			c.sendAlert(alertIllegalParameter)
+			err := c.sendAlert(alertIllegalParameter)
+			if err != nil {
+				return err
+			}
 			return errors.New("gmtls: server sent an unnecessary HelloRetryRequest key_share")
 		}
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
-			c.sendAlert(alertInternalError)
+			err := c.sendAlert(alertInternalError)
+			if err != nil {
+				return err
+			}
 			return errors.New("gmtls: CurvePreferences includes unsupported curve")
 		}
 		// 再次生成密钥交换参数
 		params, err := generateECDHEParameters(c.config.rand(), curveID)
 		if err != nil {
-			c.sendAlert(alertInternalError)
+			err1 := c.sendAlert(alertInternalError)
+			if err1 != nil {
+				return err1
+			}
 			return err
 		}
 		hs.ecdheParams = params
@@ -310,7 +355,10 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	}
 	serverHello, ok := msg.(*serverHelloMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
+		err := c.sendAlert(alertUnexpectedMessage)
+		if err != nil {
+			return err
+		}
 		return unexpectedMessageError(serverHello, msg)
 	}
 	hs.serverHello = serverHello
@@ -328,27 +376,42 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	c := hs.c
 	// 服务端只能请求一次 HelloRetryRequest
 	if bytes.Equal(hs.serverHello.random, helloRetryRequestRandom) {
-		c.sendAlert(alertUnexpectedMessage)
+		err := c.sendAlert(alertUnexpectedMessage)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server sent two HelloRetryRequest messages")
 	}
 
 	if len(hs.serverHello.cookie) != 0 {
-		c.sendAlert(alertUnsupportedExtension)
+		err := c.sendAlert(alertUnsupportedExtension)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server sent a cookie in a normal ServerHello")
 	}
 
 	if hs.serverHello.selectedGroup != 0 {
-		c.sendAlert(alertDecodeError)
+		err := c.sendAlert(alertDecodeError)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: malformed key_share extension")
 	}
 
 	if hs.serverHello.serverShare.group == 0 {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server did not send a key share")
 	}
 	// 检查服务端的密钥协商参数的曲线是否与客户端的对应曲线ID一致
 	if hs.serverHello.serverShare.group != hs.ecdheParams.CurveID() {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected unsupported group")
 	}
 	// ServerHello没有选择会话恢复用的ID时，处理结束。
@@ -357,7 +420,10 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 	}
 
 	if int(hs.serverHello.selectedIdentity) >= len(hs.hello.pskIdentities) {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected an invalid PSK")
 	}
 
@@ -369,7 +435,10 @@ func (hs *clientHandshakeStateTLS13) processServerHello() error {
 		return c.sendAlert(alertInternalError)
 	}
 	if pskSuite.hash != hs.suite.hash {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: server selected an invalid PSK and cipher suite pair")
 	}
 	// 会话恢复场景的属性设置
@@ -389,7 +458,10 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 	zclog.Debug("===== 利用服务端公钥计算预主密钥")
 	sharedKey := hs.ecdheParams.SharedKey(hs.serverHello.serverShare.data)
 	if sharedKey == nil {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: invalid server key share")
 	}
 	// 获取之前的密钥
@@ -412,12 +484,18 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 
 	err := c.config.writeKeyLog(keyLogLabelClientHandshake, hs.hello.random, clientSecret)
 	if err != nil {
-		c.sendAlert(alertInternalError)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 	err = c.config.writeKeyLog(keyLogLabelServerHandshake, hs.hello.random, serverSecret)
 	if err != nil {
-		c.sendAlert(alertInternalError)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 	// 根据握手阶段密钥派生新的预主密钥并提取出主密钥
@@ -438,14 +516,20 @@ func (hs *clientHandshakeStateTLS13) readServerParameters() error {
 	}
 	encryptedExtensions, ok := msg.(*encryptedExtensionsMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return err1
+		}
 		return unexpectedMessageError(encryptedExtensions, msg)
 	}
 	hs.transcript.Write(encryptedExtensions.marshal())
 	zclog.Debug("===== 客户端读取到 encryptedExtensionsMsg")
 	// 检查ALPN协议设置
 	if err := checkALPN(hs.hello.alpnProtocols, encryptedExtensions.alpnProtocol); err != nil {
-		c.sendAlert(alertUnsupportedExtension)
+		err1 := c.sendAlert(alertUnsupportedExtension)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 	c.clientProtocol = encryptedExtensions.alpnProtocol
@@ -465,7 +549,10 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 		// they don't call verifyServerCertificate. See Issue 31641.
 		if c.config.VerifyConnection != nil {
 			if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
-				c.sendAlert(alertBadCertificate)
+				err1 := c.sendAlert(alertBadCertificate)
+				if err1 != nil {
+					return err1
+				}
 				return err
 			}
 		}
@@ -490,12 +577,18 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	}
 	certMsg, ok := msg.(*certificateMsgTLS13)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
+		err := c.sendAlert(alertUnexpectedMessage)
+		if err != nil {
+			return err
+		}
 		return unexpectedMessageError(certMsg, msg)
 	}
 	zclog.Debug("===== 客户端读取到 certificateMsgTLS13")
 	if len(certMsg.certificate.Certificate) == 0 {
-		c.sendAlert(alertDecodeError)
+		err := c.sendAlert(alertDecodeError)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: received empty certificates message")
 	}
 	hs.transcript.Write(certMsg.marshal())
@@ -513,14 +606,20 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	}
 	certVerify, ok := msg.(*certificateVerifyMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
+		err := c.sendAlert(alertUnexpectedMessage)
+		if err != nil {
+			return err
+		}
 		return unexpectedMessageError(certVerify, msg)
 	}
 	zclog.Debug("===== 客户端读取到 certificateVerifyMsg")
 
 	// See RFC 8446, Section 4.4.3.
 	if !isSupportedSignatureAlgorithm(certVerify.signatureAlgorithm, supportedSignatureAlgorithms) {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: certificate used with invalid signature algorithm")
 	}
 	sigType, sigHash, err := typeAndHashFromSignatureScheme(certVerify.signatureAlgorithm)
@@ -528,7 +627,10 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 		return c.sendAlert(alertInternalError)
 	}
 	if sigType == signaturePKCS1v15 || sigHash == x509.SHA1 {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: certificate used with invalid signature algorithm")
 	}
 	// 生成签名内容: 握手数据摘要混入一些固定的值
@@ -536,7 +638,10 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	// 对certificateVerifyMsg中的签名进行验签
 	if err := verifyHandshakeSignature(sigType, c.peerCertificates[0].PublicKey,
 		sigHash, signed, certVerify.signature); err != nil {
-		c.sendAlert(alertDecryptError)
+		err1 := c.sendAlert(alertDecryptError)
+		if err1 != nil {
+			return err1
+		}
 		return errors.New("gmtls: invalid signature by the server certificate: " + err.Error())
 	}
 	// 将服务端 certVerify 写入握手数据摘要
@@ -555,14 +660,20 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 	}
 	finished, ok := msg.(*finishedMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
+		err := c.sendAlert(alertUnexpectedMessage)
+		if err != nil {
+			return err
+		}
 		return unexpectedMessageError(finished, msg)
 	}
 	zclog.Debug("===== 客户端读取到 ServerFinished")
 	// 计算期望的finished散列并与接收的值比较
 	expectedMAC := hs.suite.finishedHash(c.in.trafficSecret, hs.transcript)
 	if !hmac.Equal(expectedMAC, finished.verifyData) {
-		c.sendAlert(alertDecryptError)
+		err := c.sendAlert(alertDecryptError)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: invalid server finished hash")
 	}
 	// 将finished消息写入握手数据摘要
@@ -580,12 +691,18 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 
 	err = c.config.writeKeyLog(keyLogLabelClientTraffic, hs.hello.random, hs.trafficSecret)
 	if err != nil {
-		c.sendAlert(alertInternalError)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 	err = c.config.writeKeyLog(keyLogLabelServerTraffic, hs.hello.random, serverSecret)
 	if err != nil {
-		c.sendAlert(alertInternalError)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 
@@ -636,7 +753,10 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 	if err != nil {
 		// getClientCertificate returned a certificate incompatible with the
 		// CertificateRequestInfo supported signature algorithms.
-		c.sendAlert(alertHandshakeFailure)
+		err1 := c.sendAlert(alertHandshakeFailure)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 	// 获取签名算法与散列算法
@@ -653,7 +773,10 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 	// 使用证书私钥进行签名
 	sig, err := cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), signed, signOpts)
 	if err != nil {
-		c.sendAlert(alertInternalError)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return err1
+		}
 		return errors.New("gmtls: failed to sign handshake: " + err.Error())
 	}
 	certVerifyMsg.signature = sig
@@ -694,7 +817,10 @@ func (hs *clientHandshakeStateTLS13) sendClientFinished() error {
 // 处理来自服务端的 newSessionTicketMsgTLS13
 func (c *Conn) handleNewSessionTicket(msg *newSessionTicketMsgTLS13) error {
 	if !c.isClient {
-		c.sendAlert(alertUnexpectedMessage)
+		err := c.sendAlert(alertUnexpectedMessage)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: received new session ticket from a client")
 	}
 
@@ -708,7 +834,10 @@ func (c *Conn) handleNewSessionTicket(msg *newSessionTicketMsgTLS13) error {
 	}
 	lifetime := time.Duration(msg.lifetime) * time.Second
 	if lifetime > maxSessionTicketLifetime {
-		c.sendAlert(alertIllegalParameter)
+		err := c.sendAlert(alertIllegalParameter)
+		if err != nil {
+			return err
+		}
 		return errors.New("gmtls: received a session ticket with invalid lifetime")
 	}
 
