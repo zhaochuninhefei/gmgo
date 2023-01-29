@@ -562,7 +562,7 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 			if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
 				err1 := c.sendAlert(alertBadCertificate)
 				if err1 != nil {
-					return err1
+					return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 				}
 				return err
 			}
@@ -588,17 +588,18 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	}
 	certMsg, ok := msg.(*certificateMsgTLS13)
 	if !ok {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
+		err := unexpectedMessageError(certMsg, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
-		return unexpectedMessageError(certMsg, msg)
+		return err
 	}
 	zclog.Debug("===== 客户端读取到 certificateMsgTLS13")
 	if len(certMsg.certificate.Certificate) == 0 {
 		err := c.sendAlert(alertDecodeError)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: received empty certificates message. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: received empty certificates message")
 	}
@@ -617,11 +618,12 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	}
 	certVerify, ok := msg.(*certificateVerifyMsg)
 	if !ok {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
+		err = unexpectedMessageError(certVerify, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
-		return unexpectedMessageError(certVerify, msg)
+		return err
 	}
 	zclog.Debug("===== 客户端读取到 certificateVerifyMsg")
 
@@ -629,9 +631,9 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	if !isSupportedSignatureAlgorithm(certVerify.signatureAlgorithm, supportedSignatureAlgorithms) {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: certificate used with unsupported signature algorithm. Error happened when sendAlert: %s", err)
 		}
-		return errors.New("gmtls: certificate used with invalid signature algorithm")
+		return errors.New("gmtls: certificate used with unsupported signature algorithm")
 	}
 	sigType, sigHash, err := typeAndHashFromSignatureScheme(certVerify.signatureAlgorithm)
 	if err != nil {
@@ -640,20 +642,21 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	if sigType == signaturePKCS1v15 || sigHash == x509.SHA1 {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: certificate used with obsolete signature algorithm. Error happened when sendAlert: %s", err)
 		}
-		return errors.New("gmtls: certificate used with invalid signature algorithm")
+		return errors.New("gmtls: certificate used with obsolete signature algorithm")
 	}
 	// 生成签名内容: 握手数据摘要混入一些固定的值
 	signed := signedMessage(sigHash, serverSignatureContext, hs.transcript)
 	// 对certificateVerifyMsg中的签名进行验签
 	if err := verifyHandshakeSignature(sigType, c.peerCertificates[0].PublicKey,
 		sigHash, signed, certVerify.signature); err != nil {
+		errNew := errors.New("gmtls: invalid signature by the server certificate: " + err.Error())
 		err1 := c.sendAlert(alertDecryptError)
 		if err1 != nil {
-			return err1
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
 		}
-		return errors.New("gmtls: invalid signature by the server certificate: " + err.Error())
+		return errNew
 	}
 	// 将服务端 certVerify 写入握手数据摘要
 	hs.transcript.Write(certVerify.marshal())
