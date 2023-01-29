@@ -20,6 +20,7 @@ import (
 	"crypto/hmac"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"hash"
 	"sync/atomic"
 	"time"
@@ -61,14 +62,18 @@ func (hs *clientHandshakeStateTLS13) handshake() error {
 	if c.handshakes > 0 {
 		err := c.sendAlert(alertProtocolVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected TLS 1.3 in a renegotiation. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected TLS 1.3 in a renegotiation")
 	}
 
 	// Consistency check on the presence of a keyShare and its parameters.
 	if hs.ecdheParams == nil || len(hs.hello.keyShares) != 1 {
-		return c.sendAlert(alertInternalError)
+		err := c.sendAlert(alertInternalError)
+		if err != nil {
+			return fmt.Errorf("gmtls: Consistency check on the presence of a keyShare and its parameters failed. Error happened when sendAlert: %s", err)
+		}
+		return nil
 	}
 	// 检查ServerHello或HelloRetryRequest,并设置协商好的密码套件
 	if err := hs.checkServerHelloOrHRR(); err != nil {
@@ -144,7 +149,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	if hs.serverHello.supportedVersion == 0 {
 		err := c.sendAlert(alertMissingExtension)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected TLS 1.3 using the legacy version field. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected TLS 1.3 using the legacy version field")
 	}
@@ -152,7 +157,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	if hs.serverHello.supportedVersion != VersionTLS13 && hs.serverHello.supportedVersion != VersionGMSSL {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected an invalid version after a HelloRetryRequest. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected an invalid version after a HelloRetryRequest")
 	}
@@ -160,7 +165,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	if hs.serverHello.vers != VersionTLS12 {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server sent an incorrect legacy version. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server sent an incorrect legacy version")
 	}
@@ -173,7 +178,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 		len(hs.serverHello.scts) != 0 {
 		err := c.sendAlert(alertUnsupportedExtension)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server sent a ServerHello extension forbidden in TLS 1.3. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server sent a ServerHello extension forbidden in TLS 1.3")
 	}
@@ -181,7 +186,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	if !bytes.Equal(hs.hello.sessionId, hs.serverHello.sessionId) {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server did not echo the legacy session ID. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server did not echo the legacy session ID")
 	}
@@ -189,7 +194,7 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	if hs.serverHello.compressionMethod != compressionNone {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server selected unsupported compression format. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server selected unsupported compression format")
 	}
@@ -198,14 +203,14 @@ func (hs *clientHandshakeStateTLS13) checkServerHelloOrHRR() error {
 	if hs.suite != nil && selectedSuite != hs.suite {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server changed cipher suite after a HelloRetryRequest. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server changed cipher suite after a HelloRetryRequest")
 	}
 	if selectedSuite == nil {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server chose an unconfigured cipher suite. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server chose an unconfigured cipher suite")
 	}
@@ -253,7 +258,7 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	if hs.serverHello.selectedGroup == 0 && hs.serverHello.cookie == nil {
 		err := c.sendAlert(alertIllegalParameter)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server sent an unnecessary HelloRetryRequest message. Error happened when sendAlert: %s", err)
 		}
 		return errors.New("gmtls: server sent an unnecessary HelloRetryRequest message")
 	}
@@ -265,9 +270,9 @@ func (hs *clientHandshakeStateTLS13) processHelloRetryRequest() error {
 	if hs.serverHello.serverShare.group != 0 {
 		err := c.sendAlert(alertDecodeError)
 		if err != nil {
-			return err
+			return fmt.Errorf("gmtls: server sent a malformed key_share extension. Error happened when sendAlert: %s", err)
 		}
-		return errors.New("gmtls: received malformed key_share extension")
+		return errors.New("gmtls: server sent a malformed key_share extension")
 	}
 
 	// 如果ServerHello中有key_share，那么检查是否与之前发出的ClientHello中的key_share相同，
