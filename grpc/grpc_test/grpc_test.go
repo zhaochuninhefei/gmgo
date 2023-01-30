@@ -103,7 +103,9 @@ func clientRun() {
 	if err != nil {
 		log.Fatalf("cannot to connect: %v", err)
 	}
-	defer conn.Close()
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
 	c := echo.NewEchoClient(conn)
 	echoInClient(c)
 	end <- true
@@ -123,7 +125,8 @@ func echoInClient(c echo.EchoClient) {
 
 type server struct{}
 
-// 服务端echo处理
+// Echo 服务端echo处理
+//goland:noinspection GoUnusedParameter
 func (s *server) Echo(ctx context.Context, req *echo.EchoRequest) (*echo.EchoResponse, error) {
 	msgClient := req.Req
 	fmt.Printf("服务端接收到消息: %s\n", msgClient)
