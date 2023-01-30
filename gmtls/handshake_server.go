@@ -923,7 +923,10 @@ func (hs *serverHandshakeState) sendSessionTicket() error {
 		return err
 	}
 
-	hs.finishedHash.Write(m.marshal())
+	_, err = hs.finishedHash.Write(m.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入SessionTicket时发生错误: %s", err)
+	}
 	if _, err := c.writeRecord(recordTypeHandshake, m.marshal()); err != nil {
 		return err
 	}
