@@ -966,13 +966,20 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 	var err error
 	for i, asn1Data := range certificates {
 		if certs[i], err = x509.ParseCertificate(asn1Data); err != nil {
-			c.sendAlert(alertBadCertificate)
-			return errors.New("gmtls: failed to parse client certificate: " + err.Error())
+			errNew := fmt.Errorf("gmtls: failed to parse client certificate: %s", err)
+			err1 := c.sendAlert(alertBadCertificate)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 
 	if len(certs) == 0 && requiresClientCert(c.config.ClientAuth) {
-		c.sendAlert(alertBadCertificate)
+		err := c.sendAlert(alertBadCertificate)
+		if err != nil {
+			return fmt.Errorf("gmtls: client didn't provide a certificate. Error happened when sendAlert: %s", err)
+		}
 		return errors.New("gmtls: client didn't provide a certificate")
 	}
 
@@ -990,8 +997,12 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 		// 从子证书开始验证签名并尝试构建信任链
 		chains, err := certs[0].Verify(opts)
 		if err != nil {
-			c.sendAlert(alertBadCertificate)
-			return errors.New("gmtls: failed to verify client certificate: " + err.Error())
+			errNew := fmt.Errorf("gmtls: failed to verify client certificate: %s", err)
+			err1 := c.sendAlert(alertBadCertificate)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 
 		c.verifiedChains = chains
@@ -1006,15 +1017,23 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 		switch certs[0].PublicKey.(type) {
 		case *sm2.PublicKey, *ecdsa.PublicKey, *rsa.PublicKey, ed25519.PublicKey:
 		default:
-			c.sendAlert(alertUnsupportedCertificate)
-			return fmt.Errorf("gmtls: client certificate contains an unsupported public key of type %T", certs[0].PublicKey)
+			errNew := fmt.Errorf("gmtls: client certificate contains an unsupported public key of type %T", certs[0].PublicKey)
+			err1 := c.sendAlert(alertUnsupportedCertificate)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 
 	if c.config.VerifyPeerCertificate != nil {
 		if err := c.config.VerifyPeerCertificate(certificates, c.verifiedChains); err != nil {
-			c.sendAlert(alertBadCertificate)
-			return err
+			errNew := fmt.Errorf("gmtls: VerifyPeerCertificate时发生错误: %s", err)
+			err1 := c.sendAlert(alertBadCertificate)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 
