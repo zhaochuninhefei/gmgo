@@ -154,12 +154,8 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 	}
 	clientHello, ok := msg.(*clientHelloMsg)
 	if !ok {
-		errNew := unexpectedMessageError(clientHello, msg)
-		err1 := c.sendAlert(alertUnexpectedMessage)
-		if err1 != nil {
-			return nil, fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return nil, errNew
+		_ = c.sendAlert(alertUnexpectedMessage)
+		return nil, unexpectedMessageError(clientHello, msg)
 	}
 	zclog.Debug("===== 服务端读取到 ClientHello")
 
@@ -168,12 +164,8 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 	if c.config.GetConfigForClient != nil {
 		chi := clientHelloInfo(ctx, c, clientHello)
 		if configForClient, err = c.config.GetConfigForClient(chi); err != nil {
-			errNew := fmt.Errorf("gmtls: GetConfigForClient时发生错误: %s", err)
-			err1 := c.sendAlert(alertInternalError)
-			if err1 != nil {
-				return nil, fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return nil, errNew
+			_ = c.sendAlert(alertInternalError)
+			return nil, fmt.Errorf("gmtls: GetConfigForClient时发生错误: %s", err)
 		} else if configForClient != nil {
 			c.config = configForClient
 		}
@@ -188,12 +180,8 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 	// 协商tls协议版本
 	c.vers, ok = c.config.mutualVersion(clientVersions)
 	if !ok {
-		errNew := fmt.Errorf("gmtls: client offered only unsupported versions: %x", clientVersions)
-		err1 := c.sendAlert(alertProtocolVersion)
-		if err1 != nil {
-			return nil, fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return nil, errNew
+		_ = c.sendAlert(alertProtocolVersion)
+		return nil, fmt.Errorf("gmtls: client offered only unsupported versions: %x", clientVersions)
 	}
 	zclog.Debug("===== 服务端选择本次tls连接使用的版本是:", ShowTLSVersion(int(c.vers)))
 	c.haveVers = true
@@ -219,10 +207,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 	}
 
 	if !foundCompression {
-		err := c.sendAlert(alertHandshakeFailure)
-		if err != nil {
-			return fmt.Errorf("gmtls: client does not support uncompressed connections. Error happened when sendAlert: %s", err)
-		}
+		_ = c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: client does not support uncompressed connections")
 	}
 
@@ -240,19 +225,12 @@ func (hs *serverHandshakeState) processClientHello() error {
 	}
 	_, err := io.ReadFull(c.config.rand(), serverRandom)
 	if err != nil {
-		errNew := fmt.Errorf("gmtls: 创建serverRandom失败: %s", err)
-		err1 := c.sendAlert(alertInternalError)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return errNew
+		_ = c.sendAlert(alertInternalError)
+		return fmt.Errorf("gmtls: 创建serverRandom失败: %s", err)
 	}
 
 	if len(hs.clientHello.secureRenegotiation) != 0 {
-		err := c.sendAlert(alertHandshakeFailure)
-		if err != nil {
-			return fmt.Errorf("gmtls: initial handshake had non-empty renegotiation extension. Error happened when sendAlert: %s", err)
-		}
+		_ = c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: initial handshake had non-empty renegotiation extension")
 	}
 
@@ -264,10 +242,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 
 	selectedProto, err := negotiateALPN(c.config.NextProtos, hs.clientHello.alpnProtocols)
 	if err != nil {
-		err1 := c.sendAlert(alertNoApplicationProtocol)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
-		}
+		_ = c.sendAlert(alertNoApplicationProtocol)
 		return err
 	}
 	hs.hello.alpnProtocol = selectedProto
@@ -281,10 +256,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 		} else {
 			alt = alertInternalError
 		}
-		err1 := c.sendAlert(alt)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
-		}
+		_ = c.sendAlert(alt)
 		return err
 	}
 	if hs.clientHello.scts {
@@ -311,12 +283,8 @@ func (hs *serverHandshakeState) processClientHello() error {
 		case *rsa.PublicKey:
 			hs.rsaSignOk = true
 		default:
-			errNew := fmt.Errorf("gmtls: unsupported signing key type (%T)", priv.Public())
-			err1 := c.sendAlert(alertInternalError)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertInternalError)
+			return fmt.Errorf("gmtls: unsupported signing key type (%T)", priv.Public())
 		}
 	}
 	if priv, ok := hs.cert.PrivateKey.(crypto.Decrypter); ok {
@@ -324,12 +292,8 @@ func (hs *serverHandshakeState) processClientHello() error {
 		case *rsa.PublicKey:
 			hs.rsaDecryptOk = true
 		default:
-			errNew := fmt.Errorf("gmtls: unsupported decryption key type (%T)", priv.Public())
-			err1 := c.sendAlert(alertInternalError)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertInternalError)
+			return fmt.Errorf("gmtls: unsupported decryption key type (%T)", priv.Public())
 		}
 	}
 
@@ -407,10 +371,7 @@ func (hs *serverHandshakeState) pickCipherSuite() error {
 
 	hs.suite = selectCipherSuite(preferenceList, hs.clientHello.cipherSuites, hs.cipherSuiteOk)
 	if hs.suite == nil {
-		err := c.sendAlert(alertHandshakeFailure)
-		if err != nil {
-			return fmt.Errorf("gmtls: no cipher suite supported by both client and server. Error happened when sendAlert: %s", err)
-		}
+		_ = c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: no cipher suite supported by both client and server")
 	}
 	c.cipherSuite = hs.suite.id
@@ -419,10 +380,7 @@ func (hs *serverHandshakeState) pickCipherSuite() error {
 		if id == TLS_FALLBACK_SCSV {
 			// The client is doing a fallback connection. See RFC 7507.
 			if hs.clientHello.vers < c.config.maxSupportedVersion() {
-				err := c.sendAlert(alertInappropriateFallback)
-				if err != nil {
-					return fmt.Errorf("gmtls: client using inappropriate protocol fallback. Error happened when sendAlert: %s", err)
-				}
+				_ = c.sendAlert(alertInappropriateFallback)
 				return errors.New("gmtls: client using inappropriate protocol fallback")
 			}
 			break
@@ -543,12 +501,8 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 
 	if c.config.VerifyConnection != nil {
 		if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
-			errNew := fmt.Errorf("gmtls: VerifyConnection时发生错误: %s", err)
-			err1 := c.sendAlert(alertBadCertificate)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertBadCertificate)
+			return fmt.Errorf("gmtls: VerifyConnection时发生错误: %s", err)
 		}
 	}
 
@@ -611,12 +565,8 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	keyAgreement := hs.suite.ka(c.vers)
 	skx, err := keyAgreement.generateServerKeyExchange(c.config, hs.cert, hs.clientHello, hs.hello)
 	if err != nil {
-		errNew := fmt.Errorf("gmtls: generateServerKeyExchange时发生错误: %s", err)
-		err1 := c.sendAlert(alertHandshakeFailure)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return errNew
+		_ = c.sendAlert(alertHandshakeFailure)
+		return fmt.Errorf("gmtls: generateServerKeyExchange时发生错误: %s", err)
 	}
 	if skx != nil {
 		_, err := hs.finishedHash.Write(skx.marshal())
@@ -683,12 +633,8 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	if c.config.ClientAuth >= RequestClientCert {
 		certMsg, ok := msg.(*certificateMsg)
 		if !ok {
-			errNew := unexpectedMessageError(certMsg, msg)
-			err1 := c.sendAlert(alertUnexpectedMessage)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertUnexpectedMessage)
+			return unexpectedMessageError(certMsg, msg)
 		}
 		_, err := hs.finishedHash.Write(certMsg.marshal())
 		if err != nil {
@@ -711,24 +657,16 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	}
 	if c.config.VerifyConnection != nil {
 		if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
-			errNew := fmt.Errorf("gmtls: VerifyConnection时发生错误: %s", err)
-			err1 := c.sendAlert(alertBadCertificate)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertBadCertificate)
+			return err
 		}
 	}
 
 	// Get client key exchange
 	ckx, ok := msg.(*clientKeyExchangeMsg)
 	if !ok {
-		errNew := unexpectedMessageError(ckx, msg)
-		err1 := c.sendAlert(alertUnexpectedMessage)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return errNew
+		_ = c.sendAlert(alertUnexpectedMessage)
+		return unexpectedMessageError(ckx, msg)
 	}
 	_, err = hs.finishedHash.Write(ckx.marshal())
 	if err != nil {
@@ -738,22 +676,14 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	// 获取预主密钥, 分为RSA与ECDHE
 	preMasterSecret, err := keyAgreement.processClientKeyExchange(c.config, hs.cert, ckx, c.vers)
 	if err != nil {
-		errNew := fmt.Errorf("gmtls: processClientKeyExchange时发生错误: %s", err)
-		err1 := c.sendAlert(alertHandshakeFailure)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return errNew
+		_ = c.sendAlert(alertHandshakeFailure)
+		return err
 	}
 	// 根据预主密钥，随机数C、S，使用PRF函数计算主密钥
 	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.clientHello.random, hs.hello.random)
 	if err := c.config.writeKeyLog(keyLogLabelTLS12, hs.clientHello.random, hs.masterSecret); err != nil {
-		errNew := fmt.Errorf("gmtls: 写入客户端随机数以及主密钥的日志时发生错误: %s", err)
-		err1 := c.sendAlert(alertInternalError)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return errNew
+		_ = c.sendAlert(alertInternalError)
+		return err
 	}
 
 	// If we received a client cert in response to our certificate request message,
@@ -769,22 +699,15 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		}
 		certVerify, ok := msg.(*certificateVerifyMsg)
 		if !ok {
-			errNew := unexpectedMessageError(certVerify, msg)
-			err1 := c.sendAlert(alertUnexpectedMessage)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertUnexpectedMessage)
+			return unexpectedMessageError(certVerify, msg)
 		}
 
 		var sigType uint8
 		var sigHash x509.Hash
 		if c.vers >= VersionTLS12 {
 			if !isSupportedSignatureAlgorithm(certVerify.signatureAlgorithm, certReq.supportedSignatureAlgorithms) {
-				err := c.sendAlert(alertIllegalParameter)
-				if err != nil {
-					return fmt.Errorf("gmtls: client certificate used with invalid signature algorithm. Error happened when sendAlert: %s", err)
-				}
+				_ = c.sendAlert(alertIllegalParameter)
 				return errors.New("gmtls: client certificate used with invalid signature algorithm")
 			}
 			sigType, sigHash, err = typeAndHashFromSignatureScheme(certVerify.signatureAlgorithm)
@@ -794,22 +717,15 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		} else {
 			sigType, sigHash, err = legacyTypeAndHashFromPublicKey(pub)
 			if err != nil {
-				err1 := c.sendAlert(alertIllegalParameter)
-				if err1 != nil {
-					return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
-				}
+				_ = c.sendAlert(alertIllegalParameter)
 				return err
 			}
 		}
 
 		signed := hs.finishedHash.hashForClientCertificate(sigType, sigHash, hs.masterSecret)
 		if err := verifyHandshakeSignature(sigType, pub, sigHash, signed, certVerify.signature); err != nil {
-			errNew := fmt.Errorf("gmtls: invalid signature by the client certificate: %s", err)
-			err1 := c.sendAlert(alertDecryptError)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertDecryptError)
+			return fmt.Errorf("gmtls: invalid signature by the client certificate: %s", err)
 		}
 
 		_, err := hs.finishedHash.Write(certVerify.marshal())
@@ -862,21 +778,14 @@ func (hs *serverHandshakeState) readFinished(out []byte) error {
 	}
 	clientFinished, ok := msg.(*finishedMsg)
 	if !ok {
-		errNew := unexpectedMessageError(clientFinished, msg)
-		err1 := c.sendAlert(alertUnexpectedMessage)
-		if err1 != nil {
-			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-		}
-		return errNew
+		_ = c.sendAlert(alertUnexpectedMessage)
+		return unexpectedMessageError(clientFinished, msg)
 	}
 
 	verify := hs.finishedHash.clientSum(hs.masterSecret)
 	if len(verify) != len(clientFinished.verifyData) ||
 		subtle.ConstantTimeCompare(verify, clientFinished.verifyData) != 1 {
-		err := c.sendAlert(alertHandshakeFailure)
-		if err != nil {
-			return fmt.Errorf("gmtls: client's Finished message is incorrect. Error happened when sendAlert: %s", err)
-		}
+		_ = c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: client's Finished message is incorrect")
 	}
 
@@ -966,20 +875,13 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 	var err error
 	for i, asn1Data := range certificates {
 		if certs[i], err = x509.ParseCertificate(asn1Data); err != nil {
-			errNew := fmt.Errorf("gmtls: failed to parse client certificate: %s", err)
-			err1 := c.sendAlert(alertBadCertificate)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertBadCertificate)
+			return fmt.Errorf("gmtls: failed to parse client certificate: %s", err)
 		}
 	}
 
 	if len(certs) == 0 && requiresClientCert(c.config.ClientAuth) {
-		err := c.sendAlert(alertBadCertificate)
-		if err != nil {
-			return fmt.Errorf("gmtls: client didn't provide a certificate. Error happened when sendAlert: %s", err)
-		}
+		_ = c.sendAlert(alertBadCertificate)
 		return errors.New("gmtls: client didn't provide a certificate")
 	}
 
@@ -997,12 +899,8 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 		// 从子证书开始验证签名并尝试构建信任链
 		chains, err := certs[0].Verify(opts)
 		if err != nil {
-			errNew := fmt.Errorf("gmtls: failed to verify client certificate: %s", err)
-			err1 := c.sendAlert(alertBadCertificate)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertBadCertificate)
+			return fmt.Errorf("gmtls: failed to verify client certificate: %s", err)
 		}
 
 		c.verifiedChains = chains
@@ -1017,23 +915,15 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 		switch certs[0].PublicKey.(type) {
 		case *sm2.PublicKey, *ecdsa.PublicKey, *rsa.PublicKey, ed25519.PublicKey:
 		default:
-			errNew := fmt.Errorf("gmtls: client certificate contains an unsupported public key of type %T", certs[0].PublicKey)
-			err1 := c.sendAlert(alertUnsupportedCertificate)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertUnsupportedCertificate)
+			return fmt.Errorf("gmtls: client certificate contains an unsupported public key of type %T", certs[0].PublicKey)
 		}
 	}
 
 	if c.config.VerifyPeerCertificate != nil {
 		if err := c.config.VerifyPeerCertificate(certificates, c.verifiedChains); err != nil {
-			errNew := fmt.Errorf("gmtls: VerifyPeerCertificate时发生错误: %s", err)
-			err1 := c.sendAlert(alertBadCertificate)
-			if err1 != nil {
-				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
-			}
-			return errNew
+			_ = c.sendAlert(alertBadCertificate)
+			return fmt.Errorf("gmtls: VerifyPeerCertificate时发生错误: %s", err)
 		}
 	}
 
