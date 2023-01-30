@@ -523,8 +523,14 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 	hs.hello.ticketSupported = hs.sessionState.usedOldKey
 	hs.finishedHash = newFinishedHash(c.vers, hs.suite)
 	hs.finishedHash.discardHandshakeBuffer()
-	hs.finishedHash.Write(hs.clientHello.marshal())
-	hs.finishedHash.Write(hs.hello.marshal())
+	_, err := hs.finishedHash.Write(hs.clientHello.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入clientHello时发生错误: %s", err)
+	}
+	_, err = hs.finishedHash.Write(hs.hello.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入serverHello时发生错误: %s", err)
+	}
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
@@ -537,8 +543,12 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 
 	if c.config.VerifyConnection != nil {
 		if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
-			c.sendAlert(alertBadCertificate)
-			return err
+			errNew := fmt.Errorf("gmtls: VerifyConnection时发生错误: %s", err)
+			err1 := c.sendAlert(alertBadCertificate)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 
