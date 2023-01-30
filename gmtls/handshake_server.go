@@ -311,8 +311,12 @@ func (hs *serverHandshakeState) processClientHello() error {
 		case *rsa.PublicKey:
 			hs.rsaSignOk = true
 		default:
-			c.sendAlert(alertInternalError)
-			return fmt.Errorf("gmtls: unsupported signing key type (%T)", priv.Public())
+			errNew := fmt.Errorf("gmtls: unsupported signing key type (%T)", priv.Public())
+			err1 := c.sendAlert(alertInternalError)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 	if priv, ok := hs.cert.PrivateKey.(crypto.Decrypter); ok {
@@ -320,8 +324,12 @@ func (hs *serverHandshakeState) processClientHello() error {
 		case *rsa.PublicKey:
 			hs.rsaDecryptOk = true
 		default:
-			c.sendAlert(alertInternalError)
-			return fmt.Errorf("gmtls: unsupported decryption key type (%T)", priv.Public())
+			errNew := fmt.Errorf("gmtls: unsupported decryption key type (%T)", priv.Public())
+			err1 := c.sendAlert(alertInternalError)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 
