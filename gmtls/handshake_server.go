@@ -481,14 +481,8 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 	hs.hello.ticketSupported = hs.sessionState.usedOldKey
 	hs.finishedHash = newFinishedHash(c.vers, hs.suite)
 	hs.finishedHash.discardHandshakeBuffer()
-	_, err := hs.finishedHash.Write(hs.clientHello.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入clientHello时发生错误: %s", err)
-	}
-	_, err = hs.finishedHash.Write(hs.hello.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入serverHello时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(hs.clientHello.marshal())
+	_, _ = hs.finishedHash.Write(hs.hello.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
@@ -528,24 +522,15 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		// certificates won't be used.
 		hs.finishedHash.discardHandshakeBuffer()
 	}
-	_, err := hs.finishedHash.Write(hs.clientHello.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入clientHello时发生错误: %s", err)
-	}
-	_, err = hs.finishedHash.Write(hs.hello.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入serverHello时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(hs.clientHello.marshal())
+	_, _ = hs.finishedHash.Write(hs.hello.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
 
 	certMsg := new(certificateMsg)
 	certMsg.certificates = hs.cert.Certificate
-	_, err = hs.finishedHash.Write(certMsg.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入certMsg时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(certMsg.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 		return err
 	}
@@ -553,10 +538,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	if hs.hello.ocspStapling {
 		certStatus := new(certificateStatusMsg)
 		certStatus.response = hs.cert.OCSPStaple
-		_, err := hs.finishedHash.Write(certStatus.marshal())
-		if err != nil {
-			return fmt.Errorf("gmtls: 向finishedHash写入certStatus时发生错误: %s", err)
-		}
+		_, _ = hs.finishedHash.Write(certStatus.marshal())
 		if _, err := c.writeRecord(recordTypeHandshake, certStatus.marshal()); err != nil {
 			return err
 		}
@@ -569,10 +551,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		return fmt.Errorf("gmtls: generateServerKeyExchange时发生错误: %s", err)
 	}
 	if skx != nil {
-		_, err := hs.finishedHash.Write(skx.marshal())
-		if err != nil {
-			return fmt.Errorf("gmtls: 向finishedHash写入ServerKeyExchange时发生错误: %s", err)
-		}
+		_, _ = hs.finishedHash.Write(skx.marshal())
 		if _, err := c.writeRecord(recordTypeHandshake, skx.marshal()); err != nil {
 			return err
 		}
@@ -599,20 +578,14 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		if c.config.ClientCAs != nil {
 			certReq.certificateAuthorities = c.config.ClientCAs.Subjects()
 		}
-		_, err := hs.finishedHash.Write(certReq.marshal())
-		if err != nil {
-			return fmt.Errorf("gmtls: 向finishedHash写入certReq时发生错误: %s", err)
-		}
+		_, _ = hs.finishedHash.Write(certReq.marshal())
 		if _, err := c.writeRecord(recordTypeHandshake, certReq.marshal()); err != nil {
 			return err
 		}
 	}
 
 	helloDone := new(serverHelloDoneMsg)
-	_, err = hs.finishedHash.Write(helloDone.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入helloDone时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(helloDone.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, helloDone.marshal()); err != nil {
 		return err
 	}
@@ -636,10 +609,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 			_ = c.sendAlert(alertUnexpectedMessage)
 			return unexpectedMessageError(certMsg, msg)
 		}
-		_, err := hs.finishedHash.Write(certMsg.marshal())
-		if err != nil {
-			return fmt.Errorf("gmtls: 向finishedHash写入certMsg时发生错误: %s", err)
-		}
+		_, _ = hs.finishedHash.Write(certMsg.marshal())
 
 		if err := c.processCertsFromClient(Certificate{
 			Certificate: certMsg.certificates,
@@ -668,10 +638,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		_ = c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(ckx, msg)
 	}
-	_, err = hs.finishedHash.Write(ckx.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入ClientKeyExchange时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(ckx.marshal())
 
 	// 获取预主密钥, 分为RSA与ECDHE
 	preMasterSecret, err := keyAgreement.processClientKeyExchange(c.config, hs.cert, ckx, c.vers)
@@ -728,10 +695,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 			return fmt.Errorf("gmtls: invalid signature by the client certificate: %s", err)
 		}
 
-		_, err := hs.finishedHash.Write(certVerify.marshal())
-		if err != nil {
-			return fmt.Errorf("gmtls: 向finishedHash写入certVerify时发生错误: %s", err)
-		}
+		_, _ = hs.finishedHash.Write(certVerify.marshal())
 	}
 
 	hs.finishedHash.discardHandshakeBuffer()
@@ -789,10 +753,7 @@ func (hs *serverHandshakeState) readFinished(out []byte) error {
 		return errors.New("gmtls: client's Finished message is incorrect")
 	}
 
-	_, err = hs.finishedHash.Write(clientFinished.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入clientFinished时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(clientFinished.marshal())
 	copy(out, verify)
 	return nil
 }
@@ -832,10 +793,7 @@ func (hs *serverHandshakeState) sendSessionTicket() error {
 		return err
 	}
 
-	_, err = hs.finishedHash.Write(m.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入SessionTicket时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(m.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, m.marshal()); err != nil {
 		return err
 	}
@@ -852,10 +810,7 @@ func (hs *serverHandshakeState) sendFinished(out []byte) error {
 
 	finished := new(finishedMsg)
 	finished.verifyData = hs.finishedHash.serverSum(hs.masterSecret)
-	_, err := hs.finishedHash.Write(finished.marshal())
-	if err != nil {
-		return fmt.Errorf("gmtls: 向finishedHash写入finished时发生错误: %s", err)
-	}
+	_, _ = hs.finishedHash.Write(finished.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, finished.marshal()); err != nil {
 		return err
 	}
