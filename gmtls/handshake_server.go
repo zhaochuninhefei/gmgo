@@ -862,18 +862,28 @@ func (hs *serverHandshakeState) readFinished(out []byte) error {
 	}
 	clientFinished, ok := msg.(*finishedMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
-		return unexpectedMessageError(clientFinished, msg)
+		errNew := unexpectedMessageError(clientFinished, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return errNew
 	}
 
 	verify := hs.finishedHash.clientSum(hs.masterSecret)
 	if len(verify) != len(clientFinished.verifyData) ||
 		subtle.ConstantTimeCompare(verify, clientFinished.verifyData) != 1 {
-		c.sendAlert(alertHandshakeFailure)
+		err := c.sendAlert(alertHandshakeFailure)
+		if err != nil {
+			return fmt.Errorf("gmtls: client's Finished message is incorrect. Error happened when sendAlert: %s", err)
+		}
 		return errors.New("gmtls: client's Finished message is incorrect")
 	}
 
-	hs.finishedHash.Write(clientFinished.marshal())
+	_, err = hs.finishedHash.Write(clientFinished.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入clientFinished时发生错误: %s", err)
+	}
 	copy(out, verify)
 	return nil
 }
