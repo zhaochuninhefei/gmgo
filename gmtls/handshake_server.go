@@ -649,14 +649,20 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		if c.config.ClientCAs != nil {
 			certReq.certificateAuthorities = c.config.ClientCAs.Subjects()
 		}
-		hs.finishedHash.Write(certReq.marshal())
+		_, err := hs.finishedHash.Write(certReq.marshal())
+		if err != nil {
+			return fmt.Errorf("gmtls: 向finishedHash写入certReq时发生错误: %s", err)
+		}
 		if _, err := c.writeRecord(recordTypeHandshake, certReq.marshal()); err != nil {
 			return err
 		}
 	}
 
 	helloDone := new(serverHelloDoneMsg)
-	hs.finishedHash.Write(helloDone.marshal())
+	_, err = hs.finishedHash.Write(helloDone.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入helloDone时发生错误: %s", err)
+	}
 	if _, err := c.writeRecord(recordTypeHandshake, helloDone.marshal()); err != nil {
 		return err
 	}
@@ -677,10 +683,17 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	if c.config.ClientAuth >= RequestClientCert {
 		certMsg, ok := msg.(*certificateMsg)
 		if !ok {
-			c.sendAlert(alertUnexpectedMessage)
-			return unexpectedMessageError(certMsg, msg)
+			errNew := unexpectedMessageError(certMsg, msg)
+			err1 := c.sendAlert(alertUnexpectedMessage)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
-		hs.finishedHash.Write(certMsg.marshal())
+		_, err := hs.finishedHash.Write(certMsg.marshal())
+		if err != nil {
+			return fmt.Errorf("gmtls: 向finishedHash写入certMsg时发生错误: %s", err)
+		}
 
 		if err := c.processCertsFromClient(Certificate{
 			Certificate: certMsg.certificates,
@@ -698,30 +711,49 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	}
 	if c.config.VerifyConnection != nil {
 		if err := c.config.VerifyConnection(c.connectionStateLocked()); err != nil {
-			c.sendAlert(alertBadCertificate)
-			return err
+			errNew := fmt.Errorf("gmtls: VerifyConnection时发生错误: %s", err)
+			err1 := c.sendAlert(alertBadCertificate)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 	}
 
 	// Get client key exchange
 	ckx, ok := msg.(*clientKeyExchangeMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
-		return unexpectedMessageError(ckx, msg)
+		errNew := unexpectedMessageError(ckx, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return errNew
 	}
-	hs.finishedHash.Write(ckx.marshal())
+	_, err = hs.finishedHash.Write(ckx.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入ClientKeyExchange时发生错误: %s", err)
+	}
 
 	// 获取预主密钥, 分为RSA与ECDHE
 	preMasterSecret, err := keyAgreement.processClientKeyExchange(c.config, hs.cert, ckx, c.vers)
 	if err != nil {
-		c.sendAlert(alertHandshakeFailure)
-		return err
+		errNew := fmt.Errorf("gmtls: processClientKeyExchange时发生错误: %s", err)
+		err1 := c.sendAlert(alertHandshakeFailure)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return errNew
 	}
 	// 根据预主密钥，随机数C、S，使用PRF函数计算主密钥
 	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.clientHello.random, hs.hello.random)
 	if err := c.config.writeKeyLog(keyLogLabelTLS12, hs.clientHello.random, hs.masterSecret); err != nil {
-		c.sendAlert(alertInternalError)
-		return err
+		errNew := fmt.Errorf("gmtls: 写入客户端随机数以及主密钥的日志时发生错误: %s", err)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return errNew
 	}
 
 	// If we received a client cert in response to our certificate request message,
@@ -737,15 +769,22 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		}
 		certVerify, ok := msg.(*certificateVerifyMsg)
 		if !ok {
-			c.sendAlert(alertUnexpectedMessage)
-			return unexpectedMessageError(certVerify, msg)
+			errNew := unexpectedMessageError(certVerify, msg)
+			err1 := c.sendAlert(alertUnexpectedMessage)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 
 		var sigType uint8
 		var sigHash x509.Hash
 		if c.vers >= VersionTLS12 {
 			if !isSupportedSignatureAlgorithm(certVerify.signatureAlgorithm, certReq.supportedSignatureAlgorithms) {
-				c.sendAlert(alertIllegalParameter)
+				err := c.sendAlert(alertIllegalParameter)
+				if err != nil {
+					return fmt.Errorf("gmtls: client certificate used with invalid signature algorithm. Error happened when sendAlert: %s", err)
+				}
 				return errors.New("gmtls: client certificate used with invalid signature algorithm")
 			}
 			sigType, sigHash, err = typeAndHashFromSignatureScheme(certVerify.signatureAlgorithm)
@@ -755,18 +794,28 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		} else {
 			sigType, sigHash, err = legacyTypeAndHashFromPublicKey(pub)
 			if err != nil {
-				c.sendAlert(alertIllegalParameter)
+				err1 := c.sendAlert(alertIllegalParameter)
+				if err1 != nil {
+					return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
+				}
 				return err
 			}
 		}
 
 		signed := hs.finishedHash.hashForClientCertificate(sigType, sigHash, hs.masterSecret)
 		if err := verifyHandshakeSignature(sigType, pub, sigHash, signed, certVerify.signature); err != nil {
-			c.sendAlert(alertDecryptError)
-			return errors.New("gmtls: invalid signature by the client certificate: " + err.Error())
+			errNew := fmt.Errorf("gmtls: invalid signature by the client certificate: %s", err)
+			err1 := c.sendAlert(alertDecryptError)
+			if err1 != nil {
+				return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return errNew
 		}
 
-		hs.finishedHash.Write(certVerify.marshal())
+		_, err := hs.finishedHash.Write(certVerify.marshal())
+		if err != nil {
+			return fmt.Errorf("gmtls: 向finishedHash写入certVerify时发生错误: %s", err)
+		}
 	}
 
 	hs.finishedHash.discardHandshakeBuffer()
