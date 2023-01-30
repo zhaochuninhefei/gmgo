@@ -3,7 +3,7 @@ module gitee.com/zhaochuninhefei/gmgo
 go 1.17
 
 require (
-	gitee.com/zhaochuninhefei/zcgolog v0.0.15
+	gitee.com/zhaochuninhefei/zcgolog v0.0.16
 	github.com/census-instrumentation/opencensus-proto v0.2.1
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4
