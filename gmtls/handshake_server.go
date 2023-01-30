@@ -264,7 +264,10 @@ func (hs *serverHandshakeState) processClientHello() error {
 
 	selectedProto, err := negotiateALPN(c.config.NextProtos, hs.clientHello.alpnProtocols)
 	if err != nil {
-		c.sendAlert(alertNoApplicationProtocol)
+		err1 := c.sendAlert(alertNoApplicationProtocol)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
+		}
 		return err
 	}
 	hs.hello.alpnProtocol = selectedProto
@@ -272,10 +275,15 @@ func (hs *serverHandshakeState) processClientHello() error {
 
 	hs.cert, err = c.config.getCertificate(clientHelloInfo(hs.ctx, c, hs.clientHello))
 	if err != nil {
+		var alt alert
 		if err == errNoCertificates {
-			c.sendAlert(alertUnrecognizedName)
+			alt = alertUnrecognizedName
 		} else {
-			c.sendAlert(alertInternalError)
+			alt = alertInternalError
+		}
+		err1 := c.sendAlert(alt)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", err, err1)
 		}
 		return err
 	}
