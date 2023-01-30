@@ -574,15 +574,24 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		// certificates won't be used.
 		hs.finishedHash.discardHandshakeBuffer()
 	}
-	hs.finishedHash.Write(hs.clientHello.marshal())
-	hs.finishedHash.Write(hs.hello.marshal())
+	_, err := hs.finishedHash.Write(hs.clientHello.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入clientHello时发生错误: %s", err)
+	}
+	_, err = hs.finishedHash.Write(hs.hello.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入serverHello时发生错误: %s", err)
+	}
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
 
 	certMsg := new(certificateMsg)
 	certMsg.certificates = hs.cert.Certificate
-	hs.finishedHash.Write(certMsg.marshal())
+	_, err = hs.finishedHash.Write(certMsg.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入certMsg时发生错误: %s", err)
+	}
 	if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 		return err
 	}
@@ -590,7 +599,10 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	if hs.hello.ocspStapling {
 		certStatus := new(certificateStatusMsg)
 		certStatus.response = hs.cert.OCSPStaple
-		hs.finishedHash.Write(certStatus.marshal())
+		_, err := hs.finishedHash.Write(certStatus.marshal())
+		if err != nil {
+			return fmt.Errorf("gmtls: 向finishedHash写入certStatus时发生错误: %s", err)
+		}
 		if _, err := c.writeRecord(recordTypeHandshake, certStatus.marshal()); err != nil {
 			return err
 		}
@@ -599,11 +611,18 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	keyAgreement := hs.suite.ka(c.vers)
 	skx, err := keyAgreement.generateServerKeyExchange(c.config, hs.cert, hs.clientHello, hs.hello)
 	if err != nil {
-		c.sendAlert(alertHandshakeFailure)
-		return err
+		errNew := fmt.Errorf("gmtls: generateServerKeyExchange时发生错误: %s", err)
+		err1 := c.sendAlert(alertHandshakeFailure)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return errNew
 	}
 	if skx != nil {
-		hs.finishedHash.Write(skx.marshal())
+		_, err := hs.finishedHash.Write(skx.marshal())
+		if err != nil {
+			return fmt.Errorf("gmtls: 向finishedHash写入ServerKeyExchange时发生错误: %s", err)
+		}
 		if _, err := c.writeRecord(recordTypeHandshake, skx.marshal()); err != nil {
 			return err
 		}
