@@ -662,10 +662,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 	// is always < 256 bytes long. Therefore typ == 0x80 strongly suggests
 	// an SSLv2 client.
 	if !handshakeComplete && typ == 0x80 {
-		err := c.sendAlert(alertProtocolVersion)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertProtocolVersion)
 		return c.in.setErrorLocked(c.newRecordHeaderError(nil, "unsupported SSLv2 handshake received"))
 	}
 
@@ -673,10 +670,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 	n := int(hdr[3])<<8 | int(hdr[4])
 	// gmssl采用tls1.3的处理
 	if c.haveVers && c.vers != VersionTLS13 && c.vers != VersionGMSSL && vers != c.vers {
-		err := c.sendAlert(alertProtocolVersion)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertProtocolVersion)
 		msg := fmt.Sprintf("received record with version %x when expecting version %x", vers, c.vers)
 		return c.in.setErrorLocked(c.newRecordHeaderError(nil, msg))
 	}
@@ -690,10 +684,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		}
 	}
 	if (c.vers == VersionTLS13 || c.vers == VersionGMSSL) && n > maxCiphertextTLS13 || n > maxCiphertext {
-		err := c.sendAlert(alertRecordOverflow)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertRecordOverflow)
 		msg := fmt.Sprintf("oversized record received with length %d", n)
 		return c.in.setErrorLocked(c.newRecordHeaderError(nil, msg))
 	}
@@ -808,10 +799,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 func (c *Conn) retryReadRecord(expectChangeCipherSpec bool) error {
 	c.retryCount++
 	if c.retryCount > maxUselessRecords {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertUnexpectedMessage)
 		return c.in.setErrorLocked(errors.New("gmtls: too many ignored records"))
 	}
 	return c.readRecordOrCCS(expectChangeCipherSpec)
@@ -1231,10 +1219,7 @@ func (c *Conn) handleRenegotiation() error {
 
 	helloReq, ok := msg.(*helloRequestMsg)
 	if !ok {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(helloReq, msg)
 	}
 
@@ -1252,10 +1237,7 @@ func (c *Conn) handleRenegotiation() error {
 	case RenegotiateFreelyAsClient:
 		// Ok.
 	default:
-		err := c.sendAlert(alertInternalError)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertInternalError)
 		return errors.New("gmtls: unknown Renegotiation value")
 	}
 
@@ -1285,10 +1267,7 @@ func (c *Conn) handlePostHandshakeMessage() error {
 
 	c.retryCount++
 	if c.retryCount > maxUselessRecords {
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertUnexpectedMessage)
 		return c.in.setErrorLocked(errors.New("gmtls: too many non-advancing records"))
 	}
 
@@ -1300,10 +1279,7 @@ func (c *Conn) handlePostHandshakeMessage() error {
 		zclog.Debug("===== 客户端/服务端接收到 keyUpdateMsg")
 		return c.handleKeyUpdate(msg)
 	default:
-		err := c.sendAlert(alertUnexpectedMessage)
-		if err != nil {
-			return err
-		}
+		_ = c.sendAlert(alertUnexpectedMessage)
 		return fmt.Errorf("gmtls: received unexpected handshake message of type %T", msg)
 	}
 }
