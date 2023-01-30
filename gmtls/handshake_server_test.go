@@ -46,8 +46,8 @@ func testClientHelloFailure(t *testing.T, serverConfig *Config, m handshakeMessa
 		if ch, ok := m.(*clientHelloMsg); ok {
 			cli.vers = ch.vers
 		}
-		cli.writeRecord(recordTypeHandshake, m.marshal())
-		c.Close()
+		_, _ = cli.writeRecord(recordTypeHandshake, m.marshal())
+		_ = c.Close()
 	}()
 	ctx := context.Background()
 	conn := Server(s, serverConfig)
@@ -63,7 +63,7 @@ func testClientHelloFailure(t *testing.T, serverConfig *Config, m handshakeMessa
 	if err == nil {
 		err = hs.pickCipherSuite()
 	}
-	s.Close()
+	_ = s.Close()
 	if len(expectedSubStr) == 0 {
 		if err != nil && err != io.EOF {
 			t.Errorf("Got error: %s; expected to succeed", err)
@@ -203,7 +203,7 @@ func TestRenegotiationExtension(t *testing.T) {
 	go func() {
 		cli := Client(c, testConfig)
 		cli.vers = clientHello.vers
-		cli.writeRecord(recordTypeHandshake, clientHello.marshal())
+		_, _ = cli.writeRecord(recordTypeHandshake, clientHello.marshal())
 
 		buf := make([]byte, 1024)
 		n, err := c.Read(buf)
@@ -211,11 +211,11 @@ func TestRenegotiationExtension(t *testing.T) {
 			t.Errorf("Server read returned error: %s", err)
 			return
 		}
-		c.Close()
+		_ = c.Close()
 		bufChan <- buf[:n]
 	}()
 
-	Server(s, testConfig).Handshake()
+	_ = Server(s, testConfig).Handshake()
 	buf := <-bufChan
 
 	if len(buf) < 5+4 {
@@ -262,9 +262,9 @@ func TestTLS12OnlyCipherSuites(t *testing.T) {
 	go func() {
 		cli := Client(c, testConfig)
 		cli.vers = clientHello.vers
-		cli.writeRecord(recordTypeHandshake, clientHello.marshal())
+		_, _ = cli.writeRecord(recordTypeHandshake, clientHello.marshal())
 		reply, err := cli.readHandshake()
-		c.Close()
+		_ = c.Close()
 		if err != nil {
 			replyChan <- err
 		} else {
@@ -273,8 +273,8 @@ func TestTLS12OnlyCipherSuites(t *testing.T) {
 	}()
 	config := testConfig.Clone()
 	config.CipherSuites = clientHello.cipherSuites
-	Server(s, config).Handshake()
-	s.Close()
+	_ = Server(s, config).Handshake()
+	_ = s.Close()
 	reply := <-replyChan
 	if err, ok := reply.(error); ok {
 		t.Fatal(err)
@@ -317,9 +317,9 @@ func TestTLSPointFormats(t *testing.T) {
 			go func() {
 				cli := Client(c, testConfig)
 				cli.vers = clientHello.vers
-				cli.writeRecord(recordTypeHandshake, clientHello.marshal())
+				_, _ = cli.writeRecord(recordTypeHandshake, clientHello.marshal())
 				reply, err := cli.readHandshake()
-				c.Close()
+				_ = c.Close()
 				if err != nil {
 					replyChan <- err
 				} else {
@@ -328,8 +328,8 @@ func TestTLSPointFormats(t *testing.T) {
 			}()
 			config := testConfig.Clone()
 			config.CipherSuites = clientHello.cipherSuites
-			Server(s, config).Handshake()
-			s.Close()
+			_ = Server(s, config).Handshake()
+			_ = s.Close()
 			reply := <-replyChan
 			if err, ok := reply.(error); ok {
 				t.Fatal(err)
@@ -364,12 +364,12 @@ func TestTLSPointFormats(t *testing.T) {
 func TestAlertForwarding(t *testing.T) {
 	c, s := localPipe(t)
 	go func() {
-		Client(c, testConfig).sendAlert(alertUnknownCA)
-		c.Close()
+		_ = Client(c, testConfig).sendAlert(alertUnknownCA)
+		_ = c.Close()
 	}()
 
 	err := Server(s, testConfig).Handshake()
-	s.Close()
+	_ = s.Close()
 	var opErr *net.OpError
 	if !errors.As(err, &opErr) || opErr.Err != error(alertUnknownCA) {
 		t.Errorf("Got error: %s; expected: %s", err, error(alertUnknownCA))
@@ -378,10 +378,12 @@ func TestAlertForwarding(t *testing.T) {
 
 func TestClose(t *testing.T) {
 	c, s := localPipe(t)
-	go c.Close()
+	go func() {
+		_ = c.Close()
+	}()
 
 	err := Server(s, testConfig).Handshake()
-	s.Close()
+	_ = s.Close()
 	if err != io.EOF {
 		t.Errorf("Got error: %s; expected: %s", err, io.EOF)
 	}
@@ -471,6 +473,7 @@ func TestCrossVersionResume(t *testing.T) {
 	t.Run("TLSv13", func(t *testing.T) { testCrossVersionResume(t, VersionTLS13) })
 }
 
+//goland:noinspection GoUnusedParameter
 func testCrossVersionResume(t *testing.T, version uint16) {
 	serverConfig := &Config{
 		CipherSuites: []uint16{TLS_RSA_WITH_AES_128_CBC_SHA},
@@ -571,7 +574,9 @@ func (test *serverTest) connFromCommand() (conn *recordingConn, child *exec.Cmd,
 	if err != nil {
 		return nil, nil, err
 	}
-	defer l.Close()
+	defer func(l *net.TCPListener) {
+		_ = l.Close()
+	}(l)
 
 	port := l.Addr().(*net.TCPAddr).Port
 
@@ -628,7 +633,9 @@ func (test *serverTest) loadData() (flows [][]byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer in.Close()
+	defer func(in *os.File) {
+		_ = in.Close()
+	}(in)
 	return parseTestData(in)
 }
 
@@ -671,8 +678,8 @@ func (test *serverTest) run(t *testing.T, write bool) {
 				t.Logf("Error from Server.Write: '%s'", err)
 			}
 		}
-		server.Close()
-		serverConn.Close()
+		_ = server.Close()
+		_ = serverConn.Close()
 		connStateChan <- server.ConnectionState()
 	}()
 
@@ -684,18 +691,18 @@ func (test *serverTest) run(t *testing.T, write bool) {
 		for i, b := range flows {
 			if i%2 == 0 {
 				if *fast {
-					clientConn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+					_ = clientConn.SetWriteDeadline(time.Now().Add(1 * time.Second))
 				} else {
-					clientConn.SetWriteDeadline(time.Now().Add(1 * time.Minute))
+					_ = clientConn.SetWriteDeadline(time.Now().Add(1 * time.Minute))
 				}
-				clientConn.Write(b)
+				_, _ = clientConn.Write(b)
 				continue
 			}
 			bb := make([]byte, len(b))
 			if *fast {
-				clientConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+				_ = clientConn.SetReadDeadline(time.Now().Add(1 * time.Second))
 			} else {
-				clientConn.SetReadDeadline(time.Now().Add(1 * time.Minute))
+				_ = clientConn.SetReadDeadline(time.Now().Add(1 * time.Minute))
 			}
 			n, err := io.ReadFull(clientConn, bb)
 			if err != nil {
@@ -705,7 +712,7 @@ func (test *serverTest) run(t *testing.T, write bool) {
 				t.Fatalf("%s #%d: mismatch on read: got:%x want:%x", test.name, i+1, bb, b)
 			}
 		}
-		clientConn.Close()
+		_ = clientConn.Close()
 	}
 
 	connState := <-connStateChan
@@ -733,16 +740,18 @@ func (test *serverTest) run(t *testing.T, write bool) {
 		if err != nil {
 			t.Fatalf("Failed to create output file: %s", err)
 		}
-		defer out.Close()
-		recordingConn.Close()
+		defer func(out *os.File) {
+			_ = out.Close()
+		}(out)
+		_ = recordingConn.Close()
 		if len(recordingConn.flows) < 3 {
 			if len(test.expectHandshakeErrorIncluding) == 0 {
 				t.Fatalf("Handshake failed")
 			}
 		}
-		recordingConn.WriteTo(out)
+		_, _ = recordingConn.WriteTo(out)
 		t.Logf("Wrote %s\n", path)
-		childProcess.Wait()
+		_ = childProcess.Wait()
 	}
 }
 
@@ -912,6 +921,7 @@ func TestHandshakeServerALPN(t *testing.T) {
 		validate: func(state ConnectionState) error {
 			// The server's preferences should override the client.
 			if state.NegotiatedProtocol != "proto1" {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got protocol %q, wanted proto1", state.NegotiatedProtocol)
 			}
 			return nil
@@ -949,6 +959,7 @@ func TestHandshakeServerALPNNotConfigured(t *testing.T) {
 		config:  config,
 		validate: func(state ConnectionState) error {
 			if state.NegotiatedProtocol != "" {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got protocol %q, wanted nothing", state.NegotiatedProtocol)
 			}
 			return nil
@@ -970,6 +981,7 @@ func TestHandshakeServerALPNFallback(t *testing.T) {
 		config:  config,
 		validate: func(state ConnectionState) error {
 			if state.NegotiatedProtocol != "" {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got protocol %q, wanted nothing", state.NegotiatedProtocol)
 			}
 			return nil
@@ -1082,7 +1094,9 @@ func TestHandshakeServerEmptyCertificates(t *testing.T) {
 
 func TestServerResumption(t *testing.T) {
 	sessionFilePath := tempFile("")
-	defer os.Remove(sessionFilePath)
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(sessionFilePath)
 
 	testIssue := &serverTest{
 		name:    "IssueTicket",
@@ -1127,7 +1141,9 @@ func TestServerResumption(t *testing.T) {
 
 func TestServerResumptionDisabled(t *testing.T) {
 	sessionFilePath := tempFile("")
-	defer os.Remove(sessionFilePath)
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(sessionFilePath)
 
 	config := testConfig.Clone()
 
@@ -1183,6 +1199,7 @@ func TestHandshakeServerExportKeyingMaterial(t *testing.T) {
 			if km, err := state.ExportKeyingMaterial("test", nil, 42); err != nil {
 				return fmt.Errorf("ExportKeyingMaterial failed: %v", err)
 			} else if len(km) != 42 {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got %d bytes from ExportKeyingMaterial, wanted %d", len(km), 42)
 			}
 			return nil
@@ -1252,13 +1269,13 @@ func benchmarkHandshakeServer(b *testing.B, version uint16, cipherSuite uint16, 
 		config.MaxVersion = version
 		config.CurvePreferences = []CurveID{curve}
 		client := Client(clientConn, config)
-		client.Handshake()
+		_ = client.Handshake()
 	}()
 	server := Server(serverConn, config)
 	if err := server.Handshake(); err != nil {
 		b.Fatalf("handshake failed: %v", err)
 	}
-	serverConn.Close()
+	_ = serverConn.Close()
 	flows := serverConn.(*recordingConn).flows
 
 	feeder := make(chan struct{})
@@ -1268,7 +1285,7 @@ func benchmarkHandshakeServer(b *testing.B, version uint16, cipherSuite uint16, 
 		for range feeder {
 			for i, f := range flows {
 				if i%2 == 0 {
-					clientConn.Write(f)
+					_, _ = clientConn.Write(f)
 					continue
 				}
 				ff := make([]byte, len(f))
@@ -1349,17 +1366,29 @@ func TestClientAuth(t *testing.T) {
 
 	if *update {
 		certPath = tempFile(clientCertificatePEM)
-		defer os.Remove(certPath)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(certPath)
 		keyPath = tempFile(clientKeyPEM)
-		defer os.Remove(keyPath)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(keyPath)
 		ecdsaCertPath = tempFile(clientECDSACertificatePEM)
-		defer os.Remove(ecdsaCertPath)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(ecdsaCertPath)
 		ecdsaKeyPath = tempFile(clientECDSAKeyPEM)
-		defer os.Remove(ecdsaKeyPath)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(ecdsaKeyPath)
 		ed25519CertPath = tempFile(clientEd25519CertificatePEM)
-		defer os.Remove(ed25519CertPath)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(ed25519CertPath)
 		ed25519KeyPath = tempFile(clientEd25519KeyPEM)
-		defer os.Remove(ed25519KeyPath)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(ed25519KeyPath)
 	} else {
 		t.Parallel()
 	}
@@ -1434,8 +1463,8 @@ func TestSNIGivenOnFailure(t *testing.T) {
 	go func() {
 		cli := Client(c, testConfig)
 		cli.vers = clientHello.vers
-		cli.writeRecord(recordTypeHandshake, clientHello.marshal())
-		c.Close()
+		_, _ = cli.writeRecord(recordTypeHandshake, clientHello.marshal())
+		_ = c.Close()
 	}()
 	conn := Server(s, serverConfig)
 	ctx := context.Background()
@@ -1451,7 +1480,9 @@ func TestSNIGivenOnFailure(t *testing.T) {
 	if err == nil {
 		err = hs.pickCipherSuite()
 	}
-	defer s.Close()
+	defer func(s net.Conn) {
+		_ = s.Close()
+	}(s)
 
 	if err == nil {
 		t.Error("No error reported from server")
@@ -1568,12 +1599,14 @@ func TestGetConfigForClient(t *testing.T) {
 		done := make(chan error)
 
 		go func() {
-			defer s.Close()
+			defer func(s net.Conn) {
+				_ = s.Close()
+			}(s)
 			done <- Server(s, serverConfig).Handshake()
 		}()
 
 		clientErr := Client(c, clientConfig).Handshake()
-		c.Close()
+		_ = c.Close()
 
 		serverErr := <-done
 
@@ -1600,10 +1633,10 @@ func TestCloseServerConnectionOnIdleClient(t *testing.T) {
 	clientConn, serverConn := localPipe(t)
 	server := Server(serverConn, testConfig.Clone())
 	go func() {
-		clientConn.Write([]byte{'0'})
-		server.Close()
+		_, _ = clientConn.Write([]byte{'0'})
+		_ = server.Close()
 	}()
-	server.SetReadDeadline(time.Now().Add(time.Minute))
+	_ = server.SetReadDeadline(time.Now().Add(time.Minute))
 	err := server.Handshake()
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -1983,7 +2016,9 @@ func TestHandshakeContextHierarchy(t *testing.T) {
 	ctx = context.WithValue(ctx, key, true)
 	go func() {
 		defer close(clientErr)
-		defer c.Close()
+		defer func(c net.Conn) {
+			_ = c.Close()
+		}(c)
 		var innerCtx context.Context
 		clientConfig.Certificates = nil
 		clientConfig.GetClientCertificate = func(certificateRequest *CertificateRequestInfo) (*Certificate, error) {
