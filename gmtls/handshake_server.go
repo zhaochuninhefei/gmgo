@@ -407,7 +407,10 @@ func (hs *serverHandshakeState) pickCipherSuite() error {
 
 	hs.suite = selectCipherSuite(preferenceList, hs.clientHello.cipherSuites, hs.cipherSuiteOk)
 	if hs.suite == nil {
-		c.sendAlert(alertHandshakeFailure)
+		err := c.sendAlert(alertHandshakeFailure)
+		if err != nil {
+			return fmt.Errorf("gmtls: no cipher suite supported by both client and server. Error happened when sendAlert: %s", err)
+		}
 		return errors.New("gmtls: no cipher suite supported by both client and server")
 	}
 	c.cipherSuite = hs.suite.id
@@ -416,7 +419,10 @@ func (hs *serverHandshakeState) pickCipherSuite() error {
 		if id == TLS_FALLBACK_SCSV {
 			// The client is doing a fallback connection. See RFC 7507.
 			if hs.clientHello.vers < c.config.maxSupportedVersion() {
-				c.sendAlert(alertInappropriateFallback)
+				err := c.sendAlert(alertInappropriateFallback)
+				if err != nil {
+					return fmt.Errorf("gmtls: client using inappropriate protocol fallback. Error happened when sendAlert: %s", err)
+				}
 				return errors.New("gmtls: client using inappropriate protocol fallback")
 			}
 			break
