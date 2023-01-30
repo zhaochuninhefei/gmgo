@@ -456,14 +456,8 @@ func (hs *clientHandshakeState) handshake() error {
 		hs.finishedHash.discardHandshakeBuffer()
 	}
 
-	_, err = hs.finishedHash.Write(hs.hello.marshal())
-	if err != nil {
-		return err
-	}
-	_, err = hs.finishedHash.Write(hs.serverHello.marshal())
-	if err != nil {
-		return err
-	}
+	_, _ = hs.finishedHash.Write(hs.hello.marshal())
+	_, _ = hs.finishedHash.Write(hs.serverHello.marshal())
 
 	c.buffering = true
 	c.didResume = isResume
@@ -550,10 +544,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		return unexpectedMessageError(certMsg, msg)
 	}
 	zclog.Debug("===== 客户端读取到服务端证书 certificateMsg")
-	_, err = hs.finishedHash.Write(certMsg.marshal())
-	if err != nil {
-		return err
-	}
+	_, _ = hs.finishedHash.Write(certMsg.marshal())
 
 	msg, err = c.readHandshake()
 	if err != nil {
@@ -574,10 +565,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 			_ = c.sendAlert(alertUnexpectedMessage)
 			return errors.New("gmtls: received unexpected CertificateStatus message")
 		}
-		_, err := hs.finishedHash.Write(cs.marshal())
-		if err != nil {
-			return err
-		}
+		_, _ = hs.finishedHash.Write(cs.marshal())
 		// certificateStatusMsg 返回的是服务端装订的ocsp信息
 		c.ocspResponse = cs.response
 
@@ -613,10 +601,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 	skx, ok := msg.(*serverKeyExchangeMsg)
 	if ok {
 		zclog.Debug("===== 客户端读取到 serverKeyExchangeMsg")
-		_, err := hs.finishedHash.Write(skx.marshal())
-		if err != nil {
-			return err
-		}
+		_, _ = hs.finishedHash.Write(skx.marshal())
 		err = keyAgreement.processServerKeyExchange(c.config, hs.hello, hs.serverHello, c.peerCertificates[0], skx)
 		if err != nil {
 			_ = c.sendAlert(alertUnexpectedMessage)
@@ -635,10 +620,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 	if ok {
 		zclog.Debug("===== 客户端读取到 certificateRequestMsg")
 		certRequested = true
-		_, err := hs.finishedHash.Write(certReq.marshal())
-		if err != nil {
-			return err
-		}
+		_, _ = hs.finishedHash.Write(certReq.marshal())
 
 		cri := certificateRequestInfoFromMsg(hs.ctx, c.vers, certReq)
 		if chainToSend, err = c.getClientCertificate(cri); err != nil {
@@ -658,10 +640,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		_ = c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(shd, msg)
 	}
-	_, err = hs.finishedHash.Write(shd.marshal())
-	if err != nil {
-		return err
-	}
+	_, _ = hs.finishedHash.Write(shd.marshal())
 
 	// If the server requested a certificate then we have to send a
 	// Certificate message, even if it's empty because we don't have a
@@ -669,10 +648,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 	if certRequested {
 		certMsg = new(certificateMsg)
 		certMsg.certificates = chainToSend.Certificate
-		_, err := hs.finishedHash.Write(certMsg.marshal())
-		if err != nil {
-			return err
-		}
+		_, _ = hs.finishedHash.Write(certMsg.marshal())
 		if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 			return err
 		}
@@ -685,10 +661,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		return err
 	}
 	if ckx != nil {
-		_, err := hs.finishedHash.Write(ckx.marshal())
-		if err != nil {
-			return err
-		}
+		_, _ = hs.finishedHash.Write(ckx.marshal())
 		if _, err := c.writeRecord(recordTypeHandshake, ckx.marshal()); err != nil {
 			return err
 		}
@@ -737,10 +710,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 			return err
 		}
 
-		_, err := hs.finishedHash.Write(certVerify.marshal())
-		if err != nil {
-			return err
-		}
+		_, _ = hs.finishedHash.Write(certVerify.marshal())
 		if _, err := c.writeRecord(recordTypeHandshake, certVerify.marshal()); err != nil {
 			return err
 		}
@@ -896,10 +866,7 @@ func (hs *clientHandshakeState) readFinished(out []byte) error {
 		_ = c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: server's Finished message was incorrect")
 	}
-	_, err = hs.finishedHash.Write(serverFinished.marshal())
-	if err != nil {
-		return err
-	}
+	_, _ = hs.finishedHash.Write(serverFinished.marshal())
 	copy(out, verify)
 	return nil
 }
@@ -919,10 +886,7 @@ func (hs *clientHandshakeState) readSessionTicket() error {
 		_ = c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(sessionTicketMsg, msg)
 	}
-	_, err = hs.finishedHash.Write(sessionTicketMsg.marshal())
-	if err != nil {
-		return err
-	}
+	_, _ = hs.finishedHash.Write(sessionTicketMsg.marshal())
 	zclog.Debug("===== 客户端读取到 SessionTicket")
 	hs.session = &ClientSessionState{
 		sessionTicket:      sessionTicketMsg.ticket,
@@ -949,10 +913,7 @@ func (hs *clientHandshakeState) sendFinished(out []byte) error {
 	zclog.Debug("===== 客户端发送 ChangeCipherSpec")
 	finished := new(finishedMsg)
 	finished.verifyData = hs.finishedHash.clientSum(hs.masterSecret)
-	_, err := hs.finishedHash.Write(finished.marshal())
-	if err != nil {
-		return err
-	}
+	_, _ = hs.finishedHash.Write(finished.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, finished.marshal()); err != nil {
 		return err
 	}
