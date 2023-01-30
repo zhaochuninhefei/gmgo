@@ -943,7 +943,10 @@ func (hs *serverHandshakeState) sendFinished(out []byte) error {
 
 	finished := new(finishedMsg)
 	finished.verifyData = hs.finishedHash.serverSum(hs.masterSecret)
-	hs.finishedHash.Write(finished.marshal())
+	_, err := hs.finishedHash.Write(finished.marshal())
+	if err != nil {
+		return fmt.Errorf("gmtls: 向finishedHash写入finished时发生错误: %s", err)
+	}
 	if _, err := c.writeRecord(recordTypeHandshake, finished.marshal()); err != nil {
 		return err
 	}
