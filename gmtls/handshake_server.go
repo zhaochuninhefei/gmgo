@@ -154,8 +154,12 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 	}
 	clientHello, ok := msg.(*clientHelloMsg)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
-		return nil, unexpectedMessageError(clientHello, msg)
+		errNew := unexpectedMessageError(clientHello, msg)
+		err1 := c.sendAlert(alertUnexpectedMessage)
+		if err1 != nil {
+			return nil, fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return nil, errNew
 	}
 	zclog.Debug("===== 服务端读取到 ClientHello")
 
@@ -164,8 +168,12 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 	if c.config.GetConfigForClient != nil {
 		chi := clientHelloInfo(ctx, c, clientHello)
 		if configForClient, err = c.config.GetConfigForClient(chi); err != nil {
-			c.sendAlert(alertInternalError)
-			return nil, err
+			errNew := fmt.Errorf("gmtls: GetConfigForClient时发生错误: %s", err)
+			err1 := c.sendAlert(alertInternalError)
+			if err1 != nil {
+				return nil, fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+			}
+			return nil, errNew
 		} else if configForClient != nil {
 			c.config = configForClient
 		}
@@ -180,8 +188,12 @@ func (c *Conn) readClientHello(ctx context.Context) (*clientHelloMsg, error) {
 	// 协商tls协议版本
 	c.vers, ok = c.config.mutualVersion(clientVersions)
 	if !ok {
-		c.sendAlert(alertProtocolVersion)
-		return nil, fmt.Errorf("gmtls: client offered only unsupported versions: %x", clientVersions)
+		errNew := fmt.Errorf("gmtls: client offered only unsupported versions: %x", clientVersions)
+		err1 := c.sendAlert(alertProtocolVersion)
+		if err1 != nil {
+			return nil, fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return nil, errNew
 	}
 	zclog.Debug("===== 服务端选择本次tls连接使用的版本是:", ShowTLSVersion(int(c.vers)))
 	c.haveVers = true
@@ -207,7 +219,10 @@ func (hs *serverHandshakeState) processClientHello() error {
 	}
 
 	if !foundCompression {
-		c.sendAlert(alertHandshakeFailure)
+		err := c.sendAlert(alertHandshakeFailure)
+		if err != nil {
+			return fmt.Errorf("gmtls: client does not support uncompressed connections. Error happened when sendAlert: %s", err)
+		}
 		return errors.New("gmtls: client does not support uncompressed connections")
 	}
 
@@ -225,12 +240,19 @@ func (hs *serverHandshakeState) processClientHello() error {
 	}
 	_, err := io.ReadFull(c.config.rand(), serverRandom)
 	if err != nil {
-		c.sendAlert(alertInternalError)
-		return err
+		errNew := fmt.Errorf("gmtls: 创建serverRandom失败: %s", err)
+		err1 := c.sendAlert(alertInternalError)
+		if err1 != nil {
+			return fmt.Errorf("%s. Error happened when sendAlert: %s", errNew, err1)
+		}
+		return errNew
 	}
 
 	if len(hs.clientHello.secureRenegotiation) != 0 {
-		c.sendAlert(alertHandshakeFailure)
+		err := c.sendAlert(alertHandshakeFailure)
+		if err != nil {
+			return fmt.Errorf("gmtls: initial handshake had non-empty renegotiation extension. Error happened when sendAlert: %s", err)
+		}
 		return errors.New("gmtls: initial handshake had non-empty renegotiation extension")
 	}
 
