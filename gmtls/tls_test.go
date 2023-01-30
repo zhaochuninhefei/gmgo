@@ -183,7 +183,12 @@ func TestDialTimeout(t *testing.T) {
 	listener := newLocalListener(t)
 
 	addr := listener.Addr().String()
-	defer listener.Close()
+	defer func(listener net.Listener) {
+		err := listener.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(listener)
 
 	complete := make(chan bool)
 	defer close(complete)
@@ -195,7 +200,7 @@ func TestDialTimeout(t *testing.T) {
 			return
 		}
 		<-complete
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	dialer := &net.Dialer{
@@ -218,7 +223,12 @@ func TestDeadlineOnWrite(t *testing.T) {
 	}
 
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	srvCh := make(chan *Conn, 1)
 
@@ -243,7 +253,12 @@ func TestDeadlineOnWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn *Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 
 	srv := <-srvCh
 	if srv == nil {
@@ -293,7 +308,12 @@ func (f readerFunc) Read(b []byte) (int, error) { return f(b) }
 // all also flow through the same code shared code paths)
 func TestDialer(t *testing.T) {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	unblockServer := make(chan struct{}) // close-only
 	defer close(unblockServer)
@@ -302,7 +322,12 @@ func TestDialer(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			err := conn.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(conn)
 		<-unblockServer
 	}()
 
@@ -356,7 +381,12 @@ func TestConnReadNonzeroAndEOF(t *testing.T) {
 
 func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	srvCh := make(chan *Conn, 1)
 	var serr error
@@ -385,7 +415,12 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn *Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 
 	srv := <-srvCh
 	if srv == nil {
@@ -394,20 +429,23 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 
 	buf := make([]byte, 6)
 
-	srv.Write([]byte("foobar"))
+	_, _ = srv.Write([]byte("foobar"))
 	n, err := conn.Read(buf)
 	if n != 6 || err != nil || string(buf) != "foobar" {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Read = %d, %v, data %q; want 6, nil, foobar", n, err, buf)
 	}
 
-	srv.Write([]byte("abcdef"))
-	srv.Close()
+	_, _ = srv.Write([]byte("abcdef"))
+	_ = srv.Close()
 	time.Sleep(delay)
 	n, err = conn.Read(buf)
 	if n != 6 || string(buf) != "abcdef" {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Read = %d, buf= %q; want 6, abcdef", n, buf)
 	}
 	if err != io.EOF {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Second Read error = %v; want io.EOF", err)
 	}
 	return nil
@@ -415,7 +453,12 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 
 func TestTLSUniqueMatches(t *testing.T) {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	serverTLSUniques := make(chan []byte)
 	parentDone := make(chan struct{})
@@ -461,13 +504,18 @@ func TestTLSUniqueMatches(t *testing.T) {
 	if !bytes.Equal(conn.ConnectionState().TLSUnique, serverTLSUniquesValue) {
 		t.Error("client and server channel bindings differ")
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	conn, err = Dial("tcp", ln.Addr().String(), clientConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn *Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 	if !conn.ConnectionState().DidResume {
 		t.Error("second session did not use resumption")
 	}
@@ -518,7 +566,12 @@ func TestVerifyHostname(t *testing.T) {
 
 func TestConnCloseBreakingWrite(t *testing.T) {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	srvCh := make(chan *Conn, 1)
 	var serr error
@@ -545,7 +598,12 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cconn.Close()
+	defer func(cconn net.Conn) {
+		err := cconn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(cconn)
 
 	conn := &changeImplConn{
 		Conn: cconn,
@@ -561,7 +619,12 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	if srv == nil {
 		t.Fatal(serr)
 	}
-	defer sconn.Close()
+	defer func(sconn net.Conn) {
+		err := sconn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(sconn)
 
 	connClosed := make(chan struct{})
 	conn.closeFunc = func() error {
@@ -580,7 +643,7 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	closeReturned := make(chan bool, 1)
 	go func() {
 		<-inWrite
-		tconn.Close() // test that this doesn't block forever.
+		_ = tconn.Close() // test that this doesn't block forever.
 		closeReturned <- true
 	}()
 
@@ -597,7 +660,12 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 
 func TestConnCloseWrite(t *testing.T) {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	clientDoneChan := make(chan struct{})
 
@@ -606,20 +674,31 @@ func TestConnCloseWrite(t *testing.T) {
 		if err != nil {
 			return fmt.Errorf("accept: %v", err)
 		}
-		defer sconn.Close()
+		defer func(sconn net.Conn) {
+			err := sconn.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(sconn)
 
 		serverConfig := testConfig.Clone()
 		srv := Server(sconn, serverConfig)
 		if err := srv.Handshake(); err != nil {
 			return fmt.Errorf("handshake: %v", err)
 		}
-		defer srv.Close()
+		defer func(srv *Conn) {
+			err := srv.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(srv)
 
 		data, err := io.ReadAll(srv)
 		if err != nil {
 			return err
 		}
 		if len(data) > 0 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Read data = %q; want nothing", data)
 		}
 
@@ -646,7 +725,12 @@ func TestConnCloseWrite(t *testing.T) {
 		if err := conn.Handshake(); err != nil {
 			return err
 		}
-		defer conn.Close()
+		defer func(conn *Conn) {
+			err := conn.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(conn)
 
 		if err := conn.CloseWrite(); err != nil {
 			return fmt.Errorf("client CloseWrite: %v", err)
@@ -661,6 +745,7 @@ func TestConnCloseWrite(t *testing.T) {
 			return err
 		}
 		if len(data) > 0 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Read data = %q; want nothing", data)
 		}
 		return nil
@@ -686,13 +771,23 @@ func TestConnCloseWrite(t *testing.T) {
 	// finished:
 	{
 		ln2 := newLocalListener(t)
-		defer ln2.Close()
+		defer func(ln2 net.Listener) {
+			err := ln2.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(ln2)
 
 		netConn, err := net.Dial("tcp", ln2.Addr().String())
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer netConn.Close()
+		defer func(netConn net.Conn) {
+			err := netConn.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(netConn)
 		conn := Client(netConn, testConfig.Clone())
 
 		if err := conn.CloseWrite(); err != errEarlyCloseWrite {
@@ -703,21 +798,36 @@ func TestConnCloseWrite(t *testing.T) {
 
 func TestWarningAlertFlood(t *testing.T) {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	server := func() error {
 		sconn, err := ln.Accept()
 		if err != nil {
 			return fmt.Errorf("accept: %v", err)
 		}
-		defer sconn.Close()
+		defer func(sconn net.Conn) {
+			err := sconn.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(sconn)
 
 		serverConfig := testConfig.Clone()
 		srv := Server(sconn, serverConfig)
 		if err := srv.Handshake(); err != nil {
 			return fmt.Errorf("handshake: %v", err)
 		}
-		defer srv.Close()
+		defer func(srv *Conn) {
+			err := srv.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(srv)
 
 		_, err = io.ReadAll(srv)
 		if err == nil {
@@ -740,13 +850,18 @@ func TestWarningAlertFlood(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn *Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 	if err := conn.Handshake(); err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < maxUselessRecords+1; i++ {
-		conn.sendAlert(alertNoRenegotiation)
+		_ = conn.sendAlert(alertNoRenegotiation)
 	}
 
 	if err := <-errChan; err != nil {
@@ -788,11 +903,11 @@ func TestCloneFuncFields(t *testing.T) {
 	c2 := c1.Clone()
 
 	c2.Time()
-	c2.GetCertificate(nil)
-	c2.GetClientCertificate(nil)
-	c2.GetConfigForClient(nil)
-	c2.VerifyPeerCertificate(nil, nil)
-	c2.VerifyConnection(ConnectionState{})
+	_, _ = c2.GetCertificate(nil)
+	_, _ = c2.GetClientCertificate(nil)
+	_, _ = c2.GetConfigForClient(nil)
+	_ = c2.VerifyPeerCertificate(nil, nil)
+	_ = c2.VerifyConnection(ConnectionState{})
 
 	if called != (1<<expectedCount)-1 {
 		t.Fatalf("expected %d calls but saw calls %b", expectedCount, called)
@@ -893,7 +1008,12 @@ func (w *changeImplConn) Close() error {
 
 func throughput(b *testing.B, version uint16, totalBytes int64, dynamicRecordSizingDisabled bool) {
 	ln := newLocalListener(b)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	N := b.N
 
@@ -946,7 +1066,7 @@ func throughput(b *testing.B, version uint16, totalBytes int64, dynamicRecordSiz
 				b.Fatal(err)
 			}
 		}
-		conn.Close()
+		_ = conn.Close()
 	}
 }
 
@@ -996,7 +1116,12 @@ func (c *slowConn) Write(p []byte) (int, error) {
 
 func latency(b *testing.B, version uint16, bps int, dynamicRecordSizingDisabled bool) {
 	ln := newLocalListener(b)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		err := ln.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(ln)
 
 	N := b.N
 
@@ -1014,7 +1139,7 @@ func latency(b *testing.B, version uint16, bps int, dynamicRecordSizingDisabled 
 			if err := srv.Handshake(); err != nil {
 				panic(fmt.Errorf("handshake: %v", err))
 			}
-			io.Copy(srv, srv)
+			_, _ = io.Copy(srv, srv)
 		}
 	}()
 
@@ -1043,7 +1168,7 @@ func latency(b *testing.B, version uint16, bps int, dynamicRecordSizingDisabled 
 		if _, err = io.ReadFull(conn, peek); err != nil {
 			b.Fatal(err)
 		}
-		conn.Close()
+		_ = conn.Close()
 	}
 }
 
@@ -1571,6 +1696,7 @@ func TestCipherSuites(t *testing.T) {
 				return false
 			}
 			t.Fatalf("two ciphersuites are equal by all criteria: %v and %v", aName, bName)
+			//goland:noinspection GoUnreachableCode
 			panic("unreachable")
 		}
 		if !sort.SliceIsSorted(prefOrder, isBetter) {
