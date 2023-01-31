@@ -47,7 +47,7 @@ var tests = []interface{}{
 }
 
 func TestMarshalUnmarshal(t *testing.T) {
-	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for i, iface := range tests {
 		ty := reflect.ValueOf(iface).Type()
@@ -57,7 +57,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 			n = 5
 		}
 		for j := 0; j < n; j++ {
-			v, ok := quick.Value(ty, rand)
+			v, ok := quick.Value(ty, randNew)
 			if !ok {
 				t.Errorf("#%d: failed to create value", i)
 				break
@@ -95,15 +95,15 @@ func TestMarshalUnmarshal(t *testing.T) {
 }
 
 func TestFuzz(t *testing.T) {
-	rand := rand.New(rand.NewSource(0))
+	randNew := rand.New(rand.NewSource(0))
 	for _, iface := range tests {
 		m := iface.(handshakeMessage)
 
 		for j := 0; j < 1000; j++ {
-			len := rand.Intn(100)
-			bytes := randomBytes(len, rand)
+			length := randNew.Intn(100)
+			ranBytes := randomBytes(length, randNew)
 			// This just looks for crashes due to bounds errors etc.
-			m.unmarshal(bytes)
+			m.unmarshal(ranBytes)
 		}
 	}
 }
@@ -121,6 +121,7 @@ func randomString(n int, rand *rand.Rand) string {
 	return string(b)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &clientHelloMsg{}
 	m.vers = uint16(rand.Intn(65536))
@@ -203,6 +204,7 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &serverHelloMsg{}
 	m.vers = uint16(rand.Intn(65536))
@@ -252,6 +254,7 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*encryptedExtensionsMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &encryptedExtensionsMsg{}
 
@@ -262,6 +265,7 @@ func (*encryptedExtensionsMsg) Generate(rand *rand.Rand, size int) reflect.Value
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*certificateMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateMsg{}
 	numCerts := rand.Intn(20)
@@ -272,6 +276,7 @@ func (*certificateMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*certificateRequestMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateRequestMsg{}
 	m.certificateTypes = randomBytes(rand.Intn(5)+1, rand)
@@ -281,6 +286,7 @@ func (*certificateRequestMsg) Generate(rand *rand.Rand, size int) reflect.Value 
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*certificateVerifyMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateVerifyMsg{}
 	m.hasSignatureAlgorithm = true
@@ -289,30 +295,35 @@ func (*certificateVerifyMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*certificateStatusMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateStatusMsg{}
 	m.response = randomBytes(rand.Intn(10)+1, rand)
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*clientKeyExchangeMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &clientKeyExchangeMsg{}
 	m.ciphertext = randomBytes(rand.Intn(1000)+1, rand)
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*finishedMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &finishedMsg{}
 	m.verifyData = randomBytes(12, rand)
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*newSessionTicketMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &newSessionTicketMsg{}
 	m.ticket = randomBytes(rand.Intn(4), rand)
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*sessionState) Generate(rand *rand.Rand, size int) reflect.Value {
 	s := &sessionState{}
 	s.vers = uint16(rand.Intn(10000))
@@ -325,6 +336,7 @@ func (*sessionState) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(s)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*sessionStateTLS13) Generate(rand *rand.Rand, size int) reflect.Value {
 	s := &sessionStateTLS13{}
 	s.cipherSuite = uint16(rand.Intn(10000))
@@ -346,17 +358,20 @@ func (*sessionStateTLS13) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(s)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*endOfEarlyDataMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &endOfEarlyDataMsg{}
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*keyUpdateMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &keyUpdateMsg{}
 	m.updateRequested = rand.Intn(10) > 5
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*newSessionTicketMsgTLS13) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &newSessionTicketMsgTLS13{}
 	m.lifetime = uint32(rand.Intn(500000))
@@ -369,6 +384,7 @@ func (*newSessionTicketMsgTLS13) Generate(rand *rand.Rand, size int) reflect.Val
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*certificateRequestMsgTLS13) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateRequestMsgTLS13{}
 	if rand.Intn(10) > 5 {
@@ -392,6 +408,7 @@ func (*certificateRequestMsgTLS13) Generate(rand *rand.Rand, size int) reflect.V
 	return reflect.ValueOf(m)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*certificateMsgTLS13) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateMsgTLS13{}
 	for i := 0; i < rand.Intn(2)+1; i++ {
@@ -448,7 +465,7 @@ func TestRejectEmptySCTList(t *testing.T) {
 
 	// Update the extensions length
 	serverHelloEmptySCT[42] = byte((len(serverHelloEmptySCT) - 44) >> 8)
-	serverHelloEmptySCT[43] = byte((len(serverHelloEmptySCT) - 44))
+	serverHelloEmptySCT[43] = byte(len(serverHelloEmptySCT) - 44)
 
 	if serverHelloCopy.unmarshal(serverHelloEmptySCT) {
 		t.Fatal("Unmarshaled ServerHello with empty SCT list")
