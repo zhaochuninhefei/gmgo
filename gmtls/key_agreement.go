@@ -51,11 +51,13 @@ var errServerKeyExchange = errors.New("gmtls: invalid ServerKeyExchange message"
 // encrypts the pre-master secret to the server's public key.
 type rsaKeyAgreement struct{}
 
+//goland:noinspection GoUnusedParameter
 func (ka rsaKeyAgreement) generateServerKeyExchange(config *Config, cert *Certificate, clientHello *clientHelloMsg, hello *serverHelloMsg) (*serverKeyExchangeMsg, error) {
 	return nil, nil
 }
 
 // 处理客户端密钥交换参数(rsa, tls1.2及更老版本)
+//goland:noinspection GoUnusedParameter
 func (ka rsaKeyAgreement) processClientKeyExchange(config *Config, cert *Certificate, ckx *clientKeyExchangeMsg, version uint16) ([]byte, error) {
 	if len(ckx.ciphertext) < 2 {
 		return nil, errClientKeyExchange
@@ -85,6 +87,7 @@ func (ka rsaKeyAgreement) processClientKeyExchange(config *Config, cert *Certifi
 }
 
 // 处理服务端密钥交换参数(rsa, tls1.2及更老版本)
+//goland:noinspection GoUnusedParameter
 func (ka rsaKeyAgreement) processServerKeyExchange(config *Config, clientHello *clientHelloMsg, serverHello *serverHelloMsg, cert *x509.Certificate, skx *serverKeyExchangeMsg) error {
 	return errors.New("gmtls: unexpected ServerKeyExchange")
 }
@@ -269,6 +272,7 @@ func (ka *ecdheKeyAgreement) generateServerKeyExchange(config *Config, cert *Cer
 }
 
 // 处理客户端密钥交换参数(ecdhe, tls1.2)
+//goland:noinspection GoUnusedParameter
 func (ka *ecdheKeyAgreement) processClientKeyExchange(config *Config, cert *Certificate, ckx *clientKeyExchangeMsg, version uint16) ([]byte, error) {
 	if len(ckx.ciphertext) == 0 || int(ckx.ciphertext[0]) != len(ckx.ciphertext)-1 {
 		return nil, errClientKeyExchange
@@ -364,6 +368,7 @@ func (ka *ecdheKeyAgreement) processServerKeyExchange(config *Config, clientHell
 	return nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (ka *ecdheKeyAgreement) generateClientKeyExchange(config *Config, clientHello *clientHelloMsg, cert *x509.Certificate) ([]byte, *clientKeyExchangeMsg, error) {
 	if ka.ckx == nil {
 		return nil, nil, errors.New("gmtls: missing ServerKeyExchange message")
