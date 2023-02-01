@@ -89,7 +89,7 @@ func main() { tls.Dial("", "", nil) }
 			if err := os.WriteFile(goFile, []byte(tt.program), 0644); err != nil {
 				t.Fatal(err)
 			}
-			os.Remove(exeFile)
+			_ = os.Remove(exeFile)
 			cmd := exec.Command(goBin, "build", "-o", "x.exe", "x.go")
 			cmd.Dir = tmpDir
 			if out, err := cmd.CombinedOutput(); err != nil {
