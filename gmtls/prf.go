@@ -246,9 +246,9 @@ func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg x509.Hash,
 	}
 
 	if h.version >= VersionTLS12 {
-		hash := hashAlg.New()
-		hash.Write(h.buffer)
-		return hash.Sum(nil)
+		hashVal := hashAlg.New()
+		hashVal.Write(h.buffer)
+		return hashVal.Sum(nil)
 	}
 
 	if sigType == signatureECDSA {
