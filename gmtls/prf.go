@@ -191,6 +191,7 @@ type finishedHash struct {
 	prf     func(result, secret, label, seed []byte)
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h *finishedHash) Write(msg []byte) (n int, err error) {
 	h.client.Write(msg)
 	h.server.Write(msg)
@@ -207,6 +208,7 @@ func (h *finishedHash) Write(msg []byte) (n int, err error) {
 	return len(msg), nil
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h finishedHash) Sum() []byte {
 	if h.version >= VersionTLS12 {
 		return h.client.Sum(nil)
@@ -219,6 +221,7 @@ func (h finishedHash) Sum() []byte {
 
 // clientSum returns the contents of the verify_data member of a client's
 // Finished message.
+//goland:noinspection GoMixedReceiverTypes
 func (h finishedHash) clientSum(masterSecret []byte) []byte {
 	out := make([]byte, finishedVerifyLength)
 	h.prf(out, masterSecret, clientFinishedLabel, h.Sum())
@@ -227,6 +230,7 @@ func (h finishedHash) clientSum(masterSecret []byte) []byte {
 
 // serverSum returns the contents of the verify_data member of a server's
 // Finished message.
+//goland:noinspection GoMixedReceiverTypes
 func (h finishedHash) serverSum(masterSecret []byte) []byte {
 	out := make([]byte, finishedVerifyLength)
 	h.prf(out, masterSecret, serverFinishedLabel, h.Sum())
@@ -235,7 +239,7 @@ func (h finishedHash) serverSum(masterSecret []byte) []byte {
 
 // hashForClientCertificate returns the handshake messages so far, pre-hashed if
 // necessary, suitable for signing by a TLS client certificate.
-//goland:noinspection GoUnusedParameter
+//goland:noinspection GoMixedReceiverTypes,GoUnusedParameter
 func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg x509.Hash, masterSecret []byte) []byte {
 	if (h.version >= VersionTLS12 || sigType == signatureEd25519) && h.buffer == nil {
 		panic("gmtls: handshake hash for a client certificate requested after discarding the handshake buffer")
@@ -260,6 +264,7 @@ func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg x509.Hash,
 
 // discardHandshakeBuffer is called when there is no more need to
 // buffer the entirety of the handshake messages.
+//goland:noinspection GoMixedReceiverTypes
 func (h *finishedHash) discardHandshakeBuffer() {
 	h.buffer = nil
 }
