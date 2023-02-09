@@ -166,9 +166,9 @@ func newFinishedHash(version uint16, cipherSuite *cipherSuite) finishedHash {
 		buffer = []byte{}
 	}
 
-	prf, hash := prfAndHashForVersion(version, cipherSuite)
-	if hash != 0 {
-		return finishedHash{hash.New(), hash.New(), nil, nil, buffer, version, prf}
+	prf, hashVal := prfAndHashForVersion(version, cipherSuite)
+	if hashVal != 0 {
+		return finishedHash{hashVal.New(), hashVal.New(), nil, nil, buffer, version, prf}
 	}
 
 	return finishedHash{sha1.New(), sha1.New(), md5.New(), md5.New(), buffer, version, prf}
