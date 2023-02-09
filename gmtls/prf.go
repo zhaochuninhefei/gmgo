@@ -267,6 +267,7 @@ func (h *finishedHash) discardHandshakeBuffer() {
 // noExportedKeyingMaterial is used as a value of
 // ConnectionState.ekm when renegotiation is enabled and thus
 // we wish to fail all key-material export requests.
+//goland:noinspection GoUnusedParameter
 func noExportedKeyingMaterial(label string, context []byte, length int) ([]byte, error) {
 	return nil, errors.New("crypto/tls: ExportKeyingMaterial is unavailable when renegotiation is enabled")
 }
