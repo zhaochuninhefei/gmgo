@@ -172,7 +172,7 @@ func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, conf
 	conn := Client(rawConn, config)
 	// 客户端发起tls握手
 	if err := conn.HandshakeContext(ctx); err != nil {
-		rawConn.Close()
+		_ = rawConn.Close()
 		return nil, err
 	}
 	return conn, nil
