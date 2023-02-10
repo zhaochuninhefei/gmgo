@@ -11,7 +11,7 @@ gmtls是基于`golang/go`的`tls`包实现的国密改造版本。
 对应版权声明: thrid_licenses/github.com/golang/go/LICENSE
 */
 
-// Package tls partially implements TLS 1.2, as specified in RFC 5246,
+// Package gmtls partially implements TLS 1.2, as specified in RFC 5246,
 // and TLS 1.3, as specified in RFC 8446.
 package gmtls
 
@@ -38,7 +38,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
-// 生成tls通信Server
+// Server 生成tls通信Server
 // Server returns a new TLS server side connection
 // using conn as the underlying transport.
 // The configuration config must be non-nil and must include
