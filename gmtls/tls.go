@@ -385,7 +385,7 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 	return nil, errors.New("gmtls: failed to parse private key")
 }
 
-// 根据客户端发出的ClientHello的协议与密码套件决定Server的证书链
+// NewServerConfigByClientHello 根据客户端发出的ClientHello的协议与密码套件决定Server的证书链
 //  当客户端支持tls1.3或gmssl，且客户端支持的密码套件包含 TLS_SM4_GCM_SM3 时，服务端证书采用gmSigCert。
 //  - gmSigCert 国密证书链
 //  - genericCert 一般证书链
