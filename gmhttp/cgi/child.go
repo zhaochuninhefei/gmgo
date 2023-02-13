@@ -113,11 +113,11 @@ func RequestFromMap(params map[string]string) (*http.Request, error) {
 		} else {
 			rawurl = "https://" + rawurl
 		}
-		url, err := url.Parse(rawurl)
+		urlAfterParse, err := url.Parse(rawurl)
 		if err != nil {
 			return nil, errors.New("cgi: failed to parse host and REQUEST_URI into a URL: " + rawurl)
 		}
-		r.URL = url
+		r.URL = urlAfterParse
 	}
 	// Fallback logic if we don't have a Host header or the URL
 	// failed to parse
