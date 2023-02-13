@@ -158,7 +158,8 @@ func Serve(handler http.Handler) error {
 		bufw:   bufio.NewWriter(os.Stdout),
 	}
 	handler.ServeHTTP(rw, req)
-	rw.Write(nil) // make sure a response is sent
+	_, _ = rw.Write(nil)
+	// make sure a response is sent
 	if err = rw.bufw.Flush(); err != nil {
 		return err
 	}
@@ -175,7 +176,7 @@ type response struct {
 }
 
 func (r *response) Flush() {
-	r.bufw.Flush()
+	_ = r.bufw.Flush()
 }
 
 func (r *response) Header() http.Header {
@@ -195,7 +196,7 @@ func (r *response) Write(p []byte) (n int, err error) {
 func (r *response) WriteHeader(code int) {
 	if r.wroteHeader {
 		// Note: explicitly using Stderr, as Stdout is our HTTP output.
-		fmt.Fprintf(os.Stderr, "CGI attempted to write header twice on request for %s", r.req.URL)
+		_, _ = fmt.Fprintf(os.Stderr, "CGI attempted to write header twice on request for %s", r.req.URL)
 		return
 	}
 	r.wroteHeader = true
@@ -211,11 +212,11 @@ func (r *response) writeCGIHeader(p []byte) {
 		return
 	}
 	r.wroteCGIHeader = true
-	fmt.Fprintf(r.bufw, "Status: %d %s\r\n", r.code, http.StatusText(r.code))
+	_, _ = fmt.Fprintf(r.bufw, "Status: %d %s\r\n", r.code, http.StatusText(r.code))
 	if _, hasType := r.header["Content-Type"]; !hasType {
 		r.header.Set("Content-Type", http.DetectContentType(p))
 	}
-	r.header.Write(r.bufw)
-	r.bufw.WriteString("\r\n")
-	r.bufw.Flush()
+	_ = r.header.Write(r.bufw)
+	_, _ = r.bufw.WriteString("\r\n")
+	_ = r.bufw.Flush()
 }
