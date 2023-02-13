@@ -122,11 +122,11 @@ func RequestFromMap(params map[string]string) (*http.Request, error) {
 	// Fallback logic if we don't have a Host header or the URL
 	// failed to parse
 	if r.URL == nil {
-		url, err := url.Parse(uriStr)
+		urlParse, err := url.Parse(uriStr)
 		if err != nil {
 			return nil, errors.New("cgi: failed to parse REQUEST_URI into a URL: " + uriStr)
 		}
-		r.URL = url
+		r.URL = urlParse
 	}
 
 	// Request.RemoteAddr has its port set by Go's standard http
