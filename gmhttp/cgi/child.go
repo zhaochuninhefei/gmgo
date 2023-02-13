@@ -109,6 +109,7 @@ func RequestFromMap(params map[string]string) (*http.Request, error) {
 		// Hostname is provided, so we can reasonably construct a URL.
 		rawurl := r.Host + uriStr
 		if r.TLS == nil {
+			//goland:noinspection HttpUrlsUsage
 			rawurl = "http://" + rawurl
 		} else {
 			rawurl = "https://" + rawurl
