@@ -15,6 +15,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -189,21 +190,34 @@ func TestSm3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("读取到的文件内容: %s\n", msg)
-	// sm3.New()
+	fmt.Printf("读取到的文件内容: %s\n", string(msg))
+
+	// 散列计算方式1:sm3.New(),Write,Sum
+	//
 	hw := New()
 	// 添加散列内容
 	hw.Write(msg)
 	// 散列计算
 	sum := hw.Sum(nil)
-	fmt.Println("hash值: ", sum)
-	fmt.Printf("hash长度 : %d\n", len(sum))
-	fmt.Printf("hash字符串 : %s\n", hex.EncodeToString(sum))
-	// 直接sm3计算
+	fmt.Println("sum值: ", sum)
+	fmt.Printf("sum长度 : %d\n", len(sum))
+	fmt.Printf("sum字符串 : %s\n", hex.EncodeToString(sum))
+
+	// 散列计算方式2:直接sm3计算
 	hash1 := Sm3Sum(msg)
 	fmt.Println("hash1值: ", hash1)
 	fmt.Printf("hash1长度 : %d\n", len(hash1))
 	fmt.Printf("hash1字符串 : %s\n", hex.EncodeToString(hash1))
+	assert.Equal(t, sum, hash1)
+
+	// 散列计算方式3:hw.reset,Write,Sum
+	hw.Reset()
+	hw.Write(msg)
+	sum2 := hw.Sum(nil)
+	fmt.Println("sum2值: ", sum2)
+	fmt.Printf("sum2长度 : %d\n", len(sum2))
+	fmt.Printf("sum2字符串 : %s\n", hex.EncodeToString(sum2))
+	assert.Equal(t, sum, sum2)
 }
 
 func BenchmarkSm3(t *testing.B) {
