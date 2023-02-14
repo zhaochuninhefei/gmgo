@@ -332,6 +332,7 @@ Transfer-Encoding: chunked
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestRedirect(t *testing.T) {
 	check(t)
 	h := &Handler{
@@ -350,8 +351,8 @@ func TestRedirect(t *testing.T) {
 func TestInternalRedirect(t *testing.T) {
 	check(t)
 	baseHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(rw, "basepath=%s\n", req.URL.Path)
-		fmt.Fprintf(rw, "remoteaddr=%s\n", req.RemoteAddr)
+		_, _ = fmt.Fprintf(rw, "basepath=%s\n", req.URL.Path)
+		_, _ = fmt.Fprintf(rw, "remoteaddr=%s\n", req.RemoteAddr)
 	})
 	h := &Handler{
 		Path:                "testdata/test.cgi",
@@ -367,6 +368,7 @@ func TestInternalRedirect(t *testing.T) {
 
 // TestCopyError tests that we kill the process if there's an error copying
 // its output. (for example, from the client having gone away)
+//goland:noinspection HttpUrlsUsage
 func TestCopyError(t *testing.T) {
 	check(t)
 	if runtime.GOOS == "windows" {
@@ -416,7 +418,7 @@ func TestCopyError(t *testing.T) {
 	if !childRunning() {
 		t.Fatalf("pre-conn.Close, expected child to be running")
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	tries := 0
 	for tries < 25 && childRunning() {
