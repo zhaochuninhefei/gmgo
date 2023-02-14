@@ -16,6 +16,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 )
 
+//goland:noinspection HttpUrlsUsage
 func TestRequest(t *testing.T) {
 	env := map[string]string{
 		"SERVER_PROTOCOL": "HTTP/1.1",
@@ -115,6 +116,7 @@ func TestRequestWithoutHost(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestRequestWithoutRequestURI(t *testing.T) {
 	env := map[string]string{
 		"SERVER_PROTOCOL": "HTTP/1.1",
