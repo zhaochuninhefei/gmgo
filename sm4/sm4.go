@@ -132,8 +132,7 @@ func Sm4EncryptGcm(plainData, key []byte) (nonce, encryptData []byte, err error)
 	if err != nil {
 		return nil, nil, err
 	}
-	out := sm4gcm.Seal(nonce, nonce, plainData, nil)
-	encryptData = out[sm4gcm.NonceSize():]
+	encryptData = sm4gcm.Seal(nil, nonce, plainData, nil)
 	return
 }
 
