@@ -13,6 +13,7 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"runtime"
 	"testing"
 
@@ -21,11 +22,16 @@ import (
 )
 
 func TestSm4(t *testing.T) {
-	key := []byte("1234567890abcdef")
+	//key := []byte("1234567890abcdef")
+	key, err := utils.GetRandomBytes(16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("密钥转为hex: %s\n", hex.EncodeToString(key))
 	data := []byte("天行健君子以自强不息")
 
 	fmt.Println("---------------- testCBC ----------------")
-	err := testCBC(key, data)
+	err = testCBC(key, data)
 	if err != nil {
 		t.Fatal(err)
 	}

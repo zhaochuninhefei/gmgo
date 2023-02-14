@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
 	"fmt"
 )
@@ -46,4 +47,20 @@ func PKCS7UnPadding(src []byte, blockSize int) ([]byte, error) {
 	}
 
 	return src[:(length - unpadding)], nil
+}
+
+// GetRandomBytes returns len random looking bytes
+func GetRandomBytes(len int) ([]byte, error) {
+	if len < 0 {
+		return nil, errors.New("len must be larger than 0")
+	}
+	buffer := make([]byte, len)
+	n, err := rand.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+	if n != len {
+		return nil, fmt.Errorf("buffer not filled. Requested [%d], got [%d]", len, n)
+	}
+	return buffer, nil
 }
