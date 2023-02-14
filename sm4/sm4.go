@@ -9,41 +9,12 @@
 package sm4
 
 import (
-	"bytes"
 	"crypto/cipher"
 	"crypto/rand"
-	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"io"
 )
-
-// PKCS7Padding 根据pkcs7标准填充明文
-func PKCS7Padding(src []byte) []byte {
-	padding := BlockSize - len(src)%BlockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
-	return append(src, padtext...)
-}
-
-// PKCS7UnPadding 根据pkcs7标准去除填充
-func PKCS7UnPadding(src []byte) ([]byte, error) {
-	length := len(src)
-	if length == 0 {
-		return nil, errors.New("invalid pkcs7 padding (len(padtext) == 0)")
-	}
-	unpadding := int(src[length-1])
-	if unpadding > BlockSize || unpadding == 0 {
-		return nil, fmt.Errorf("invalid pkcs7 padding (unpadding > BlockSize || unpadding == 0). unpadding: %d, BlockSize: %d", unpadding, BlockSize)
-	}
-
-	pad := src[len(src)-unpadding:]
-	for i := 0; i < unpadding; i++ {
-		if pad[i] != byte(unpadding) {
-			return nil, errors.New("invalid pkcs7 padding (pad[i] != unpadding)")
-		}
-	}
-
-	return src[:(length - unpadding)], nil
-}
 
 // Sm4EncryptCbc sm4加密，CBC模式
 //goland:noinspection GoNameStartsWithPackageName
@@ -52,7 +23,7 @@ func Sm4EncryptCbc(plainData, key []byte) (iv, encryptData []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	paddedData := PKCS7Padding(plainData)
+	paddedData := utils.PKCS7Padding(plainData, BlockSize)
 	encryptData = make([]byte, len(paddedData))
 	iv = make([]byte, BlockSize)
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
@@ -78,7 +49,7 @@ func Sm4DecryptCbc(encryptData, key, iv []byte) (plainData []byte, err error) {
 	paddedData := make([]byte, len(encryptData))
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(paddedData, encryptData)
-	plainData, err = PKCS7UnPadding(paddedData)
+	plainData, err = utils.PKCS7UnPadding(paddedData, BlockSize)
 	if err != nil {
 		return nil, err
 	}
