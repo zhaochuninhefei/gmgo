@@ -122,7 +122,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	if len(req.TransferEncoding) > 0 && req.TransferEncoding[0] == "chunked" {
 		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Chunked request bodies are not supported by CGI."))
+		_, _ = rw.Write([]byte("Chunked request bodies are not supported by CGI."))
 		return
 	}
 
@@ -246,8 +246,12 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if hook := testHookStartProcess; hook != nil {
 		hook(cmd.Process)
 	}
-	defer cmd.Wait()
-	defer stdoutRead.Close()
+	defer func(cmd *exec.Cmd) {
+		_ = cmd.Wait()
+	}(cmd)
+	defer func(stdoutRead io.ReadCloser) {
+		_ = stdoutRead.Close()
+	}(stdoutRead)
 
 	linebody := bufio.NewReaderSize(stdoutRead, 1024)
 	headers := make(http.Header)
@@ -348,7 +352,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// (because the child died itself), then the extra
 		// kill of an already-dead process is harmless (the PID
 		// won't be reused until the Wait above).
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 	}
 }
 
