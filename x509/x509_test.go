@@ -3522,36 +3522,71 @@ func TestX509WithFile(t *testing.T) {
 	fmt.Println("测试证书文件读写与验签成功")
 }
 
-func TestCreateCertFromCA(t *testing.T) {
-	caPriv, caCert, err := createCACert()
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("生成CA密钥对与CA证书成功")
+func TestCreateCertFromCA_sm2(t *testing.T) {
+	certTypePre := "sm2_"
 
-	err = createSignCert(caPriv, caCert)
+	certType := certTypePre + "ca"
+	caPriv, caCert, err := createCACert(certType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println("生成sm2_sign密钥对并模拟CA为其颁发证书成功")
+	fmt.Printf("生成CA密钥对与CA证书成功 %s\n", certType)
 
-	err = createEncCert(caPriv, caCert)
+	certType = certTypePre + "sign"
+	err = createSignCert(caPriv, caCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println("生成sm2_enc密钥对并模拟CA为其颁发证书成功")
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 
-	err = createAuthCert(caPriv, caCert)
+	certType = certTypePre + "enc"
+	err = createEncCert(caPriv, caCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println("生成sm2_auth密钥对并模拟CA为其颁发证书成功")
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+
+	certType = certTypePre + "auth"
+	err = createAuthCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 }
 
-// 创建ca证书，并返回ca私钥与ca证书
-func createCACert() (*sm2.PrivateKey, *Certificate, error) {
-	certType := "sm2_ca"
-	// 生成sm2密钥对
+func TestCreateCertFromCA_ecdsa(t *testing.T) {
+	certTypePre := "ecdsa_"
+	certType := certTypePre + "ca"
+	caPriv, caCert, err := createCACert(certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成CA密钥对与CA证书成功 %s\n", certType)
+
+	certType = certTypePre + "sign"
+	err = createSignCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+
+	certType = certTypePre + "enc"
+	err = createEncCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+
+	certType = certTypePre + "auth"
+	err = createAuthCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+}
+
+func createCACert(certType string) (interface{}, *Certificate, error) {
+	// 生成密钥对
 	privKey, pubKey, err := createKeys(certType)
 	if err != nil {
 		return nil, nil, err
@@ -3572,9 +3607,6 @@ func createCACert() (*sm2.PrivateKey, *Certificate, error) {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	// // 使用公钥生成ski
-	// sid := CreateEllipticSKI(pubKey.Curve, pubKey.X, pubKey.Y)
-	// aid := sid
 	// 创建证书，ca证书自签名
 	cert, err := createCertSignSelf("ca.test.com", "catest", "CN", "Anhui Hefei", true, true, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, privKey)
 	if err != nil {
@@ -3590,8 +3622,7 @@ func createCACert() (*sm2.PrivateKey, *Certificate, error) {
 	return privKey, cert, nil
 }
 
-func createSignCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
-	certType := "sm2_sign"
+func createSignCert(caPriv interface{}, caCert *Certificate, certType string) error {
 	// 生成sm2密钥对
 	_, pubKey, err := createKeys(certType)
 	if err != nil {
@@ -3612,8 +3643,6 @@ func createSignCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	// sid := []byte{0, 0, 0, 2}
-	// aid := caCert.SubjectKeyId
 	// 模拟CA颁发证书，注意此时ca证书是父证书
 	cert, err := createCertSignParent("server.test.com", "server_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
@@ -3629,9 +3658,8 @@ func createSignCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 	return nil
 }
 
-func createEncCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
-	certType := "sm2_enc"
-	// 生成sm2密钥对
+func createEncCert(caPriv interface{}, caCert *Certificate, certType string) error {
+	// 生成密钥对
 	_, pubKey, err := createKeys(certType)
 	if err != nil {
 		return err
@@ -3652,8 +3680,6 @@ func createEncCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	// sid := []byte{0, 0, 0, 3}
-	// aid := caCert.SubjectKeyId
 	// 模拟CA颁发证书，注意此时ca证书是父证书
 	cert, err := createCertSignParent("server.test.com", "server_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
@@ -3669,9 +3695,8 @@ func createEncCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 	return nil
 }
 
-func createAuthCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
-	certType := "sm2_auth"
-	// 生成sm2密钥对
+func createAuthCert(caPriv interface{}, caCert *Certificate, certType string) error {
+	// 生成密钥对
 	_, pubKey, err := createKeys(certType)
 	if err != nil {
 		return err
@@ -3691,8 +3716,6 @@ func createAuthCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 		// ExtKeyUsageMicrosoftServerGatedCrypto,
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
-	// sid := []byte{0, 0, 0, 4}
-	// aid := caCert.SubjectKeyId
 	// 模拟CA颁发证书，注意此时ca证书是父证书
 	cert, err := createCertSignParent("client.test.com", "client_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
@@ -3708,13 +3731,25 @@ func createAuthCert(caPriv *sm2.PrivateKey, caCert *Certificate) error {
 	return nil
 }
 
-func createKeys(certType string) (*sm2.PrivateKey, *sm2.PublicKey, error) {
-	// 生成sm2密钥对
-	priv, err := sm2.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, nil, err
+func createKeys(certType string) (interface{}, interface{}, error) {
+	var priv, pub interface{}
+	var err error
+
+	if strings.HasPrefix(certType, "sm2_") {
+		// 生成sm2密钥对
+		priv, err = sm2.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, nil, err
+		}
+		pub = &priv.(*sm2.PrivateKey).PublicKey
+	} else if strings.HasPrefix(certType, "ecdsa_") {
+		// 生成ecdsa密钥对
+		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, nil, err
+		}
+		pub = &priv.(*ecdsa.PrivateKey).PublicKey
 	}
-	pub := &priv.PublicKey
 	// 生成私钥pem文件
 	_, err = WritePrivateKeytoPemFile("testdata/"+certType+"_key.pem", priv, nil)
 	if err != nil {
@@ -3735,16 +3770,24 @@ func createKeys(certType string) (*sm2.PrivateKey, *sm2.PublicKey, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return privKey.(*sm2.PrivateKey), pubKey.(*sm2.PublicKey), nil
+	return privKey, pubKey, nil
 }
 
 func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca bool,
 	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
-	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) (*Certificate, error) {
+	certType string, pubKey interface{}, privKey interface{}) (*Certificate, error) {
 	// 获取ski
-	ski := CreateEllipticSKI(pubKey.Curve, pubKey.X, pubKey.Y)
+	var ski []byte
+	switch pk := pubKey.(type) {
+	case *sm2.PublicKey:
+		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
+	case *ecdsa.PublicKey:
+		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
+	default:
+		panic("不支持的公钥类型")
+	}
 	// 定义证书模板
-	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, certType, pubKey, privKey)
+	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, privKey)
 	// 创建自签名证书pem文件
 	_, err := CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, template, pubKey, privKey)
 	if err != nil {
@@ -3761,11 +3804,20 @@ func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca
 
 func createCertSignParent(cn string, o string, c string, st string, bcs bool, isca bool,
 	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
-	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey, parent *Certificate) (*Certificate, error) {
+	certType string, pubKey interface{}, privKey interface{}, parent *Certificate) (*Certificate, error) {
+
 	// 获取ski
-	ski := CreateEllipticSKI(pubKey.Curve, pubKey.X, pubKey.Y)
+	var ski []byte
+	switch pk := pubKey.(type) {
+	case *sm2.PublicKey:
+		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
+	case *ecdsa.PublicKey:
+		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
+	default:
+		panic("不支持的公钥类型")
+	}
 	// 定义证书模板
-	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, certType, pubKey, privKey)
+	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, privKey)
 	// 创建自签名证书pem文件
 	_, err := CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, parent, pubKey, privKey)
 	if err != nil {
@@ -3780,10 +3832,17 @@ func createCertSignParent(cn string, o string, c string, st string, bcs bool, is
 	return cert, nil
 }
 
-//goland:noinspection GoUnusedParameter
-func createTemplate(cn string, o string, c string, st string, bcs bool, isca bool, sId []byte,
-	ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier,
-	certType string, pubKey *sm2.PublicKey, privKey *sm2.PrivateKey) *Certificate {
+func createTemplate(cn string, o string, c string, st string, bcs bool, isca bool, sId []byte, ku KeyUsage, ekus []ExtKeyUsage, uekus []asn1.ObjectIdentifier, privKey interface{}) *Certificate {
+	var signAlg SignatureAlgorithm
+	switch privKey.(type) {
+	case *sm2.PrivateKey:
+		signAlg = SM2WithSM3
+	case *ecdsa.PrivateKey:
+		signAlg = ECDSAWithSHA256
+	default:
+		panic("不支持的私钥类型")
+	}
+
 	// 定义证书模板
 	template := &Certificate{
 		// 证书序列号
@@ -3817,7 +3876,7 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 		NotBefore: time.Now().Add(-1 * time.Hour),
 		NotAfter:  time.Now().Add(87600 * time.Hour),
 		// 证书签名算法
-		SignatureAlgorithm:    SM2WithSM3,
+		SignatureAlgorithm:    signAlg,
 		BasicConstraintsValid: bcs,
 		IsCA:                  isca,
 		SubjectKeyId:          sId,
@@ -3832,5 +3891,4 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 		URIs:           []*url.URL{parseURI("https://foo.com/wibble#foo")},
 	}
 	return template
-
 }
