@@ -1,0 +1,35 @@
+package x509
+
+import (
+	"encoding/hex"
+	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func TestWriteKeyToPemFile(t *testing.T) {
+	key, err := utils.GetRandomBytes(16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("key in hex: %s\n", hex.EncodeToString(key))
+
+	pwd, err := utils.GetRandomBytes(32)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = WriteKeyToPemFile("testdata/key_16.pem", key, pwd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyFromPemFile, err := ReadKeyFromPemFile("testdata/key_16.pem", pwd)
+	if err != nil {
+		return
+	}
+	fmt.Printf("keyFromPemFile in hex: %s\n", hex.EncodeToString(keyFromPemFile))
+
+	assert.Equal(t, key, keyFromPemFile)
+}

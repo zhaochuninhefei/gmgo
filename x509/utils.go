@@ -507,3 +507,78 @@ func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 	hash.Write(raw)
 	return hash.Sum(nil)
 }
+
+// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+// 对称加密密钥与pem相互转换
+
+// ReadKeyFromPem 从pem读取对称加密密钥
+func ReadKeyFromPem(data []byte, pwd []byte) ([]byte, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("SM4: pem decode failed")
+	}
+	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
+	if IsEncryptedPEMBlock(block) {
+		if !strings.HasSuffix(blockType, "ENCRYPTED KEY") {
+			return nil, errors.New("ReadKeyFromPem: unknown type")
+		}
+		if len(pwd) == 0 {
+			return nil, errors.New("ReadKeyFromPem: need passwd")
+		}
+		data, err := DecryptPEMBlock(block, pwd)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	}
+	switch blockType {
+	case "KEY", "SM4 KEY", "AES KEY", "SYMMETRIC KEY":
+		return block.Bytes, nil
+	default:
+		return nil, errors.New("ReadKeyFromPem: unknown type")
+	}
+}
+
+// ReadKeyFromPemFile 从pem文件读取对称加密密钥
+func ReadKeyFromPemFile(FileName string, pwd []byte) ([]byte, error) {
+	data, err := ioutil.ReadFile(FileName)
+	if err != nil {
+		return nil, err
+	}
+	return ReadKeyFromPem(data, pwd)
+}
+
+// WriteKeyToPem 将对称加密密钥写入pem
+func WriteKeyToPem(key []byte, pwd []byte) ([]byte, error) {
+	var block *pem.Block
+	var err error
+	if pwd != nil {
+		block, err = EncryptPEMBlock(rand.Reader,
+			"SYMMETRIC ENCRYPTED KEY", key, pwd, PEMCipherAES256)
+	} else {
+		block = &pem.Block{
+			Type:  "SYMMETRIC KEY",
+			Bytes: key,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return pem.EncodeToMemory(block), nil
+}
+
+// WriteKeyToPemFile 将对称加密密钥写入pem文件
+func WriteKeyToPemFile(FileName string, key []byte, pwd []byte) error {
+	pemBytes, err := WriteKeyToPem(key, pwd)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(FileName, pemBytes, 0666)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 对称加密密钥与pem相互转换
+// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
