@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
 )
 
 // ZeroByteSlice 0组成的32byte切片
@@ -63,4 +64,15 @@ func GetRandomBytes(len int) ([]byte, error) {
 		return nil, fmt.Errorf("buffer not filled. Requested [%d], got [%d]", len, n)
 	}
 	return buffer, nil
+}
+
+// GetRandBigInt 随机生成序列号
+//
+//  @return *big.Int
+func GetRandBigInt() *big.Int {
+	sn, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		panic(err)
+	}
+	return sn
 }

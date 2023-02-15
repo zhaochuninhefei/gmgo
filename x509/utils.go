@@ -507,14 +507,3 @@ func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 	hash.Write(raw)
 	return hash.Sum(nil)
 }
-
-// GetRandBigInt 随机生成序列号
-//
-//  @return *big.Int
-func GetRandBigInt() *big.Int {
-	sn, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
-	if err != nil {
-		panic(err)
-	}
-	return sn
-}

@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"io"
 	"math/big"
 	"net"
@@ -3786,7 +3787,7 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 	// 定义证书模板
 	template := &Certificate{
 		// 证书序列号
-		SerialNumber: GetRandBigInt(),
+		SerialNumber: utils.GetRandBigInt(),
 		// 证书拥有者
 		Subject: pkix.Name{
 			// CN 证书拥有者通用名, 一般是域名
