@@ -239,34 +239,34 @@ func TestBeChildCGIProcess(t *testing.T) {
 		fmt.Printf("\nHello")
 		os.Exit(0)
 	}
-	Serve(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	_ = Serve(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.FormValue("nil-request-body") == "1" {
-			fmt.Fprintf(rw, "nil-request-body=%v\n", req.Body == nil)
+			_, _ = fmt.Fprintf(rw, "nil-request-body=%v\n", req.Body == nil)
 			return
 		}
 		rw.Header().Set("X-Test-Header", "X-Test-Value")
-		req.ParseForm()
+		_ = req.ParseForm()
 		if req.FormValue("no-body") == "1" {
 			return
 		}
 		if eb, ok := req.Form["exact-body"]; ok {
-			io.WriteString(rw, eb[0])
+			_, _ = io.WriteString(rw, eb[0])
 			return
 		}
 		if req.FormValue("write-forever") == "1" {
-			io.Copy(rw, neverEnding('a'))
+			_, _ = io.Copy(rw, neverEnding('a'))
 			for {
 				time.Sleep(5 * time.Second) // hang forever, until killed
 			}
 		}
-		fmt.Fprintf(rw, "test=Hello CGI-in-CGI\n")
+		_, _ = fmt.Fprintf(rw, "test=Hello CGI-in-CGI\n")
 		for k, vv := range req.Form {
 			for _, v := range vv {
-				fmt.Fprintf(rw, "param-%s=%s\n", k, v)
+				_, _ = fmt.Fprintf(rw, "param-%s=%s\n", k, v)
 			}
 		}
 		for _, kv := range os.Environ() {
-			fmt.Fprintf(rw, "env-%s\n", kv)
+			_, _ = fmt.Fprintf(rw, "env-%s\n", kv)
 		}
 	}))
 	os.Exit(0)
