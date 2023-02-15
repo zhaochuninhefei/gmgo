@@ -93,6 +93,7 @@ func (w *limitWriter) Write(p []byte) (n int, err error) {
 
 // If there's an error copying the child's output to the parent, test
 // that we kill the child.
+//goland:noinspection HttpUrlsUsage
 func TestKillChildAfterCopyError(t *testing.T) {
 	testenv.MustHaveExec(t)
 
