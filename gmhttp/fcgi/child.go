@@ -339,6 +339,7 @@ func (c *child) cleanUp() {
 // to reply to them.
 // If l is nil, Serve accepts connections from os.Stdin.
 // If handler is nil, http.DefaultServeMux is used.
+//goland:noinspection GoUnusedExportedFunction
 func Serve(l net.Listener, handler http.Handler) error {
 	if l == nil {
 		var err error
