@@ -142,7 +142,7 @@ func (r *response) Flush() {
 	if !r.wroteHeader {
 		r.WriteHeader(http.StatusOK)
 	}
-	r.w.Flush()
+	_ = r.w.Flush()
 }
 
 func (r *response) Close() error {
