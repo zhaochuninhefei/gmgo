@@ -213,7 +213,7 @@ func (c *child) handleRecord(rec *record) error {
 			return err
 		}
 		if br.role != roleResponder {
-			c.conn.writeEndRequest(rec.h.Id, 0, statusUnknownRole)
+			_ = c.conn.writeEndRequest(rec.h.Id, 0, statusUnknownRole)
 			return nil
 		}
 		req = newRequest(rec.h.Id, br.flags)
@@ -244,26 +244,26 @@ func (c *child) handleRecord(rec *record) error {
 		if len(content) > 0 {
 			// TODO(eds): This blocks until the handler reads from the pipe.
 			// If the handler takes a long time, it might be a problem.
-			req.pw.Write(content)
+			_, _ = req.pw.Write(content)
 		} else {
 			delete(c.requests, req.reqId)
 			if req.pw != nil {
-				req.pw.Close()
+				_ = req.pw.Close()
 			}
 		}
 		return nil
 	case typeGetValues:
 		values := map[string]string{"FCGI_MPXS_CONNS": "1"}
-		c.conn.writePairs(typeGetValuesResult, 0, values)
+		_ = c.conn.writePairs(typeGetValuesResult, 0, values)
 		return nil
 	case typeData:
 		// If the filter role is implemented, read the data stream here.
 		return nil
 	case typeAbortRequest:
 		delete(c.requests, rec.h.Id)
-		c.conn.writeEndRequest(rec.h.Id, 0, statusRequestComplete)
+		_ = c.conn.writeEndRequest(rec.h.Id, 0, statusRequestComplete)
 		if req.pw != nil {
-			req.pw.CloseWithError(ErrRequestAborted)
+			_ = req.pw.CloseWithError(ErrRequestAborted)
 		}
 		if !req.keepConn {
 			// connection will close upon return
@@ -273,7 +273,7 @@ func (c *child) handleRecord(rec *record) error {
 	default:
 		b := make([]byte, 8)
 		b[0] = byte(rec.h.Type)
-		c.conn.writeRecord(typeUnknownType, 0, b)
+		_ = c.conn.writeRecord(typeUnknownType, 0, b)
 		return nil
 	}
 }
