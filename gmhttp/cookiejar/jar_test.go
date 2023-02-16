@@ -430,6 +430,7 @@ func (test jarTest) run(t *testing.T, jar *Jar) {
 
 // basicsTests contains fundamental tests. Each jarTest has to be performed on
 // a fresh, empty Jar.
+//goland:noinspection HttpUrlsUsage
 var basicsTests = [...]jarTest{
 	{
 		"Retrieval of a plain host cookie.",
@@ -625,6 +626,7 @@ func TestBasics(t *testing.T) {
 
 // updateAndDeleteTests contains jarTests which must be performed on the same
 // Jar.
+//goland:noinspection HttpUrlsUsage
 var updateAndDeleteTests = [...]jarTest{
 	{
 		"Set initial cookies.",
@@ -807,6 +809,7 @@ func TestExpiration(t *testing.T) {
 
 // chromiumBasicsTests contains fundamental tests. Each jarTest has to be
 // performed on a fresh, empty Jar.
+//goland:noinspection HttpUrlsUsage
 var chromiumBasicsTests = [...]jarTest{
 	{
 		"DomainWithTrailingDotTest.",
@@ -1067,6 +1070,7 @@ func TestChromiumDomain(t *testing.T) {
 }
 
 // chromiumDeletionTests must be performed all on the same Jar.
+//goland:noinspection HttpUrlsUsage
 var chromiumDeletionTests = [...]jarTest{
 	{
 		"Create session cookie a1.",
@@ -1135,6 +1139,7 @@ func TestChromiumDeletion(t *testing.T) {
 
 // domainHandlingTests tests and documents the rules for domain handling.
 // Each test must be performed on an empty new Jar.
+//goland:noinspection HttpUrlsUsage
 var domainHandlingTests = [...]jarTest{
 	{
 		"Host cookie",
