@@ -296,7 +296,7 @@ func (c *child) serveRequest(req *request, body io.ReadCloser) {
 	if err != nil {
 		// there was an error reading the request
 		r.WriteHeader(http.StatusInternalServerError)
-		c.conn.writeRecord(typeStderr, req.reqId, []byte(err.Error()))
+		_ = c.conn.writeRecord(typeStderr, req.reqId, []byte(err.Error()))
 	} else {
 		httpReq.Body = body
 		withoutUsedEnvVars := filterOutUsedEnvVars(req.params)
@@ -305,9 +305,9 @@ func (c *child) serveRequest(req *request, body io.ReadCloser) {
 		c.handler.ServeHTTP(r, httpReq)
 	}
 	// Make sure we serve something even if nothing was written to r
-	r.Write(nil)
-	r.Close()
-	c.conn.writeEndRequest(req.reqId, 0, statusRequestComplete)
+	_, _ = r.Write(nil)
+	_ = r.Close()
+	_ = c.conn.writeEndRequest(req.reqId, 0, statusRequestComplete)
 
 	// Consume the entire body, so the host isn't still writing to
 	// us when we close the socket below in the !keepConn case,
@@ -316,11 +316,11 @@ func (c *child) serveRequest(req *request, body io.ReadCloser) {
 	// some sort of abort request to the host, so the host
 	// can properly cut off the client sending all the data.
 	// For now just bound it a little and
-	io.CopyN(io.Discard, body, 100<<20)
-	body.Close()
+	_, _ = io.CopyN(io.Discard, body, 100<<20)
+	_ = body.Close()
 
 	if !req.keepConn {
-		c.conn.Close()
+		_ = c.conn.Close()
 	}
 }
 
