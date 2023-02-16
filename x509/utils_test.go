@@ -33,3 +33,9 @@ func TestWriteKeyToPemFile(t *testing.T) {
 
 	assert.Equal(t, key, keyFromPemFile)
 }
+
+func Test001(t *testing.T) {
+	num := 1 << 16
+	fmt.Println(num)
+	fmt.Println(num / 1024)
+}
