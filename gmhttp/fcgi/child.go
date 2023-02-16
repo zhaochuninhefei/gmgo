@@ -129,13 +129,13 @@ func (r *response) writeCGIHeader(p []byte) {
 		return
 	}
 	r.wroteCGIHeader = true
-	fmt.Fprintf(r.w, "Status: %d %s\r\n", r.code, http.StatusText(r.code))
+	_, _ = fmt.Fprintf(r.w, "Status: %d %s\r\n", r.code, http.StatusText(r.code))
 	if _, hasType := r.header["Content-Type"]; r.code != http.StatusNotModified && !hasType {
 		r.header.Set("Content-Type", http.DetectContentType(p))
 	}
-	r.header.Write(r.w)
-	r.w.WriteString("\r\n")
-	r.w.Flush()
+	_ = r.header.Write(r.w)
+	_, _ = r.w.WriteString("\r\n")
+	_ = r.w.Flush()
 }
 
 func (r *response) Flush() {
