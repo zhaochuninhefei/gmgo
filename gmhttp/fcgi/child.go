@@ -329,7 +329,7 @@ func (c *child) cleanUp() {
 		if req.pw != nil {
 			// race with call to Close in c.serveRequest doesn't matter because
 			// Pipe(Reader|Writer).Close are idempotent
-			req.pw.CloseWithError(ErrConnClosed)
+			_ = req.pw.CloseWithError(ErrConnClosed)
 		}
 	}
 }
