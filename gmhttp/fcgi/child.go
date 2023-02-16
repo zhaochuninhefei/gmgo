@@ -346,7 +346,9 @@ func Serve(l net.Listener, handler http.Handler) error {
 		if err != nil {
 			return err
 		}
-		defer l.Close()
+		defer func(l net.Listener) {
+			_ = l.Close()
+		}(l)
 	}
 	if handler == nil {
 		handler = http.DefaultServeMux
