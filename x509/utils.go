@@ -515,7 +515,7 @@ func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 func ReadKeyFromPem(data []byte, pwd []byte) ([]byte, error) {
 	block, _ := pem.Decode(data)
 	if block == nil {
-		return nil, errors.New("SM4: pem decode failed")
+		return nil, errors.New("ReadKeyFromPem: pem decode failed")
 	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
 	if IsEncryptedPEMBlock(block) {

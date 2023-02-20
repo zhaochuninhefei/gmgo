@@ -3,8 +3,10 @@ package utils
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 )
 
@@ -75,4 +77,21 @@ func GetRandBigInt() *big.Int {
 		panic(err)
 	}
 	return sn
+}
+
+// ReadPemFromFile 从文件读取pem字节数组
+//  @param filePath 文件路径
+//  @return pemBytes pem字节数组
+//  @return err
+//goland:noinspection GoUnusedExportedFunction
+func ReadPemFromFile(filePath string) (pemBytes []byte, err error) {
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file [%s], error: %s", filePath, err)
+	}
+	b, _ := pem.Decode(fileBytes)
+	if b == nil {
+		return nil, fmt.Errorf("no pem content for file [%s]", filePath)
+	}
+	return fileBytes, nil
 }
