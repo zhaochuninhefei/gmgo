@@ -48,12 +48,14 @@ const (
 	maxPad   = 255
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	roleResponder = iota + 1 // only Responders are implemented.
 	roleAuthorizer
 	roleFilter
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	statusRequestComplete = iota
 	statusCantMultiplex
@@ -182,7 +184,7 @@ func (c *conn) writePairs(recType recType, reqId uint16, pairs map[string]string
 			return err
 		}
 	}
-	w.Close()
+	_ = w.Close()
 	return nil
 }
 
@@ -228,7 +230,7 @@ type bufWriter struct {
 
 func (w *bufWriter) Close() error {
 	if err := w.Writer.Flush(); err != nil {
-		w.closer.Close()
+		_ = w.closer.Close()
 		return err
 	}
 	return w.closer.Close()
