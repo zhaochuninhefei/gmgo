@@ -731,27 +731,17 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 	return nil
 }
 
-// Verify 尝试构建证书c的有效信任链。
-// 成功时将返回验证成功的证书链，其中第一个证书即c自身，最后一个是opts.Roots中的某个根证书。
-// Verify attempts to verify c by building one or more chains from c to a
-// certificate in opts.Roots, using certificates in opts.Intermediates if
-// needed. If successful, it returns one or more chains where the first
-// element of the chain is c and the last element is from opts.Roots.
+// Verify 尝试构建证书c的一个或多个证书信任链。
+//  注意返回的是`[][]*Certificate`，即可能不止一条信任链，而是多个。
+//  对于每个信任链，其中第一个证书即c自身，最后一个是opts.Roots中的某个根证书，信任链的中间则可能会出现opts.Intermediates的中间证书。
 //
-// opts.Roots为空时，将使用系统平台的根证书验证。此时验证的详细信息与本方法的实现会有不同。
-// 如果系统根证书不可用将返回SystemRootsError。
-// If opts.Roots is nil, the platform verifier might be used, and
-// verification details might differ from what is described below. If system
-// roots are unavailable the returned error will be of type SystemRootsError.
+// opts.Roots为空时，将使用系统平台的根证书验证，甚至可能会直接使用系统的本地验证函数(比如windows)。
+// 此时验证细节与本方法的实现会有所不同。如果系统根证书不可用将返回SystemRootsError。
 //
-// 信任链的中间证书的名称约束对整个信任链有效，不能只看传入的opts.DNSName。
-// Name constraints in the intermediates will be applied to all names claimed
-// in the chain, not just opts.DNSName. Thus it is invalid for a leaf to claim
-// example.com if an intermediate doesn't permit it, even if example.com is not
-// the name being validated. Note that DirectoryName constraints are not
-// supported.
+// 信任链的中间证书或根证书的名称约束对其子证书的SAN扩展信息有效，即对整个信任链上的证书的SAN有约束，不能只看传入的opts.DNSName。
 //
-// 名称约束遵循RFC 5280标准，因此可以使用前导句点匹配。
+// 名称约束遵循`RFC 5280`标准，因此可以使用前导句点匹配。
+//
 // Name constraint validation follows the rules from RFC 5280, with the
 // addition that DNS name constraints may use the leading period format
 // defined for emails and URIs. When a constraint has a leading period
@@ -763,7 +753,7 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 // list. (While this is not specified, it is common practice in order to limit
 // the types of certificates a CA can issue.)
 //
-// WARNING: this function doesn't do any revocation checking.
+// 注意: 该方法没有做证书撤销检查
 func (c *Certificate) Verify(opts VerifyOptions) (chains [][]*Certificate, err error) {
 	// Platform-specific verification needs the ASN.1 contents so
 	// this makes the behavior consistent across platforms.
@@ -854,7 +844,7 @@ func appendToFreshChain(chain []*Certificate, cert *Certificate) []*Certificate 
 // for failed checks due to different intermediates having the same Subject.
 const maxChainSignatureChecks = 100
 
-// 为证书c创建信任链
+// buildChains 为证书c创建信任链
 func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, currentChain []*Certificate, sigChecks *int, opts *VerifyOptions) (chains [][]*Certificate, err error) {
 	var (
 		hintErr  error
