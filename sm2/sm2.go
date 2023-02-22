@@ -74,6 +74,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"io"
 	"math/big"
 	"strings"
@@ -280,12 +281,13 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 		return nil, err
 	}
 	// 将签名结果(r,s)转为asn1格式字节数组
-	var b cryptobyte.Builder
-	b.AddASN1(asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-		b.AddASN1BigInt(r)
-		b.AddASN1BigInt(s)
-	})
-	return b.Bytes()
+	return utils.MarshalECSignature(r, s)
+	//var b cryptobyte.Builder
+	//b.AddASN1(asn1.SEQUENCE, func(b *cryptobyte.Builder) {
+	//	b.AddASN1BigInt(r)
+	//	b.AddASN1BigInt(s)
+	//})
+	//return b.Bytes()
 }
 
 // Sign Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
@@ -432,16 +434,20 @@ func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 // VerifyASN1 VerifyASN1将asn1格式字节数组的签名转为(r,s)在调用sm2的验签函数。
 //  对msg做ZA混合散列
 func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
-	var (
-		r, s  = &big.Int{}, &big.Int{}
-		inner cryptobyte.String
-	)
-	input := cryptobyte.String(sig)
-	if !input.ReadASN1(&inner, asn1.SEQUENCE) ||
-		!input.Empty() ||
-		!inner.ReadASN1Integer(r) ||
-		!inner.ReadASN1Integer(s) ||
-		!inner.Empty() {
+	//var (
+	//	r, s  = &big.Int{}, &big.Int{}
+	//	inner cryptobyte.String
+	//)
+	//input := cryptobyte.String(sig)
+	//if !input.ReadASN1(&inner, asn1.SEQUENCE) ||
+	//	!input.Empty() ||
+	//	!inner.ReadASN1Integer(r) ||
+	//	!inner.ReadASN1Integer(s) ||
+	//	!inner.Empty() {
+	//	return false
+	//}
+	r, s, err := utils.UnmarshalECSignature(sig)
+	if err != nil {
 		return false
 	}
 	return VerifyWithZA(pub, nil, msg, r, s)
@@ -451,16 +457,20 @@ func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 // 不对hash再做ZA混合散列。
 //goland:noinspection GoUnusedExportedFunction
 func VerifyASN1WithoutZA(pub *PublicKey, hash, sig []byte) bool {
-	var (
-		r, s  = &big.Int{}, &big.Int{}
-		inner cryptobyte.String
-	)
-	input := cryptobyte.String(sig)
-	if !input.ReadASN1(&inner, asn1.SEQUENCE) ||
-		!input.Empty() ||
-		!inner.ReadASN1Integer(r) ||
-		!inner.ReadASN1Integer(s) ||
-		!inner.Empty() {
+	//var (
+	//	r, s  = &big.Int{}, &big.Int{}
+	//	inner cryptobyte.String
+	//)
+	//input := cryptobyte.String(sig)
+	//if !input.ReadASN1(&inner, asn1.SEQUENCE) ||
+	//	!input.Empty() ||
+	//	!inner.ReadASN1Integer(r) ||
+	//	!inner.ReadASN1Integer(s) ||
+	//	!inner.Empty() {
+	//	return false
+	//}
+	r, s, err := utils.UnmarshalECSignature(sig)
+	if err != nil {
 		return false
 	}
 	return verifyGeneric(pub, hash, r, s)
