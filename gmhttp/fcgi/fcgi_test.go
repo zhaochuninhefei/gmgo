@@ -389,7 +389,7 @@ func TestResponseWriterSniffsContentType(t *testing.T) {
 				w http.ResponseWriter,
 				r *http.Request,
 			) {
-				io.WriteString(w, tt.body)
+				_, _ = io.WriteString(w, tt.body)
 				resp = w.(*response)
 				done <- true
 			}))
@@ -426,7 +426,7 @@ func TestSlowRequest(t *testing.T) {
 			streamBeginTypeStdin,
 			makeRecord(typeStdin, 1, nil),
 		} {
-			pw.Write(buf)
+			_, _ = pw.Write(buf)
 			time.Sleep(100 * time.Millisecond)
 		}
 	}(pw)
