@@ -37,6 +37,11 @@ type pkcs8 struct {
 	// optional attributes omitted.
 }
 
+const (
+	ErrMsgUseParseECPrivateKey    = "gmx509.ParsePKCS8PrivateKey: failed to parse private key (use ParseECPrivateKey instead for this key format)"
+	ErrMsgUseParsePKCS1PrivateKey = "gmx509.ParsePKCS8PrivateKey: failed to parse private key (use ParsePKCS1PrivateKey instead for this key format)"
+)
+
 // ParsePKCS8PrivateKey 将未加密的PKCS #8, ASN.1 DER格式字节数组转为对应的私钥。
 //  - 私钥支持: sm2, ecdsa, ed25519, rsa
 //
@@ -51,10 +56,10 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 	// 尝试将 der 反序列化到 privKey
 	if _, err := asn1.Unmarshal(der, &privKey); err != nil {
 		if _, err := asn1.Unmarshal(der, &ecPrivateKey{}); err == nil {
-			return nil, errors.New("gmx509.ParsePKCS8PrivateKey: failed to parse private key (use ParseECPrivateKey instead for this key format)")
+			return nil, errors.New(ErrMsgUseParseECPrivateKey)
 		}
 		if _, err := asn1.Unmarshal(der, &pkcs1PrivateKey{}); err == nil {
-			return nil, errors.New("gmx509.ParsePKCS8PrivateKey: failed to parse private key (use ParsePKCS1PrivateKey instead for this key format)")
+			return nil, errors.New(ErrMsgUseParsePKCS1PrivateKey)
 		}
 		return nil, err
 	}

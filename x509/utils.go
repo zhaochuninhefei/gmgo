@@ -84,7 +84,15 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 	} else {
 		der = block.Bytes
 	}
-	return ParsePKCS8PrivateKey(der)
+	privKey, err := ParsePKCS8PrivateKey(der)
+	if err != nil {
+		if err.Error() == ErrMsgUseParseECPrivateKey {
+			return ParseECPrivateKey(der)
+		} else if err.Error() == ErrMsgUseParsePKCS1PrivateKey {
+			return ParsePKCS1PrivateKey(der)
+		}
+	}
+	return privKey, err
 }
 
 // ReadPrivateKeyFromPemFile 将pem文件转为对应私钥
