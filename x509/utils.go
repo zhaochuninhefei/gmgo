@@ -33,6 +33,10 @@ CreateCertificateToPemFile : 创建gmx509证书并转为pem文件
 ParseGmx509DerToX509 : 将gmx509证书DER字节数组转为x509证书
 CreateEllipticSKI : 根据椭圆曲线公钥参数生成其SKI值
 GetRandBigInt : 随机生成序列号
+ReadKeyFromPem : 从pem读取对称加密密钥
+ReadKeyFromPemFile : 从pem文件读取对称加密密钥
+WriteKeyToPem : 将对称加密密钥写入pem
+WriteKeyToPemFile : 将对称加密密钥写入pem文件
 */
 
 import (
