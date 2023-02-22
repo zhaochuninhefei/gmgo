@@ -126,6 +126,7 @@ func (c *writeOnlyConn) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (c *writeOnlyConn) Read(p []byte) (int, error) {
 	return 0, errors.New("conn is write-only")
 }
