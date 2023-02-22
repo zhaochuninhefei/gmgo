@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -94,4 +95,41 @@ func ReadPemFromFile(filePath string) (pemBytes []byte, err error) {
 		return nil, fmt.Errorf("no pem content for file [%s]", filePath)
 	}
 	return fileBytes, nil
+}
+
+// ECSignature 椭圆曲线签名
+type ECSignature struct {
+	R, S *big.Int
+}
+
+// MarshalECSignature 序列化椭圆曲线签名
+func MarshalECSignature(r, s *big.Int) ([]byte, error) {
+	return asn1.Marshal(ECSignature{r, s})
+}
+
+// UnmarshalECSignature 反序列化椭圆曲线签名
+func UnmarshalECSignature(raw []byte) (*big.Int, *big.Int, error) {
+	// Unmarshal
+	sig := new(ECSignature)
+	_, err := asn1.Unmarshal(raw, sig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed unmashalling signature [%s]", err)
+	}
+
+	// Validate sig
+	if sig.R == nil {
+		return nil, nil, errors.New("invalid signature, R must be different from nil")
+	}
+	if sig.S == nil {
+		return nil, nil, errors.New("invalid signature, S must be different from nil")
+	}
+
+	if sig.R.Sign() != 1 {
+		return nil, nil, errors.New("invalid signature, R must be larger than zero")
+	}
+	if sig.S.Sign() != 1 {
+		return nil, nil, errors.New("invalid signature, S must be larger than zero")
+	}
+
+	return sig.R, sig.S, nil
 }
