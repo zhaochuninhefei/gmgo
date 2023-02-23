@@ -16,7 +16,7 @@ import (
 
 func ExampleResponseRecorder() {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "<html><body>Hello World!</body></html>")
+		_, _ = io.WriteString(w, "<html><body>Hello World!</body></html>")
 	}
 
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
@@ -38,7 +38,7 @@ func ExampleResponseRecorder() {
 
 func ExampleServer() {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		_, _ = fmt.Fprintln(w, "Hello, client")
 	}))
 	defer ts.Close()
 
@@ -47,7 +47,7 @@ func ExampleServer() {
 		log.Fatal(err)
 	}
 	greeting, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func ExampleServer_hTTP2() {
 	}
 	zclog.InitLogger(zcgologConfig)
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %s", r.Proto)
+		_, _ = fmt.Fprintf(w, "Hello, %s", r.Proto)
 	}))
 	ts.EnableHTTP2 = true
 	ts.StartTLS()
@@ -73,7 +73,7 @@ func ExampleServer_hTTP2() {
 		log.Fatal(err)
 	}
 	greeting, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func ExampleNewTLSServer() {
 	}
 	zclog.InitLogger(zcgologConfig)
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		_, _ = fmt.Fprintln(w, "Hello, client")
 	}))
 	defer ts.Close()
 
@@ -99,7 +99,7 @@ func ExampleNewTLSServer() {
 	}
 
 	greeting, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
