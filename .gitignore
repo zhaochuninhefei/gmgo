@@ -27,3 +27,4 @@ gmtls/tls_test/logs/*.log
 gmtls/tls_test/certs
 grpc/grpc_test/testdata
 sm2test/testdata/*
+x509test/testdata/*
