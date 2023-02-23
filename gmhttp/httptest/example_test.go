@@ -19,6 +19,7 @@ func ExampleResponseRecorder() {
 		_, _ = io.WriteString(w, "<html><body>Hello World!</body></html>")
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	w := httptest.NewRecorder()
 	handler(w, req)
