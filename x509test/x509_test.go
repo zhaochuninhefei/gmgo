@@ -40,22 +40,29 @@ func TestCreateCertFromCA_sm2(t *testing.T) {
 	}
 	fmt.Printf("生成CA密钥对与CA证书成功 %s\n", certType)
 
+	certType = certTypePre + "intermediateCA"
+	intermediateCaPriv, intermediateCaCert, err := createIntermediateCACert(certType, caPriv, caCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成IntermediateCA密钥对与IntermediateCA证书成功 %s\n", certType)
+
 	certType = certTypePre + "sign"
-	err = createSignCert(caPriv, caCert, certType)
+	err = createSignCert(intermediateCaPriv, intermediateCaCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 
 	certType = certTypePre + "enc"
-	err = createEncCert(caPriv, caCert, certType)
+	err = createEncCert(intermediateCaPriv, intermediateCaCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 
 	certType = certTypePre + "auth"
-	err = createAuthCert(caPriv, caCert, certType)
+	err = createAuthCert(intermediateCaPriv, intermediateCaCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,22 +78,29 @@ func TestCreateCertFromCA_ecdsa(t *testing.T) {
 	}
 	fmt.Printf("生成CA密钥对与CA证书成功 %s\n", certType)
 
+	certType = certTypePre + "intermediateCA"
+	intermediateCaPriv, intermediateCaCert, err := createIntermediateCACert(certType, caPriv, caCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成IntermediateCA密钥对与IntermediateCA证书成功 %s\n", certType)
+
 	certType = certTypePre + "sign"
-	err = createSignCert(caPriv, caCert, certType)
+	err = createSignCert(intermediateCaPriv, intermediateCaCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 
 	certType = certTypePre + "enc"
-	err = createEncCert(caPriv, caCert, certType)
+	err = createEncCert(intermediateCaPriv, intermediateCaCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 
 	certType = certTypePre + "auth"
-	err = createAuthCert(caPriv, caCert, certType)
+	err = createAuthCert(intermediateCaPriv, intermediateCaCert, certType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,12 +130,49 @@ func createCACert(certType string) (interface{}, *x509.Certificate, error) {
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
 	// 创建证书，ca证书自签名
-	cert, err := createCertSignSelf("ca.test.com", "catest", "CN", "Anhui Hefei", true, true, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, privKey)
+	cert, err := createCertSignSelf("ca.test.com", "test", "ca", "CN", "Anhui Hefei", true, true, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, privKey)
 	if err != nil {
 		return nil, nil, err
 	}
 	// 检查证书签名，因为是ca证书自签名，所以使用本证书自验
 	err = cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
+	if err != nil {
+		return nil, nil, err
+	} else {
+		fmt.Printf("CheckSignature ok\n")
+	}
+	return privKey, cert, nil
+}
+
+func createIntermediateCACert(certType string, caPriv interface{}, caCert *x509.Certificate) (interface{}, *x509.Certificate, error) {
+	// 生成密钥对
+	privKey, pubKey, err := createKeys(certType)
+	if err != nil {
+		return nil, nil, err
+	}
+	userKeyUsage := x509.KeyUsageCertSign + x509.KeyUsageCRLSign
+	//goland:noinspection GoPreferNilSlice
+	userExtKeyUsage := []x509.ExtKeyUsage{
+		// ExtKeyUsageAny,
+		// ExtKeyUsageServerAuth,
+		// ExtKeyUsageClientAuth,
+		// ExtKeyUsageCodeSigning,
+		// ExtKeyUsageEmailProtection,
+		// ExtKeyUsageIPSECEndSystem,
+		// ExtKeyUsageIPSECTunnel,
+		// ExtKeyUsageIPSECUser,
+		// ExtKeyUsageTimeStamping,
+		// ExtKeyUsageOCSPSigning,
+		// ExtKeyUsageMicrosoftServerGatedCrypto,
+		// ExtKeyUsageNetscapeServerGatedCrypto,
+	}
+	// 创建证书，ca证书自签名
+	cert, err := createCertSignParent("intermediateCa.test.com", "test", "intermediateCa", "CN", "Anhui Hefei", true, true, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 使用父证书caCert验签
+	err = caCert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
 	if err != nil {
 		return nil, nil, err
 	} else {
@@ -152,7 +203,7 @@ func createSignCert(caPriv interface{}, caCert *x509.Certificate, certType strin
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
 	// 模拟CA颁发证书，注意此时ca证书是父证书
-	cert, err := createCertSignParent("server.test.com", "server_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
+	cert, err := createCertSignParent("server.test.com", "test", "server", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
 		return err
 	}
@@ -189,7 +240,7 @@ func createEncCert(caPriv interface{}, caCert *x509.Certificate, certType string
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
 	// 模拟CA颁发证书，注意此时ca证书是父证书
-	cert, err := createCertSignParent("server.test.com", "server_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
+	cert, err := createCertSignParent("server.test.com", "test", "server", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
 		return err
 	}
@@ -225,7 +276,7 @@ func createAuthCert(caPriv interface{}, caCert *x509.Certificate, certType strin
 		// ExtKeyUsageNetscapeServerGatedCrypto,
 	}
 	// 模拟CA颁发证书，注意此时ca证书是父证书
-	cert, err := createCertSignParent("client.test.com", "client_test", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
+	cert, err := createCertSignParent("client.test.com", "test", "client", "CN", "Anhui Hefei", false, false, userKeyUsage, userExtKeyUsage, nil, certType, pubKey, caPriv, caCert)
 	if err != nil {
 		return err
 	}
@@ -281,7 +332,7 @@ func createKeys(certType string) (interface{}, interface{}, error) {
 	return privKey, pubKey, nil
 }
 
-func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca bool,
+func createCertSignSelf(cn string, o string, ou string, c string, st string, bcs bool, isca bool,
 	ku x509.KeyUsage, ekus []x509.ExtKeyUsage, uekus []asn1.ObjectIdentifier,
 	certType string, pubKey interface{}, privKey interface{}) (*x509.Certificate, error) {
 	// 获取ski
@@ -295,7 +346,7 @@ func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca
 		panic("不支持的公钥类型")
 	}
 	// 定义证书模板
-	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, privKey)
+	template := createTemplate(cn, o, ou, c, st, bcs, isca, ski, ku, ekus, uekus, privKey)
 	// 创建自签名证书pem文件
 	_, err := x509.CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, template, pubKey, privKey)
 	if err != nil {
@@ -310,7 +361,7 @@ func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca
 	return cert, nil
 }
 
-func createCertSignParent(cn string, o string, c string, st string, bcs bool, isca bool,
+func createCertSignParent(cn string, o string, ou string, c string, st string, bcs bool, isca bool,
 	ku x509.KeyUsage, ekus []x509.ExtKeyUsage, uekus []asn1.ObjectIdentifier,
 	certType string, pubKey interface{}, privKey interface{}, parent *x509.Certificate) (*x509.Certificate, error) {
 
@@ -325,7 +376,7 @@ func createCertSignParent(cn string, o string, c string, st string, bcs bool, is
 		panic("不支持的公钥类型")
 	}
 	// 定义证书模板
-	template := createTemplate(cn, o, c, st, bcs, isca, ski, ku, ekus, uekus, privKey)
+	template := createTemplate(cn, o, ou, c, st, bcs, isca, ski, ku, ekus, uekus, privKey)
 	// 创建自签名证书pem文件
 	_, err := x509.CreateCertificateToPemFile("testdata/"+certType+"_cert.cer", template, parent, pubKey, privKey)
 	if err != nil {
@@ -340,7 +391,7 @@ func createCertSignParent(cn string, o string, c string, st string, bcs bool, is
 	return cert, nil
 }
 
-func createTemplate(cn string, o string, c string, st string, bcs bool, isca bool, sId []byte, ku x509.KeyUsage, ekus []x509.ExtKeyUsage, uekus []asn1.ObjectIdentifier, privKey interface{}) *x509.Certificate {
+func createTemplate(cn string, o string, ou string, c string, st string, bcs bool, isca bool, sId []byte, ku x509.KeyUsage, ekus []x509.ExtKeyUsage, uekus []asn1.ObjectIdentifier, privKey interface{}) *x509.Certificate {
 	var signAlg x509.SignatureAlgorithm
 	switch privKey.(type) {
 	case *sm2.PrivateKey:
@@ -361,6 +412,8 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 			CommonName: cn,
 			// O 证书拥有者组织机构
 			Organization: []string{o},
+			// OU 证书拥有者组织单位, 隶属于Organization
+			OrganizationalUnit: []string{ou},
 			// C 证书拥有者所在国家
 			Country: []string{"China"},
 			// 附加名称
@@ -394,9 +447,9 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 		UnknownExtKeyUsage: uekus,
 		// x509 v3 版本不再使用 CommonName 而是使用这里的SAN扩展信息
 		DNSNames:       []string{cn, "test.example.com"},
-		EmailAddresses: []string{"gopher@golang.org"},
+		EmailAddresses: []string{"test@example.com"},
 		IPAddresses:    []net.IP{net.IPv4(127, 0, 0, 1).To4(), net.ParseIP("2001:4860:0:2001::68")},
-		URIs:           []*url.URL{parseURI("https://foo.com/wibble#foo")},
+		URIs:           []*url.URL{parseURI("https://example.com/test#test")},
 	}
 	return template
 }
