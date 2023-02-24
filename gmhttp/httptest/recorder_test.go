@@ -19,6 +19,7 @@ func TestRecorder(t *testing.T) {
 	hasStatus := func(wantCode int) checkFunc {
 		return func(rec *ResponseRecorder) error {
 			if rec.Code != wantCode {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Status = %d; want %d", rec.Code, wantCode)
 			}
 			return nil
@@ -64,6 +65,7 @@ func TestRecorder(t *testing.T) {
 	hasFlush := func(want bool) checkFunc {
 		return func(rec *ResponseRecorder) error {
 			if rec.Flushed != want {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Flushed = %v; want %v", rec.Flushed, want)
 			}
 			return nil
@@ -300,6 +302,7 @@ func TestRecorder(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			//goland:noinspection HttpUrlsUsage
 			r, _ := http.NewRequest("GET", "http://foo.com/", nil)
 			h := http.HandlerFunc(tt.h)
 			rec := NewRecorder()
@@ -367,6 +370,7 @@ func TestRecorderPanicsOnNonXXXStatusCode(t *testing.T) {
 			handler := func(rw http.ResponseWriter, _ *http.Request) {
 				rw.WriteHeader(badCode)
 			}
+			//goland:noinspection HttpUrlsUsage
 			r, _ := http.NewRequest("GET", "http://example.org/", nil)
 			rw := NewRecorder()
 			handler(rw, r)
