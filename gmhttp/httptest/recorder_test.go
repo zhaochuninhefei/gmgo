@@ -141,14 +141,14 @@ func TestRecorder(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(201)
 				w.WriteHeader(202)
-				w.Write([]byte("hi"))
+				_, _ = w.Write([]byte("hi"))
 			},
 			check(hasStatus(201), hasContents("hi")),
 		},
 		{
 			"write sends 200",
 			func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("hi first"))
+				_, _ = w.Write([]byte("hi first"))
 				w.WriteHeader(201)
 				w.WriteHeader(202)
 			},
@@ -157,7 +157,7 @@ func TestRecorder(t *testing.T) {
 		{
 			"write string",
 			func(w http.ResponseWriter, r *http.Request) {
-				io.WriteString(w, "hi first")
+				_, _ = io.WriteString(w, "hi first")
 			},
 			check(
 				hasStatus(200),
@@ -177,7 +177,7 @@ func TestRecorder(t *testing.T) {
 		{
 			"Content-Type detection",
 			func(w http.ResponseWriter, r *http.Request) {
-				io.WriteString(w, "<html>")
+				_, _ = io.WriteString(w, "<html>")
 			},
 			check(hasHeader("Content-Type", "text/html; charset=utf-8")),
 		},
@@ -185,7 +185,7 @@ func TestRecorder(t *testing.T) {
 			"no Content-Type detection with Transfer-Encoding",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Transfer-Encoding", "some encoding")
-				io.WriteString(w, "<html>")
+				_, _ = io.WriteString(w, "<html>")
 			},
 			check(hasHeader("Content-Type", "")), // no header
 		},
@@ -193,7 +193,7 @@ func TestRecorder(t *testing.T) {
 			"no Content-Type detection if set explicitly",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "some/type")
-				io.WriteString(w, "<html>")
+				_, _ = io.WriteString(w, "<html>")
 			},
 			check(hasHeader("Content-Type", "some/type")),
 		},
@@ -205,7 +205,7 @@ func TestRecorder(t *testing.T) {
 				// HeaderMap)
 				//goland:noinspection GoDeprecation
 				w.(*ResponseRecorder).HeaderMap = nil
-				io.WriteString(w, "<html>")
+				_, _ = io.WriteString(w, "<html>")
 			},
 			check(hasHeader("Content-Type", "text/html; charset=utf-8")),
 		},
@@ -226,7 +226,7 @@ func TestRecorder(t *testing.T) {
 				w.Header().Set("Trailer", "Trailer-A")
 				w.Header().Add("Trailer", "Trailer-B")
 				w.Header().Add("Trailer", "Trailer-C")
-				io.WriteString(w, "<html>")
+				_, _ = io.WriteString(w, "<html>")
 				w.Header().Set("Non-Trailer", "incorrect")
 				w.Header().Set("Trailer-A", "valuea")
 				w.Header().Set("Trailer-C", "valuec")
@@ -268,7 +268,7 @@ func TestRecorder(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				h := w.Header()
 				h.Set("X-Foo", "1")
-				w.Write([]byte("hi"))
+				_, _ = w.Write([]byte("hi"))
 				h.Set("X-Foo", "2")
 				h.Set("X-Bar", "2")
 			},
@@ -285,7 +285,7 @@ func TestRecorder(t *testing.T) {
 				body := "Some body"
 				contentLength := fmt.Sprintf("%d", len(body))
 				w.Header().Set("Content-Length", contentLength)
-				io.WriteString(w, body)
+				_, _ = io.WriteString(w, body)
 			},
 			check(hasStatus(200), hasContents("Some body"), hasContentLength(9)),
 		},
@@ -293,7 +293,7 @@ func TestRecorder(t *testing.T) {
 			"nil ResponseRecorder.Body", // Issue 26642
 			func(w http.ResponseWriter, r *http.Request) {
 				w.(*ResponseRecorder).Body = nil
-				io.WriteString(w, "hi")
+				_, _ = io.WriteString(w, "hi")
 			},
 			check(hasResultContents("")), // check we don't crash reading the body
 
