@@ -16,6 +16,7 @@ import (
 )
 
 func TestNewRequest(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	for _, tt := range [...]struct {
 		name string
 

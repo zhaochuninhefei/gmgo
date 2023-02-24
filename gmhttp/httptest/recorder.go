@@ -50,6 +50,7 @@ type ResponseRecorder struct {
 
 // NewRecorder returns an initialized ResponseRecorder.
 func NewRecorder() *ResponseRecorder {
+	//goland:noinspection GoDeprecation
 	return &ResponseRecorder{
 		HeaderMap: make(http.Header),
 		Body:      new(bytes.Buffer),
@@ -59,6 +60,7 @@ func NewRecorder() *ResponseRecorder {
 
 // DefaultRemoteAddr is the default remote address to return in RemoteAddr if
 // an explicit DefaultRemoteAddr isn't set on ResponseRecorder.
+//goland:noinspection GoUnusedConst
 const DefaultRemoteAddr = "1.2.3.4"
 
 // Header implements http.ResponseWriter. It returns the response
@@ -66,9 +68,11 @@ const DefaultRemoteAddr = "1.2.3.4"
 // written after a handler completes, use the Result method and see
 // the returned Response value's Header.
 func (rw *ResponseRecorder) Header() http.Header {
+	//goland:noinspection GoDeprecation
 	m := rw.HeaderMap
 	if m == nil {
 		m = make(http.Header)
+		//goland:noinspection GoDeprecation
 		rw.HeaderMap = m
 	}
 	return m
@@ -141,6 +145,7 @@ func checkWriteHeaderCode(code int) {
 }
 
 // WriteHeader implements http.ResponseWriter.
+//goland:noinspection GoDeprecation
 func (rw *ResponseRecorder) WriteHeader(code int) {
 	if rw.wroteHeader {
 		return
@@ -179,6 +184,7 @@ func (rw *ResponseRecorder) Flush() {
 // guaranteed to not return any error other than io.EOF.
 //
 // Result must only be called after the handler has finished running.
+//goland:noinspection GoDeprecation
 func (rw *ResponseRecorder) Result() *http.Response {
 	if rw.result != nil {
 		return rw.result
