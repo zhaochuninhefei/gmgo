@@ -71,6 +71,7 @@ func TestRecorder(t *testing.T) {
 	}
 	hasOldHeader := func(key, want string) checkFunc {
 		return func(rec *ResponseRecorder) error {
+			//goland:noinspection GoDeprecation
 			if got := rec.HeaderMap.Get(key); got != want {
 				return fmt.Errorf("HeaderMap header %s = %q; want %q", key, got, want)
 			}
@@ -202,6 +203,7 @@ func TestRecorder(t *testing.T) {
 				// Act as if the user wrote new(httptest.ResponseRecorder)
 				// rather than using NewRecorder (which initializes
 				// HeaderMap)
+				//goland:noinspection GoDeprecation
 				w.(*ResponseRecorder).HeaderMap = nil
 				io.WriteString(w, "<html>")
 			},
