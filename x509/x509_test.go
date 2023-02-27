@@ -21,10 +21,12 @@ import (
 	"encoding/pem"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/utils"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"net"
 	"net/url"
+	"os"
 	"os/exec"
 	"reflect"
 	"runtime"
@@ -35,6 +37,12 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
+
+func TestMain(m *testing.M) {
+	zclog.Level = zclog.LOG_LEVEL_DEBUG
+	zclog.Debug("TestMain")
+	os.Exit(m.Run())
+}
 
 func TestParsePKCS1PrivateKey(t *testing.T) {
 	block, _ := pem.Decode([]byte(pemPrivateKey))

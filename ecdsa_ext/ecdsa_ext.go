@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/cryptobyte/asn1"
 	"io"
@@ -49,10 +50,16 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	// 判断是否需要low-s处理
 	if ecOpts, ok := opts.(ecbase.EcSignerOpts); ok {
 		if ecOpts.NeedLowS() {
-			s, err = ToLowS(&priv.PublicKey, s)
+			zclog.Debugln("在sign时尝试ToLowS处理")
+			doLow := false
+			doLow, s, err = ToLowS(&priv.PublicKey, s)
 			if err != nil {
 				return nil, err
 			}
+			if doLow {
+				zclog.Debugf("在sign时完成ToLowS处理")
+			}
+
 		}
 	}
 
@@ -89,18 +96,23 @@ func GetCurveHalfOrdersAt(c elliptic.Curve) *big.Int {
 
 // SignatureToLowS 检查ecdsa签名的s值是否是lower-s值，如果不是，则将s转为对应的lower-s值并重新序列化为ecdsa签名
 //goland:noinspection GoUnusedExportedFunction
-func SignatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
+func SignatureToLowS(k *ecdsa.PublicKey, signature []byte) (bool, []byte, error) {
 	r, s, err := ecbase.UnmarshalECSignature(signature)
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
-
-	s, err = ToLowS(k, s)
+	hasToLow := false
+	hasToLow, s, err = ToLowS(k, s)
 	if err != nil {
-		return nil, err
+		return hasToLow, nil, err
 	}
 
-	return ecbase.MarshalECSignature(r, s)
+	ecSignature, err := ecbase.MarshalECSignature(r, s)
+	if err != nil {
+		return hasToLow, nil, err
+	}
+
+	return hasToLow, ecSignature, nil
 }
 
 // IsLowS checks that s is a low-S
@@ -113,20 +125,21 @@ func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 
 }
 
-func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, error) {
+func ToLowS(k *ecdsa.PublicKey, s *big.Int) (bool, *big.Int, error) {
 	lowS, err := IsLowS(k, s)
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
 
 	if !lowS {
 		// Set s to N - s that will be then in the lower part of signature space
 		// less or equal to half order
+		//fmt.Println("执行lows处理")
 		s.Sub(k.Params().N, s)
-		return s, nil
+		return true, s, nil
 	}
 
-	return s, nil
+	return false, s, nil
 }
 
 type PublicKey struct {

@@ -43,6 +43,8 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"net"
@@ -1543,7 +1545,6 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		}
 	case *ecdsa.PublicKey:
 		pubType = ECDSA
-
 		switch pub.Curve {
 		case elliptic.P224(), elliptic.P256():
 			hashFunc = SHA256
@@ -1557,7 +1558,24 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown elliptic curve")
 		}
-		// gmx509的ecdsa签名默认需要做low-s处理
+		// ecdsa签名默认需要做low-s处理
+		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
+	case *ecdsa_ext.PublicKey:
+		pubType = ECDSA
+		switch pub.Curve {
+		case elliptic.P224(), elliptic.P256():
+			hashFunc = SHA256
+			sigAlgo.Algorithm = oidSignatureECDSAWithSHA256
+		case elliptic.P384():
+			hashFunc = SHA384
+			sigAlgo.Algorithm = oidSignatureECDSAWithSHA384
+		case elliptic.P521():
+			hashFunc = SHA512
+			sigAlgo.Algorithm = oidSignatureECDSAWithSHA512
+		default:
+			err = errors.New("x509: unknown elliptic curve")
+		}
+		// ecdsa签名默认需要做low-s处理
 		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
 
 	case ed25519.PublicKey:
@@ -1601,7 +1619,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 				// 签名参数
 				signOpts = sm2.DefaultSM2SignerOption()
 			case ECDSA:
-				// gmx509的ecdsa签名默认需要做low-s处理
+				// ecdsa签名默认需要做low-s处理
 				signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
 			case RSA:
 				signOpts = hashFunc
@@ -1801,6 +1819,22 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	signature, err = key.Sign(rand, signed, signOpts)
 	if err != nil {
 		return nil, err
+	}
+	// ecdsa签名做low-s处理
+	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+		if ecSignOpts.NeedLowS() {
+			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+				zclog.Debugln("x509证书签署后尝试low-s处理")
+				doLow := false
+				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+				if err != nil {
+					return nil, err
+				}
+				if doLow {
+					zclog.Debugln("x509证书签署后完成low-s处理")
+				}
+			}
+		}
 	}
 	// 构建证书(证书主体 + 签名算法 + 签名)，并转为字节数组
 	signedCert, err := asn1.Marshal(certificate{
