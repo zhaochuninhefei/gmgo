@@ -77,6 +77,7 @@ var (
 	}
 )
 
+//goland:noinspection GoUnusedExportedFunction
 func AddCurveHalfOrders(curve elliptic.Curve, halfOrder *big.Int) {
 	curveHalfOrders[curve] = halfOrder
 }
