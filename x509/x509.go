@@ -42,6 +42,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 	"io"
 	"math/big"
 	"net"
@@ -1506,11 +1507,9 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 	return asn1.Marshal(cert.Subject.ToRDNSequence())
 }
 
-// 根据传入的公钥与签名算法获取签名参数(摘要算法、签名算法)
-// signingParamsForPublicKey returns the parameters to use for signing with
-// priv. If requestedSigAlgo is not zero then it overrides the default
-// signature algorithm.
-func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
+// signingParamsForPublicKey 根据传入的公钥与签名算法获取签名参数(摘要算法、签名算法)
+//  优先根据公钥获取，公钥获取失败，再根据参数requestedSigAlgo从定义支持的签名算法中获取。
+func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (signOpts crypto.SignerOpts, hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
 	// 根据pub的公钥类型选择证书算法
@@ -1525,6 +1524,8 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 			hashFunc = SM3
 			// 签名算法
 			sigAlgo.Algorithm = oidSignatureSM2WithSM3
+			// 签名参数
+			signOpts = sm2.DefaultSM2SignerOption()
 		default:
 			err = errors.New("x509: unknown SM2 curve")
 		}
@@ -1533,7 +1534,13 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		hashFunc = SHA256
 		sigAlgo.Algorithm = oidSignatureSHA256WithRSA
 		sigAlgo.Parameters = asn1.NullRawValue
-
+		signOpts = hashFunc
+		if requestedSigAlgo != 0 && requestedSigAlgo.isRSAPSS() {
+			signOpts = &rsa.PSSOptions{
+				SaltLength: rsa.PSSSaltLengthEqualsHash,
+				Hash:       hashFunc.HashFunc(),
+			}
+		}
 	case *ecdsa.PublicKey:
 		pubType = ECDSA
 
@@ -1550,6 +1557,8 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown elliptic curve")
 		}
+		// gmx509的ecdsa签名默认需要做low-s处理
+		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
 
 	case ed25519.PublicKey:
 		pubType = Ed25519
@@ -1560,11 +1569,11 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	}
 
 	if err != nil {
+		// 由公钥成功获取签名参数后直接返回
 		return
 	}
-
 	if requestedSigAlgo == 0 {
-		// 如果请求签名算法requestedSigAlgo为0，则直接返回前面根据pub的公钥类型选择的证书算法
+		// 如果请求签名算法requestedSigAlgo为0，则直接返回目前的err
 		return
 	}
 
@@ -1583,6 +1592,26 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 			}
 			if requestedSigAlgo.isRSAPSS() {
 				sigAlgo.Parameters = hashToPSSParameters[hashFunc]
+			}
+			switch details.pubKeyAlgo {
+			case SM2:
+				// 签名参数
+				signOpts = sm2.DefaultSM2SignerOption()
+			case ECDSA:
+				// gmx509的ecdsa签名默认需要做low-s处理
+				signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
+			case RSA:
+				signOpts = hashFunc
+				if requestedSigAlgo != 0 && requestedSigAlgo.isRSAPSS() {
+					signOpts = &rsa.PSSOptions{
+						SaltLength: rsa.PSSSaltLengthEqualsHash,
+						Hash:       hashFunc.HashFunc(),
+					}
+				}
+			case Ed25519:
+				// ed25519不需要signOpts与hashFunc
+			default:
+				signOpts = hashFunc
 			}
 			found = true
 			break
@@ -1675,7 +1704,7 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 		return nil, errors.New("x509: only CAs are allowed to specify MaxPathLen")
 	}
 	// 根据签名者的公钥以及证书模板的签名算法配置推导本次新证书签名中使用的散列算法与签名算法
-	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
+	signOpts, hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -1750,23 +1779,24 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	c.Raw = tbsCertContents
 	// 签名前对签名内容做一次散列
 	signed := tbsCertContents
+	// 签名算法为sm2withsm3时，在其内部做散列，对应的hashFunc为0
 	if hashFunc != 0 {
 		h := hashFunc.New()
 		h.Write(signed)
 		signed = h.Sum(nil)
 	}
-	// 签名需要将散列函数作为signerOpts传入
-	var signerOpts crypto.SignerOpts = hashFunc
-	// rsa的特殊处理
-	if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
-		signerOpts = &rsa.PSSOptions{
-			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			Hash:       hashFunc.HashFunc(),
-		}
-	}
+	//// 签名需要将散列函数作为signerOpts传入
+	//var signerOpts crypto.SignerOpts = hashFunc
+	//// rsa的特殊处理
+	//if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
+	//	signerOpts = &rsa.PSSOptions{
+	//		SaltLength: rsa.PSSSaltLengthEqualsHash,
+	//		Hash:       hashFunc.HashFunc(),
+	//	}
+	//}
 	// 签名
 	var signature []byte
-	signature, err = key.Sign(rand, signed, signerOpts)
+	signature, err = key.Sign(rand, signed, signOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -1845,7 +1875,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 		return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
 	}
 	// 使用签署者的公钥获取签名参数: 散列函数与签名算法
-	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), 0)
+	signOpts, hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(key.Public(), 0)
 	if err != nil {
 		return nil, err
 	}
@@ -1890,7 +1920,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	}
 
 	var signature []byte
-	signature, err = key.Sign(rand, signed, hashFunc)
+	signature, err = key.Sign(rand, signed, signOpts)
 	if err != nil {
 		return
 	}
@@ -2066,9 +2096,10 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 		return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
 	}
 	// 根据申请者的公钥与模板的签名算法获取散列函数与签名算法
+	var signOpts crypto.SignerOpts
 	var hashFunc Hash
 	var sigAlgo pkix.AlgorithmIdentifier
-	hashFunc, sigAlgo, err = signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
+	signOpts, hashFunc, sigAlgo, err = signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -2190,7 +2221,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	}
 	// 签名，注意，证书申请都是申请者自签名。
 	var signature []byte
-	signature, err = key.Sign(rand, signed, hashFunc)
+	signature, err = key.Sign(rand, signed, signOpts)
 	if err != nil {
 		return
 	}
@@ -2451,7 +2482,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		return nil, errors.New("x509: template contains nil Number field")
 	}
 
-	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(priv.Public(), template.SignatureAlgorithm)
+	signOpts, hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(priv.Public(), template.SignatureAlgorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -2508,15 +2539,15 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		h.Write(tbsCertListContents)
 		input = h.Sum(nil)
 	}
-	var signerOpts crypto.SignerOpts = hashFunc
-	if template.SignatureAlgorithm.isRSAPSS() {
-		signerOpts = &rsa.PSSOptions{
-			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			Hash:       hashFunc.HashFunc(),
-		}
-	}
+	//var signerOpts crypto.SignerOpts = hashFunc
+	//if template.SignatureAlgorithm.isRSAPSS() {
+	//	signerOpts = &rsa.PSSOptions{
+	//		SaltLength: rsa.PSSSaltLengthEqualsHash,
+	//		Hash:       hashFunc.HashFunc(),
+	//	}
+	//}
 
-	signature, err := priv.Sign(rand, input, signerOpts)
+	signature, err := priv.Sign(rand, input, signOpts)
 	if err != nil {
 		return nil, err
 	}
