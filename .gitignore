@@ -22,7 +22,7 @@ go.sum
 bk_API使用说明.md
 bk_CHANGELOG.md
 sm4/*.log
-x509/testdata
+x509/testdata/*.*
 gmtls/tls_test/logs/*.log
 gmtls/tls_test/certs
 grpc/grpc_test/testdata
