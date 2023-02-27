@@ -1,6 +1,7 @@
 package ecdsa_ext
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
@@ -15,7 +16,7 @@ type PrivateKey struct {
 	ecdsa.PrivateKey
 }
 
-func (priv *PrivateKey) Public() *PublicKey {
+func (priv *PrivateKey) Public() crypto.PublicKey {
 	oriPub := priv.PublicKey
 	return &PublicKey{
 		PublicKey: oriPub,
@@ -37,31 +38,21 @@ func GenerateKey(c elliptic.Curve, rand io.Reader) (*PrivateKey, error) {
 	return ConvPrivKeyFromOrigin(oriKey), nil
 }
 
-//func (priv *PrivateKey) ToOrigin() *ecdsa.PrivateKey {
-//	return &priv.PrivateKey
-//}
-
-//func (priv *PrivateKey) Public() crypto.PublicKey {
-//	return &priv.PublicKey
-//}
-//
-//func (priv *PrivateKey) Equal(x crypto.PrivateKey) bool {
-//	xx, ok := x.(*PrivateKey)
-//	if !ok {
-//		return false
-//	}
-//	return priv.PublicKey.Equal(&xx.PublicKey) && priv.D.Cmp(xx.D) == 0
-//}
-
-func (priv *PrivateKey) EcSign(rand io.Reader, digest []byte, opts ecbase.EcSignerOpts) ([]byte, error) {
+func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	r, s, err := ecdsa.Sign(rand, &priv.PrivateKey, digest)
 	if err != nil {
 		return nil, err
 	}
-	if opts.NeedLowS() {
-		s, err = toLowS(&priv.PublicKey, s)
-		if err != nil {
-			return nil, err
+	if opts == nil {
+		opts = ecbase.CreateDefaultEcSignerOpts()
+	}
+	// 判断是否需要low-s处理
+	if ecOpts, ok := opts.(ecbase.EcSignerOpts); ok {
+		if ecOpts.NeedLowS() {
+			s, err = ToLowS(&priv.PublicKey, s)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -86,7 +77,33 @@ var (
 	}
 )
 
-func isLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
+func AddCurveHalfOrders(curve elliptic.Curve, halfOrder *big.Int) {
+	curveHalfOrders[curve] = halfOrder
+}
+
+//goland:noinspection GoUnusedExportedFunction
+func GetCurveHalfOrdersAt(c elliptic.Curve) *big.Int {
+	return big.NewInt(0).Set(curveHalfOrders[c])
+}
+
+// SignatureToLowS 检查ecdsa签名的s值是否是lower-s值，如果不是，则将s转为对应的lower-s值并重新序列化为ecdsa签名
+//goland:noinspection GoUnusedExportedFunction
+func SignatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
+	r, s, err := ecbase.UnmarshalECSignature(signature)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err = ToLowS(k, s)
+	if err != nil {
+		return nil, err
+	}
+
+	return ecbase.MarshalECSignature(r, s)
+}
+
+// IsLowS checks that s is a low-S
+func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 	halfOrder, ok := curveHalfOrders[k.Curve]
 	if !ok {
 		return false, fmt.Errorf("curve not recognized [%s]", k.Curve)
@@ -95,8 +112,8 @@ func isLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 
 }
 
-func toLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, error) {
-	lowS, err := isLowS(k, s)
+func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, error) {
+	lowS, err := IsLowS(k, s)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +121,7 @@ func toLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, error) {
 	if !lowS {
 		// Set s to N - s that will be then in the lower part of signature space
 		// less or equal to half order
-		//fmt.Printf("lowS before: %d\n", s)
 		s.Sub(k.Params().N, s)
-		//fmt.Printf("lowS after: %d\n", s)
 		return s, nil
 	}
 

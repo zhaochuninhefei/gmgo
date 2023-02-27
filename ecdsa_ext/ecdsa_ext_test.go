@@ -16,18 +16,22 @@ func TestPrivateKey_Sign(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	msg := "花无重开日, 人无再少年"
+	msg := "花有重开日, 人无再少年"
 	digest := sha256.Sum256([]byte(msg))
 	fmt.Printf("msg: %s\n", msg)
 	fmt.Printf("digest hex: %s\n", hex.EncodeToString(digest[:]))
 
-	sign, err := privateKey.EcSign(rand.Reader, digest[:], ecbase.CreateDefaultEcSignerOpts())
+	sign, err := privateKey.Sign(rand.Reader, digest[:], ecbase.CreateDefaultEcSignerOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("sign hex: %s\n", hex.EncodeToString(sign))
 
-	valied := privateKey.Public().Verify(digest[:], sign)
+	pubKey, ok := privateKey.Public().(*PublicKey)
+	if !ok {
+		t.Fatal("PublicKey类型强转失败")
+	}
+	valied := pubKey.Verify(digest[:], sign)
 	if !valied {
 		t.Fatal("验签失败")
 	}

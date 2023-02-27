@@ -75,7 +75,6 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
-	"gitee.com/zhaochuninhefei/gmgo/ecutils"
 	"io"
 	"math/big"
 	"strings"
@@ -127,8 +126,6 @@ func (priv *PrivateKey) Equal(x crypto.PrivateKey) bool {
 var (
 	one      = new(big.Int).SetInt64(1)
 	initonce sync.Once
-
-	halfOrder *big.Int
 )
 
 // P256Sm2 获取sm2p256曲线
@@ -136,13 +133,6 @@ var (
 func P256Sm2() elliptic.Curve {
 	initonce.Do(initP256)
 	return p256
-}
-
-func init() {
-	// 将sm2曲线加入ecutils的curveHalfOrders
-	curve := P256Sm2()
-	halfOrder = new(big.Int).Rsh(curve.Params().N, 1)
-	ecutils.AddCurveHalfOrders(curve, halfOrder)
 }
 
 // 选取一个位于[1~n-1]之间的随机数k，n是椭圆曲线的参数N
@@ -215,9 +205,10 @@ type SM2SignerOption struct {
 
 // NewSM2SignerOption 生成一个新的sm2签名参数
 //  forceZA为true而uid为空时，使用defaultUID
-func NewSM2SignerOption(forceZA bool, uid []byte, needLowS bool) *SM2SignerOption {
+func NewSM2SignerOption(forceZA bool, uid []byte) *SM2SignerOption {
 	opt := &SM2SignerOption{
-		EcSignerOpts: ecbase.CreateEcSignerOpts(0, needLowS),
+		// sm2签名不能做low-s处理,因为sm2的验签算法会对s值做额外检查,s高低值不能混用
+		EcSignerOpts: ecbase.CreateEcSignerOpts(0, false),
 		UID:          uid,
 		ForceZA:      forceZA,
 	}
@@ -231,7 +222,8 @@ func NewSM2SignerOption(forceZA bool, uid []byte, needLowS bool) *SM2SignerOptio
 // DefaultSM2SignerOption 生成一个默认的sm2签名参数
 func DefaultSM2SignerOption() *SM2SignerOption {
 	return &SM2SignerOption{
-		EcSignerOpts: ecbase.CreateDefaultEcSignerOpts(),
+		// sm2签名不能做low-s处理,因为sm2的验签算法会对s值做额外检查,s高低值不能混用
+		EcSignerOpts: ecbase.CreateEcSignerOpts(0, false),
 		UID:          defaultUID,
 		ForceZA:      true,
 	}
@@ -250,7 +242,7 @@ type Signer interface {
 // SignWithZA 为sm2.PrivateKey实现SignWithZA方法。
 //  该方法强制对msg做ZA混合散列，签名使用low-s值
 func (priv *PrivateKey) SignWithZA(rand io.Reader, uid, msg []byte) ([]byte, error) {
-	return priv.Sign(rand, msg, NewSM2SignerOption(true, uid, true))
+	return priv.Sign(rand, msg, NewSM2SignerOption(true, uid))
 }
 
 // SignASN1WithOpts SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
@@ -265,48 +257,6 @@ func SignASN1WithOpts(rand io.Reader, priv *PrivateKey, hash []byte, opts crypto
 //  会对hash做ZA混合散列。
 func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
 	return priv.Sign(rand, hash, nil)
-}
-
-func (priv *PrivateKey) EcSign(rand io.Reader, digest []byte, opts ecbase.EcSignerOpts) ([]byte, error) {
-	var r, s *big.Int
-	var err error
-	if opts == nil {
-		opts = DefaultSM2SignerOption()
-	}
-	if sm2Opts, ok := opts.(*SM2SignerOption); ok {
-		// 传入的opts是SM2SignerOption类型时，根据设置决定是否进行ZA混合散列
-		if sm2Opts.ForceZA {
-			// 执行ZA混合散列
-			r, s, err = SignWithZA(rand, priv, sm2Opts.UID, digest)
-		} else {
-			// 不执行ZA混合散列
-			r, s, err = SignAfterZA(rand, priv, digest)
-		}
-	} else {
-		// 传入的opts不是SM2SignerOption类型时，执行ZA混合散列
-		r, s, err = SignWithZA(rand, priv, defaultUID, digest)
-	}
-	if err != nil {
-		return nil, err
-	}
-	if opts.NeedLowS() {
-		s, err = toLowS(&priv.PublicKey, s)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// 将签名结果(r,s)转为asn1格式字节数组
-	return ecbase.MarshalECSignature(r, s)
-}
-
-func toLowS(k *PublicKey, s *big.Int) (*big.Int, error) {
-	if s.Cmp(halfOrder) == 1 {
-		// Set s to N - s that will be then in the lower part of signature space
-		// less or equal to half order
-		s.Sub(k.Params().N, s)
-		return s, nil
-	}
-	return s, nil
 }
 
 // Sign 为sm2.PrivateKey实现Sign方法。

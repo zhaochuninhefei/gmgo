@@ -5,18 +5,8 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 )
-
-//==============================================
-// EcSigner 椭圆曲线签名接口
-//==============================================
-
-type EcSigner interface {
-	crypto.Signer
-	EcSign(rand io.Reader, digest []byte, opts EcSignerOpts) ([]byte, error)
-}
 
 //==============================================
 // EcPrivateKey 椭圆曲线私钥接口
