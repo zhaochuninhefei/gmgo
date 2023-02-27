@@ -1,70 +1,13 @@
-package ecdsa_ext
+package ecutils
 
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecbase"
-	"golang.org/x/crypto/cryptobyte"
-	"golang.org/x/crypto/cryptobyte/asn1"
-	"io"
 	"math/big"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 )
-
-type PrivateKey struct {
-	ecdsa.PrivateKey
-}
-
-func ConvFromOrigin(oriKey *ecdsa.PrivateKey) *PrivateKey {
-	privKey := &PrivateKey{
-		PrivateKey: *oriKey,
-	}
-	return privKey
-}
-
-func GenerateKey(c elliptic.Curve, rand io.Reader) (*PrivateKey, error) {
-	oriKey, err := ecdsa.GenerateKey(c, rand)
-	if err != nil {
-		return nil, err
-	}
-	return ConvFromOrigin(oriKey), nil
-}
-
-//func (priv *PrivateKey) ToOrigin() *ecdsa.PrivateKey {
-//	return &priv.PrivateKey
-//}
-
-//func (priv *PrivateKey) Public() crypto.PublicKey {
-//	return &priv.PublicKey
-//}
-//
-//func (priv *PrivateKey) Equal(x crypto.PrivateKey) bool {
-//	xx, ok := x.(*PrivateKey)
-//	if !ok {
-//		return false
-//	}
-//	return priv.PublicKey.Equal(&xx.PublicKey) && priv.D.Cmp(xx.D) == 0
-//}
-
-func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts *ecbase.EcSignerOpts) ([]byte, error) {
-	r, s, err := ecdsa.Sign(rand, &priv.PrivateKey, digest)
-	if err != nil {
-		return nil, err
-	}
-	if opts.NeedLowS {
-		s, err = ToLowS(&priv.PublicKey, s)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var b cryptobyte.Builder
-	b.AddASN1(asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-		b.AddASN1BigInt(r)
-		b.AddASN1BigInt(s)
-	})
-	return b.Bytes()
-}
 
 var (
 	// curveHalfOrders contains the precomputed curve group orders halved.
@@ -79,11 +22,17 @@ var (
 	}
 )
 
+func AddCurveHalfOrders(curve elliptic.Curve, halfOrder *big.Int) {
+	curveHalfOrders[curve] = halfOrder
+}
+
+//goland:noinspection GoUnusedExportedFunction
 func GetCurveHalfOrdersAt(c elliptic.Curve) *big.Int {
 	return big.NewInt(0).Set(curveHalfOrders[c])
 }
 
 // SignatureToLowS 检查ecdsa签名的s值是否是lower-s值，如果不是，则将s转为对应的lower-s值并重新序列化为ecdsa签名
+//goland:noinspection GoUnusedExportedFunction
 func SignatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
 	r, s, err := ecbase.UnmarshalECSignature(signature)
 	if err != nil {
@@ -124,12 +73,4 @@ func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, error) {
 	}
 
 	return s, nil
-}
-
-type PublicKey struct {
-	ecdsa.PublicKey
-}
-
-func (pub *PublicKey) Verify() {
-
 }

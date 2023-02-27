@@ -74,7 +74,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/gmgo/ecutils"
 	"io"
 	"math/big"
 	"strings"
@@ -126,6 +127,8 @@ func (priv *PrivateKey) Equal(x crypto.PrivateKey) bool {
 var (
 	one      = new(big.Int).SetInt64(1)
 	initonce sync.Once
+
+	halfOrder *big.Int
 )
 
 // P256Sm2 获取sm2p256曲线
@@ -133,6 +136,13 @@ var (
 func P256Sm2() elliptic.Curve {
 	initonce.Do(initP256)
 	return p256
+}
+
+func init() {
+	// 将sm2曲线加入ecutils的curveHalfOrders
+	curve := P256Sm2()
+	halfOrder = new(big.Int).Rsh(curve.Params().N, 1)
+	ecutils.AddCurveHalfOrders(curve, halfOrder)
 }
 
 // 选取一个位于[1~n-1]之间的随机数k，n是椭圆曲线的参数N
@@ -185,15 +195,17 @@ func IsSM2PublicKey(publicKey interface{}) bool {
 
 var defaultUID = []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38}
 
-// directSigning is a standard Hash value that signals that no pre-hashing
-// should be performed.
-var directSigning crypto.Hash = 0
+//// directSigning is a standard Hash value that signals that no pre-hashing
+//// should be performed.
+//var directSigning crypto.Hash = 0
 
 // SM2SignerOption sm2签名参数
 // SM2SignerOption implements crypto.SignerOpts interface.
 // It is specific for SM2, used in private key's Sign method.
 //goland:noinspection GoNameStartsWithPackageName
 type SM2SignerOption struct {
+	ecbase.EcSignerOpts
+
 	// ZA计算用唯一标识符，只在ForceZA为true时使用。
 	UID []byte
 	// 是否强制使用国密签名标准，即对签名内容进行ZA混合散列后再签名。
@@ -223,10 +235,10 @@ func DefaultSM2SignerOption() *SM2SignerOption {
 	}
 }
 
-// HashFunc 为sm2.SM2SignerOption实现crypto.SignerOpts接口
-func (*SM2SignerOption) HashFunc() crypto.Hash {
-	return directSigning
-}
+//// HashFunc 为sm2.SM2SignerOption实现crypto.SignerOpts接口
+//func (*SM2SignerOption) HashFunc() crypto.Hash {
+//	return directSigning
+//}
 
 // Signer SM2 special signer
 type Signer interface {
@@ -281,7 +293,7 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 		return nil, err
 	}
 	// 将签名结果(r,s)转为asn1格式字节数组
-	return utils.MarshalECSignature(r, s)
+	return ecbase.MarshalECSignature(r, s)
 	//var b cryptobyte.Builder
 	//b.AddASN1(asn1.SEQUENCE, func(b *cryptobyte.Builder) {
 	//	b.AddASN1BigInt(r)
@@ -446,7 +458,7 @@ func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 	//	!inner.Empty() {
 	//	return false
 	//}
-	r, s, err := utils.UnmarshalECSignature(sig)
+	r, s, err := ecbase.UnmarshalECSignature(sig)
 	if err != nil {
 		return false
 	}
@@ -469,7 +481,7 @@ func VerifyASN1WithoutZA(pub *PublicKey, hash, sig []byte) bool {
 	//	!inner.Empty() {
 	//	return false
 	//}
-	r, s, err := utils.UnmarshalECSignature(sig)
+	r, s, err := ecbase.UnmarshalECSignature(sig)
 	if err != nil {
 		return false
 	}
