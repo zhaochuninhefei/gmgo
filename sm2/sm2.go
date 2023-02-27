@@ -215,10 +215,11 @@ type SM2SignerOption struct {
 
 // NewSM2SignerOption 生成一个新的sm2签名参数
 //  forceZA为true而uid为空时，使用defaultUID
-func NewSM2SignerOption(forceZA bool, uid []byte) *SM2SignerOption {
+func NewSM2SignerOption(forceZA bool, uid []byte, needLowS bool) *SM2SignerOption {
 	opt := &SM2SignerOption{
-		UID:     uid,
-		ForceZA: forceZA,
+		EcSignerOpts: ecbase.CreateEcSignerOpts(0, needLowS),
+		UID:          uid,
+		ForceZA:      forceZA,
 	}
 	if forceZA && len(uid) == 0 {
 		// ForceGMSign为true而uid为空时，使用defaultUID
@@ -230,8 +231,9 @@ func NewSM2SignerOption(forceZA bool, uid []byte) *SM2SignerOption {
 // DefaultSM2SignerOption 生成一个默认的sm2签名参数
 func DefaultSM2SignerOption() *SM2SignerOption {
 	return &SM2SignerOption{
-		UID:     defaultUID,
-		ForceZA: true,
+		EcSignerOpts: ecbase.CreateDefaultEcSignerOpts(),
+		UID:          defaultUID,
+		ForceZA:      true,
 	}
 }
 
@@ -246,11 +248,9 @@ type Signer interface {
 }
 
 // SignWithZA 为sm2.PrivateKey实现SignWithZA方法。
-//  该方法强制对msg做ZA混合散列
-// SignWithZA signs uid, msg with priv, reading randomness from rand. Compliance with GB/T 32918.2-2016.
-// Deprecated: please use Sign method directly.
+//  该方法强制对msg做ZA混合散列，签名使用low-s值
 func (priv *PrivateKey) SignWithZA(rand io.Reader, uid, msg []byte) ([]byte, error) {
-	return priv.Sign(rand, msg, NewSM2SignerOption(true, uid))
+	return priv.Sign(rand, msg, NewSM2SignerOption(true, uid, true))
 }
 
 // SignASN1WithOpts SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
@@ -265,6 +265,48 @@ func SignASN1WithOpts(rand io.Reader, priv *PrivateKey, hash []byte, opts crypto
 //  会对hash做ZA混合散列。
 func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
 	return priv.Sign(rand, hash, nil)
+}
+
+func (priv *PrivateKey) EcSign(rand io.Reader, digest []byte, opts ecbase.EcSignerOpts) ([]byte, error) {
+	var r, s *big.Int
+	var err error
+	if opts == nil {
+		opts = DefaultSM2SignerOption()
+	}
+	if sm2Opts, ok := opts.(*SM2SignerOption); ok {
+		// 传入的opts是SM2SignerOption类型时，根据设置决定是否进行ZA混合散列
+		if sm2Opts.ForceZA {
+			// 执行ZA混合散列
+			r, s, err = SignWithZA(rand, priv, sm2Opts.UID, digest)
+		} else {
+			// 不执行ZA混合散列
+			r, s, err = SignAfterZA(rand, priv, digest)
+		}
+	} else {
+		// 传入的opts不是SM2SignerOption类型时，执行ZA混合散列
+		r, s, err = SignWithZA(rand, priv, defaultUID, digest)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if opts.NeedLowS() {
+		s, err = toLowS(&priv.PublicKey, s)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// 将签名结果(r,s)转为asn1格式字节数组
+	return ecbase.MarshalECSignature(r, s)
+}
+
+func toLowS(k *PublicKey, s *big.Int) (*big.Int, error) {
+	if s.Cmp(halfOrder) == 1 {
+		// Set s to N - s that will be then in the lower part of signature space
+		// less or equal to half order
+		s.Sub(k.Params().N, s)
+		return s, nil
+	}
+	return s, nil
 }
 
 // Sign 为sm2.PrivateKey实现Sign方法。

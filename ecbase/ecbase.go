@@ -5,31 +5,66 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 )
 
-type EcSignerOpts struct {
-	hasher   crypto.Hash
-	NeedLowS bool
+//==============================================
+// EcSigner 椭圆曲线签名接口
+//==============================================
+
+type EcSigner interface {
+	crypto.Signer
+	EcSign(rand io.Reader, digest []byte, opts EcSignerOpts) ([]byte, error)
 }
 
-func (eso *EcSignerOpts) HashFunc() crypto.Hash {
+//==============================================
+// EcPrivateKey 椭圆曲线私钥接口
+//==============================================
+
+type EcVerifier interface {
+	Verify(digest []byte, sig []byte) bool
+}
+
+//==============================================
+// EcSignerOpts 椭圆曲线签名参数接口
+//==============================================
+
+type EcSignerOpts interface {
+	crypto.SignerOpts
+	NeedLowS() bool
+}
+
+type ecSignerOpts struct {
+	hasher   crypto.Hash
+	needLowS bool
+}
+
+func (eso ecSignerOpts) HashFunc() crypto.Hash {
 	return eso.hasher
 }
 
-func CreateDefaultEcSignerOpts() *EcSignerOpts {
-	return &EcSignerOpts{
-		hasher:   0,
-		NeedLowS: true,
+func (eso ecSignerOpts) NeedLowS() bool {
+	return eso.needLowS
+}
+
+func CreateEcSignerOpts(hasher crypto.Hash, needLowS bool) EcSignerOpts {
+	return &ecSignerOpts{
+		hasher:   hasher,
+		needLowS: needLowS,
 	}
 }
 
-func CreateEcSignerOpts(hasher crypto.Hash, needLowS bool) *EcSignerOpts {
-	return &EcSignerOpts{
-		hasher:   hasher,
-		NeedLowS: needLowS,
+func CreateDefaultEcSignerOpts() EcSignerOpts {
+	return &ecSignerOpts{
+		hasher:   0,
+		needLowS: true,
 	}
 }
+
+//==============================================
+// ECSignature 椭圆曲线签名
+//==============================================
 
 // ECSignature 椭圆曲线签名
 type ECSignature struct {
