@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	testDir     = "testdata"
+	testDir     = "testdata/testdir"
 	testDirCN   = "test-dir"
 	testFile    = "test-file.crt"
 	testFileCN  = "test-file"

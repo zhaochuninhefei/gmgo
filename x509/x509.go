@@ -1563,6 +1563,9 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	case ed25519.PublicKey:
 		pubType = Ed25519
 		sigAlgo.Algorithm = oidSignatureEd25519
+		// ed25519不需要事先散列消息
+		hashFunc = 0
+		signOpts = hashFunc
 
 	default:
 		err = errors.New("x509: only SM2, RSA, ECDSA and Ed25519 keys supported")
@@ -1608,9 +1611,8 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 						Hash:       hashFunc.HashFunc(),
 					}
 				}
-			case Ed25519:
-				// ed25519不需要signOpts与hashFunc
 			default:
+				// ed25519不需要事先散列消息，此时hashFunc已经是0
 				signOpts = hashFunc
 			}
 			found = true
