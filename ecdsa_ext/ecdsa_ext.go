@@ -15,7 +15,14 @@ type PrivateKey struct {
 	ecdsa.PrivateKey
 }
 
-func ConvFromOrigin(oriKey *ecdsa.PrivateKey) *PrivateKey {
+func (priv *PrivateKey) Public() *PublicKey {
+	oriPub := priv.PublicKey
+	return &PublicKey{
+		PublicKey: oriPub,
+	}
+}
+
+func ConvPrivKeyFromOrigin(oriKey *ecdsa.PrivateKey) *PrivateKey {
 	privKey := &PrivateKey{
 		PrivateKey: *oriKey,
 	}
@@ -27,7 +34,7 @@ func GenerateKey(c elliptic.Curve, rand io.Reader) (*PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ConvFromOrigin(oriKey), nil
+	return ConvPrivKeyFromOrigin(oriKey), nil
 }
 
 //func (priv *PrivateKey) ToOrigin() *ecdsa.PrivateKey {
@@ -79,13 +86,11 @@ var (
 	}
 )
 
-// IsLowS checks that s is a low-S
 func isLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 	halfOrder, ok := curveHalfOrders[k.Curve]
 	if !ok {
 		return false, fmt.Errorf("curve not recognized [%s]", k.Curve)
 	}
-
 	return s.Cmp(halfOrder) != 1, nil
 
 }
@@ -99,8 +104,9 @@ func toLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, error) {
 	if !lowS {
 		// Set s to N - s that will be then in the lower part of signature space
 		// less or equal to half order
+		//fmt.Printf("lowS before: %d\n", s)
 		s.Sub(k.Params().N, s)
-
+		//fmt.Printf("lowS after: %d\n", s)
 		return s, nil
 	}
 
@@ -113,4 +119,12 @@ type PublicKey struct {
 
 func (pub *PublicKey) Verify(digest []byte, sig []byte) bool {
 	return ecdsa.VerifyASN1(&pub.PublicKey, digest, sig)
+}
+
+//goland:noinspection GoUnusedExportedFunction
+func ConvPubKeyFromOrigin(oriKey *ecdsa.PublicKey) *PublicKey {
+	pubKey := &PublicKey{
+		PublicKey: *oriKey,
+	}
+	return pubKey
 }

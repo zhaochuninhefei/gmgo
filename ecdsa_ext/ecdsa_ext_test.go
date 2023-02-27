@@ -1,7 +1,6 @@
 package ecdsa_ext
 
 import (
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
@@ -22,13 +21,13 @@ func TestPrivateKey_Sign(t *testing.T) {
 	fmt.Printf("msg: %s\n", msg)
 	fmt.Printf("digest hex: %s\n", hex.EncodeToString(digest[:]))
 
-	sign, err := privateKey.Sign(rand.Reader, digest[:], ecbase.CreateDefaultEcSignerOpts())
+	sign, err := privateKey.EcSign(rand.Reader, digest[:], ecbase.CreateDefaultEcSignerOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("sign hex: %s\n", hex.EncodeToString(sign))
 
-	valied := ecdsa.VerifyASN1(&privateKey.PublicKey, digest[:], sign)
+	valied := privateKey.Public().Verify(digest[:], sign)
 	if !valied {
 		t.Fatal("验签失败")
 	}
