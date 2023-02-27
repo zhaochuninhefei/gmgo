@@ -132,7 +132,7 @@ func (s *Server) Start() {
 	s.wrap()
 	s.goServe()
 	if serveFlag != "" {
-		fmt.Fprintln(os.Stderr, "httptest: serving on", s.URL)
+		_, _ = fmt.Fprintln(os.Stderr, "httptest: serving on", s.URL)
 		select {}
 	}
 }
@@ -202,7 +202,7 @@ func (s *Server) Close() {
 	s.mu.Lock()
 	if !s.closed {
 		s.closed = true
-		s.Listener.Close()
+		_ = s.Listener.Close()
 		s.Config.SetKeepAlivesEnabled(false)
 		for c, st := range s.conns {
 			// Force-close any idle connections (those between
@@ -256,7 +256,7 @@ func (s *Server) logCloseHangDebugInfo() {
 	var buf strings.Builder
 	buf.WriteString("httptest.Server blocked in Close after 5 seconds, waiting for connections:\n")
 	for c, st := range s.conns {
-		fmt.Fprintf(&buf, "  %T %p %v in state %v\n", c, c, c.RemoteAddr(), st)
+		_, _ = fmt.Fprintf(&buf, "  %T %p %v in state %v\n", c, c, c.RemoteAddr(), st)
 	}
 	log.Print(buf.String())
 }
@@ -306,7 +306,7 @@ func (s *Server) goServe() {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		s.Config.Serve(s.Listener)
+		_ = s.Config.Serve(s.Listener)
 	}()
 }
 
@@ -374,7 +374,7 @@ func (s *Server) closeConn(c net.Conn) { s.closeConnChan(c, nil) }
 // closeConnChan is like closeConn, but takes an optional channel to receive a value
 // when the goroutine closing c is done.
 func (s *Server) closeConnChan(c net.Conn, done chan<- struct{}) {
-	c.Close()
+	_ = c.Close()
 	if done != nil {
 		done <- struct{}{}
 	}
