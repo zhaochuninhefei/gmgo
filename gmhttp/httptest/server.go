@@ -128,6 +128,7 @@ func (s *Server) Start() {
 	if s.client == nil {
 		s.client = &http.Client{Transport: &http.Transport{}}
 	}
+	//goland:noinspection HttpUrlsUsage
 	s.URL = "http://" + s.Listener.Addr().String()
 	s.wrap()
 	s.goServe()
