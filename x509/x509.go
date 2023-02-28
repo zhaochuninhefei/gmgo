@@ -455,8 +455,8 @@ var signatureAlgorithmDetails = []struct {
 	{ECDSAWithSHA384, "ECDSA-SHA384", oidSignatureECDSAWithSHA384, ECDSA, SHA384},
 	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, SHA512},
 	{PureEd25519, "Ed25519", oidSignatureEd25519, Ed25519, Hash(0) /* no pre-hashing */},
-	// TODO 添加SM2相关签名算法定义
-	{SM2WithSM3, "SM2-with-SM3", oidSignatureSM2WithSM3, SM2, SM3},
+	// 添加SM2相关签名算法定义, sm2签名算法既可以在内部做散列，也可以在外部做散列，但gmx509固定为在sm2签名算法内部做ZA散列计算,这里的散列算法设置为Hash(0)。
+	{SM2WithSM3, "SM2-with-SM3", oidSignatureSM2WithSM3, SM2, Hash(0)},
 }
 
 // hashToPSSParameters contains the DER encoded RSA PSS parameters for the
@@ -989,12 +989,14 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if details.algo == algo {
 			hashType = details.hash
 			pubKeyAlgo = details.pubKeyAlgo
+			break
 		}
 	}
 
 	switch hashType {
 	case Hash(0):
-		if pubKeyAlgo != Ed25519 {
+		// ed25519与sm2不需要对消息做摘要计算
+		if pubKeyAlgo != Ed25519 && pubKeyAlgo != SM2 {
 			return ErrUnsupportedAlgorithm
 		}
 	case MD5:
@@ -1523,7 +1525,7 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 }
 
 // signingParamsForPublicKey 根据传入的公钥与签名算法获取签名参数(摘要算法、签名算法)
-//  优先根据公钥获取，公钥获取失败，再根据参数requestedSigAlgo从定义支持的签名算法中获取。
+//  先根据公钥获取，再根据参数requestedSigAlgo从定义支持的签名算法中获取对应参数并覆盖。
 func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (signOpts crypto.SignerOpts, hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
@@ -1536,7 +1538,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		switch pub.Curve {
 		case sm2.P256Sm2():
 			// 摘要算法
-			hashFunc = SM3
+			hashFunc = Hash(0)
 			// 签名算法
 			sigAlgo.Algorithm = oidSignatureSM2WithSM3
 			// 签名参数
@@ -1595,7 +1597,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		pubType = Ed25519
 		sigAlgo.Algorithm = oidSignatureEd25519
 		// ed25519不需要事先散列消息
-		hashFunc = 0
+		hashFunc = Hash(0)
 		signOpts = hashFunc
 
 	default:
@@ -1603,11 +1605,11 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	}
 
 	if err != nil {
-		// 由公钥成功获取签名参数后直接返回
+		// 公钥获取参数失败时直接返回错误
 		return
 	}
 	if requestedSigAlgo == 0 {
-		// 如果请求签名算法requestedSigAlgo为0，则直接返回目前的err
+		// 如果请求签名算法requestedSigAlgo为0，则直接返回公钥获取到的参数
 		return
 	}
 
@@ -1620,7 +1622,8 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 				return
 			}
 			sigAlgo.Algorithm, hashFunc = details.oid, details.hash
-			if hashFunc == 0 && pubType != Ed25519 {
+			// Ed25519与SM2签名算法不需要在签名前对消息做摘要计算
+			if hashFunc == 0 && pubType != Ed25519 && pubType != SM2 {
 				err = errors.New("x509: cannot sign with hash function requested")
 				return
 			}
@@ -1643,7 +1646,6 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 					}
 				}
 			default:
-				// ed25519不需要事先散列消息，此时hashFunc已经是0
 				signOpts = hashFunc
 			}
 			found = true
