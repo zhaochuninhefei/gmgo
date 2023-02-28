@@ -23,6 +23,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
@@ -150,6 +151,26 @@ func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 		}
 		privKey.PrivateKey = MarshalPKCS1PrivateKey(k)
 	case *ecdsa.PrivateKey:
+		oid, ok := oidFromNamedCurve(k.Curve)
+		if !ok {
+			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: unknown curve while marshaling to PKCS#8")
+		}
+		oidBytes, err := asn1.Marshal(oid)
+		if err != nil {
+			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: failed to marshal curve OID: " + err.Error())
+		}
+		privKey.Algo = pkix.AlgorithmIdentifier{
+			Algorithm: oidPublicKeyECDSA,
+			Parameters: asn1.RawValue{
+				FullBytes: oidBytes,
+			},
+		}
+		// 注意, ecdsa并没有将曲线oid传入序列化结构中
+		// 大约是为了与openssl的结果对应
+		if privKey.PrivateKey, err = marshalECPrivateKeyWithOID(k, nil); err != nil {
+			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: failed to marshal EC private key while building PKCS#8: " + err.Error())
+		}
+	case *ecdsa_ext.PrivateKey:
 		oid, ok := oidFromNamedCurve(k.Curve)
 		if !ok {
 			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: unknown curve while marshaling to PKCS#8")

@@ -18,6 +18,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"math/big"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -191,6 +192,17 @@ func parseECPrivateKey(namedCurveOID *asn1.ObjectIdentifier, der []byte) (key in
 func marshalECPrivateKeyWithOID(key interface{}, oid asn1.ObjectIdentifier) ([]byte, error) {
 	switch priv := key.(type) {
 	case *ecdsa.PrivateKey:
+		if oid.Equal(oidNamedCurveP256SM2) {
+			return nil, errors.New("gmx509.marshalECPrivateKeyWithOID: not ecdsa curves")
+		}
+		privateKey := make([]byte, (priv.Curve.Params().N.BitLen()+7)/8)
+		return asn1.Marshal(ecPrivateKey{
+			Version:       ecPrivKeyVersion,
+			PrivateKey:    priv.D.FillBytes(privateKey),
+			NamedCurveOID: oid,
+			PublicKey:     asn1.BitString{Bytes: elliptic.Marshal(priv.Curve, priv.X, priv.Y)},
+		})
+	case *ecdsa_ext.PrivateKey:
 		if oid.Equal(oidNamedCurveP256SM2) {
 			return nil, errors.New("gmx509.marshalECPrivateKeyWithOID: not ecdsa curves")
 		}

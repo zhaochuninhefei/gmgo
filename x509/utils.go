@@ -49,6 +49,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io/ioutil"
 	"math/big"
@@ -87,9 +88,19 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 	privKey, err := ParsePKCS8PrivateKey(der)
 	if err != nil {
 		if err.Error() == ErrMsgUseParseECPrivateKey {
-			return ParseECPrivateKey(der)
+			privKey, err = ParseECPrivateKey(der)
 		} else if err.Error() == ErrMsgUseParsePKCS1PrivateKey {
-			return ParsePKCS1PrivateKey(der)
+			privKey, err = ParsePKCS1PrivateKey(der)
+		} else {
+			return nil, err
+		}
+	}
+	// 对于ECDSA_EXT，需要封装为`ecdsa_ext.PrivateKey`
+	if block.Type == "ECDSA_EXT PRIVATE KEY" {
+		if priv, ok := privKey.(*ecdsa.PrivateKey); ok {
+			return &ecdsa_ext.PrivateKey{
+				PrivateKey: *priv,
+			}, nil
 		}
 	}
 	return privKey, err
@@ -127,6 +138,8 @@ func WritePrivateKeyToPem(key interface{}, pwd []byte) ([]byte, error) {
 		pemType = "SM2 PRIVATE KEY"
 	case *ecdsa.PrivateKey:
 		pemType = "ECDSA PRIVATE KEY"
+	case *ecdsa_ext.PrivateKey:
+		pemType = "ECDSA_EXT PRIVATE KEY"
 	case ed25519.PrivateKey:
 		pemType = "ED25519 PRIVATE KEY"
 	case *rsa.PrivateKey:
@@ -168,6 +181,8 @@ func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (boo
 		pemType = "SM2 PRIVATE KEY"
 	case *ecdsa.PrivateKey:
 		pemType = "ECDSA PRIVATE KEY"
+	case *ecdsa_ext.PrivateKey:
+		pemType = "ECDSA_EXT PRIVATE KEY"
 	case ed25519.PrivateKey:
 		pemType = "ED25519 PRIVATE KEY"
 	case *rsa.PrivateKey:
@@ -219,7 +234,19 @@ func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 	if block == nil || !strings.HasSuffix(block.Type, "PUBLIC KEY") {
 		return nil, errors.New("failed to decode public key")
 	}
-	return ParsePKIXPublicKey(block.Bytes)
+	key, err := ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	// 对于ECDSA_EXT需要包装为`ecdsa_ext.PublicKey`
+	if block.Type == "ECDSA_EXT PUBLIC KEY" {
+		if pub, ok := key.(*ecdsa.PublicKey); ok {
+			return &ecdsa_ext.PublicKey{
+				PublicKey: *pub,
+			}, nil
+		}
+	}
+	return key, nil
 }
 
 // ReadPublicKeyFromPemFile 将pem文件转为对应公钥
@@ -252,6 +279,8 @@ func WritePublicKeyToPem(key interface{}) ([]byte, error) {
 		pemType = "SM2 PUBLIC KEY"
 	case *ecdsa.PublicKey:
 		pemType = "ECDSA PUBLIC KEY"
+	case *ecdsa_ext.PublicKey:
+		pemType = "ECDSA_EXT PUBLIC KEY"
 	case ed25519.PublicKey:
 		pemType = "ED25519 PUBLIC KEY"
 	case *rsa.PublicKey:
@@ -285,6 +314,8 @@ func WritePublicKeytoPemFile(FileName string, key interface{}) (bool, error) {
 		pemType = "SM2 PUBLIC KEY"
 	case *ecdsa.PublicKey:
 		pemType = "ECDSA PUBLIC KEY"
+	case *ecdsa_ext.PublicKey:
+		pemType = "ECDSA_EXT PUBLIC KEY"
 	case ed25519.PublicKey:
 		pemType = "ED25519 PUBLIC KEY"
 	case *rsa.PublicKey:

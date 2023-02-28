@@ -3601,6 +3601,37 @@ func TestCreateCertFromCA_ecdsa(t *testing.T) {
 	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
 }
 
+func TestCreateCertFromCA_ecdsaext(t *testing.T) {
+	certTypePre := "ecdsaext_"
+	certType := certTypePre + "ca"
+	caPriv, caCert, err := createCACert(certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成CA密钥对与CA证书成功 %s\n", certType)
+
+	certType = certTypePre + "sign"
+	err = createSignCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+
+	certType = certTypePre + "enc"
+	err = createEncCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+
+	certType = certTypePre + "auth"
+	err = createAuthCert(caPriv, caCert, certType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("生成 %s 密钥对并模拟CA为其颁发证书成功\n", certType)
+}
+
 func createCACert(certType string) (interface{}, *Certificate, error) {
 	// 生成密钥对
 	privKey, pubKey, err := createKeys(certType)
@@ -3765,6 +3796,13 @@ func createKeys(certType string) (interface{}, interface{}, error) {
 			return nil, nil, err
 		}
 		pub = &priv.(*ecdsa.PrivateKey).PublicKey
+	} else if strings.HasPrefix(certType, "ecdsaext_") {
+		// 生成ecdsa密钥对
+		priv, err = ecdsa_ext.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, nil, err
+		}
+		pub = &priv.(*ecdsa_ext.PrivateKey).PublicKey
 	}
 	// 生成私钥pem文件
 	_, err = WritePrivateKeytoPemFile("testdata/"+certType+"_key.pem", priv, nil)
@@ -3853,7 +3891,7 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 	switch privKey.(type) {
 	case *sm2.PrivateKey:
 		signAlg = SM2WithSM3
-	case *ecdsa.PrivateKey:
+	case *ecdsa.PrivateKey, *ecdsa_ext.PrivateKey:
 		signAlg = ECDSAWithSHA256
 	default:
 		panic("不支持的私钥类型")
