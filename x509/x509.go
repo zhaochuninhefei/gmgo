@@ -1036,6 +1036,14 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 			return errors.New("x509: ECDSA verification failure")
 		}
 		return
+	case *ecdsa_ext.PublicKey:
+		if pubKeyAlgo != ECDSA {
+			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
+		}
+		if !pub.Verify(signed, signature) {
+			return errors.New("x509: ECDSA verification failure")
+		}
+		return
 	case ed25519.PublicKey:
 		if pubKeyAlgo != Ed25519 {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
@@ -1838,6 +1846,8 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	// ecdsa签名做low-s处理
 	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
 		if ecSignOpts.NeedLowS() {
+			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
 			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
 				zclog.Debugln("x509证书签署后尝试low-s处理")
 				doLow := false
@@ -1974,6 +1984,24 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	signature, err = key.Sign(rand, signed, signOpts)
 	if err != nil {
 		return
+	}
+	// ecdsa签名做low-s处理
+	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+		if ecSignOpts.NeedLowS() {
+			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+				zclog.Debugln("x509证书签署后尝试low-s处理")
+				doLow := false
+				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+				if err != nil {
+					return nil, err
+				}
+				if doLow {
+					zclog.Debugln("x509证书签署后完成low-s处理")
+				}
+			}
+		}
 	}
 
 	return asn1.Marshal(pkix.CertificateList{
@@ -2275,6 +2303,24 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	signature, err = key.Sign(rand, signed, signOpts)
 	if err != nil {
 		return
+	}
+	// ecdsa签名做low-s处理
+	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+		if ecSignOpts.NeedLowS() {
+			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+				zclog.Debugln("x509证书签署后尝试low-s处理")
+				doLow := false
+				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+				if err != nil {
+					return nil, err
+				}
+				if doLow {
+					zclog.Debugln("x509证书签署后完成low-s处理")
+				}
+			}
+		}
 	}
 	// 返回证书申请DER字节数组
 	return asn1.Marshal(certificateRequest{
@@ -2601,6 +2647,24 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	signature, err := priv.Sign(rand, input, signOpts)
 	if err != nil {
 		return nil, err
+	}
+	// ecdsa签名做low-s处理
+	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+		if ecSignOpts.NeedLowS() {
+			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+			if ecdsaPriv, ok := priv.(*ecdsa.PrivateKey); ok {
+				zclog.Debugln("x509证书签署后尝试low-s处理")
+				doLow := false
+				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+				if err != nil {
+					return nil, err
+				}
+				if doLow {
+					zclog.Debugln("x509证书签署后完成low-s处理")
+				}
+			}
+		}
 	}
 
 	return asn1.Marshal(pkix.CertificateList{

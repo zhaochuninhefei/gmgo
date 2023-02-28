@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
@@ -1376,7 +1377,7 @@ const pemCRLBase64 = "LS0tLS1CRUdJTiBYNTA5IENSTC0tLS0tDQpNSUlCOWpDQ0FWOENBUUV3RF
 func TestCreateCertificateRequest(t *testing.T) {
 	random := rand.Reader
 
-	ecdsa256Priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	ecdsa256Priv, err := ecdsa_ext.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key: %s", err)
 	}
@@ -1396,19 +1397,26 @@ func TestCreateCertificateRequest(t *testing.T) {
 		t.Fatalf("Failed to generate Ed25519 key: %s", err)
 	}
 
+	sm2Priv, err := sm2.GenerateKey(random)
+	if err != nil {
+		t.Fatalf("Failed to generate SM2 key: %s", err)
+	}
+
 	tests := []struct {
 		name    string
 		priv    interface{}
 		sigAlgo SignatureAlgorithm
 	}{
 		{"RSA", testPrivateKey, SHA1WithRSA},
-		{"ECDSA-256", ecdsa256Priv, ECDSAWithSHA1},
+		{"ECDSA-256", ecdsa256Priv, ECDSAWithSHA256},
 		{"ECDSA-384", ecdsa384Priv, ECDSAWithSHA1},
 		{"ECDSA-521", ecdsa521Priv, ECDSAWithSHA1},
 		{"Ed25519", ed25519Priv, PureEd25519},
+		{"SM2", sm2Priv, SM2WithSM3},
 	}
 
 	for _, test := range tests {
+		zclog.Debugf("开始测试 %s", test.name)
 		template := CertificateRequest{
 			Subject: pkix.Name{
 				CommonName:   "test.example.com",
