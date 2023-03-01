@@ -37,18 +37,18 @@ func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOp
 	}
 	// 如果有low-s要求，则检查签名s值是否low-s
 	if opts.NeedLowS() {
-		zclog.Debugf("在验签时完成IsSigLowS检查")
+		zclog.Debugf("在ecdsa_ext验签时完成IsSigLowS检查")
 		lowS, err := IsSigLowS(&pub.PublicKey, sig)
 		if err != nil {
 			return false, err
 		}
 		if !lowS {
-			return false, errors.New("ecdsa签名的s值不是low-s值")
+			return false, errors.New("ecdsa_ext签名的s值不是low-s值")
 		}
 	}
 	valid := ecdsa.VerifyASN1(&pub.PublicKey, digest, sig)
 	if !valid {
-		return false, errors.New("ecdsa验签失败")
+		return false, errors.New("ecdsa_ext验签失败")
 	}
 	return true, nil
 }
