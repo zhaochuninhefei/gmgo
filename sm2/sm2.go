@@ -75,6 +75,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"strings"
@@ -447,8 +448,10 @@ func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts)
 	}
 	valid := false
 	if withZA {
+		zclog.Debugln("在sm2的EcVerify中执行有ZA混合散列的验签")
 		valid = VerifyASN1(pub, msg, sig)
 	} else {
+		zclog.Debugln("在sm2的EcVerify中执行没有ZA混合散列的验签")
 		valid = VerifyASN1WithoutZA(pub, msg, sig)
 	}
 	if !valid {

@@ -436,26 +436,36 @@ var signatureAlgorithmDetails = []struct {
 	oid        asn1.ObjectIdentifier
 	pubKeyAlgo PublicKeyAlgorithm
 	hash       Hash
+	opts       crypto.SignerOpts
 }{
-	{MD2WithRSA, "MD2-RSA", oidSignatureMD2WithRSA, RSA, Hash(0) /* no value for MD2 */},
-	{MD5WithRSA, "MD5-RSA", oidSignatureMD5WithRSA, RSA, MD5},
-	{SHA1WithRSA, "SHA1-RSA", oidSignatureSHA1WithRSA, RSA, SHA1},
-	{SHA1WithRSA, "SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, SHA1},
-	{SHA256WithRSA, "SHA256-RSA", oidSignatureSHA256WithRSA, RSA, SHA256},
-	{SHA384WithRSA, "SHA384-RSA", oidSignatureSHA384WithRSA, RSA, SHA384},
-	{SHA512WithRSA, "SHA512-RSA", oidSignatureSHA512WithRSA, RSA, SHA512},
-	{SHA256WithRSAPSS, "SHA256-RSAPSS", oidSignatureRSAPSS, RSA, SHA256},
-	{SHA384WithRSAPSS, "SHA384-RSAPSS", oidSignatureRSAPSS, RSA, SHA384},
-	{SHA512WithRSAPSS, "SHA512-RSAPSS", oidSignatureRSAPSS, RSA, SHA512},
-	{DSAWithSHA1, "DSA-SHA1", oidSignatureDSAWithSHA1, DSA, SHA1},
-	{DSAWithSHA256, "DSA-SHA256", oidSignatureDSAWithSHA256, DSA, SHA256},
-	{ECDSAWithSHA1, "ECDSA-SHA1", oidSignatureECDSAWithSHA1, ECDSA, SHA1},
-	{ECDSAWithSHA256, "ECDSA-SHA256", oidSignatureECDSAWithSHA256, ECDSA, SHA256},
-	{ECDSAWithSHA384, "ECDSA-SHA384", oidSignatureECDSAWithSHA384, ECDSA, SHA384},
-	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, SHA512},
-	{PureEd25519, "Ed25519", oidSignatureEd25519, Ed25519, Hash(0) /* no pre-hashing */},
+	{MD2WithRSA, "MD2-RSA", oidSignatureMD2WithRSA, RSA, Hash(0), Hash(0) /* no value for MD2 */},
+	{MD5WithRSA, "MD5-RSA", oidSignatureMD5WithRSA, RSA, MD5, MD5},
+	{SHA1WithRSA, "SHA1-RSA", oidSignatureSHA1WithRSA, RSA, SHA1, SHA1},
+	{SHA1WithRSA, "SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, SHA1, SHA1},
+	{SHA256WithRSA, "SHA256-RSA", oidSignatureSHA256WithRSA, RSA, SHA256, SHA256},
+	{SHA384WithRSA, "SHA384-RSA", oidSignatureSHA384WithRSA, RSA, SHA384, SHA384},
+	{SHA512WithRSA, "SHA512-RSA", oidSignatureSHA512WithRSA, RSA, SHA512, SHA512},
+	{SHA256WithRSAPSS, "SHA256-RSAPSS", oidSignatureRSAPSS, RSA, SHA256, &rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthEqualsHash,
+		Hash:       SHA256.HashFunc(),
+	}},
+	{SHA384WithRSAPSS, "SHA384-RSAPSS", oidSignatureRSAPSS, RSA, SHA384, &rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthEqualsHash,
+		Hash:       SHA384.HashFunc(),
+	}},
+	{SHA512WithRSAPSS, "SHA512-RSAPSS", oidSignatureRSAPSS, RSA, SHA512, &rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthEqualsHash,
+		Hash:       SHA512.HashFunc(),
+	}},
+	{DSAWithSHA1, "DSA-SHA1", oidSignatureDSAWithSHA1, DSA, SHA1, SHA1},
+	{DSAWithSHA256, "DSA-SHA256", oidSignatureDSAWithSHA256, DSA, SHA256, SHA256},
+	{ECDSAWithSHA1, "ECDSA-SHA1", oidSignatureECDSAWithSHA1, ECDSA, SHA1, ecbase.CreateEcSignerOpts(SHA1.HashFunc(), true)},
+	{ECDSAWithSHA256, "ECDSA-SHA256", oidSignatureECDSAWithSHA256, ECDSA, SHA256, ecbase.CreateEcSignerOpts(SHA256.HashFunc(), true)},
+	{ECDSAWithSHA384, "ECDSA-SHA384", oidSignatureECDSAWithSHA384, ECDSA, SHA384, ecbase.CreateEcSignerOpts(SHA384.HashFunc(), true)},
+	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, SHA512, ecbase.CreateEcSignerOpts(SHA512.HashFunc(), true)},
+	{PureEd25519, "Ed25519", oidSignatureEd25519, Ed25519, Hash(0), Hash(0) /* no pre-hashing */},
 	// 添加SM2相关签名算法定义, sm2签名算法既可以在内部做散列，也可以在外部做散列，但gmx509固定为在sm2签名算法内部做ZA散列计算,这里的散列算法设置为Hash(0)。
-	{SM2WithSM3, "SM2-with-SM3", oidSignatureSM2WithSM3, SM2, Hash(0)},
+	{SM2WithSM3, "SM2-with-SM3", oidSignatureSM2WithSM3, SM2, Hash(0), sm2.DefaultSM2SignerOption()},
 }
 
 // hashToPSSParameters contains the DER encoded RSA PSS parameters for the
@@ -983,11 +993,13 @@ func signaturePublicKeyAlgoMismatchError(expectedPubKeyAlgo PublicKeyAlgorithm, 
 func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey crypto.PublicKey) (err error) {
 	var hashType Hash
 	var pubKeyAlgo PublicKeyAlgorithm
+	var opts crypto.SignerOpts
 
 	for _, details := range signatureAlgorithmDetails {
 		if details.algo == algo {
 			hashType = details.hash
 			pubKeyAlgo = details.pubKeyAlgo
+			opts = details.opts
 			break
 		}
 	}
@@ -1014,10 +1026,15 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if pubKeyAlgo != SM2 {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
-		if !pub.Verify(signed, signature) {
-			return errors.New("x509: SM2 verification failure")
+		if sm2Opts, ok := opts.(*sm2.SM2SignerOption); ok {
+			_, err = pub.EcVerify(signed, signature, sm2Opts)
+			if err != nil {
+				return errors.New("x509: SM2 verification failure")
+			}
+		} else {
+			return errors.New("x509: 内建签名算法列表中sm2的opts类型不正确")
 		}
-		return
+		return nil
 	case *rsa.PublicKey:
 		if pubKeyAlgo != RSA {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
