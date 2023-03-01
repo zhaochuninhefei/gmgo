@@ -1691,29 +1691,6 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 			if requestedSigAlgo.isRSAPSS() {
 				sigAlgo.Parameters = hashToPSSParameters[hashFunc]
 			}
-			//// signOpts需要根据不同的公钥类型做不同的处理
-			//switch details.pubKeyAlgo {
-			//case SM2:
-			//	// 使用sm2时, signOpts由公钥决定
-			//case ECDSA:
-			//	// 使用ecdsa时, signOpts由公钥创建，但这里需要重置hasher
-			//	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-			//		ecSignOpts.ResetHasher(hashFunc.HashFunc())
-			//	}
-			//case RSA:
-			//	// 使用RSA时重置signOpts
-			//	signOpts = hashFunc
-			//	// 对于RSAPSS系列签名算法，需要重置sigAlgo.Parameters和signOpts
-			//	if requestedSigAlgo.isRSAPSS() {
-			//		sigAlgo.Parameters = hashToPSSParameters[hashFunc]
-			//		signOpts = &rsa.PSSOptions{
-			//			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			//			Hash:       hashFunc.HashFunc(),
-			//		}
-			//	}
-			//default:
-			//	signOpts = hashFunc
-			//}
 			found = true
 			break
 		}
