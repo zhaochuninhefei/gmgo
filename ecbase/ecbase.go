@@ -13,7 +13,7 @@ import (
 //==============================================
 
 type EcVerifier interface {
-	Verify(digest []byte, sig []byte) bool
+	EcVerify(digest []byte, sig []byte, opts EcSignerOpts) (bool, error)
 }
 
 //==============================================

@@ -435,6 +435,28 @@ func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 	return VerifyASN1(pub, msg, sig)
 }
 
+// EcVerify 实现`ecbase.EcVerifier`接口
+//  根据opts决定是否需要做ZA混合散列，默认做
+func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts) (bool, error) {
+	if opts == nil {
+		opts = DefaultSM2SignerOption()
+	}
+	withZA := false
+	if sm2Opts, ok := opts.(*SM2SignerOption); ok {
+		withZA = sm2Opts.ForceZA
+	}
+	valid := false
+	if withZA {
+		valid = VerifyASN1(pub, msg, sig)
+	} else {
+		valid = VerifyASN1WithoutZA(pub, msg, sig)
+	}
+	if !valid {
+		return valid, errors.New("sm2验签失败")
+	}
+	return valid, nil
+}
+
 // VerifyASN1 VerifyASN1将asn1格式字节数组的签名转为(r,s)在调用sm2的验签函数。
 //  对msg做ZA混合散列
 func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {

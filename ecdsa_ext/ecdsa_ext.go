@@ -1,9 +1,19 @@
+// Copyright (c) 2022 zhaochun
+// gmgo is licensed under Mulan PSL v2.
+// You can use this software according to the terms and conditions of the Mulan PSL v2.
+// You may obtain a copy of Mulan PSL v2 at:
+//          http://license.coscl.org.cn/MulanPSL2
+// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+// See the Mulan PSL v2 for more details.
+
+// Package ecdsa_ext ecdsa扩展包
 package ecdsa_ext
 
 import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
@@ -13,10 +23,47 @@ import (
 	"math/big"
 )
 
+// PublicKey ecdsa_ext扩展公钥
+//  注意, 该结构体指针上绑定了Verify方法从而实现了`ecbase.EcVerifier`接口
+type PublicKey struct {
+	ecdsa.PublicKey
+}
+
+// EcVerify 为ecdsa_ext扩展公钥绑定Verify方法, 用于实现`ecbase.EcVerifier`接口
+func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOpts) (bool, error) {
+	// 如果有low-s要求，则检查签名s值是否low-s
+	if opts != nil && opts.NeedLowS() {
+		lowS, err := IsSigLowS(&pub.PublicKey, sig)
+		if err != nil {
+			return false, err
+		}
+		if !lowS {
+			return false, errors.New("ecdsa签名的s值不是low-s值")
+		}
+	}
+	valid := ecdsa.VerifyASN1(&pub.PublicKey, digest, sig)
+	if !valid {
+		return valid, errors.New("ecdsa验签失败")
+	}
+	return valid, nil
+}
+
+// ConvPubKeyFromOrigin 将`*ecdsa.PublicKey`封装为ecdsa_ext扩展公钥
+//goland:noinspection GoUnusedExportedFunction
+func ConvPubKeyFromOrigin(oriKey *ecdsa.PublicKey) *PublicKey {
+	pubKey := &PublicKey{
+		PublicKey: *oriKey,
+	}
+	return pubKey
+}
+
+// PrivateKey ecdsa_ext扩展私钥
+//  注意，该结构体指针上绑定了Public与Sign方法从而实现了`crypto.Signer`接口
 type PrivateKey struct {
 	ecdsa.PrivateKey
 }
 
+// Public 为ecdsa_ext扩展私钥绑定Public方法, 用于实现`crypto.Signer`接口
 func (priv *PrivateKey) Public() crypto.PublicKey {
 	oriPub := priv.PublicKey
 	return &PublicKey{
@@ -24,21 +71,11 @@ func (priv *PrivateKey) Public() crypto.PublicKey {
 	}
 }
 
-func ConvPrivKeyFromOrigin(oriKey *ecdsa.PrivateKey) *PrivateKey {
-	privKey := &PrivateKey{
-		PrivateKey: *oriKey,
-	}
-	return privKey
-}
-
-func GenerateKey(c elliptic.Curve, rand io.Reader) (*PrivateKey, error) {
-	oriKey, err := ecdsa.GenerateKey(c, rand)
-	if err != nil {
-		return nil, err
-	}
-	return ConvPrivKeyFromOrigin(oriKey), nil
-}
-
+// Sign 为ecdsa_ext扩展私钥绑定Sign方法, 用于实现`crypto.Signer`接口
+//  注意，这里实现的Sign方法可以通过使用`ecbase.CreateEcSignerOpts()`生成opts参数，并通过其参数needLowS来指定是否需要对签名做lows处理。
+//  ecdsa签名是(r,s),其中s值有一个反s值(n-s), s与n-s是沿n/2对称的，一个是高值，一个是低值。而在ecdsa的验签逻辑里,如果取反s值也可以创建一个有效的签名(r, n-s)。
+//  这种特性可能会导致ECDSA签名被重放攻击和双花攻击利用，因为攻击者可以使用同一个r值和反s值来伪造不同的消息。
+//  而low-s处理则在签名后判断s值是否是高值，是则替换为低值，然后在验签时需要额外检查签名s值是不是low-s值，这样就避免了攻击者使用反s值伪造消息。
 func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	r, s, err := ecdsa.Sign(rand, &priv.PrivateKey, digest)
 	if err != nil {
@@ -71,6 +108,21 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	return b.Bytes()
 }
 
+func ConvPrivKeyFromOrigin(oriKey *ecdsa.PrivateKey) *PrivateKey {
+	privKey := &PrivateKey{
+		PrivateKey: *oriKey,
+	}
+	return privKey
+}
+
+func GenerateKey(c elliptic.Curve, rand io.Reader) (*PrivateKey, error) {
+	oriKey, err := ecdsa.GenerateKey(c, rand)
+	if err != nil {
+		return nil, err
+	}
+	return ConvPrivKeyFromOrigin(oriKey), nil
+}
+
 var (
 	// curveHalfOrders contains the precomputed curve group orders halved.
 	// It is used to ensure that signature' S value is lower or equal to the
@@ -92,6 +144,15 @@ func AddCurveHalfOrders(curve elliptic.Curve, halfOrder *big.Int) {
 //goland:noinspection GoUnusedExportedFunction
 func GetCurveHalfOrdersAt(c elliptic.Curve) *big.Int {
 	return big.NewInt(0).Set(curveHalfOrders[c])
+}
+
+// IsSigLowS 检查ecdsa签名的s值是否是low-s值
+func IsSigLowS(k *ecdsa.PublicKey, signature []byte) (bool, error) {
+	_, s, err := ecbase.UnmarshalECSignature(signature)
+	if err != nil {
+		return false, err
+	}
+	return IsLowS(k, s)
 }
 
 // SignatureToLowS 检查ecdsa签名的s值是否是lower-s值，如果不是，则将s转为对应的lower-s值并重新序列化为ecdsa签名
@@ -140,20 +201,4 @@ func ToLowS(k *ecdsa.PublicKey, s *big.Int) (bool, *big.Int, error) {
 	}
 
 	return false, s, nil
-}
-
-type PublicKey struct {
-	ecdsa.PublicKey
-}
-
-func (pub *PublicKey) Verify(digest []byte, sig []byte) bool {
-	return ecdsa.VerifyASN1(&pub.PublicKey, digest, sig)
-}
-
-//goland:noinspection GoUnusedExportedFunction
-func ConvPubKeyFromOrigin(oriKey *ecdsa.PublicKey) *PublicKey {
-	pubKey := &PublicKey{
-		PublicKey: *oriKey,
-	}
-	return pubKey
 }
