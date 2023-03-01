@@ -30,9 +30,13 @@ type PublicKey struct {
 }
 
 // EcVerify 为ecdsa_ext扩展公钥绑定Verify方法, 用于实现`ecbase.EcVerifier`接口
+//  默认需要low-s检查
 func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOpts) (bool, error) {
+	if opts == nil {
+		opts = ecbase.CreateDefaultEcSignerOpts()
+	}
 	// 如果有low-s要求，则检查签名s值是否low-s
-	if opts != nil && opts.NeedLowS() {
+	if opts.NeedLowS() {
 		lowS, err := IsSigLowS(&pub.PublicKey, sig)
 		if err != nil {
 			return false, err
@@ -43,9 +47,9 @@ func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOp
 	}
 	valid := ecdsa.VerifyASN1(&pub.PublicKey, digest, sig)
 	if !valid {
-		return valid, errors.New("ecdsa验签失败")
+		return false, errors.New("ecdsa验签失败")
 	}
-	return valid, nil
+	return true, nil
 }
 
 // ConvPubKeyFromOrigin 将`*ecdsa.PublicKey`封装为ecdsa_ext扩展公钥

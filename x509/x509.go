@@ -1040,8 +1040,9 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if pubKeyAlgo != ECDSA {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
-		if !pub.Verify(signed, signature) {
-			return errors.New("x509: ECDSA verification failure")
+		_, err = pub.EcVerify(signed, signature, nil)
+		if err != nil {
+			return fmt.Errorf("x509: ECDSA verification failure: %s", err.Error())
 		}
 		return
 	case ed25519.PublicKey:
