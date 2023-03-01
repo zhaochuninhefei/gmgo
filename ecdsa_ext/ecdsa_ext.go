@@ -37,6 +37,7 @@ func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOp
 	}
 	// 如果有low-s要求，则检查签名s值是否low-s
 	if opts.NeedLowS() {
+		zclog.Debugf("在验签时完成IsSigLowS检查")
 		lowS, err := IsSigLowS(&pub.PublicKey, sig)
 		if err != nil {
 			return false, err
