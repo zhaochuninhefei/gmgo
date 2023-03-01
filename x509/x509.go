@@ -39,6 +39,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/binary"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -432,6 +433,10 @@ var (
 	oidSignatureSM2WithSM3 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 501}
 	// oidSM3                 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401, 1}
 	oidSM3 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401}
+
+	//oidSignatureECDSAEXTWithSHA256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 5, 3, 2}
+	//oidSignatureECDSAEXTWithSHA384 = asn1.ObjectIdentifier{1, 2, 840, 10045, 5, 3, 3}
+	//oidSignatureECDSAEXTWithSHA512 = asn1.ObjectIdentifier{1, 2, 840, 10045, 5, 3, 4}
 )
 
 // 定义支持的签名算法细节
@@ -515,6 +520,7 @@ func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm
 	if !ai.Algorithm.Equal(oidSignatureRSAPSS) {
 		// 国密签名算法走该分支
 		for _, details := range signatureAlgorithmDetails {
+			// TODO ecdsa与ecdsa+ext共用相同的oid，这里取哪一个?
 			if ai.Algorithm.Equal(details.oid) {
 				return details.algo
 			}
@@ -1176,6 +1182,7 @@ func asn1BitLength(bitString []byte) int {
 	return 0
 }
 
+// x509证书扩展信息oid定义
 var (
 	oidExtensionSubjectKeyId          = []int{2, 5, 29, 14}
 	oidExtensionKeyUsage              = []int{2, 5, 29, 15}
@@ -1188,6 +1195,22 @@ var (
 	oidExtensionCRLDistributionPoints = []int{2, 5, 29, 31}
 	oidExtensionAuthorityInfoAccess   = []int{1, 3, 6, 1, 5, 5, 7, 1, 1}
 	oidExtensionCRLNumber             = []int{2, 5, 29, 20}
+
+	// 追加扩展信息oid
+	// 根据 X.660 标准，OID（Object Identifier）是用于标识对象的一种长整数类型的唯一标识符，它由一串数字组成，每个数字用点分隔开。OID 能够提供非常丰富的命名空间，通常用于标识各种类型的对象，例如算法、协议、特定领域中的术语等等。
+	// 根据RFC 5280中的规定，X.509证书中的扩展信息应该使用OID来表示，因此，我们需要为 SignatureAlgorithm 定义一个 OID。根据 OID 的分配规则和命名规范，我们可以按照以下方式为 SignatureAlgorithm 定义一个 OID：
+	// 第一段：ISO OBJECT IDENTIFIER arc，值为 1。
+	// 第二段：member-body OBJECT IDENTIFIER arc，值为 2。
+	// 第三段：ISO US OBJECT IDENTIFIER arc，值为 840。
+	// 第四段：organization arc，由分配给组织的数字定义，假设为 114027。
+	// 第五段：dod OBJECT IDENTIFIER arc，值为 1。
+	// 第六段：internet OBJECT IDENTIFIER arc，值为 1。
+	// 第七段：security OBJECT IDENTIFIER arc，值为 5。
+	// 第八段：algorithm OBJECT IDENTIFIER arc，值为 8。
+	// 第九段：SignatureAlgorithm 的值，假设为 1。
+	// 将以上每一段用点号相连，就得到了 SignatureAlgorithm 的 OID：1.2.840.114027.1.1.5.8.1。
+	// 因此，我们可以在 X.509 证书的扩展信息中使用该 OID 来表示 SignatureAlgorithm
+	oidExtensionSignatureAlgorithm = []int{1, 2, 840, 114027, 1, 1, 5, 8, 1}
 )
 
 var (
@@ -1254,9 +1277,11 @@ func isIA5String(s string) error {
 
 // 构建证书扩展信息
 func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKeyId []byte, subjectKeyId []byte) (ret []pkix.Extension, err error) {
-	ret = make([]pkix.Extension, 10 /* maximum number of elements. */)
+	// 扩展信息最大数量增加到11, 放置gmx509定义的签名算法
+	ret = make([]pkix.Extension, 11 /* maximum number of elements. */)
 	n := 0
 
+	// 添加KeyUsage
 	if template.KeyUsage != 0 &&
 		!oidInExtensions(oidExtensionKeyUsage, template.ExtraExtensions) {
 		ret[n], err = marshalKeyUsage(template.KeyUsage)
@@ -1266,6 +1291,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加ExtKeyUsage
 	if (len(template.ExtKeyUsage) > 0 || len(template.UnknownExtKeyUsage) > 0) &&
 		!oidInExtensions(oidExtensionExtendedKeyUsage, template.ExtraExtensions) {
 		ret[n], err = marshalExtKeyUsage(template.ExtKeyUsage, template.UnknownExtKeyUsage)
@@ -1275,6 +1301,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加BasicConstraints
 	if template.BasicConstraintsValid && !oidInExtensions(oidExtensionBasicConstraints, template.ExtraExtensions) {
 		ret[n], err = marshalBasicConstraints(template.IsCA, template.MaxPathLen, template.MaxPathLenZero)
 		if err != nil {
@@ -1283,6 +1310,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加subjectKeyId
 	if len(subjectKeyId) > 0 && !oidInExtensions(oidExtensionSubjectKeyId, template.ExtraExtensions) {
 		ret[n].Id = oidExtensionSubjectKeyId
 		ret[n].Value, err = asn1.Marshal(subjectKeyId)
@@ -1292,6 +1320,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加authorityKeyId
 	if len(authorityKeyId) > 0 && !oidInExtensions(oidExtensionAuthorityKeyId, template.ExtraExtensions) {
 		ret[n].Id = oidExtensionAuthorityKeyId
 		ret[n].Value, err = asn1.Marshal(authKeyId{authorityKeyId})
@@ -1301,6 +1330,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加authorityInfoAccess
 	if (len(template.OCSPServer) > 0 || len(template.IssuingCertificateURL) > 0) &&
 		!oidInExtensions(oidExtensionAuthorityInfoAccess, template.ExtraExtensions) {
 		ret[n].Id = oidExtensionAuthorityInfoAccess
@@ -1324,6 +1354,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加SAN
 	if (len(template.DNSNames) > 0 || len(template.EmailAddresses) > 0 || len(template.IPAddresses) > 0 || len(template.URIs) > 0) &&
 		!oidInExtensions(oidExtensionSubjectAltName, template.ExtraExtensions) {
 		ret[n].Id = oidExtensionSubjectAltName
@@ -1338,6 +1369,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加PolicyIdentifiers
 	if len(template.PolicyIdentifiers) > 0 &&
 		!oidInExtensions(oidExtensionCertificatePolicies, template.ExtraExtensions) {
 		ret[n], err = marshalCertificatePolicies(template.PolicyIdentifiers)
@@ -1347,6 +1379,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加NameConstraints
 	if (len(template.PermittedDNSDomains) > 0 || len(template.ExcludedDNSDomains) > 0 ||
 		len(template.PermittedIPRanges) > 0 || len(template.ExcludedIPRanges) > 0 ||
 		len(template.PermittedEmailAddresses) > 0 || len(template.ExcludedEmailAddresses) > 0 ||
@@ -1445,6 +1478,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 		n++
 	}
 
+	// 添加CRLDistributionPoints
 	if len(template.CRLDistributionPoints) > 0 &&
 		!oidInExtensions(oidExtensionCRLDistributionPoints, template.ExtraExtensions) {
 		ret[n].Id = oidExtensionCRLDistributionPoints
@@ -1472,7 +1506,24 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 	// of elements in the make() at the top of the function and the list of
 	// template fields used in CreateCertificate documentation.
 
+	// TODO 添加gmx509的签名算法 SignatureAlgorithm
+	if template.SignatureAlgorithm > 0 {
+		ret[n] = marshalSignatureAlgorithm(template.SignatureAlgorithm)
+		n++
+	}
+
 	return append(ret[:n], template.ExtraExtensions...), nil
+}
+
+func marshalSignatureAlgorithm(signAlg SignatureAlgorithm) pkix.Extension {
+	val := make([]byte, 4)
+	binary.BigEndian.PutUint32(val, uint32(signAlg))
+	ext := pkix.Extension{
+		Id:       oidExtensionSignatureAlgorithm,
+		Critical: false,
+		Value:    val,
+	}
+	return ext
 }
 
 func marshalKeyUsage(ku KeyUsage) (pkix.Extension, error) {

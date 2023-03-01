@@ -17,6 +17,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -816,6 +817,12 @@ func processExtensions(out *Certificate) error {
 				case method.Equal(oidAuthorityInfoAccessIssuers):
 					out.IssuingCertificateURL = append(out.IssuingCertificateURL, string(aiaDER))
 				}
+			}
+		} else if e.Id.Equal(oidExtensionSignatureAlgorithm) {
+			// TODO 补充SignatureAlgorithm反序列化操作
+			signAlg := SignatureAlgorithm(binary.BigEndian.Uint32(e.Value))
+			if signAlg > 0 {
+				out.SignatureAlgorithm = signAlg
 			}
 		} else {
 			// Unknown extensions are recorded if critical.
