@@ -23,6 +23,7 @@ type EcVerifier interface {
 type EcSignerOpts interface {
 	crypto.SignerOpts
 	NeedLowS() bool
+	ResetHasher(hasher crypto.Hash)
 }
 
 type ecSignerOpts struct {
@@ -36,6 +37,10 @@ func (eso ecSignerOpts) HashFunc() crypto.Hash {
 
 func (eso ecSignerOpts) NeedLowS() bool {
 	return eso.needLowS
+}
+
+func (eso ecSignerOpts) ResetHasher(hasher crypto.Hash) {
+	eso.hasher = hasher
 }
 
 func CreateEcSignerOpts(hasher crypto.Hash, needLowS bool) EcSignerOpts {

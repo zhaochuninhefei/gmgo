@@ -44,7 +44,6 @@ import (
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"net"
@@ -1533,15 +1532,16 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 	return asn1.Marshal(cert.Subject.ToRDNSequence())
 }
 
-// signingParamsForPublicKey 根据传入的公钥与签名算法获取签名参数(摘要算法、签名算法)
-//  先根据公钥获取，再根据参数requestedSigAlgo从定义支持的签名算法中获取对应参数并覆盖。
+// signingParamsForPublicKey 根据传入的公钥与签名算法获取签名参数(签名算法、散列算法与签名算法参数)
+//  根据传入的公钥获取默认的签名参数，再根据传入的requestedSigAlgo从内建定义的签名算法列表中检查公钥类型是否匹配，并获取定义好的签名参数，覆盖之前的默认值。
+//  当requestedSigAlgo传入0时，即只根据公钥获取默认的签名参数。
+//  注意公钥必须是签署者使用的私钥对应的公钥，并不是证书拥有者的公钥。
 func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (signOpts crypto.SignerOpts, hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
-	// 根据pub的公钥类型选择证书算法
+	// 根据pub的公钥类型选择签名算法参数的默认值
 	switch pub := pub.(type) {
 	case *sm2.PublicKey:
-		// 公钥算法
 		pubType = SM2
 		// 检查曲线是否是sm2曲线
 		switch pub.Curve {
@@ -1550,25 +1550,25 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 			hashFunc = Hash(0)
 			// 签名算法
 			sigAlgo.Algorithm = oidSignatureSM2WithSM3
-			// 签名参数
+			// 签名参数 sm2默认做ZA混合散列，不需要low-s处理
 			signOpts = sm2.DefaultSM2SignerOption()
 		default:
 			err = errors.New("x509: unknown SM2 curve")
 		}
+		// 公钥是sm2时，只有一种签名算法和散列算法可以选择，这里其实可以直接返回。
+		// 但为了扩展性以及对内建签名算法列表的检查，还是在后续做一次根据requestedSigAlgo的算法匹配检查。
 	case *rsa.PublicKey:
 		pubType = RSA
+		// 公钥是rsa时并不能确定具体的签名算法与散列算法,这里先准备默认值
+		// 传入的requestedSigAlgo非0时，后续会根据签名算法覆盖具体的签名算法与散列算法
 		hashFunc = SHA256
 		sigAlgo.Algorithm = oidSignatureSHA256WithRSA
 		sigAlgo.Parameters = asn1.NullRawValue
-		signOpts = hashFunc
-		if requestedSigAlgo != 0 && requestedSigAlgo.isRSAPSS() {
-			signOpts = &rsa.PSSOptions{
-				SaltLength: rsa.PSSSaltLengthEqualsHash,
-				Hash:       hashFunc.HashFunc(),
-			}
-		}
+		signOpts = SHA256
 	case *ecdsa.PublicKey:
 		pubType = ECDSA
+		// 公钥是ecdsa时并不能确定具体的签名算法与散列算法,这里先根据曲线准备默认值
+		// 传入的requestedSigAlgo非0时，后续会根据签名算法覆盖具体的签名算法与散列算法
 		switch pub.Curve {
 		case elliptic.P224(), elliptic.P256():
 			hashFunc = SHA256
@@ -1582,10 +1582,12 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown elliptic curve")
 		}
-		// ecdsa签名默认需要做low-s处理
-		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
+		// ecdsa签名默认不做low-s处理
+		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), false)
 	case *ecdsa_ext.PublicKey:
 		pubType = ECDSA
+		// 公钥是ecdsa时并不能确定具体的签名算法与散列算法,这里先根据曲线准备默认值
+		// 传入的requestedSigAlgo非0时，后续会根据签名算法覆盖具体的签名算法与散列算法
 		switch pub.Curve {
 		case elliptic.P224(), elliptic.P256():
 			hashFunc = SHA256
@@ -1599,7 +1601,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown elliptic curve")
 		}
-		// ecdsa签名默认需要做low-s处理
+		// ecdsa_ext签名默认需要做low-s处理
 		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
 
 	case ed25519.PublicKey:
@@ -1608,6 +1610,8 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		// ed25519不需要事先散列消息
 		hashFunc = Hash(0)
 		signOpts = hashFunc
+		// ed25519与sm2一样，其实到这里已经可以直接返回了。
+		// 但为了扩展性以及对内建签名算法列表的检查，还是在后续做一次根据requestedSigAlgo的算法匹配检查。
 
 	default:
 		err = errors.New("x509: only SM2, RSA, ECDSA and Ed25519 keys supported")
@@ -1615,40 +1619,45 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 
 	if err != nil {
 		// 公钥获取参数失败时直接返回错误
-		return
+		return signOpts, hashFunc, sigAlgo, err
 	}
 	if requestedSigAlgo == 0 {
-		// 如果请求签名算法requestedSigAlgo为0，则直接返回公钥获取到的参数
-		return
+		// 如果请求签名算法requestedSigAlgo为0，则直接返回公钥获取到的默认的签名参数
+		return signOpts, hashFunc, sigAlgo, err
 	}
 
 	// 根据请求签名算法requestedSigAlgo匹配签名算法
 	found := false
 	for _, details := range signatureAlgorithmDetails {
+		// 在内建的signatureAlgorithmDetails中匹配参数requestedSigAlgo
 		if details.algo == requestedSigAlgo {
+			// 检查匹配到的算法定义是否与传入的公钥类型匹配
 			if details.pubKeyAlgo != pubType {
 				err = errors.New("x509: requested SignatureAlgorithm does not match private key type")
 				return
 			}
+			// 根据匹配到的算法定义覆盖签名算法与散列算法
 			sigAlgo.Algorithm, hashFunc = details.oid, details.hash
-			// Ed25519与SM2签名算法不需要在签名前对消息做摘要计算
+			// hashFunc定义为0时检查是不是Ed25519或SM2，只有这两个签名算法不需要事先散列
 			if hashFunc == 0 && pubType != Ed25519 && pubType != SM2 {
 				err = errors.New("x509: cannot sign with hash function requested")
 				return
 			}
-			if requestedSigAlgo.isRSAPSS() {
-				sigAlgo.Parameters = hashToPSSParameters[hashFunc]
-			}
+			// signOpts需要根据不同的公钥类型做不同的处理
 			switch details.pubKeyAlgo {
 			case SM2:
-				// 签名参数
-				signOpts = sm2.DefaultSM2SignerOption()
+				// 使用sm2时, signOpts由公钥决定
 			case ECDSA:
-				// ecdsa签名默认需要做low-s处理
-				signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
+				// 使用ecdsa时, signOpts由公钥创建，但这里需要重置hasher
+				if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+					ecSignOpts.ResetHasher(hashFunc.HashFunc())
+				}
 			case RSA:
+				// 使用RSA时重置signOpts
 				signOpts = hashFunc
-				if requestedSigAlgo != 0 && requestedSigAlgo.isRSAPSS() {
+				// 对于RSAPSS系列签名算法，需要重置sigAlgo.Parameters和signOpts
+				if requestedSigAlgo.isRSAPSS() {
+					sigAlgo.Parameters = hashToPSSParameters[hashFunc]
 					signOpts = &rsa.PSSOptions{
 						SaltLength: rsa.PSSSaltLengthEqualsHash,
 						Hash:       hashFunc.HashFunc(),
@@ -1844,24 +1853,24 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	if err != nil {
 		return nil, err
 	}
-	// ecdsa签名做low-s处理
-	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-		if ecSignOpts.NeedLowS() {
-			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
-			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
-			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
-				zclog.Debugln("x509证书签署后尝试low-s处理")
-				doLow := false
-				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
-				if err != nil {
-					return nil, err
-				}
-				if doLow {
-					zclog.Debugln("x509证书签署后完成low-s处理")
-				}
-			}
-		}
-	}
+	//// ecdsa签名做low-s处理
+	//if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+	//	if ecSignOpts.NeedLowS() {
+	//		// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+	//		// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+	//		if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+	//			zclog.Debugln("x509证书签署后尝试low-s处理")
+	//			doLow := false
+	//			doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//			if doLow {
+	//				zclog.Debugln("x509证书签署后完成low-s处理")
+	//			}
+	//		}
+	//	}
+	//}
 	// 构建证书(证书主体 + 签名算法 + 签名)，并转为字节数组
 	signedCert, err := asn1.Marshal(certificate{
 		nil,
@@ -1986,24 +1995,24 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	if err != nil {
 		return
 	}
-	// ecdsa签名做low-s处理
-	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-		if ecSignOpts.NeedLowS() {
-			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
-			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
-			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
-				zclog.Debugln("x509证书签署后尝试low-s处理")
-				doLow := false
-				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
-				if err != nil {
-					return nil, err
-				}
-				if doLow {
-					zclog.Debugln("x509证书签署后完成low-s处理")
-				}
-			}
-		}
-	}
+	//// ecdsa签名做low-s处理
+	//if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+	//	if ecSignOpts.NeedLowS() {
+	//		// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+	//		// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+	//		if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+	//			zclog.Debugln("x509证书签署后尝试low-s处理")
+	//			doLow := false
+	//			doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//			if doLow {
+	//				zclog.Debugln("x509证书签署后完成low-s处理")
+	//			}
+	//		}
+	//	}
+	//}
 
 	return asn1.Marshal(pkix.CertificateList{
 		TBSCertList:        tbsCertList,
@@ -2305,24 +2314,24 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	if err != nil {
 		return
 	}
-	// ecdsa签名做low-s处理
-	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-		if ecSignOpts.NeedLowS() {
-			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
-			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
-			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
-				zclog.Debugln("x509证书签署后尝试low-s处理")
-				doLow := false
-				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
-				if err != nil {
-					return nil, err
-				}
-				if doLow {
-					zclog.Debugln("x509证书签署后完成low-s处理")
-				}
-			}
-		}
-	}
+	//// ecdsa签名做low-s处理
+	//if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+	//	if ecSignOpts.NeedLowS() {
+	//		// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+	//		// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+	//		if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+	//			zclog.Debugln("x509证书签署后尝试low-s处理")
+	//			doLow := false
+	//			doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//			if doLow {
+	//				zclog.Debugln("x509证书签署后完成low-s处理")
+	//			}
+	//		}
+	//	}
+	//}
 	// 返回证书申请DER字节数组
 	return asn1.Marshal(certificateRequest{
 		TBSCSR:             tbsCSR,
@@ -2649,24 +2658,24 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	if err != nil {
 		return nil, err
 	}
-	// ecdsa签名做low-s处理
-	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-		if ecSignOpts.NeedLowS() {
-			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
-			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
-			if ecdsaPriv, ok := priv.(*ecdsa.PrivateKey); ok {
-				zclog.Debugln("x509证书签署后尝试low-s处理")
-				doLow := false
-				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
-				if err != nil {
-					return nil, err
-				}
-				if doLow {
-					zclog.Debugln("x509证书签署后完成low-s处理")
-				}
-			}
-		}
-	}
+	//// ecdsa签名做low-s处理
+	//if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+	//	if ecSignOpts.NeedLowS() {
+	//		// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+	//		// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+	//		if ecdsaPriv, ok := priv.(*ecdsa.PrivateKey); ok {
+	//			zclog.Debugln("x509证书签署后尝试low-s处理")
+	//			doLow := false
+	//			doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//			if doLow {
+	//				zclog.Debugln("x509证书签署后完成low-s处理")
+	//			}
+	//		}
+	//	}
+	//}
 
 	return asn1.Marshal(pkix.CertificateList{
 		TBSCertList:        tbsCertList,
