@@ -1626,10 +1626,10 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown elliptic curve")
 		}
-		// ecdsa签名默认做low-s处理
-		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), true)
+		// ecdsa签名默认不做low-s处理
+		signOpts = ecbase.CreateEcSignerOpts(crypto.Hash(hashFunc), false)
 	case *ecdsa_ext.PublicKey:
-		pubType = ECDSA
+		pubType = ECDSAEXT
 		// 公钥是ecdsa时并不能确定具体的签名算法与散列算法,这里先根据曲线准备默认值
 		// 传入的requestedSigAlgo非0时，后续会根据签名算法覆盖具体的签名算法与散列算法
 		switch pub.Curve {

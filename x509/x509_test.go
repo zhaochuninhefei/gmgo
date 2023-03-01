@@ -1408,7 +1408,7 @@ func TestCreateCertificateRequest(t *testing.T) {
 		sigAlgo SignatureAlgorithm
 	}{
 		{"RSA", testPrivateKey, SHA1WithRSA},
-		{"ECDSA-256", ecdsa256Priv, ECDSAWithSHA256},
+		{"ECDSA-256", ecdsa256Priv, ECDSAEXTWithSHA256},
 		{"ECDSA-384", ecdsa384Priv, ECDSAWithSHA1},
 		{"ECDSA-521", ecdsa521Priv, ECDSAWithSHA1},
 		{"Ed25519", ed25519Priv, PureEd25519},
@@ -3602,6 +3602,7 @@ func TestCreateCertFromCA_ecdsa(t *testing.T) {
 }
 
 func TestCreateCertFromCA_ecdsaext(t *testing.T) {
+	zclog.Level = zclog.LOG_LEVEL_DEBUG
 	certTypePre := "ecdsaext_"
 	certType := certTypePre + "ca"
 	caPriv, caCert, err := createCACert(certType)
@@ -3891,8 +3892,10 @@ func createTemplate(cn string, o string, c string, st string, bcs bool, isca boo
 	switch privKey.(type) {
 	case *sm2.PrivateKey:
 		signAlg = SM2WithSM3
-	case *ecdsa.PrivateKey, *ecdsa_ext.PrivateKey:
+	case *ecdsa.PrivateKey:
 		signAlg = ECDSAWithSHA256
+	case *ecdsa_ext.PrivateKey:
+		signAlg = ECDSAEXTWithSHA256
 	default:
 		panic("不支持的私钥类型")
 	}
