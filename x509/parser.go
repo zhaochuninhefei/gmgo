@@ -819,7 +819,7 @@ func processExtensions(out *Certificate) error {
 				}
 			}
 		} else if e.Id.Equal(oidExtensionSignatureAlgorithm) {
-			// TODO 补充SignatureAlgorithm反序列化操作
+			// SignatureAlgorithm反序列化操作
 			signAlg := SignatureAlgorithm(binary.BigEndian.Uint32(e.Value))
 			if signAlg > 0 {
 				out.SignatureAlgorithm = signAlg

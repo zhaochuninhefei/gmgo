@@ -3605,10 +3605,13 @@ func TestCreateCertFromCA_ecdsaext(t *testing.T) {
 	zclog.Level = zclog.LOG_LEVEL_DEBUG
 	certTypePre := "ecdsaext_"
 	certType := certTypePre + "ca"
+
 	caPriv, caCert, err := createCACert(certType)
 	if err != nil {
 		t.Fatal(err)
 	}
+	//caCertPem :=
+	////caCert.Verify()
 	fmt.Printf("生成CA密钥对与CA证书成功 %s\n", certType)
 
 	certType = certTypePre + "sign"

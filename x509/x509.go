@@ -1019,6 +1019,13 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		}
 	}
 
+	// 关于ecdsa_ext的特殊处理
+	if pubKeyAlgo == ECDSAEXT {
+		if pubKey, ok := publicKey.(*ecdsa.PublicKey); ok {
+			publicKey = ecdsa_ext.ConvPubKeyFromOrigin(pubKey)
+		}
+	}
+
 	switch hashType {
 	case Hash(0):
 		// ed25519与sm2不需要对消息做摘要计算
@@ -1060,7 +1067,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 			return rsa.VerifyPKCS1v15(pub, hashType.HashFunc(), signed, signature)
 		}
 	case *ecdsa.PublicKey:
-		if pubKeyAlgo != ECDSA {
+		if pubKeyAlgo != ECDSA && pubKeyAlgo != ECDSAEXT {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
 		if ecOpts, ok := opts.(ecbase.EcSignerOpts); ok {
@@ -1082,7 +1089,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		}
 		return nil
 	case *ecdsa_ext.PublicKey:
-		if pubKeyAlgo != ECDSA {
+		if pubKeyAlgo != ECDSA && pubKeyAlgo != ECDSAEXT {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
 		if ecOpts, ok := opts.(ecbase.EcSignerOpts); ok {
@@ -1210,6 +1217,7 @@ var (
 	// 第九段：SignatureAlgorithm 的值，假设为 1。
 	// 将以上每一段用点号相连，就得到了 SignatureAlgorithm 的 OID：1.2.840.114027.1.1.5.8.1。
 	// 因此，我们可以在 X.509 证书的扩展信息中使用该 OID 来表示 SignatureAlgorithm
+	// 在证书与证书申请的创建以及反序列化中使用
 	oidExtensionSignatureAlgorithm = []int{1, 2, 840, 114027, 1, 1, 5, 8, 1}
 )
 
@@ -1507,7 +1515,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 	// template fields used in CreateCertificate documentation.
 
 	// TODO 添加gmx509的签名算法 SignatureAlgorithm
-	if template.SignatureAlgorithm > 0 {
+	if template.SignatureAlgorithm > 0 && !oidInExtensions(oidExtensionSignatureAlgorithm, template.ExtraExtensions) {
 		ret[n] = marshalSignatureAlgorithm(template.SignatureAlgorithm)
 		n++
 	}
@@ -1613,6 +1621,11 @@ func buildCSRExtensions(template *CertificateRequest) ([]pkix.Extension, error) 
 			Id:    oidExtensionSubjectAltName,
 			Value: sanBytes,
 		})
+	}
+
+	// 添加 oidExtensionSignatureAlgorithm
+	if template.SignatureAlgorithm > 0 && !oidInExtensions(oidExtensionSignatureAlgorithm, template.ExtraExtensions) {
+		ret = append(ret, marshalSignatureAlgorithm(template.SignatureAlgorithm))
 	}
 
 	return append(ret, template.ExtraExtensions...), nil
@@ -2008,7 +2021,7 @@ func ParseDERCRL(derBytes []byte) (*pkix.CertificateList, error) {
 }
 
 // CreateCRL 创建一个CRL
-//  - priv : 撤销证书列表的签署者私钥
+//  - priv : 撤销证书列表的签署者私钥, 如果是ecdsa私钥，那么这里并不支持low-s处理，验签时对应也不需要low-s检查。
 //  - revokedCerts : 撤销证书列表
 //
 // CreateCRL returns a DER encoded CRL, signed by this Certificate, that
@@ -2071,24 +2084,24 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	if err != nil {
 		return
 	}
-	// ecdsa签名做low-s处理
-	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-		if ecSignOpts.NeedLowS() {
-			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
-			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
-			if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
-				zclog.Debugln("x509证书签署后尝试low-s处理")
-				doLow := false
-				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
-				if err != nil {
-					return nil, err
-				}
-				if doLow {
-					zclog.Debugln("x509证书签署后完成low-s处理")
-				}
-			}
-		}
-	}
+	//// ecdsa签名做low-s处理
+	//if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+	//	if ecSignOpts.NeedLowS() {
+	//		// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+	//		// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+	//		if ecdsaPriv, ok := key.(*ecdsa.PrivateKey); ok {
+	//			zclog.Debugln("x509证书签署后尝试low-s处理")
+	//			doLow := false
+	//			doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//			if doLow {
+	//				zclog.Debugln("x509证书签署后完成low-s处理")
+	//			}
+	//		}
+	//	}
+	//}
 
 	return asn1.Marshal(pkix.CertificateList{
 		TBSCertList:        tbsCertList,
@@ -2478,6 +2491,12 @@ func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error
 			if err != nil {
 				return nil, err
 			}
+		case extension.Id.Equal(oidExtensionSignatureAlgorithm):
+			// SignatureAlgorithm反序列化操作
+			signAlg := SignatureAlgorithm(binary.BigEndian.Uint32(extension.Value))
+			if signAlg > 0 {
+				out.SignatureAlgorithm = signAlg
+			}
 		}
 	}
 
@@ -2633,7 +2652,10 @@ type RevocationList struct {
 	ExtraExtensions []pkix.Extension
 }
 
-// CreateRevocationList creates a new X.509 v2 Certificate Revocation List,
+// CreateRevocationList 创建x509 v2版本的证书撤销列表
+//   注意，私钥是ecdsa类型时，不支持low-s处理。
+//
+// creates a new X.509 v2 Certificate Revocation List,
 // according to RFC 5280, based on template.
 //
 // The CRL is signed by priv which should be the private key associated with
@@ -2707,6 +2729,11 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		tbsCertList.RevokedCertificates = revokedCertsUTC
 	}
 
+	//// 添加oidExtensionSignatureAlgorithm
+	//if template.SignatureAlgorithm > 0 && !oidInExtensions(oidExtensionSignatureAlgorithm, template.ExtraExtensions) {
+	//	tbsCertList.Extensions = append(tbsCertList.Extensions, marshalSignatureAlgorithm(template.SignatureAlgorithm))
+	//}
+
 	if len(template.ExtraExtensions) > 0 {
 		tbsCertList.Extensions = append(tbsCertList.Extensions, template.ExtraExtensions...)
 	}
@@ -2734,24 +2761,24 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	if err != nil {
 		return nil, err
 	}
-	// ecdsa签名做low-s处理
-	if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
-		if ecSignOpts.NeedLowS() {
-			// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
-			// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
-			if ecdsaPriv, ok := priv.(*ecdsa.PrivateKey); ok {
-				zclog.Debugln("x509证书签署后尝试low-s处理")
-				doLow := false
-				doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
-				if err != nil {
-					return nil, err
-				}
-				if doLow {
-					zclog.Debugln("x509证书签署后完成low-s处理")
-				}
-			}
-		}
-	}
+	//// ecdsa签名做low-s处理
+	//if ecSignOpts, ok := signOpts.(ecbase.EcSignerOpts); ok {
+	//	if ecSignOpts.NeedLowS() {
+	//		// 对于ecdsa签名算法，如果指定了要做 low-s处理，那么这里需要针对使用`*ecdsa.PrivateKey`的场景做补丁处理。
+	//		// 而如果使用的是`*ecdsa_ext.PrivateKey`,其内部已经根据EcSignerOpts参数做过low-s了，这里不需要额外再做一次。
+	//		if ecdsaPriv, ok := priv.(*ecdsa.PrivateKey); ok {
+	//			zclog.Debugln("x509证书签署后尝试low-s处理")
+	//			doLow := false
+	//			doLow, signature, err = ecdsa_ext.SignatureToLowS(&ecdsaPriv.PublicKey, signature)
+	//			if err != nil {
+	//				return nil, err
+	//			}
+	//			if doLow {
+	//				zclog.Debugln("x509证书签署后完成low-s处理")
+	//			}
+	//		}
+	//	}
+	//}
 
 	return asn1.Marshal(pkix.CertificateList{
 		TBSCertList:        tbsCertList,
