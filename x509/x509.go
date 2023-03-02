@@ -300,6 +300,15 @@ const (
 	ECDSAEXTWithSHA512 // ecdsa_ext 扩展的ECDSA签名算法(支持low-s处理)
 )
 
+func (algo SignatureAlgorithm) IsECDSAEXT() bool {
+	switch algo {
+	case ECDSAEXTWithSHA256, ECDSAEXTWithSHA384, ECDSAEXTWithSHA512:
+		return true
+	default:
+		return false
+	}
+}
+
 func (algo SignatureAlgorithm) isRSAPSS() bool {
 	switch algo {
 	case SHA256WithRSAPSS, SHA384WithRSAPSS, SHA512WithRSAPSS:
