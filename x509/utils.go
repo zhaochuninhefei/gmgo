@@ -72,7 +72,8 @@ import (
 func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error) {
 	var block *pem.Block
 	block, _ = pem.Decode(privateKeyPem)
-	if block == nil || !strings.HasSuffix(block.Type, "PRIVATE KEY") {
+	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
+	if block == nil || !strings.HasSuffix(blockType, "PRIVATE KEY") {
 		return nil, errors.New("failed to decode private key")
 	}
 	var der []byte
@@ -96,7 +97,7 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 		}
 	}
 	// 对于ECDSA_EXT，需要封装为`ecdsa_ext.PrivateKey`
-	if block.Type == "ECDSA_EXT PRIVATE KEY" {
+	if blockType == "ECDSA_EXT PRIVATE KEY" {
 		if priv, ok := privKey.(*ecdsa.PrivateKey); ok {
 			return &ecdsa_ext.PrivateKey{
 				PrivateKey: *priv,
@@ -231,7 +232,8 @@ func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (boo
 //  @return error
 func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 	block, _ := pem.Decode(publicKeyPem)
-	if block == nil || !strings.HasSuffix(block.Type, "PUBLIC KEY") {
+	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
+	if block == nil || !strings.HasSuffix(blockType, "PUBLIC KEY") {
 		return nil, errors.New("failed to decode public key")
 	}
 	key, err := ParsePKIXPublicKey(block.Bytes)
@@ -239,7 +241,7 @@ func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 		return nil, err
 	}
 	// 对于ECDSA_EXT需要包装为`ecdsa_ext.PublicKey`
-	if block.Type == "ECDSA_EXT PUBLIC KEY" {
+	if blockType == "ECDSA_EXT PUBLIC KEY" {
 		if pub, ok := key.(*ecdsa.PublicKey); ok {
 			return &ecdsa_ext.PublicKey{
 				PublicKey: *pub,
