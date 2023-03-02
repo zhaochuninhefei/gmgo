@@ -7,8 +7,10 @@ gmgo
 - sm3soft : 基于`tjfoc/gmsm`的sm3部分的纯软实现,仅作验证与参考用。
 - sm4 : 基于`emmansun/gmsm`的sm4部分实现部分扩展。
 - sm4soft : 基于`tjfoc/gmsm`的sm4部分的纯软实现,仅作验证与参考用。
-- x509 : 基于`go1.17.5`的x509包与本项目的sm2/sm3/sm4包实现国密改造。
-- gmtls : 基于`go1.17.5`的tls包与本项目的sm2/sm3/sm4包实现国密改造。
+- ecbase : 椭圆曲线基础通用包，目前为sm2/ecdsa_ext提供了基础的签名/验签相关接口与一些通用函数。
+- ecdsa_ext : ecdsa扩展包，实现了low-s处理
+- x509 : 基于`go1.17.5`的x509包与本项目的sm2/sm3/sm4/ecbase/ecdsa_ext等包实现国密改造。
+- gmtls : 基于`go1.17.5`的tls包与本项目的相关包实现国密改造。
 - gmhttp : 基于`go1.17.5`的`net/http`包做了对应的国密改造。
 - grpc : 基于`google.golang.org/grpc`的`v1.44.0`版本做了对应的国密改造。
 
