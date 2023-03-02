@@ -72,6 +72,9 @@ import (
 func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error) {
 	var block *pem.Block
 	block, _ = pem.Decode(privateKeyPem)
+	if block == nil {
+		return nil, errors.New("ReadPrivateKeyFromPem: pem decode failed")
+	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
 	if block == nil || !strings.HasSuffix(blockType, "PRIVATE KEY") {
 		return nil, errors.New("failed to decode private key")
@@ -232,6 +235,9 @@ func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (boo
 //  @return error
 func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 	block, _ := pem.Decode(publicKeyPem)
+	if block == nil {
+		return nil, errors.New("ReadPublicKeyFromPem: pem decode failed")
+	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
 	if block == nil || !strings.HasSuffix(blockType, "PUBLIC KEY") {
 		return nil, errors.New("failed to decode public key")
