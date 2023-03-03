@@ -512,10 +512,35 @@ func CreateCertificateToPemFile(FileName string, template, parent *Certificate, 
 		return false, err
 	}
 	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			zclog.Errorln(err)
-		}
+		_ = file.Close()
+	}(file)
+	err = pem.Encode(file, block)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func WriteCertificateToPem(cert *Certificate) ([]byte, error) {
+	block := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	}
+	certPem := pem.EncodeToMemory(block)
+	return certPem, nil
+}
+
+func WriteCertificateToPemFile(path string, cert *Certificate) (bool, error) {
+	block := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return false, err
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
 	}(file)
 	err = pem.Encode(file, block)
 	if err != nil {
