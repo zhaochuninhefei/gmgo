@@ -445,6 +445,9 @@ func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts)
 	withZA := false
 	if sm2Opts, ok := opts.(*SM2SignerOption); ok {
 		withZA = sm2Opts.ForceZA
+	} else {
+		// 传入的不是SM2SignerOption的话，默认做ZA混合散列
+		withZA = true
 	}
 	valid := false
 	if withZA {
