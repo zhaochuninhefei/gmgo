@@ -75,6 +75,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
@@ -264,6 +265,7 @@ func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
 //  如果opts类型是*sm2.SM2SignerOption且opts.ForceGMSign为true，或opts传nil，
 // 则将对digest进行ZA混合散列后再对其进行签名。
 func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	zclog.Debugf("sm2priv.Sign digest长度: %d", len(digest))
 	var r, s *big.Int
 	var err error
 	if opts == nil {
@@ -272,9 +274,11 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	if sm2Opts, ok := opts.(*SM2SignerOption); ok {
 		// 传入的opts是SM2SignerOption类型时，根据设置决定是否进行ZA混合散列
 		if sm2Opts.ForceZA {
+			zclog.Debugln("sm2priv.Sign内部执行ZA混合散列")
 			// 执行ZA混合散列
 			r, s, err = SignWithZA(rand, priv, sm2Opts.UID, digest)
 		} else {
+			zclog.Debugln("sm2priv.Sign内部不执行ZA混合散列")
 			// 不执行ZA混合散列
 			r, s, err = SignAfterZA(rand, priv, digest)
 		}
@@ -285,6 +289,7 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	if err != nil {
 		return nil, err
 	}
+	utils.PrintStack("sm2priv.Sign打印调用栈")
 	// 将签名结果(r,s)转为asn1格式字节数组
 	return ecbase.MarshalECSignature(r, s)
 	//var b cryptobyte.Builder
@@ -298,6 +303,8 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 // Sign Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
 //  会对hash做ZA混合散列。
 func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error) {
+	utils.PrintStack("sm2.Sign打印调用栈")
+	zclog.Debugf("sm2.Sign内部执行ZA混合散列, 传入hash长度: %d", len(hash))
 	r, s, err = SignWithZA(rand, priv, defaultUID, hash)
 	return
 }
@@ -306,6 +313,8 @@ func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err err
 //  会对hash做ZA混合散列。
 //goland:noinspection GoUnusedExportedFunction,GoNameStartsWithPackageName,GoUnusedParameter
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
+	utils.PrintStack("sm2.Sm2Sign打印调用栈")
+	zclog.Debugf("sm2.Sm2Sign内部执行ZA混合散列, 传入msg长度: %d", len(msg))
 	r, s, err = SignWithZA(random, priv, defaultUID, msg)
 	return
 }
@@ -433,12 +442,14 @@ func signGeneric(priv *PrivateKey, csprng *cipher.StreamReader, hash []byte) (r,
 // Verify sm2公钥验签
 //  对msg做ZA混合散列
 func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
+	zclog.Debugf("sm2Pub.Verify内部固定使用ZA散列, 接收msg长度: %d", len(msg))
 	return VerifyASN1(pub, msg, sig)
 }
 
 // EcVerify 实现`ecbase.EcVerifier`接口
 //  根据opts决定是否需要做ZA混合散列，默认做
 func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts) (bool, error) {
+	zclog.Debugf("sm2Pub.EcVerify 接收msg长度: %d", len(msg))
 	if opts == nil {
 		opts = DefaultSM2SignerOption()
 	}
@@ -458,6 +469,7 @@ func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts)
 		valid = VerifyASN1WithoutZA(pub, msg, sig)
 	}
 	if !valid {
+		utils.PrintStack("sm2验签失败")
 		return valid, errors.New("sm2验签失败")
 	}
 	return valid, nil
