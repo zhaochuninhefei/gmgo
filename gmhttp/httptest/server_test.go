@@ -55,7 +55,7 @@ func TestServer(t *testing.T) {
 
 func testServer(t *testing.T, newServer newServerFunc) {
 	ts := newServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello"))
 	}))
 	defer ts.Close()
 	res, err := http.Get(ts.URL)
@@ -63,7 +63,7 @@ func testServer(t *testing.T, newServer newServerFunc) {
 		t.Fatal(err)
 	}
 	got, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func testServer(t *testing.T, newServer newServerFunc) {
 // Issue 12781
 func testGetAfterClose(t *testing.T, newServer newServerFunc) {
 	ts := newServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello"))
 	}))
 
 	res, err := http.Get(ts.URL)
@@ -101,7 +101,7 @@ func testGetAfterClose(t *testing.T, newServer newServerFunc) {
 
 func testServerCloseBlocking(t *testing.T, newServer newServerFunc) {
 	ts := newServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello"))
 	}))
 	dial := func() net.Conn {
 		c, err := net.Dial("tcp", ts.Listener.Addr().String())
@@ -113,12 +113,16 @@ func testServerCloseBlocking(t *testing.T, newServer newServerFunc) {
 
 	// Keep one connection in StateNew (connected, but not sending anything)
 	cnew := dial()
-	defer cnew.Close()
+	defer func(cnew net.Conn) {
+		_ = cnew.Close()
+	}(cnew)
 
 	// Keep one connection in StateIdle (idle after a request)
 	cidle := dial()
-	defer cidle.Close()
-	cidle.Write([]byte("HEAD / HTTP/1.1\r\nHost: foo\r\n\r\n"))
+	defer func(cidle net.Conn) {
+		_ = cidle.Close()
+	}(cidle)
+	_, _ = cidle.Write([]byte("HEAD / HTTP/1.1\r\nHost: foo\r\n\r\n"))
 	_, err := http.ReadResponse(bufio.NewReader(cidle), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +140,7 @@ func testServerCloseClientConnections(t *testing.T, newServer newServerFunc) {
 	defer s.Close()
 	res, err := http.Get(s.URL)
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatalf("Unexpected response: %#v", res)
 	}
 }
@@ -145,7 +149,7 @@ func testServerCloseClientConnections(t *testing.T, newServer newServerFunc) {
 // NewTLSServer without cert warnings.
 func testServerClient(t *testing.T, newTLSServer newServerFunc) {
 	ts := newTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello"))
 	}))
 	defer ts.Close()
 	client := ts.Client()
@@ -154,7 +158,7 @@ func testServerClient(t *testing.T, newTLSServer newServerFunc) {
 		t.Fatal(err)
 	}
 	got, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
