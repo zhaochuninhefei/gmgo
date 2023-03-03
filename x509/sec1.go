@@ -74,6 +74,21 @@ func MarshalECPrivateKey(key interface{}) ([]byte, error) {
 			NamedCurveOID: oid,
 			PublicKey:     asn1.BitString{Bytes: elliptic.Marshal(priv.Curve, priv.X, priv.Y)},
 		})
+	case *ecdsa_ext.PrivateKey:
+		oid, ok := oidFromNamedCurve(priv.Curve)
+		if !ok {
+			return nil, errors.New("gmx509.MarshalECPrivateKey: unknown elliptic curve")
+		}
+		if oid.Equal(oidNamedCurveP256SM2) {
+			return nil, errors.New("gmx509.MarshalECPrivateKey: not ecdsa curves")
+		}
+		privateKey := make([]byte, (priv.Curve.Params().N.BitLen()+7)/8)
+		return asn1.Marshal(ecPrivateKey{
+			Version:       ecPrivKeyVersion,
+			PrivateKey:    priv.D.FillBytes(privateKey),
+			NamedCurveOID: oid,
+			PublicKey:     asn1.BitString{Bytes: elliptic.Marshal(priv.Curve, priv.X, priv.Y)},
+		})
 	case *sm2.PrivateKey:
 		oid, ok := oidFromNamedCurve(priv.Curve)
 		if !ok {
