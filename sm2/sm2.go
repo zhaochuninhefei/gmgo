@@ -290,7 +290,7 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	if err != nil {
 		return nil, err
 	}
-	utils.PrintStack("sm2priv.Sign打印调用栈")
+	//utils.PrintStack("sm2priv.Sign打印调用栈")
 	// 将签名结果(r,s)转为asn1格式字节数组
 	return ecbase.MarshalECSignature(r, s)
 	//var b cryptobyte.Builder
@@ -304,8 +304,8 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 // Sign Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
 //  会对hash做ZA混合散列。
 func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error) {
-	utils.PrintStack("sm2.Sign打印调用栈")
 	zclog.Debugf("sm2.Sign内部执行ZA混合散列, 传入hash长度: %d", len(hash))
+	//utils.PrintStack("sm2.Sign打印调用栈")
 	r, s, err = SignWithZA(rand, priv, defaultUID, hash)
 	return
 }
@@ -314,7 +314,7 @@ func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err err
 //  会对hash做ZA混合散列。
 //goland:noinspection GoUnusedExportedFunction,GoNameStartsWithPackageName,GoUnusedParameter
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
-	utils.PrintStack("sm2.Sm2Sign打印调用栈")
+	//utils.PrintStack("sm2.Sm2Sign打印调用栈")
 	zclog.Debugf("sm2.Sm2Sign内部执行ZA混合散列, 传入msg长度: %d", len(msg))
 	r, s, err = SignWithZA(random, priv, defaultUID, msg)
 	return
