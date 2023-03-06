@@ -493,6 +493,7 @@ func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 	//}
 	r, s, err := ecbase.UnmarshalECSignature(sig)
 	if err != nil {
+		zclog.Debugf("ecbase.UnmarshalECSignature 失败: %s", err.Error())
 		return false
 	}
 	return VerifyWithZA(pub, nil, msg, r, s)
@@ -543,6 +544,7 @@ func VerifyWithZA(pub *PublicKey, uid, msg []byte, r, s *big.Int) bool {
 	// 对消息进行ZA混合散列
 	za, err := calculateZA(pub, uid)
 	if err != nil {
+		zclog.Debugf("calculateZA失败: %s", err.Error())
 		return false
 	}
 	md := sm3.New()
@@ -559,9 +561,11 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	N := c.Params().N
 	// 检查签名(r,s)是否在(0, N)区间
 	if r.Sign() <= 0 || s.Sign() <= 0 {
+		zclog.Debugln("r.Sign() <= 0 || s.Sign() <= 0")
 		return false
 	}
 	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
+		zclog.Debugln("r.Cmp(N) >= 0 || s.Cmp(N) >= 0")
 		return false
 	}
 	e := hashToInt(hash, c)
@@ -569,6 +573,7 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	t := new(big.Int).Add(r, s)
 	t.Mod(t, N)
 	if t.Sign() == 0 {
+		zclog.Debugln("t.Sign() == 0")
 		return false
 	}
 	var x *big.Int
@@ -590,7 +595,13 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	// 计算 R = (e + x) mod n
 	x.Mod(x, N)
 	// 判断 R == r
-	return x.Cmp(r) == 0
+	if x.Cmp(r) == 0 {
+		return true
+	} else {
+		zclog.Debugln("x.Cmp(r) != 0")
+		return false
+	}
+	//return x.Cmp(r) == 0
 }
 
 // CalculateZA ZA计算。
