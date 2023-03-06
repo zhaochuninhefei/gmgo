@@ -48,6 +48,7 @@ func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOp
 	}
 	valid := ecdsa.VerifyASN1(&pub.PublicKey, digest, sig)
 	if !valid {
+		zclog.ErrorStack("ecdsa_ext验签失败")
 		return false, errors.New("ecdsa_ext验签失败")
 	}
 	return true, nil
