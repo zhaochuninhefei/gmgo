@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"runtime"
 )
 
 // ZeroByteSlice 0组成的32byte切片
@@ -95,22 +94,4 @@ func ReadPemFromFile(filePath string) (pemBytes []byte, err error) {
 		return nil, fmt.Errorf("no pem content for file [%s]", filePath)
 	}
 	return fileBytes, nil
-}
-
-// PrintStack 打印调用栈
-func PrintStack(msg string) {
-	var pcs [32]uintptr
-	n := runtime.Callers(2, pcs[:]) // skip first 3 frames
-	frames := runtime.CallersFrames(pcs[:n])
-	if msg != "" {
-		fmt.Println(msg)
-	}
-	fmt.Println("当前调用栈如下:")
-	for {
-		frame, more := frames.Next()
-		fmt.Printf("%s:%d %s\n", frame.File, frame.Line, frame.Function)
-		if !more {
-			break
-		}
-	}
 }

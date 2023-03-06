@@ -75,7 +75,6 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
@@ -470,7 +469,7 @@ func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts)
 		valid = VerifyASN1WithoutZA(pub, msg, sig)
 	}
 	if !valid {
-		utils.PrintStack("sm2验签失败")
+		zclog.ErrorStack("sm2验签失败")
 		return valid, errors.New("sm2验签失败")
 	}
 	return valid, nil
