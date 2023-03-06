@@ -283,6 +283,7 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 			r, s, err = SignAfterZA(rand, priv, digest)
 		}
 	} else {
+		zclog.Debugln("sm2priv.Sign内部执行ZA混合散列")
 		// 传入的opts不是SM2SignerOption类型时，执行ZA混合散列
 		r, s, err = SignWithZA(rand, priv, defaultUID, digest)
 	}
