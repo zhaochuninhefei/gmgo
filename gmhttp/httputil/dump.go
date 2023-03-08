@@ -143,8 +143,8 @@ func DumpRequestOut(req *http.Request, body bool) ([]byte, error) {
 		if err == nil {
 			// Ensure all the body is read; otherwise
 			// we'll get a partial dump.
-			io.Copy(io.Discard, req.Body)
-			req.Body.Close()
+			_, _ = io.Copy(io.Discard, req.Body)
+			_ = req.Body.Close()
 		}
 		select {
 		case dr.c <- strings.NewReader("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n"):
@@ -158,7 +158,7 @@ func DumpRequestOut(req *http.Request, body bool) ([]byte, error) {
 
 	req.Body = save
 	if err != nil {
-		pw.Close()
+		_ = pw.Close()
 		dr.err = err
 		close(quitReadCh)
 		return nil, err
@@ -251,7 +251,7 @@ func DumpRequest(req *http.Request, body bool) ([]byte, error) {
 		reqURI = req.URL.RequestURI()
 	}
 
-	fmt.Fprintf(&b, "%s %s HTTP/%d.%d\r\n", valueOrDefault(req.Method, "GET"),
+	_, _ = fmt.Fprintf(&b, "%s %s HTTP/%d.%d\r\n", valueOrDefault(req.Method, "GET"),
 		reqURI, req.ProtoMajor, req.ProtoMinor)
 
 	absRequestURI := strings.HasPrefix(req.RequestURI, "http://") || strings.HasPrefix(req.RequestURI, "https://")
@@ -261,16 +261,16 @@ func DumpRequest(req *http.Request, body bool) ([]byte, error) {
 			host = req.URL.Host
 		}
 		if host != "" {
-			fmt.Fprintf(&b, "Host: %s\r\n", host)
+			_, _ = fmt.Fprintf(&b, "Host: %s\r\n", host)
 		}
 	}
 
 	chunked := len(req.TransferEncoding) > 0 && req.TransferEncoding[0] == "chunked"
 	if len(req.TransferEncoding) > 0 {
-		fmt.Fprintf(&b, "Transfer-Encoding: %s\r\n", strings.Join(req.TransferEncoding, ","))
+		_, _ = fmt.Fprintf(&b, "Transfer-Encoding: %s\r\n", strings.Join(req.TransferEncoding, ","))
 	}
 	if req.Close {
-		fmt.Fprintf(&b, "Connection: close\r\n")
+		_, _ = fmt.Fprintf(&b, "Connection: close\r\n")
 	}
 
 	err = req.Header.WriteSubset(&b, reqWriteExcludeHeaderDump)
@@ -278,7 +278,7 @@ func DumpRequest(req *http.Request, body bool) ([]byte, error) {
 		return nil, err
 	}
 
-	io.WriteString(&b, "\r\n")
+	_, _ = io.WriteString(&b, "\r\n")
 
 	if req.Body != nil {
 		var dest io.Writer = &b
@@ -287,8 +287,8 @@ func DumpRequest(req *http.Request, body bool) ([]byte, error) {
 		}
 		_, err = io.Copy(dest, req.Body)
 		if chunked {
-			dest.(io.Closer).Close()
-			io.WriteString(&b, "\r\n")
+			_ = dest.(io.Closer).Close()
+			_, _ = io.WriteString(&b, "\r\n")
 		}
 	}
 
