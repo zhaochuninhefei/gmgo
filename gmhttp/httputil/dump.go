@@ -254,6 +254,7 @@ func DumpRequest(req *http.Request, body bool) ([]byte, error) {
 	_, _ = fmt.Fprintf(&b, "%s %s HTTP/%d.%d\r\n", valueOrDefault(req.Method, "GET"),
 		reqURI, req.ProtoMajor, req.ProtoMinor)
 
+	//goland:noinspection HttpUrlsUsage
 	absRequestURI := strings.HasPrefix(req.RequestURI, "http://") || strings.HasPrefix(req.RequestURI, "https://")
 	if !absRequestURI {
 		host := req.Host
