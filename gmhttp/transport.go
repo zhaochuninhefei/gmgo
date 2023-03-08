@@ -138,7 +138,7 @@ type Transport struct {
 	// a connection dialed previously when the earlier connection
 	// becomes idle before the later Dial completes.
 	//
-	// Deprecated: Use DialContext instead, which allows the transport
+	// ToDeprecated: Use DialContext instead, which allows the transport
 	// to cancel dials as soon as they are no longer needed.
 	// If both are set, DialContext takes priority.
 	Dial func(network, addr string) (net.Conn, error)

@@ -44,11 +44,17 @@ type dumpConn struct {
 	io.Reader
 }
 
-func (c *dumpConn) Close() error                       { return nil }
-func (c *dumpConn) LocalAddr() net.Addr                { return nil }
-func (c *dumpConn) RemoteAddr() net.Addr               { return nil }
-func (c *dumpConn) SetDeadline(t time.Time) error      { return nil }
-func (c *dumpConn) SetReadDeadline(t time.Time) error  { return nil }
+func (c *dumpConn) Close() error         { return nil }
+func (c *dumpConn) LocalAddr() net.Addr  { return nil }
+func (c *dumpConn) RemoteAddr() net.Addr { return nil }
+
+//goland:noinspection GoUnusedParameter
+func (c *dumpConn) SetDeadline(t time.Time) error { return nil }
+
+//goland:noinspection GoUnusedParameter
+func (c *dumpConn) SetReadDeadline(t time.Time) error { return nil }
+
+//goland:noinspection GoUnusedParameter
 func (c *dumpConn) SetWriteDeadline(t time.Time) error { return nil }
 
 type neverEnding byte
@@ -112,8 +118,12 @@ func DumpRequestOut(req *http.Request, body bool) ([]byte, error) {
 	// with a dummy response.
 	var buf bytes.Buffer // records the output
 	pr, pw := io.Pipe()
-	defer pr.Close()
-	defer pw.Close()
+	defer func(pr *io.PipeReader) {
+		_ = pr.Close()
+	}(pr)
+	defer func(pw *io.PipeWriter) {
+		_ = pw.Close()
+	}(pw)
 	dr := &delegateReader{c: make(chan io.Reader)}
 
 	t := &http.Transport{
