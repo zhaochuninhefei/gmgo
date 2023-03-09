@@ -524,6 +524,7 @@ func CreateCertificateToPemFile(FileName string, template, parent *Certificate, 
 // WriteCertificateToPem 将x509证书转为pem字节数组
 //  @param cert x509证书
 //  @return []byte pem字节数组
+//goland:noinspection GoUnusedExportedFunction
 func WriteCertificateToPem(cert *Certificate) []byte {
 	block := &pem.Block{
 		Type:  "CERTIFICATE",
@@ -538,6 +539,7 @@ func WriteCertificateToPem(cert *Certificate) []byte {
 //  @param cert x509证书
 //  @return bool
 //  @return error
+//goland:noinspection GoUnusedExportedFunction
 func WriteCertificateToPemFile(path string, cert *Certificate) (bool, error) {
 	block := &pem.Block{
 		Type:  "CERTIFICATE",
