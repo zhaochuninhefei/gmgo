@@ -521,13 +521,13 @@ func CreateCertificateToPemFile(FileName string, template, parent *Certificate, 
 	return true, nil
 }
 
-func WriteCertificateToPem(cert *Certificate) ([]byte, error) {
+func WriteCertificateToPem(cert *Certificate) []byte {
 	block := &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: cert.Raw,
 	}
 	certPem := pem.EncodeToMemory(block)
-	return certPem, nil
+	return certPem
 }
 
 func WriteCertificateToPemFile(path string, cert *Certificate) (bool, error) {
