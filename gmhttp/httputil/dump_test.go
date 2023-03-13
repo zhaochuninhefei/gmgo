@@ -495,6 +495,7 @@ func TestDumpRequestOutIssue38352(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		delay := time.Duration(rand.Intn(5)) * time.Millisecond
 		ctx, cancel := context.WithTimeout(context.Background(), delay)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 
 		r := bytes.NewBuffer(make([]byte, 10000))
