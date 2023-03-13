@@ -30,6 +30,14 @@ const (
 	sm2SignKeyPath  = "./certs/sm2_sign_key.pem"
 	sm2UserCertPath = "certs/sm2_auth_cert.cer"
 	sm2UserKeyPath  = "certs/sm2_auth_key.pem"
+
+	ecdsaCaCertPath   = "./certs/ecdsa_ca_cert.cer"
+	ecdsaAuthCertPath = "./certs/ecdsa_auth_cert.cer"
+	ecdsaAuthKeyPath  = "./certs/ecdsa_auth_key.pem"
+	ecdsaSignCertPath = "./certs/ecdsa_sign_cert.cer"
+	ecdsaSignKeyPath  = "./certs/ecdsa_sign_key.pem"
+	ecdsaUserCertPath = "certs/ecdsa_auth_cert.cer"
+	ecdsaUserKeyPath  = "certs/ecdsa_auth_key.pem"
 )
 
 var end chan bool
