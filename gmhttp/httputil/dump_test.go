@@ -40,6 +40,7 @@ type dumpTest struct {
 	NoBody      bool // if true, set DumpRequest{,Out} body to false
 }
 
+//goland:noinspection HttpUrlsUsage
 var dumpTests = []dumpTest{
 	// HTTP/1.1 => chunked coding; body; empty trailer
 	{
@@ -497,6 +498,7 @@ func TestDumpRequestOutIssue38352(t *testing.T) {
 		defer cancel()
 
 		r := bytes.NewBuffer(make([]byte, 10000))
+		//goland:noinspection HttpUrlsUsage
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://example.com", r)
 		if err != nil {
 			t.Fatal(err)
