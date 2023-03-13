@@ -69,6 +69,15 @@ func Test_tls13_ecdsa(t *testing.T) {
 	fmt.Println("Test_tls13 over.")
 }
 
+func Test_tls13_ecdsaext(t *testing.T) {
+	end = make(chan bool, 64)
+	go ServerRun(true, "ecdsaext")
+	time.Sleep(5 * time.Second)
+	go ClientRunTls13("ecdsaext")
+	<-end
+	fmt.Println("Test_tls13 over.")
+}
+
 func Test_gmssl(t *testing.T) {
 	end = make(chan bool, 64)
 	go ServerRun(true, "sm2")
@@ -261,7 +270,6 @@ func ClientRunTls13(certType string) {
 
 	// 定义gmtls配置
 	// 默认最高tls协议版本为tls1.3, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
-	// TODO 是否根据certType选择密码套件
 	var curvePreference []gmtls.CurveID
 	switch certType {
 	case "sm2":
