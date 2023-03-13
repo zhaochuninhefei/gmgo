@@ -141,14 +141,22 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 || hello.supportedVersions[0] == VersionGMSSL {
 		// 在密码套件中加入tls1.3的密码套件
-		// tls1.3的密码套件是固定的，不允许客户端自行配置选择
-		if hasAESGCMHardwareSupport {
-			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
-		} else {
-			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
-		}
 		// 设置密钥协商的曲线为配置的首个曲线，目前默认是sm2P256
 		curveID := config.curvePreferences()[0]
+		// tls1.3的密码套件是固定的，不允许客户端自行配置选择
+		if hasAESGCMHardwareSupport {
+			if curveID == Curve256Sm2 {
+				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
+			} else {
+				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13GmBehind...)
+			}
+		} else {
+			if curveID == Curve256Sm2 {
+				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
+			} else {
+				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAESGmBehind...)
+			}
+		}
 		// var curve elliptic.Curve
 		var curveOk bool
 		var curveName string

@@ -177,12 +177,20 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 	if !hasAESGCMHardwareSupport || !aesgcmPreferred(hs.clientHello.cipherSuites) {
 		preferenceList = defaultCipherSuitesTLS13NoAES
 	}
-	for _, suiteID := range preferenceList {
-		hs.suite = mutualCipherSuiteTLS13(hs.clientHello.cipherSuites, suiteID)
+	// 改为优先满足客户端的密码套件
+	//for _, suiteID := range preferenceList {
+	//	hs.suite = mutualCipherSuiteTLS13(hs.clientHello.cipherSuites, suiteID)
+	//	if hs.suite != nil {
+	//		break
+	//	}
+	//}
+	for _, suiteID := range hs.clientHello.cipherSuites {
+		hs.suite = mutualCipherSuiteTLS13(preferenceList, suiteID)
 		if hs.suite != nil {
 			break
 		}
 	}
+
 	if hs.suite == nil {
 		_ = c.sendAlert(alertHandshakeFailure)
 		return errors.New("gmtls: no cipher suite supported by both client and server")

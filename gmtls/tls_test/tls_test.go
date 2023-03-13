@@ -9,6 +9,7 @@
 package tls_test
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -28,40 +29,57 @@ const (
 	SM2AuthKeyPath  = "./certs/sm2_auth_key.pem"
 	sm2SignCertPath = "./certs/sm2_sign_cert.cer"
 	sm2SignKeyPath  = "./certs/sm2_sign_key.pem"
-	sm2UserCertPath = "certs/sm2_auth_cert.cer"
-	sm2UserKeyPath  = "certs/sm2_auth_key.pem"
+	sm2UserCertPath = "./certs/sm2_auth_cert.cer"
+	sm2UserKeyPath  = "./certs/sm2_auth_key.pem"
 
 	ecdsaCaCertPath   = "./certs/ecdsa_ca_cert.cer"
 	ecdsaAuthCertPath = "./certs/ecdsa_auth_cert.cer"
 	ecdsaAuthKeyPath  = "./certs/ecdsa_auth_key.pem"
 	ecdsaSignCertPath = "./certs/ecdsa_sign_cert.cer"
 	ecdsaSignKeyPath  = "./certs/ecdsa_sign_key.pem"
-	ecdsaUserCertPath = "certs/ecdsa_auth_cert.cer"
-	ecdsaUserKeyPath  = "certs/ecdsa_auth_key.pem"
+	ecdsaUserCertPath = "./certs/ecdsa_auth_cert.cer"
+	ecdsaUserKeyPath  = "./certs/ecdsa_auth_key.pem"
+
+	ecdsaextCaCertPath   = "./certs/ecdsaext_ca_cert.cer"
+	ecdsaextAuthCertPath = "./certs/ecdsaext_auth_cert.cer"
+	ecdsaextAuthKeyPath  = "./certs/ecdsaext_auth_key.pem"
+	ecdsaextSignCertPath = "./certs/ecdsaext_sign_cert.cer"
+	ecdsaextSignKeyPath  = "./certs/ecdsaext_sign_key.pem"
+	ecdsaextUserCertPath = "./certs/ecdsaext_auth_cert.cer"
+	ecdsaextUserKeyPath  = "./certs/ecdsaext_auth_key.pem"
 )
 
 var end chan bool
 
-func Test_tls13(t *testing.T) {
+func Test_tls13_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
+	go ServerRun(true, "sm2")
 	time.Sleep(5 * time.Second)
-	go ClientRunTls13()
+	go ClientRunTls13("sm2")
+	<-end
+	fmt.Println("Test_tls13 over.")
+}
+
+func Test_tls13_ecdsa(t *testing.T) {
+	end = make(chan bool, 64)
+	go ServerRun(true, "ecdsa")
+	time.Sleep(5 * time.Second)
+	go ClientRunTls13("ecdsa")
 	<-end
 	fmt.Println("Test_tls13 over.")
 }
 
 func Test_gmssl(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
+	go ServerRun(true, "sm2")
 	time.Sleep(5 * time.Second)
-	go ClientRunGMSSL()
+	go ClientRunGMSSL("sm2")
 	<-end
 	fmt.Println("Test_gmssl over.")
 }
 
 // 启动服务端
-func ServerRun(needClientAuth bool) {
+func ServerRun(needClientAuth bool, certType string) {
 	err := zclog.ClearDir("logs")
 	if err != nil {
 		panic(err)
@@ -74,7 +92,7 @@ func ServerRun(needClientAuth bool) {
 	}
 	zclog.InitLogger(zcgologConfig)
 	// 导入tls配置
-	config, err := loadServerConfig(needClientAuth)
+	config, err := loadServerConfig(needClientAuth, certType)
 	if err != nil {
 		panic(err)
 	}
@@ -110,22 +128,45 @@ func ServerRun(needClientAuth bool) {
 	}
 }
 
-func ClientRunGMSSL() {
+func ClientRunGMSSL(certType string) {
 	// 创建客户端本地的证书池
 	certPool := x509.NewCertPool()
-	// 读取sm2 ca证书
-	cacert, err := ioutil.ReadFile(SM2CaCertPath)
-	if err != nil {
-		zclog.Fatal(err)
+	var cacert []byte
+	var err error
+	switch certType {
+	case "sm2":
+		// 读取sm2 ca证书
+		cacert, err = ioutil.ReadFile(SM2CaCertPath)
+	case "ecdsa":
+		// 读取ecdsa ca证书
+		cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
+	case "ecdsaext":
+		// 读取ecdsaext ca证书
+		cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
+	default:
+		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
 	}
-	// 将sm2ca证书作为根证书加入证书池
+	// 将ca证书作为根证书加入证书池
 	// 即，客户端相信持有该ca颁发的证书的服务端
 	certPool.AppendCertsFromPEM(cacert)
 
-	// 读取sm2User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+	// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
 	// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
 	// 此时该证书应该由第三方ca机构颁发签名。
-	cert, _ := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+	var cert gmtls.Certificate
+	switch certType {
+	case "sm2":
+		cert, _ = gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+	case "ecdsa":
+		cert, _ = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
+	case "ecdsaext":
+		cert, _ = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
+	default:
+		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
+	}
+	if err != nil {
+		zclog.Fatal(err)
+	}
 
 	// 定义gmtls配置
 	// 选择最高tls协议版本为VersionGMSSL, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
@@ -175,31 +216,69 @@ func ClientRunGMSSL() {
 	end <- true
 }
 
-func ClientRunTls13() {
+func ClientRunTls13(certType string) {
 	// 创建客户端本地的证书池
 	certPool := x509.NewCertPool()
-	// 读取sm2 ca证书
-	cacert, err := ioutil.ReadFile(SM2CaCertPath)
+	var cacert []byte
+	var err error
+	switch certType {
+	case "sm2":
+		// 读取sm2 ca证书
+		cacert, err = ioutil.ReadFile(SM2CaCertPath)
+	case "ecdsa":
+		// 读取ecdsa ca证书
+		cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
+	case "ecdsaext":
+		// 读取ecdsaext ca证书
+		cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
+	default:
+		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
+	}
 	if err != nil {
 		zclog.Fatal(err)
 	}
-	// 将sm2ca证书作为根证书加入证书池
+	// 将ca证书作为根证书加入证书池
 	// 即，客户端相信持有该ca颁发的证书的服务端
 	certPool.AppendCertsFromPEM(cacert)
 
-	// 读取sm2User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+	// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
 	// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
 	// 此时该证书应该由第三方ca机构颁发签名。
-	cert, _ := gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+	var cert gmtls.Certificate
+	switch certType {
+	case "sm2":
+		cert, err = gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+	case "ecdsa":
+		cert, err = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
+	case "ecdsaext":
+		cert, err = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
+	default:
+		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
+	}
+	if err != nil {
+		zclog.Fatal(err)
+	}
 
 	// 定义gmtls配置
 	// 默认最高tls协议版本为tls1.3, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
+	// TODO 是否根据certType选择密码套件
+	var curvePreference []gmtls.CurveID
+	switch certType {
+	case "sm2":
+		curvePreference = append(curvePreference, gmtls.Curve256Sm2)
+	case "ecdsa", "ecdsaext":
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+	default:
+		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
+	}
+
 	config := &gmtls.Config{
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
-		// 因为sm2相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
+		// 因为相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
 		// 指定了SAN包含"server.test.com"
-		ServerName: "server.test.com",
+		ServerName:       "server.test.com",
+		CurvePreferences: curvePreference,
 	}
 	// 要启用psk,除了默认SessionTicketsDisabled为false,还需要配置客户端会话缓存为非nil。
 	// 这样服务端才会在握手完成后发出 newSessionTicketMsgTLS13 将加密并认证的会话票据发送给客户端。
@@ -242,9 +321,22 @@ func ClientRunTls13() {
 	end <- true
 }
 
-func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
-	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
-	sigCert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
+func loadServerConfig(needClientAuth bool, certType string) (*gmtls.Config, error) {
+	var sigCert gmtls.Certificate
+	var err error
+	switch certType {
+	case "sm2":
+		// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
+		sigCert, err = gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
+	case "ecdsa":
+		// 读取ecdsaSign证书与私钥，作为国密tls场景的服务器证书用
+		sigCert, err = gmtls.LoadX509KeyPair(ecdsaSignCertPath, ecdsaSignKeyPath)
+	case "ecdsaext":
+		// 读取ecdsaextSign证书与私钥，作为国密tls场景的服务器证书用
+		sigCert, err = gmtls.LoadX509KeyPair(ecdsaextSignCertPath, ecdsaextSignKeyPath)
+	default:
+		return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +349,17 @@ func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
 	if needClientAuth {
 		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
 		certPool := x509.NewCertPool()
-		cacert, err := ioutil.ReadFile(SM2CaCertPath)
+		var cacert []byte
+		switch certType {
+		case "sm2":
+			cacert, err = ioutil.ReadFile(SM2CaCertPath)
+		case "ecdsa":
+			cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
+		case "ecdsaext":
+			cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
+		default:
+			return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
+		}
 		if err != nil {
 			return nil, err
 		}
