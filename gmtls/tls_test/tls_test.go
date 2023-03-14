@@ -78,11 +78,29 @@ func Test_tls13_ecdsaext(t *testing.T) {
 	fmt.Println("Test_tls13 over.")
 }
 
-func Test_gmssl(t *testing.T) {
+func Test_gmssl_sm2(t *testing.T) {
 	end = make(chan bool, 64)
 	go ServerRun(true, "sm2")
 	time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("sm2")
+	<-end
+	fmt.Println("Test_gmssl over.")
+}
+
+func Test_gmssl_ecdsa(t *testing.T) {
+	end = make(chan bool, 64)
+	go ServerRun(true, "ecdsa")
+	time.Sleep(5 * time.Second)
+	go ClientRunGMSSL("ecdsa")
+	<-end
+	fmt.Println("Test_gmssl over.")
+}
+
+func Test_gmssl_ecdsaext(t *testing.T) {
+	end = make(chan bool, 64)
+	go ServerRun(true, "ecdsaext")
+	time.Sleep(5 * time.Second)
+	go ClientRunGMSSL("ecdsaext")
 	<-end
 	fmt.Println("Test_gmssl over.")
 }
