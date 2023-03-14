@@ -674,6 +674,7 @@ func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
 	certVerifyMsg.signatureAlgorithm = hs.sigAlg
 
 	sigType, sigHash, err := typeAndHashFromSignatureScheme(hs.sigAlg)
+	zclog.Debugf("sigHash: %s", sigHash.String())
 	if err != nil {
 		return c.sendAlert(alertInternalError)
 	}
@@ -683,6 +684,7 @@ func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
 	if sigType == signatureRSAPSS {
 		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: sigHash.HashFunc()}
 	}
+	// TODO 需要确认sign的处理有没有对ecdsaext做特殊处理
 	sig, err := hs.cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), signed, signOpts)
 	if err != nil {
 		public := hs.cert.PrivateKey.(crypto.Signer).Public()
@@ -876,6 +878,7 @@ func (hs *serverHandshakeStateTLS13) readClientCertificate() error {
 			return errors.New("gmtls: client certificate used with invalid signature algorithm")
 		}
 		sigType, sigHash, err := typeAndHashFromSignatureScheme(certVerify.signatureAlgorithm)
+		zclog.Debugf("sigHash: %s", sigHash.String())
 		if err != nil {
 			return c.sendAlert(alertInternalError)
 		}
@@ -884,6 +887,7 @@ func (hs *serverHandshakeStateTLS13) readClientCertificate() error {
 			return errors.New("gmtls: client certificate used with invalid signature algorithm")
 		}
 		signed := signedMessage(sigHash, clientSignatureContext, hs.transcript)
+		// TODO 需要确认sign的处理有没有对ecdsaext做特殊处理
 		if err := verifyHandshakeSignature(sigType, c.peerCertificates[0].PublicKey,
 			sigHash, signed, certVerify.signature); err != nil {
 			_ = c.sendAlert(alertDecryptError)

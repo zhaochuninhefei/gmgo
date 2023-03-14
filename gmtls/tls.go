@@ -30,6 +30,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"net"
 	"os"
 	"strings"
@@ -314,10 +315,40 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	if err != nil {
 		return fail(err)
 	}
+
+	var signatures []SignatureScheme
+	switch x509Cert.SignatureAlgorithm {
+	case x509.SM2WithSM3:
+		signatures = append(signatures, SM2WITHSM3)
+	case x509.ECDSAWithSHA256:
+		signatures = append(signatures, ECDSAWithP256AndSHA256)
+	case x509.ECDSAWithSHA384:
+		signatures = append(signatures, ECDSAWithP384AndSHA384)
+	case x509.ECDSAWithSHA512:
+		signatures = append(signatures, ECDSAWithP521AndSHA512)
+	case x509.ECDSAEXTWithSHA256:
+		signatures = append(signatures, ECDSAEXTWithP256AndSHA256)
+	case x509.ECDSAEXTWithSHA384:
+		signatures = append(signatures, ECDSAEXTWithP384AndSHA384)
+	case x509.ECDSAEXTWithSHA512:
+		signatures = append(signatures, ECDSAEXTWithP521AndSHA512)
+	}
+	if len(signatures) > 0 {
+		cert.SupportedSignatureAlgorithms = signatures
+	}
+
 	// 将key的DER字节数组转为私钥
 	cert.PrivateKey, err = parsePrivateKey(keyDERBlock.Bytes)
 	if err != nil {
 		return fail(err)
+	}
+	// ECDSA_EXT私钥特殊处理
+	if keyDERBlock.Type == "ECDSA_EXT PRIVATE KEY" {
+		if privKey, ok := cert.PrivateKey.(*ecdsa.PrivateKey); ok {
+			cert.PrivateKey = &ecdsa_ext.PrivateKey{
+				PrivateKey: *privKey,
+			}
+		}
 	}
 	// 检查私钥与证书中的公钥是否匹配
 	switch pub := x509Cert.PublicKey.(type) {
@@ -340,6 +371,21 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		}
 	case *ecdsa.PublicKey:
 		priv, ok := cert.PrivateKey.(*ecdsa.PrivateKey)
+		if !ok {
+			privExt, okExt := cert.PrivateKey.(*ecdsa_ext.PrivateKey)
+			if !okExt {
+				return fail(errors.New("gmtls: private key type does not match public key type"))
+			}
+			if pub.X.Cmp(privExt.X) != 0 || pub.Y.Cmp(privExt.Y) != 0 {
+				return fail(errors.New("gmtls: private key does not match public key"))
+			}
+		} else {
+			if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
+				return fail(errors.New("gmtls: private key does not match public key"))
+			}
+		}
+	case *ecdsa_ext.PublicKey:
+		priv, ok := cert.PrivateKey.(*ecdsa_ext.PrivateKey)
 		if !ok {
 			return fail(errors.New("gmtls: private key type does not match public key type"))
 		}
@@ -387,8 +433,9 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 
 // NewServerConfigByClientHello 根据客户端发出的ClientHello的协议与密码套件决定Server的证书链
 //  当客户端支持tls1.3或gmssl，且客户端支持的密码套件包含 TLS_SM4_GCM_SM3 时，服务端证书采用gmSigCert。
-//  - gmSigCert 国密证书链
-//  - genericCert 一般证书链
+//  - gmSigCert 国密证书
+//  - genericCert 一般证书
+//goland:noinspection GoUnusedExportedFunction
 func NewServerConfigByClientHello(gmSigCert, genericCert *Certificate) (*Config, error) {
 	// 根据ClientHelloInfo中支持的协议，返回服务端证书
 	fncGetSignCertKeypair := func(info *ClientHelloInfo) (*Certificate, error) {
@@ -396,6 +443,15 @@ func NewServerConfigByClientHello(gmSigCert, genericCert *Certificate) (*Config,
 		// 检查客户端支持的协议中是否包含TLS1.3或GMSSL
 		for _, v := range info.SupportedVersions {
 			if v == VersionGMSSL || v == VersionTLS13 {
+				for _, curveID := range info.SupportedCurves {
+					if curveID == Curve256Sm2 {
+						gmFlag = true
+						break
+					}
+				}
+				if gmFlag {
+					break
+				}
 				// 检查客户端支持的密码套件是否包含 TLS_SM4_GCM_SM3
 				for _, c := range info.CipherSuites {
 					if c == TLS_SM4_GCM_SM3 {

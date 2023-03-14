@@ -26,6 +26,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"hash"
 	"io"
 
@@ -46,20 +47,35 @@ func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc x
 	switch sigType {
 	// 补充sm2分支
 	case signatureSM2:
-		pubKey, ok := pubkey.(*sm2.PublicKey)
+		pub, ok := pubkey.(*sm2.PublicKey)
 		if !ok {
 			return fmt.Errorf("expected an SM2 public key, got %T", pubkey)
 		}
-		if !sm2.VerifyASN1(pubKey, signed, sig) {
+		if !sm2.VerifyASN1(pub, signed, sig) {
 			return errors.New("SM2 verification failure")
 		}
 	case signatureECDSA:
-		pubKey, ok := pubkey.(*ecdsa.PublicKey)
+		pub, ok := pubkey.(*ecdsa.PublicKey)
 		if !ok {
 			return fmt.Errorf("expected an ECDSA public key, got %T", pubkey)
 		}
-		if !ecdsa.VerifyASN1(pubKey, signed, sig) {
+		if !ecdsa.VerifyASN1(pub, signed, sig) {
 			return errors.New("ECDSA verification failure")
+		}
+	case signatureECDSAEXT:
+		pub, ok := pubkey.(*ecdsa_ext.PublicKey)
+		if !ok {
+			pub2, ok2 := pubkey.(*ecdsa.PublicKey)
+			if !ok2 {
+				return fmt.Errorf("expected an ECDSA public key, got %T", pubkey)
+			}
+			pub = &ecdsa_ext.PublicKey{
+				PublicKey: *pub2,
+			}
+		}
+		_, err := pub.EcVerify(signed, sig, nil)
+		if err != nil {
+			return errors.New("ECDSAEXT verification failure")
 		}
 	case signatureEd25519:
 		pubKey, ok := pubkey.(ed25519.PublicKey)
@@ -148,6 +164,8 @@ func typeAndHashFromSignatureScheme(signatureAlgorithm SignatureScheme) (sigType
 		sigType = signatureRSAPSS
 	case ECDSAWithSHA1, ECDSAWithP256AndSHA256, ECDSAWithP384AndSHA384, ECDSAWithP521AndSHA512:
 		sigType = signatureECDSA
+	case ECDSAEXTWithP256AndSHA256, ECDSAEXTWithP384AndSHA384, ECDSAEXTWithP521AndSHA512:
+		sigType = signatureECDSAEXT
 	case Ed25519:
 		sigType = signatureEd25519
 	default:
@@ -159,11 +177,11 @@ func typeAndHashFromSignatureScheme(signatureAlgorithm SignatureScheme) (sigType
 		hash = x509.SM3
 	case PKCS1WithSHA1, ECDSAWithSHA1:
 		hash = x509.SHA1
-	case PKCS1WithSHA256, PSSWithSHA256, ECDSAWithP256AndSHA256:
+	case PKCS1WithSHA256, PSSWithSHA256, ECDSAWithP256AndSHA256, ECDSAEXTWithP256AndSHA256:
 		hash = x509.SHA256
-	case PKCS1WithSHA384, PSSWithSHA384, ECDSAWithP384AndSHA384:
+	case PKCS1WithSHA384, PSSWithSHA384, ECDSAWithP384AndSHA384, ECDSAEXTWithP384AndSHA384:
 		hash = x509.SHA384
-	case PKCS1WithSHA512, PSSWithSHA512, ECDSAWithP521AndSHA512:
+	case PKCS1WithSHA512, PSSWithSHA512, ECDSAWithP521AndSHA512, ECDSAEXTWithP521AndSHA512:
 		hash = x509.SHA512
 	case Ed25519:
 		hash = directSigning
@@ -185,7 +203,10 @@ func legacyTypeAndHashFromPublicKey(pub crypto.PublicKey) (sigType uint8, hash x
 	case *rsa.PublicKey:
 		return signaturePKCS1v15, x509.MD5SHA1, nil
 	case *ecdsa.PublicKey:
-		return signatureECDSA, x509.SHA1, nil
+		//return signatureECDSA, x509.SHA1, nil
+		return signatureECDSA, x509.SHA256, nil
+	case *ecdsa_ext.PublicKey:
+		return signatureECDSAEXT, x509.SHA256, nil
 	case ed25519.PublicKey:
 		// RFC 8422 specifies support for Ed25519 in TLS 1.0 and 1.1,
 		// but it requires holding on to a handshake transcript to do a
@@ -251,6 +272,27 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 			sigAlgs = []SignatureScheme{ECDSAWithP384AndSHA384}
 		case elliptic.P521():
 			sigAlgs = []SignatureScheme{ECDSAWithP521AndSHA512}
+		default:
+			return nil
+		}
+	case *ecdsa_ext.PublicKey:
+		if version != VersionTLS13 {
+			// In TLS 1.2 and earlier, ECDSA algorithms are not
+			// constrained to a single curve.
+			sigAlgs = []SignatureScheme{
+				ECDSAEXTWithP256AndSHA256,
+				ECDSAEXTWithP384AndSHA384,
+				ECDSAEXTWithP521AndSHA512,
+			}
+			break
+		}
+		switch pub.Curve {
+		case elliptic.P256():
+			sigAlgs = []SignatureScheme{ECDSAEXTWithP256AndSHA256}
+		case elliptic.P384():
+			sigAlgs = []SignatureScheme{ECDSAEXTWithP384AndSHA384}
+		case elliptic.P521():
+			sigAlgs = []SignatureScheme{ECDSAEXTWithP521AndSHA512}
 		default:
 			return nil
 		}

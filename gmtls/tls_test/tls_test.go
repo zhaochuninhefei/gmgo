@@ -49,11 +49,16 @@ const (
 	ecdsaextUserKeyPath  = "./certs/ecdsaext_auth_key.pem"
 )
 
+func TestMain(m *testing.M) {
+
+	m.Run()
+}
+
 var end chan bool
 
 func Test_tls13_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true, "sm2")
+	go ServerRun(true)
 	time.Sleep(5 * time.Second)
 	go ClientRunTls13("sm2")
 	<-end
@@ -62,7 +67,7 @@ func Test_tls13_sm2(t *testing.T) {
 
 func Test_tls13_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true, "ecdsa")
+	go ServerRun(true)
 	time.Sleep(5 * time.Second)
 	go ClientRunTls13("ecdsa")
 	<-end
@@ -71,7 +76,7 @@ func Test_tls13_ecdsa(t *testing.T) {
 
 func Test_tls13_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true, "ecdsaext")
+	go ServerRun(true)
 	time.Sleep(5 * time.Second)
 	go ClientRunTls13("ecdsaext")
 	<-end
@@ -80,7 +85,7 @@ func Test_tls13_ecdsaext(t *testing.T) {
 
 func Test_gmssl_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true, "sm2")
+	go ServerRun(true)
 	time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("sm2")
 	<-end
@@ -89,7 +94,7 @@ func Test_gmssl_sm2(t *testing.T) {
 
 func Test_gmssl_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true, "ecdsa")
+	go ServerRun(true)
 	time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("ecdsa")
 	<-end
@@ -98,7 +103,7 @@ func Test_gmssl_ecdsa(t *testing.T) {
 
 func Test_gmssl_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true, "ecdsaext")
+	go ServerRun(true)
 	time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("ecdsaext")
 	<-end
@@ -106,7 +111,7 @@ func Test_gmssl_ecdsaext(t *testing.T) {
 }
 
 // 启动服务端
-func ServerRun(needClientAuth bool, certType string) {
+func ServerRun(needClientAuth bool) {
 	err := zclog.ClearDir("logs")
 	if err != nil {
 		panic(err)
@@ -114,12 +119,12 @@ func ServerRun(needClientAuth bool, certType string) {
 	zcgologConfig := &zclog.Config{
 		LogFileDir:        "logs",
 		LogFileNamePrefix: "tlstest",
-		LogMod:            zclog.LOG_MODE_SERVER,
+		LogMod:            zclog.LOG_MODE_LOCAL,
 		LogLevelGlobal:    zclog.LOG_LEVEL_DEBUG,
 	}
 	zclog.InitLogger(zcgologConfig)
 	// 导入tls配置
-	config, err := loadServerConfig(needClientAuth, certType)
+	config, err := loadServerConfig(needClientAuth)
 	if err != nil {
 		panic(err)
 	}
@@ -264,6 +269,8 @@ func ClientRunTls13(certType string) {
 	var curvePreference []gmtls.CurveID
 	// 客户端优先密码套件列表
 	var cipherSuitesPrefer []uint16
+	// 客户端优先签名算法
+	var sigAlgPrefer []gmtls.SignatureScheme
 	var err error
 	switch certType {
 	case "sm2":
@@ -284,6 +291,7 @@ func ClientRunTls13(certType string) {
 		cert, err = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
 		curvePreference = append(curvePreference, gmtls.CurveP256)
 		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
+		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAWithP256AndSHA256)
 	case "ecdsaext":
 		// 读取ecdsaext ca证书
 		cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
@@ -293,6 +301,7 @@ func ClientRunTls13(certType string) {
 		cert, err = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
 		curvePreference = append(curvePreference, gmtls.CurveP256)
 		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
+		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAEXTWithP256AndSHA256)
 	default:
 		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
 	}
@@ -312,6 +321,7 @@ func ClientRunTls13(certType string) {
 		ServerName:         "server.test.com",
 		CurvePreferences:   curvePreference,
 		PreferCipherSuites: cipherSuitesPrefer,
+		SignAlgPrefer:      sigAlgPrefer,
 	}
 	// 要启用psk,除了默认SessionTicketsDisabled为false,还需要配置客户端会话缓存为非nil。
 	// 这样服务端才会在握手完成后发出 newSessionTicketMsgTLS13 将加密并认证的会话票据发送给客户端。
@@ -354,28 +364,45 @@ func ClientRunTls13(certType string) {
 	end <- true
 }
 
-func loadServerConfig(needClientAuth bool, certType string) (*gmtls.Config, error) {
-	var sigCert gmtls.Certificate
-	var err error
-	switch certType {
-	case "sm2":
-		// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
-		sigCert, err = gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
-	case "ecdsa":
-		// 读取ecdsaSign证书与私钥，作为国密tls场景的服务器证书用
-		sigCert, err = gmtls.LoadX509KeyPair(ecdsaSignCertPath, ecdsaSignKeyPath)
-	case "ecdsaext":
-		// 读取ecdsaextSign证书与私钥，作为国密tls场景的服务器证书用
-		sigCert, err = gmtls.LoadX509KeyPair(ecdsaextSignCertPath, ecdsaextSignKeyPath)
-	default:
-		return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
-	}
+func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
+	//var sigCert gmtls.Certificate
+	//var err error
+	//switch certType {
+	//case "sm2":
+	//	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
+	//	sigCert, err = gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
+	//case "ecdsa":
+	//	// 读取ecdsaSign证书与私钥，作为国密tls场景的服务器证书用
+	//	sigCert, err = gmtls.LoadX509KeyPair(ecdsaSignCertPath, ecdsaSignKeyPath)
+	//case "ecdsaext":
+	//	// 读取ecdsaextSign证书与私钥，作为国密tls场景的服务器证书用
+	//	sigCert, err = gmtls.LoadX509KeyPair(ecdsaextSignCertPath, ecdsaextSignKeyPath)
+	//default:
+	//	return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
+	//}
+	//if err != nil {
+	//	return nil, err
+	//}
+	// 返回服务端配置
+	var certs []gmtls.Certificate
+	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
+	sm2Cert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
 	if err != nil {
 		return nil, err
 	}
-	// 返回服务端配置
-	var certs []gmtls.Certificate
-	certs = append(certs, sigCert)
+	certs = append(certs, sm2Cert)
+	// 读取ecdsaSign证书与私钥，作为国密tls场景的服务器证书用
+	ecdsaCert, err := gmtls.LoadX509KeyPair(ecdsaSignCertPath, ecdsaSignKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	certs = append(certs, ecdsaCert)
+	// 读取ecdsaextSign证书与私钥，作为国密tls场景的服务器证书用
+	ecdsaextCert, err := gmtls.LoadX509KeyPair(ecdsaextSignCertPath, ecdsaextSignKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	certs = append(certs, ecdsaextCert)
 	config := &gmtls.Config{
 		Certificates:   certs,
 		GetCertificate: nil,
@@ -388,21 +415,32 @@ func loadServerConfig(needClientAuth bool, certType string) (*gmtls.Config, erro
 	if needClientAuth {
 		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
 		certPool := x509.NewCertPool()
-		var cacert []byte
-		switch certType {
-		case "sm2":
-			cacert, err = ioutil.ReadFile(SM2CaCertPath)
-		case "ecdsa":
-			cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
-		case "ecdsaext":
-			cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
-		default:
-			return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
-		}
+		//var cacert []byte
+		//switch certType {
+		//case "sm2":
+		//	cacert, err = ioutil.ReadFile(SM2CaCertPath)
+		//case "ecdsa":
+		//	cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
+		//case "ecdsaext":
+		//	cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
+		//default:
+		//	return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
+		//}
+		sm2CaCert, err := ioutil.ReadFile(SM2CaCertPath)
 		if err != nil {
 			return nil, err
 		}
-		certPool.AppendCertsFromPEM(cacert)
+		certPool.AppendCertsFromPEM(sm2CaCert)
+		ecdsaCaCert, err := ioutil.ReadFile(ecdsaCaCertPath)
+		if err != nil {
+			return nil, err
+		}
+		certPool.AppendCertsFromPEM(ecdsaCaCert)
+		ecdsaextCaCert, err := ioutil.ReadFile(ecdsaextCaCertPath)
+		if err != nil {
+			return nil, err
+		}
+		certPool.AppendCertsFromPEM(ecdsaextCaCert)
 		config.ClientAuth = gmtls.RequireAndVerifyClientCert
 		config.ClientCAs = certPool
 		// config.SessionTicketsDisabled = false

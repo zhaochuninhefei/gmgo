@@ -528,6 +528,7 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 		return errors.New("gmtls: certificate used with unsupported signature algorithm")
 	}
 	sigType, sigHash, err := typeAndHashFromSignatureScheme(certVerify.signatureAlgorithm)
+	zclog.Debugf("sigHash: %s", sigHash.String())
 	if err != nil {
 		return c.sendAlert(alertInternalError)
 	}
@@ -538,9 +539,11 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 	// 生成签名内容: 握手数据摘要混入一些固定的值
 	signed := signedMessage(sigHash, serverSignatureContext, hs.transcript)
 	// 对certificateVerifyMsg中的签名进行验签
+	// TODO 需要确认sign的处理有没有对ecdsaext做特殊处理
 	if err := verifyHandshakeSignature(sigType, c.peerCertificates[0].PublicKey,
 		sigHash, signed, certVerify.signature); err != nil {
 		_ = c.sendAlert(alertDecryptError)
+		zclog.ErrorStack("客户端对服务端证书验签失败")
 		return errors.New("gmtls: invalid signature by the server certificate: " + err.Error())
 	}
 	// 将服务端 certVerify 写入握手数据摘要
@@ -645,6 +648,7 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 	}
 	// 获取签名算法与散列算法
 	sigType, sigHash, err := typeAndHashFromSignatureScheme(certVerifyMsg.signatureAlgorithm)
+	zclog.Debugf("sigHash: %s", sigHash.String())
 	if err != nil {
 		return c.sendAlert(alertInternalError)
 	}
@@ -655,6 +659,7 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: sigHash.HashFunc()}
 	}
 	// 使用证书私钥进行签名
+	// TODO 需要确认sign的处理有没有对ecdsaext做特殊处理
 	sig, err := cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), signed, signOpts)
 	if err != nil {
 		_ = c.sendAlert(alertInternalError)

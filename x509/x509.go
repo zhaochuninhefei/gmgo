@@ -1935,6 +1935,8 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 		h := hashFunc.New()
 		h.Write(signed)
 		signed = h.Sum(nil)
+		// TODO 打印散列算法
+		zclog.Debugf("x509.CreateCertificate 对签名内容做散列的算法是: %s", hashFunc.String())
 	}
 	//// 签名需要将散列函数作为signerOpts传入
 	//var signerOpts crypto.SignerOpts = hashFunc

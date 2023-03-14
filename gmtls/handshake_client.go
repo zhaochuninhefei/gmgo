@@ -165,7 +165,7 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
 	}
 	// 如果客户端配置了PreferCipherSuites，将其作为最优先的密码套件。
-	if len(config.PreferCipherSuites) > 0 {
+	if config.PreferCipherSuites != nil && len(config.PreferCipherSuites) > 0 {
 		var cipherSuites []uint16
 		cipherSuites = append(cipherSuites, config.PreferCipherSuites...)
 		for _, suite := range hello.cipherSuites {
@@ -181,6 +181,10 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 			}
 		}
 		hello.cipherSuites = cipherSuites
+	}
+	// 如果客户端配置了SignAlgPrefer，则将其作为支持签名算法
+	if config.SignAlgPrefer != nil && len(config.SignAlgPrefer) > 0 {
+		hello.supportedSignatureAlgorithms = config.SignAlgPrefer
 	}
 
 	return hello, params, nil
@@ -1032,6 +1036,7 @@ func certificateRequestInfoFromMsg(ctx context.Context, vers uint16, certReq *ce
 		case rsaAvail && ecAvail:
 			cri.SignatureSchemes = []SignatureScheme{
 				ECDSAWithP256AndSHA256, ECDSAWithP384AndSHA384, ECDSAWithP521AndSHA512,
+				ECDSAEXTWithP256AndSHA256, ECDSAEXTWithP384AndSHA384, ECDSAEXTWithP521AndSHA512, SM2WITHSM3,
 				PKCS1WithSHA256, PKCS1WithSHA384, PKCS1WithSHA512, PKCS1WithSHA1,
 			}
 		case rsaAvail:
@@ -1041,6 +1046,7 @@ func certificateRequestInfoFromMsg(ctx context.Context, vers uint16, certReq *ce
 		case ecAvail:
 			cri.SignatureSchemes = []SignatureScheme{
 				ECDSAWithP256AndSHA256, ECDSAWithP384AndSHA384, ECDSAWithP521AndSHA512,
+				ECDSAEXTWithP256AndSHA256, ECDSAEXTWithP384AndSHA384, ECDSAEXTWithP521AndSHA512, SM2WITHSM3,
 			}
 		}
 		return cri
@@ -1055,7 +1061,8 @@ func certificateRequestInfoFromMsg(ctx context.Context, vers uint16, certReq *ce
 			continue
 		}
 		switch sigType {
-		case signatureECDSA, signatureEd25519:
+		// 虽然添加了 signatureECDSAEXT 与 signatureSM2, 但应该在tls1.3或gmssl中用不到
+		case signatureECDSA, signatureECDSAEXT, signatureEd25519, signatureSM2:
 			if ecAvail {
 				cri.SignatureSchemes = append(cri.SignatureSchemes, sigScheme)
 			}

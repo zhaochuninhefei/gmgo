@@ -18,8 +18,10 @@ import (
 	"crypto/md5"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/sm3"
 	"io"
 
 	"gitee.com/zhaochuninhefei/gmgo/x509"
@@ -117,6 +119,24 @@ func (ka rsaKeyAgreement) generateClientKeyExchange(config *Config, clientHello 
 	return preMasterSecret, ckx, nil
 }
 
+// sm3Hash calculates a SM3 hash over the given byte slices.
+func sm3Hash(slices [][]byte) []byte {
+	hsm3 := sm3.New()
+	for _, slice := range slices {
+		hsm3.Write(slice)
+	}
+	return hsm3.Sum(nil)
+}
+
+// sha256Hash calculates a SHA256 hash over the given byte slices.
+func sha256Hash(slices [][]byte) []byte {
+	hsha256 := sha256.New()
+	for _, slice := range slices {
+		hsha256.Write(slice)
+	}
+	return hsha256.Sum(nil)
+}
+
 // sha1Hash calculates a SHA1 hash over the given byte slices.
 func sha1Hash(slices [][]byte) []byte {
 	hsha1 := sha1.New()
@@ -160,9 +180,15 @@ func hashForServerKeyExchange(sigType uint8, hashFunc x509.Hash, version uint16,
 		digest := h.Sum(nil)
 		return digest
 	}
-	if sigType == signatureECDSA {
-		return sha1Hash(slices)
+	switch sigType {
+	case signatureSM2:
+		return sm3Hash(slices)
+	case signatureECDSA, signatureECDSAEXT:
+		return sha256Hash(slices)
 	}
+	//if sigType == signatureECDSA {
+	//	return sha1Hash(slices)
+	//}
 	return md5SHA1Hash(slices)
 }
 

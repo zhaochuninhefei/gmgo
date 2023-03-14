@@ -26,6 +26,7 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"io"
 	"net"
 	"strings"
@@ -212,6 +213,7 @@ const (
 	signatureECDSA
 	signatureEd25519
 	signatureSM2
+	signatureECDSAEXT
 )
 
 // directSigning is a standard Hash value that signals that no pre-hashing
@@ -226,7 +228,8 @@ var directSigning x509.Hash = 0
 var supportedSignatureAlgorithms = []SignatureScheme{
 	PSSWithSHA256,
 	ECDSAWithP256AndSHA256,
-	SM2WITHSM3, // 增加SM2WithSM3
+	SM2WITHSM3,                // 增加SM2WithSM3
+	ECDSAEXTWithP256AndSHA256, // 添加ECDSAEXTWithP256AndSHA256
 	Ed25519,
 	PSSWithSHA384,
 	PSSWithSHA512,
@@ -437,6 +440,11 @@ const (
 	ECDSAWithP384AndSHA384 SignatureScheme = 0x0503
 	ECDSAWithP521AndSHA512 SignatureScheme = 0x0603
 
+	// ECDSAEXT algorithms. Only constrained to a specific curve in TLS 1.3.
+	ECDSAEXTWithP256AndSHA256 SignatureScheme = 0x0404
+	ECDSAEXTWithP384AndSHA384 SignatureScheme = 0x0504
+	ECDSAEXTWithP521AndSHA512 SignatureScheme = 0x0604
+
 	// EdDSA algorithms.
 	Ed25519 SignatureScheme = 0x0807
 
@@ -572,10 +580,6 @@ const (
 // modified. A Config may be reused; the tls package will also not
 // modify it.
 type Config struct {
-	// 是否支持国密，默认支持
-	// if not nil, will support GMT0024
-	// GMSupport *GMSupport
-	// GMSupport bool
 
 	// Rand provides the source of entropy for nonces and RSA blinding.
 	// If Rand is nil, TLS uses the cryptographic random reader in package
@@ -744,6 +748,7 @@ type Config struct {
 
 	// PreferCipherSuites 优先密码套件列表, 客户端连接时优先想要使用的密码套件。
 	// tls1.3或gmssl支持。
+	// added by zhaochun
 	PreferCipherSuites []uint16
 
 	// PreferServerCipherSuites is a legacy field and has no effect.
@@ -798,6 +803,11 @@ type Config struct {
 	// be used. The client will use the first preference as the type for
 	// its key share in TLS 1.3. This may change in the future.
 	CurvePreferences []CurveID
+
+	// SignAlgPrefer 优先选择的签名算法
+	// tls1.3或gmssl支持
+	// added by zhaochun
+	SignAlgPrefer []SignatureScheme
 
 	// DynamicRecordSizingDisabled 禁用 TLS 记录的自适应大小。
 	// 如果为 true，则始终使用最大可能的 TLS 记录大小。
@@ -1312,9 +1322,10 @@ func (chi *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 	// In TLS 1.3 we are done because supported_groups is only relevant to the
 	// ECDHE computation, point format negotiation is removed, cipher suites are
 	// only relevant to the AEAD choice, and static RSA does not exist.
-	if vers == VersionTLS13 || vers == VersionGMSSL {
-		return nil
-	}
+	//if vers == VersionTLS13 || vers == VersionGMSSL {
+	//	// TODO 需要添加
+	//	return nil
+	//}
 
 	// The only signed key exchange we support is ECDHE.
 	if !supportsECDHE(config, chi.SupportedCurves, chi.SupportedPoints) {
@@ -1365,6 +1376,60 @@ func (chi *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 			}
 			if !curveOk {
 				return errors.New("client doesn't support certificate curve")
+			}
+			if config.SignAlgPrefer != nil &&
+				len(config.SignAlgPrefer) > 0 {
+				var sigAlgOk bool
+				for _, signatureAlgorithm := range config.SignAlgPrefer {
+					if signatureAlgorithm == ECDSAWithP256AndSHA256 ||
+						signatureAlgorithm == ECDSAWithP384AndSHA384 ||
+						signatureAlgorithm == ECDSAWithP521AndSHA512 {
+						sigAlgOk = true
+						break
+					}
+				}
+				if !sigAlgOk {
+					return errors.New("client doesn't support certificate signatureAlgorithm")
+				}
+			}
+
+			ecdsaCipherSuite = true
+		case *ecdsa_ext.PublicKey:
+			var curve CurveID
+			switch pub.Curve {
+			case elliptic.P256():
+				curve = CurveP256
+			case elliptic.P384():
+				curve = CurveP384
+			case elliptic.P521():
+				curve = CurveP521
+			default:
+				return supportsRSAFallback(unsupportedCertificateError(c))
+			}
+			var curveOk bool
+			for _, c := range chi.SupportedCurves {
+				if c == curve && config.supportsCurve(c) {
+					curveOk = true
+					break
+				}
+			}
+			if !curveOk {
+				return errors.New("client doesn't support certificate curve")
+			}
+			if config.SignAlgPrefer != nil &&
+				len(config.SignAlgPrefer) > 0 {
+				var sigAlgOk bool
+				for _, signatureAlgorithm := range config.SignAlgPrefer {
+					if signatureAlgorithm == ECDSAEXTWithP256AndSHA256 ||
+						signatureAlgorithm == ECDSAEXTWithP384AndSHA384 ||
+						signatureAlgorithm == ECDSAEXTWithP521AndSHA512 {
+						sigAlgOk = true
+						break
+					}
+				}
+				if !sigAlgOk {
+					return errors.New("client doesn't support certificate signatureAlgorithm")
+				}
 			}
 			ecdsaCipherSuite = true
 		case ed25519.PublicKey:

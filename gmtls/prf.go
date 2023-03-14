@@ -255,7 +255,7 @@ func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg x509.Hash,
 		return hashVal.Sum(nil)
 	}
 
-	if sigType == signatureECDSA {
+	if sigType == signatureECDSA || sigType == signatureECDSAEXT {
 		return h.server.Sum(nil)
 	}
 
