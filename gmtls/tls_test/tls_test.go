@@ -374,10 +374,16 @@ func loadServerConfig(needClientAuth bool, certType string) (*gmtls.Config, erro
 		return nil, err
 	}
 	// 返回服务端配置
-	config, err := gmtls.NewServerConfigByClientHello(&sigCert, &sigCert)
-	if err != nil {
-		return nil, err
+	var certs []gmtls.Certificate
+	certs = append(certs, sigCert)
+	config := &gmtls.Config{
+		Certificates:   certs,
+		GetCertificate: nil,
 	}
+	//config, err := gmtls.NewServerConfigByClientHello(&sigCert, &sigCert)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	if needClientAuth {
 		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书

@@ -1182,6 +1182,8 @@ var errNoCertificates = errors.New("gmtls: no certificates configured")
 // getCertificate returns the best certificate for the given ClientHelloInfo,
 // defaulting to the first element of c.Certificates.
 func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, error) {
+	// 优先使用在config中设置的GetCertificate函数
+	//  需要config配置GetCertificate且没有配置Certificates, 或config配置了GetCertificate且ClientHello中写入了ServerName
 	if c.GetCertificate != nil &&
 		(len(c.Certificates) == 0 || len(clientHello.ServerName) > 0) {
 		cert, err := c.GetCertificate(clientHello)
@@ -1199,6 +1201,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 		return &c.Certificates[0], nil
 	}
 
+	// 次优先使用config中设置的NameToCertificate, 这是一个map，尝试用clientHello.ServerName为key获取对应证书
 	if c.NameToCertificate != nil {
 		name := strings.ToLower(clientHello.ServerName)
 		if cert, ok := c.NameToCertificate[name]; ok {
