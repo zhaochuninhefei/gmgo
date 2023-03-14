@@ -141,41 +141,49 @@ func ClientRunGMSSL(certType string) {
 	// 创建客户端本地的证书池
 	certPool := x509.NewCertPool()
 	var cacert []byte
+	var cert gmtls.Certificate
+	// 客户端优先曲线列表
+	var curvePreference []gmtls.CurveID
+	// 客户端优先密码套件列表
+	var cipherSuitesPrefer []uint16
 	var err error
 	switch certType {
 	case "sm2":
 		// 读取sm2 ca证书
 		cacert, err = ioutil.ReadFile(SM2CaCertPath)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, _ = gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+		curvePreference = append(curvePreference, gmtls.Curve256Sm2)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_SM4_GCM_SM3)
 	case "ecdsa":
 		// 读取ecdsa ca证书
 		cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, _ = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
 	case "ecdsaext":
 		// 读取ecdsaext ca证书
 		cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
-	default:
-		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
-	}
-	// 将ca证书作为根证书加入证书池
-	// 即，客户端相信持有该ca颁发的证书的服务端
-	certPool.AppendCertsFromPEM(cacert)
-
-	// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
-	// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
-	// 此时该证书应该由第三方ca机构颁发签名。
-	var cert gmtls.Certificate
-	switch certType {
-	case "sm2":
-		cert, _ = gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
-	case "ecdsa":
-		cert, _ = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
-	case "ecdsaext":
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
 		cert, _ = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
 	default:
 		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
 	}
 	if err != nil {
 		zclog.Fatal(err)
 	}
+	// 将ca证书作为根证书加入证书池
+	// 即，客户端相信持有该ca颁发的证书的服务端
+	certPool.AppendCertsFromPEM(cacert)
 
 	// 定义gmtls配置
 	// 选择最高tls协议版本为VersionGMSSL, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
@@ -184,8 +192,10 @@ func ClientRunGMSSL(certType string) {
 		Certificates: []gmtls.Certificate{cert},
 		// 因为sm2相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
 		// 指定了SAN包含"server.test.com"
-		ServerName: "server.test.com",
-		MaxVersion: gmtls.VersionGMSSL,
+		ServerName:         "server.test.com",
+		MaxVersion:         gmtls.VersionGMSSL,
+		CurvePreferences:   curvePreference,
+		PreferCipherSuites: cipherSuitesPrefer,
 	}
 
 	// 向服务端拨号，建立tls连接
@@ -228,18 +238,43 @@ func ClientRunGMSSL(certType string) {
 func ClientRunTls13(certType string) {
 	// 创建客户端本地的证书池
 	certPool := x509.NewCertPool()
+	// ca证书
 	var cacert []byte
+	// 客户端证书
+	var cert gmtls.Certificate
+	// 客户端优先曲线列表
+	var curvePreference []gmtls.CurveID
+	// 客户端优先密码套件列表
+	var cipherSuitesPrefer []uint16
 	var err error
 	switch certType {
 	case "sm2":
 		// 读取sm2 ca证书
 		cacert, err = ioutil.ReadFile(SM2CaCertPath)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, err = gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
+		curvePreference = append(curvePreference, gmtls.Curve256Sm2)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_SM4_GCM_SM3)
 	case "ecdsa":
 		// 读取ecdsa ca证书
 		cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, err = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
 	case "ecdsaext":
 		// 读取ecdsaext ca证书
 		cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, err = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
 	default:
 		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
 	}
@@ -250,43 +285,15 @@ func ClientRunTls13(certType string) {
 	// 即，客户端相信持有该ca颁发的证书的服务端
 	certPool.AppendCertsFromPEM(cacert)
 
-	// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
-	// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
-	// 此时该证书应该由第三方ca机构颁发签名。
-	var cert gmtls.Certificate
-	switch certType {
-	case "sm2":
-		cert, err = gmtls.LoadX509KeyPair(sm2UserCertPath, sm2UserKeyPath)
-	case "ecdsa":
-		cert, err = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
-	case "ecdsaext":
-		cert, err = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
-	default:
-		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
-	}
-	if err != nil {
-		zclog.Fatal(err)
-	}
-
 	// 定义gmtls配置
-	// 默认最高tls协议版本为tls1.3, 服务端选择的默认密码套件将是 TLS_SM4_GCM_SM3
-	var curvePreference []gmtls.CurveID
-	switch certType {
-	case "sm2":
-		curvePreference = append(curvePreference, gmtls.Curve256Sm2)
-	case "ecdsa", "ecdsaext":
-		curvePreference = append(curvePreference, gmtls.CurveP256)
-	default:
-		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
-	}
-
 	config := &gmtls.Config{
 		RootCAs:      certPool,
 		Certificates: []gmtls.Certificate{cert},
 		// 因为相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
 		// 指定了SAN包含"server.test.com"
-		ServerName:       "server.test.com",
-		CurvePreferences: curvePreference,
+		ServerName:         "server.test.com",
+		CurvePreferences:   curvePreference,
+		PreferCipherSuites: cipherSuitesPrefer,
 	}
 	// 要启用psk,除了默认SessionTicketsDisabled为false,还需要配置客户端会话缓存为非nil。
 	// 这样服务端才会在握手完成后发出 newSessionTicketMsgTLS13 将加密并认证的会话票据发送给客户端。

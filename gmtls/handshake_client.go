@@ -141,22 +141,14 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 || hello.supportedVersions[0] == VersionGMSSL {
 		// 在密码套件中加入tls1.3的密码套件
-		// 设置密钥协商的曲线为配置的首个曲线，目前默认是sm2P256
-		curveID := config.curvePreferences()[0]
 		// tls1.3的密码套件是固定的，不允许客户端自行配置选择
 		if hasAESGCMHardwareSupport {
-			if curveID == Curve256Sm2 {
-				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
-			} else {
-				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13GmBehind...)
-			}
+			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
 		} else {
-			if curveID == Curve256Sm2 {
-				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
-			} else {
-				hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAESGmBehind...)
-			}
+			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
 		}
+		// 设置密钥协商的曲线为配置的首个曲线，目前默认是sm2P256
+		curveID := config.curvePreferences()[0]
 		// var curve elliptic.Curve
 		var curveOk bool
 		var curveName string
@@ -171,6 +163,24 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		zclog.Debugf("===== 客户端基于曲线 %s 生成密钥交换算法参数\n", curveName)
 		// 将曲线ID与客户端公钥设置为ClientHello中的密钥交换算法参数
 		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
+	}
+	// 如果客户端配置了PreferCipherSuites，将其作为最优先的密码套件。
+	if len(config.PreferCipherSuites) > 0 {
+		var cipherSuites []uint16
+		cipherSuites = append(cipherSuites, config.PreferCipherSuites...)
+		for _, suite := range hello.cipherSuites {
+			exsit := false
+			for _, suiteExsit := range cipherSuites {
+				if suiteExsit == suite {
+					exsit = true
+					break
+				}
+			}
+			if !exsit {
+				cipherSuites = append(cipherSuites, suite)
+			}
+		}
+		hello.cipherSuites = cipherSuites
 	}
 
 	return hello, params, nil

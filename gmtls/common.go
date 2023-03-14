@@ -742,6 +742,10 @@ type Config struct {
 	// suites might change over time.
 	CipherSuites []uint16
 
+	// PreferCipherSuites 优先密码套件列表, 客户端连接时优先想要使用的密码套件。
+	// tls1.3或gmssl支持。
+	PreferCipherSuites []uint16
+
 	// PreferServerCipherSuites is a legacy field and has no effect.
 	//
 	// It used to control whether the server would follow the client's or the
