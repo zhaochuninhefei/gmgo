@@ -375,7 +375,7 @@ func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
 		GetCertificate: nil,
 	}
 
-	// 如果开启对客户端的身份验证，则需要导入颁发客户端证书的CA根证书
+	// 如果开启对客户端的身份验证，则需要导入颁发客户端证书的CA证书
 	if needClientAuth {
 		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
 		certPool := x509.NewCertPool()
