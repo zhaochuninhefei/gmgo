@@ -66,8 +66,6 @@ func Test_tls13_sm2(t *testing.T) {
 
 func Test_tls13_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
-	//go ServerRun(true)
-	//time.Sleep(5 * time.Second)
 	go ClientRunTls13("ecdsa")
 	<-end
 	fmt.Println("Test_tls13 over.")
@@ -75,8 +73,6 @@ func Test_tls13_ecdsa(t *testing.T) {
 
 func Test_tls13_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
-	//go ServerRun(true)
-	//time.Sleep(5 * time.Second)
 	go ClientRunTls13("ecdsaext")
 	<-end
 	fmt.Println("Test_tls13 over.")
@@ -84,8 +80,6 @@ func Test_tls13_ecdsaext(t *testing.T) {
 
 func Test_gmssl_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	//go ServerRun(true)
-	//time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("sm2")
 	<-end
 	fmt.Println("Test_gmssl over.")
@@ -93,8 +87,6 @@ func Test_gmssl_sm2(t *testing.T) {
 
 func Test_gmssl_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
-	//go ServerRun(true)
-	//time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("ecdsa")
 	<-end
 	fmt.Println("Test_gmssl over.")
@@ -102,8 +94,6 @@ func Test_gmssl_ecdsa(t *testing.T) {
 
 func Test_gmssl_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
-	//go ServerRun(true)
-	//time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("ecdsaext")
 	<-end
 	fmt.Println("Test_gmssl over.")
@@ -118,7 +108,7 @@ func ServerRun(needClientAuth bool) {
 	zcgologConfig := &zclog.Config{
 		LogFileDir:        "logs",
 		LogFileNamePrefix: "tlstest",
-		LogMod:            zclog.LOG_MODE_LOCAL,
+		LogMod:            zclog.LOG_MODE_SERVER,
 		LogLevelGlobal:    zclog.LOG_LEVEL_DEBUG,
 	}
 	zclog.InitLogger(zcgologConfig)
@@ -150,7 +140,6 @@ func ServerRun(needClientAuth bool) {
 			panic(err)
 		}
 	})
-	// fmt.Println("============ HTTP服务(基于GMSSL或TLS) 已启动 ============")
 
 	// 在tls监听器上开启https服务
 	err = http.Serve(ln, nil)
@@ -237,16 +226,12 @@ func ClientRunGMSSL(certType string) {
 		}
 	}(conn)
 
-	// fmt.Println("============ gmtls客户端(gmssl)连接服务端，握手成功 ============")
-	// time.Sleep(time.Minute)
 	// 定义http请求
 	req := []byte("GET /test?clientName=gmtlsClient(gmssl) HTTP/1.1\r\n" +
 		"Host: localhost\r\n" +
 		"Connection: close\r\n\r\n")
 	// 向tls连接写入请求
 	_, _ = conn.Write(req)
-
-	// fmt.Println("============ gmtls客户端(gmssl)向服务端发送http请求 ============")
 
 	// 从tls连接中读取http请求响应
 	buff := make([]byte, 1024)
@@ -258,7 +243,6 @@ func ClientRunGMSSL(certType string) {
 			fmt.Printf("%s", buff[0:n])
 		}
 	}
-	// fmt.Println("============ gmtls客户端(gmssl)与服务端连接测试成功 ============")
 	end <- true
 }
 
@@ -343,16 +327,12 @@ func ClientRunTls13(certType string) {
 		}
 	}(conn)
 
-	// fmt.Println("============ gmtls客户端(tls1.3)连接服务端，握手成功 ============")
-	// time.Sleep(time.Minute)
 	// 定义http请求
 	req := []byte("GET /test?clientName=gmtlsClient(tls1.3) HTTP/1.1\r\n" +
 		"Host: localhost\r\n" +
 		"Connection: close\r\n\r\n")
 	// 向tls连接写入请求
 	_, _ = conn.Write(req)
-
-	// fmt.Println("============ gmtls客户端(tls1.3)向服务端发送http请求 ============")
 
 	// 从tls连接中读取http请求响应
 	buff := make([]byte, 1024)
@@ -364,29 +344,10 @@ func ClientRunTls13(certType string) {
 			fmt.Printf("%s", buff[0:n])
 		}
 	}
-	// fmt.Println("============ gmtls客户端(tls1.3)与服务端连接测试成功 ============")
 	end <- true
 }
 
 func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
-	//var sigCert gmtls.Certificate
-	//var err error
-	//switch certType {
-	//case "sm2":
-	//	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
-	//	sigCert, err = gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
-	//case "ecdsa":
-	//	// 读取ecdsaSign证书与私钥，作为国密tls场景的服务器证书用
-	//	sigCert, err = gmtls.LoadX509KeyPair(ecdsaSignCertPath, ecdsaSignKeyPath)
-	//case "ecdsaext":
-	//	// 读取ecdsaextSign证书与私钥，作为国密tls场景的服务器证书用
-	//	sigCert, err = gmtls.LoadX509KeyPair(ecdsaextSignCertPath, ecdsaextSignKeyPath)
-	//default:
-	//	return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
-	//}
-	//if err != nil {
-	//	return nil, err
-	//}
 	// 返回服务端配置
 	var certs []gmtls.Certificate
 	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
@@ -411,25 +372,10 @@ func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
 		Certificates:   certs,
 		GetCertificate: nil,
 	}
-	//config, err := gmtls.NewServerConfigByClientHello(&sigCert, &sigCert)
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	if needClientAuth {
 		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
 		certPool := x509.NewCertPool()
-		//var cacert []byte
-		//switch certType {
-		//case "sm2":
-		//	cacert, err = ioutil.ReadFile(SM2CaCertPath)
-		//case "ecdsa":
-		//	cacert, err = ioutil.ReadFile(ecdsaCaCertPath)
-		//case "ecdsaext":
-		//	cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
-		//default:
-		//	return nil, errors.New("目前只支持sm2/ecdsa/ecdsaext")
-		//}
 		sm2CaCert, err := ioutil.ReadFile(SM2CaCertPath)
 		if err != nil {
 			return nil, err
