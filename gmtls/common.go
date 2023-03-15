@@ -1219,7 +1219,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 		zclog.Debugln("调用tlsConfig中配置的GetCertificate函数")
 		cert, err := c.GetCertificate(clientHello)
 		if cert != nil || err != nil {
-			zclog.Debugf("调用tlsConfig中配置的GetCertificate函数获取服务端证书, 对应签名算法: %s", cert.Leaf.SignatureAlgorithm.String())
+			zclog.Debugf("调用tlsConfig中配置的GetCertificate函数获取服务端证书, 对应私钥类型: %T", cert.PrivateKey)
 			return cert, err
 		}
 	}
@@ -1230,7 +1230,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 
 	if len(c.Certificates) == 1 {
 		// There's only one choice, so no point doing any work.
-		zclog.Debugf("tlsConfig的Certificates之存放了一个证书，直接返回它，对应签名算法: %s", c.Certificates[0].Leaf.SignatureAlgorithm.String())
+		zclog.Debugf("tlsConfig的Certificates之存放了一个证书，直接返回它，对应私钥类型: %T", c.Certificates[0].PrivateKey)
 		return &c.Certificates[0], nil
 	}
 
@@ -1252,7 +1252,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 
 	for _, cert := range c.Certificates {
 		if err := clientHello.SupportsCertificate(&cert); err == nil {
-			zclog.Debugln("从tlsConfig配置的Certificates中匹配到服务端证书, 对应签名算法: %s", cert.Leaf.SignatureAlgorithm.String())
+			zclog.Debugf("从tlsConfig配置的Certificates中匹配到服务端证书, 对应私钥类型: %T", cert.PrivateKey)
 			return &cert, nil
 		}
 	}
