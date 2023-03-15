@@ -58,16 +58,22 @@ const (
 	ecdsaext_userKey  = "testdata/ecdsaext_user.key"
 )
 
-var end chan bool
-
-func Test_credentials(t *testing.T) {
+func TestMain(m *testing.M) {
 	zcgologConfig := &zclog.Config{
 		LogLevelGlobal: zclog.LOG_LEVEL_DEBUG,
 	}
 	zclog.InitLogger(zcgologConfig)
-	end = make(chan bool, 64)
 	go serverRun()
 	time.Sleep(1000000)
+	m.Run()
+}
+
+var end chan bool
+
+func Test_credentials(t *testing.T) {
+	end = make(chan bool, 64)
+	//go serverRun()
+	//time.Sleep(1000000)
 	go clientRun()
 	<-end
 }
