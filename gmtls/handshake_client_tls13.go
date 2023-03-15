@@ -21,6 +21,8 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"hash"
 	"sync/atomic"
 	"time"
@@ -655,8 +657,16 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 	// 生成签名内容: 当前握手数据摘要混入一些固定值后散列
 	signed := signedMessage(sigHash, clientSignatureContext, hs.transcript)
 	signOpts := crypto.SignerOpts(sigHash)
-	if sigType == signatureRSAPSS {
+	//if sigType == signatureRSAPSS {
+	//	signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: sigHash.HashFunc()}
+	//}
+	switch sigType {
+	case signatureRSAPSS:
 		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: sigHash.HashFunc()}
+	case signatureSM2:
+		signOpts = sm2.DefaultSM2SignerOption()
+	case signatureECDSAEXT:
+		signOpts = ecbase.CreateEcSignerOpts(sigHash.HashFunc(), true)
 	}
 	// 使用证书私钥进行签名
 	// TODO 需要确认sign的处理有没有对ecdsaext做特殊处理

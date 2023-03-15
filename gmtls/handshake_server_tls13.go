@@ -20,6 +20,8 @@ import (
 	"crypto/hmac"
 	"crypto/rsa"
 	"errors"
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"hash"
 	"io"
 	"sync/atomic"
@@ -681,8 +683,13 @@ func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
 
 	signed := signedMessage(sigHash, serverSignatureContext, hs.transcript)
 	signOpts := crypto.SignerOpts(sigHash)
-	if sigType == signatureRSAPSS {
+	switch sigType {
+	case signatureRSAPSS:
 		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: sigHash.HashFunc()}
+	case signatureSM2:
+		signOpts = sm2.DefaultSM2SignerOption()
+	case signatureECDSAEXT:
+		signOpts = ecbase.CreateEcSignerOpts(sigHash.HashFunc(), true)
 	}
 	// TODO 需要确认sign的处理有没有对ecdsaext做特殊处理
 	sig, err := hs.cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), signed, signOpts)
