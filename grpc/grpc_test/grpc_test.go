@@ -13,6 +13,7 @@ grpc_test 是对`gitee.com/zhaochuninhefei/gmgo/grpc`的测试包
 package grpc_test
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -70,11 +71,9 @@ func TestMain(m *testing.M) {
 
 var end chan bool
 
-func Test_credentials(t *testing.T) {
+func Test_credentials_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	//go serverRun()
-	//time.Sleep(1000000)
-	go clientRun()
+	go clientRun("sm2")
 	<-end
 }
 
@@ -139,23 +138,90 @@ func serverRun() {
 	}
 }
 
-func clientRun() {
-	cert, err := gmtls.LoadX509KeyPair(sm2_userCert, sm2_userKey)
-	if err != nil {
-		log.Fatal(err)
+func clientRun(certType string) {
+	// 创建客户端本地的证书池
+	caPool := x509.NewCertPool()
+	// ca证书
+	var cacert []byte
+	// 客户端证书
+	var cert gmtls.Certificate
+	// 客户端优先曲线列表
+	var curvePreference []gmtls.CurveID
+	// 客户端优先密码套件列表
+	var cipherSuitesPrefer []uint16
+	// 客户端优先签名算法
+	var sigAlgPrefer []gmtls.SignatureScheme
+	var err error
+	switch certType {
+	case "sm2":
+		// 读取sm2 ca证书
+		cacert, err = ioutil.ReadFile(sm2_ca)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, err = gmtls.LoadX509KeyPair(sm2_userCert, sm2_userKey)
+		curvePreference = append(curvePreference, gmtls.Curve256Sm2)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_SM4_GCM_SM3)
+	case "ecdsa":
+		// 读取ecdsa ca证书
+		cacert, err = ioutil.ReadFile(ecdsa_ca)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, err = gmtls.LoadX509KeyPair(ecdsa_userCert, ecdsa_userKey)
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
+		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAWithP256AndSHA256)
+	case "ecdsaext":
+		// 读取ecdsaext ca证书
+		cacert, err = ioutil.ReadFile(ecdsaext_ca)
+		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
+		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
+		// 此时该证书应该由第三方ca机构颁发签名。
+		cert, err = gmtls.LoadX509KeyPair(ecdsaext_userCert, ecdsaext_userKey)
+		curvePreference = append(curvePreference, gmtls.CurveP256)
+		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
+		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAEXTWithP256AndSHA256)
+	default:
+		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
 	}
-	certPool := x509.NewCertPool()
-	cacert, err := ioutil.ReadFile(sm2_ca)
 	if err != nil {
-		log.Fatal(err)
+		zclog.Fatal(err)
 	}
-	certPool.AppendCertsFromPEM(cacert)
-	creds := credentials.NewTLS(&gmtls.Config{
-		ServerName:   "server.test.com",
+	// 将ca证书作为根证书加入证书池
+	// 即，客户端相信持有该ca颁发的证书的服务端
+	caPool.AppendCertsFromPEM(cacert)
+
+	// 定义gmtls配置
+	config := &gmtls.Config{
+		RootCAs:      caPool,
 		Certificates: []gmtls.Certificate{cert},
-		RootCAs:      certPool,
-		ClientAuth:   gmtls.RequireAndVerifyClientCert,
-	})
+		// 因为相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
+		// 指定了SAN包含"server.test.com"
+		ServerName:         "server.test.com",
+		CurvePreferences:   curvePreference,
+		PreferCipherSuites: cipherSuitesPrefer,
+		SignAlgPrefer:      sigAlgPrefer,
+		ClientAuth:         gmtls.RequireAndVerifyClientCert,
+	}
+
+	//cert, err := gmtls.LoadX509KeyPair(sm2_userCert, sm2_userKey)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//certPool := x509.NewCertPool()
+	//cacert, err := ioutil.ReadFile(sm2_ca)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//certPool.AppendCertsFromPEM(cacert)
+	//creds := credentials.NewTLS(&gmtls.Config{
+	//	ServerName:   "server.test.com",
+	//	Certificates: []gmtls.Certificate{cert},
+	//	RootCAs:      certPool,
+	//	ClientAuth:   gmtls.RequireAndVerifyClientCert,
+	//})
+	creds := credentials.NewTLS(config)
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalf("cannot to connect: %v", err)
