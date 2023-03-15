@@ -77,6 +77,12 @@ func Test_credentials_sm2(t *testing.T) {
 	<-end
 }
 
+func Test_credentials_ecdsa(t *testing.T) {
+	end = make(chan bool, 64)
+	go clientRun("ecdsa")
+	<-end
+}
+
 func serverRun() {
 	// 准备3份服务端证书, 分别是sm2, ecdsa, ecdsaext
 	var certs []gmtls.Certificate
