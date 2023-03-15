@@ -348,7 +348,7 @@ func ClientRunTls13(certType string) {
 }
 
 func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
-	// 返回服务端配置
+	// 准备服务端证书，分别是sm2,ecdsa,ecdsaext
 	var certs []gmtls.Certificate
 	// 读取sm2Sign证书与私钥，作为国密tls场景的服务器证书用
 	sm2Cert, err := gmtls.LoadX509KeyPair(sm2SignCertPath, sm2SignKeyPath)
@@ -368,11 +368,14 @@ func loadServerConfig(needClientAuth bool) (*gmtls.Config, error) {
 		return nil, err
 	}
 	certs = append(certs, ecdsaextCert)
+
+	// 创建gmtls配置
 	config := &gmtls.Config{
 		Certificates:   certs,
 		GetCertificate: nil,
 	}
 
+	// 如果开启对客户端的身份验证，则需要导入颁发客户端证书的CA根证书
 	if needClientAuth {
 		// 如果服务端想要验证客户端身份，在这里添加对应配置信任的根证书
 		certPool := x509.NewCertPool()
