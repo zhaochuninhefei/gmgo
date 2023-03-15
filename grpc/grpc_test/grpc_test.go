@@ -34,11 +34,6 @@ import (
 const (
 	port    = ":50051"
 	address = "localhost:50051"
-	//ca       = "testdata/ca.cert"
-	//signCert = "testdata/sign.cert"
-	//signKey  = "testdata/sign.key"
-	//userCert = "testdata/user.cert"
-	//userKey  = "testdata/user.key"
 
 	sm2_ca       = "testdata/sm2_ca.cert"
 	sm2_signCert = "testdata/sm2_sign.cert"
@@ -216,23 +211,6 @@ func clientRun(certType string) {
 		SignAlgPrefer:      sigAlgPrefer,
 		ClientAuth:         gmtls.RequireAndVerifyClientCert,
 	}
-
-	//cert, err := gmtls.LoadX509KeyPair(sm2_userCert, sm2_userKey)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//certPool := x509.NewCertPool()
-	//cacert, err := ioutil.ReadFile(sm2_ca)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//certPool.AppendCertsFromPEM(cacert)
-	//creds := credentials.NewTLS(&gmtls.Config{
-	//	ServerName:   "server.test.com",
-	//	Certificates: []gmtls.Certificate{cert},
-	//	RootCAs:      certPool,
-	//	ClientAuth:   gmtls.RequireAndVerifyClientCert,
-	//})
 	creds := credentials.NewTLS(config)
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
