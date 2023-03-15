@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"hash"
 	"io"
 
@@ -354,9 +355,10 @@ func selectSignatureScheme(vers uint16, c *Certificate, peerAlgs []SignatureSche
 // unsupportedCertificateError returns a helpful error for certificates with
 // an unsupported private key.
 func unsupportedCertificateError(cert *Certificate) error {
+	zclog.ErrorStack("unsupportedCertificateError")
 	switch cert.PrivateKey.(type) {
 	// 补充sm2匹配条件
-	case rsa.PrivateKey, ecdsa.PrivateKey, sm2.PrivateKey:
+	case rsa.PrivateKey, ecdsa.PrivateKey, ecdsa_ext.PrivateKey, sm2.PrivateKey:
 		return fmt.Errorf("gmtls: unsupported certificate: private key is %T, expected *%T",
 			cert.PrivateKey, cert.PrivateKey)
 	case *ed25519.PrivateKey:
@@ -378,6 +380,14 @@ func unsupportedCertificateError(cert *Certificate) error {
 			return fmt.Errorf("gmtls: unsupported certificate curve (%s)", pub.Curve.Params().Name)
 		}
 	case *ecdsa.PublicKey:
+		switch pub.Curve {
+		case elliptic.P256():
+		case elliptic.P384():
+		case elliptic.P521():
+		default:
+			return fmt.Errorf("gmtls: unsupported certificate curve (%s)", pub.Curve.Params().Name)
+		}
+	case *ecdsa_ext.PublicKey:
 		switch pub.Curve {
 		case elliptic.P256():
 		case elliptic.P384():
