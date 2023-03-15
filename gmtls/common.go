@@ -592,7 +592,8 @@ type Config struct {
 	// If Time is nil, TLS uses time.Now.
 	Time func() time.Time
 
-	// 向通信对方展示的证书链
+	// Certificates 本地证书池，握手时可从这里选取合适的证书发送给对端用于身份验证
+	//
 	// Certificates contains one or more certificate chains to present to the
 	// other side of the connection. The first certificate compatible with the
 	// peer's requirements is selected automatically.
@@ -606,6 +607,8 @@ type Config struct {
 	// per-handshake performance cost.
 	Certificates []Certificate
 
+	// NameToCertificate 本地证书map, 握手时可以根据对端传来的ServerName匹配对应证书。目前不推荐使用。
+	//
 	// NameToCertificate maps from a certificate name to an element of
 	// Certificates. Note that a certificate name can be of the form
 	// '*.example.com' and so doesn't have to be a domain name as such.
@@ -615,7 +618,9 @@ type Config struct {
 	// select the first compatible chain from Certificates.
 	NameToCertificate map[string]*Certificate
 
-	// 根据ClientHelloInfo返回证书，只在客户端提供了SNI或Certificates为空时调用。
+	// GetCertificate 根据ClientHelloInfo返回证书的函数，只在客户端提供了SNI或Certificates为空时调用。
+	//  该函数只在有特殊的证书选择逻辑时，通过这个自定义的函数来实现。比从Certificates获取更优先。
+	//
 	// GetCertificate returns a Certificate based on the given
 	// ClientHelloInfo. It will only be called if the client supplies SNI
 	// information or if Certificates is empty.
@@ -631,7 +636,8 @@ type Config struct {
 	// 该方法只有GMSSL流程中才会调用。
 	// GetKECertificate func(*ClientHelloInfo) (*Certificate, error)
 
-	// 当服务端向客户端请求证书时调用，用于获取客户端证书。该函数被设置时比Certificates优先。
+	// GetClientCertificate 当服务端向客户端请求证书时调用，用于获取客户端证书。该函数被设置时比Certificates优先。
+	//
 	// GetClientCertificate, if not nil, is called when a server requests a
 	// certificate from a client. If set, the contents of Certificates will
 	// be ignored.
@@ -647,7 +653,8 @@ type Config struct {
 	// connection if renegotiation occurs or if TLS 1.3 is in use.
 	GetClientCertificate func(*CertificateRequestInfo) (*Certificate, error)
 
-	// 当服务端收到一个ClientHello后调用，用于获取客户端的TLS通信配置。
+	// GetConfigForClient 当服务端收到一个ClientHello后调用，用于获取客户端的TLS通信配置。
+	//
 	// GetConfigForClient, if not nil, is called after a ClientHello is
 	// received from a client. It may return a non-nil Config in order to
 	// change the Config that will be used to handle this connection. If
@@ -663,8 +670,9 @@ type Config struct {
 	// rotated if they are automatically managed).
 	GetConfigForClient func(*ClientHelloInfo) (*Config, error)
 
-	// 预先定义好的额外的证书验证。
+	// VerifyPeerCertificate 预先定义好的额外的证书验证。
 	// 客户端或服务端进行正常的证书验证后调用,接收对方提供的ASN1格式证书或经过验证的证书链。
+	//
 	// VerifyPeerCertificate, if not nil, is called after normal
 	// certificate verification by either a TLS client or server. It
 	// receives the raw ASN.1 certificates provided by the peer and also
@@ -678,8 +686,9 @@ type Config struct {
 	// be considered but the verifiedChains argument will always be nil.
 	VerifyPeerCertificate func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 
-	// 预先定义好的额外的连接验证。
+	// VerifyConnection 预先定义好的额外的连接验证。
 	// 在正常的证书验证以及VerifyPeerCertificate之后调用。
+	//
 	// VerifyConnection, if not nil, is called after normal certificate
 	// verification and after VerifyPeerCertificate by either a TLS client
 	// or server. If it returns a non-nil error, the handshake is aborted
@@ -690,15 +699,17 @@ type Config struct {
 	// regardless of InsecureSkipVerify or ClientAuth settings.
 	VerifyConnection func(ConnectionState) error
 
-	// 客户端用来验证服务端证书的CA根证书池
+	// RootCAs 客户端用来验证服务端证书的CA根证书池
+	//
 	// RootCAs defines the set of root certificate authorities
 	// that clients use when verifying server certificates.
 	// If RootCAs is nil, TLS uses the host's root CA set.
 	RootCAs *x509.CertPool
 
-	// 应用层协议列表
-	// 如果双方都支持应用层协议协商（Application-Layer Protocol Negotiation，简称ALPN），
-	// 则从该列表中选择。
+	// NextProtos 应用层协议列表
+	//  如果双方都支持应用层协议协商（Application-Layer Protocol Negotiation，简称ALPN），
+	//  则从该列表中选择。
+	//
 	// NextProtos is a list of supported application level protocols, in
 	// order of preference. If both peers support ALPN, the selected
 	// protocol will be one from this list, and the connection will fail
@@ -707,28 +718,32 @@ type Config struct {
 	// ConnectionState.NegotiatedProtocol will be empty.
 	NextProtos []string
 
-	// InsecureSkipVerify为设置时，根据ServerName检查收到的证书中的hostname。
+	// ServerName InsecureSkipVerify为设置时，根据ServerName检查收到的证书中的hostname。
+	//
 	// ServerName is used to verify the hostname on the returned
 	// certificates unless InsecureSkipVerify is given. It is also included
 	// in the client's handshake to support virtual hosting unless it is
 	// an IP address.
 	ServerName string
 
-	// 服务端对客户端认证的策略，默认NoClientCert，不需要客户端证书。
+	// ClientAuth 服务端对客户端认证的策略，默认NoClientCert，不需要客户端证书。
+	//
 	// ClientAuth determines the server's policy for
 	// TLS Client Authentication. The default is NoClientCert.
 	ClientAuth ClientAuthType
 
-	// 客户端CA根证书池, 当服务端需要客户端提供证书时验证这些证书用。
+	// ClientCAs 服务端用来验证客户端证书的CA根证书池, 当服务端需要客户端提供证书时,会使用这些CA证书验证。
+	//
 	// ClientCAs defines the set of root certificate authorities
 	// that servers use if required to verify a client certificate
 	// by the policy in ClientAuth.
 	ClientCAs *x509.CertPool
 
 	// InsecureSkipVerify 控制客户端是否验证服务器的证书链和主机名。
-	// 如果 InsecureSkipVerify 为真，crypto/tls 接受服务器提供的任何证书以及该证书中的任何主机名。
-	// 在这种模式下，除非使用自定义验证，否则 TLS 容易受到中间机攻击。
-	// 这应该仅用于测试或与 VerifyConnection 或 VerifyPeerCertificate 结合使用。
+	//  如果 InsecureSkipVerify 为真，crypto/tls 接受服务器提供的任何证书以及该证书中的任何主机名。
+	//  在这种模式下，除非使用自定义验证，否则 TLS 容易受到中间机攻击。
+	//  这应该仅用于测试或与 VerifyConnection 或 VerifyPeerCertificate 结合使用。
+	//
 	// InsecureSkipVerify controls whether a client verifies the server's
 	// certificate chain and host name. If InsecureSkipVerify is true, crypto/tls
 	// accepts any certificate presented by the server and any host name in that
@@ -738,7 +753,8 @@ type Config struct {
 	InsecureSkipVerify bool
 
 	// CipherSuites 是启用的 TLS 1.0–1.2 密码套件的列表。 列表的顺序被忽略。
-	// 请注意，TLS 1.3 密码套件不可配置。
+	//  请注意，TLS 1.3 密码套件不可配置。
+	//
 	// CipherSuites is a list of enabled TLS 1.0–1.2 cipher suites. The order of
 	// the list is ignored. Note that TLS 1.3 ciphersuites are not configurable.
 	//
@@ -747,8 +763,8 @@ type Config struct {
 	CipherSuites []uint16
 
 	// PreferCipherSuites 优先密码套件列表, 客户端连接时优先想要使用的密码套件。
-	// tls1.3或gmssl支持。
-	// added by zhaochun
+	//  tls1.3或gmssl支持。
+	//  added by zhaochun
 	PreferCipherSuites []uint16
 
 	// PreferServerCipherSuites is a legacy field and has no effect.
@@ -797,7 +813,8 @@ type Config struct {
 	// which is currently TLS 1.3.
 	MaxVersion uint16
 
-	// ECDHE握手支持的椭圆曲线ID
+	// CurvePreferences ECDHE握手支持的椭圆曲线ID
+	//
 	// CurvePreferences contains the elliptic curves that will be used in
 	// an ECDHE handshake, in preference order. If empty, the default will
 	// be used. The client will use the first preference as the type for
@@ -805,8 +822,8 @@ type Config struct {
 	CurvePreferences []CurveID
 
 	// SignAlgPrefer 优先选择的签名算法
-	// tls1.3或gmssl支持
-	// added by zhaochun
+	//  tls1.3或gmssl支持
+	//  added by zhaochun
 	SignAlgPrefer []SignatureScheme
 
 	// DynamicRecordSizingDisabled 禁用 TLS 记录的自适应大小。
