@@ -73,28 +73,60 @@ func Test_credentials(t *testing.T) {
 }
 
 func serverRun() {
-	signCert, err := gmtls.LoadX509KeyPair(sm2_signCert, sm2_signKey)
+	// 准备3份服务端证书, 分别是sm2, ecdsa, ecdsaext
+	var certs []gmtls.Certificate
+	sm2SignCert, err := gmtls.LoadX509KeyPair(sm2_signCert, sm2_signKey)
 	if err != nil {
 		log.Fatal(err)
+	}
+	certs = append(certs, sm2SignCert)
+	ecdsaSignCert, err := gmtls.LoadX509KeyPair(ecdsa_signCert, ecdsa_signKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certs = append(certs, ecdsaSignCert)
+	ecdsaextSignCert, err := gmtls.LoadX509KeyPair(ecdsaext_signCert, ecdsaext_signKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certs = append(certs, ecdsaextSignCert)
+
+	// 准备CA证书池，导入颁发客户端证书的CA证书
+	certPool := x509.NewCertPool()
+	sm2CaCert, err := ioutil.ReadFile(sm2_ca)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certPool.AppendCertsFromPEM(sm2CaCert)
+	ecdsaCaCert, err := ioutil.ReadFile(ecdsa_ca)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certPool.AppendCertsFromPEM(ecdsaCaCert)
+	ecdsaextCaCert, err := ioutil.ReadFile(ecdsaext_ca)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certPool.AppendCertsFromPEM(ecdsaextCaCert)
+
+	// 创建gmtls配置
+	config := &gmtls.Config{
+		Certificates: certs,
+		ClientAuth:   gmtls.RequireAndVerifyClientCert,
+		ClientCAs:    certPool,
 	}
 
-	certPool := x509.NewCertPool()
-	cacert, err := ioutil.ReadFile(sm2_ca)
-	if err != nil {
-		log.Fatal(err)
-	}
-	certPool.AppendCertsFromPEM(cacert)
+	// 创建grpc服务端
+	creds := credentials.NewTLS(config)
+	s := grpc.NewServer(grpc.Creds(creds))
+	echo.RegisterEchoServer(s, &server{})
+
+	// 开启tcp监听端口
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("fail to listen: %v", err)
 	}
-	creds := credentials.NewTLS(&gmtls.Config{
-		ClientAuth:   gmtls.RequireAndVerifyClientCert,
-		Certificates: []gmtls.Certificate{signCert},
-		ClientCAs:    certPool,
-	})
-	s := grpc.NewServer(grpc.Creds(creds))
-	echo.RegisterEchoServer(s, &server{})
+	// 启动grpc服务
 	err = s.Serve(lis)
 	if err != nil {
 		log.Fatalf("Serve: %v", err)
