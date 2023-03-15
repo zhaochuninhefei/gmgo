@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"net"
 	"os"
 	"strings"
@@ -348,6 +349,9 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 			cert.PrivateKey = &ecdsa_ext.PrivateKey{
 				PrivateKey: *privKey,
 			}
+			zclog.Debugln("读取到ECDSA_EXT PRIVATE KEY，并转为ecdsa_ext.PrivateKey")
+		} else {
+			return fail(errors.New("pem文件类型为`ECDSA_EXT PRIVATE KEY`, 但证书中的私钥类型不是*ecdsa.PrivateKey"))
 		}
 	}
 	// 检查私钥与证书中的公钥是否匹配

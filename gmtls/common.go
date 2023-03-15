@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"net"
 	"strings"
@@ -1215,8 +1216,10 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 	//  需要config配置GetCertificate且没有配置Certificates, 或config配置了GetCertificate且ClientHello中写入了ServerName
 	if c.GetCertificate != nil &&
 		(len(c.Certificates) == 0 || len(clientHello.ServerName) > 0) {
+		zclog.Debugln("调用tlsConfig中配置的GetCertificate函数")
 		cert, err := c.GetCertificate(clientHello)
 		if cert != nil || err != nil {
+			zclog.Debugf("调用tlsConfig中配置的GetCertificate函数获取服务端证书, 对应签名算法: %s", cert.Leaf.SignatureAlgorithm.String())
 			return cert, err
 		}
 	}
@@ -1227,6 +1230,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 
 	if len(c.Certificates) == 1 {
 		// There's only one choice, so no point doing any work.
+		zclog.Debugf("tlsConfig的Certificates之存放了一个证书，直接返回它，对应签名算法: %s", c.Certificates[0].Leaf.SignatureAlgorithm.String())
 		return &c.Certificates[0], nil
 	}
 
@@ -1248,6 +1252,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 
 	for _, cert := range c.Certificates {
 		if err := clientHello.SupportsCertificate(&cert); err == nil {
+			zclog.Debugln("从tlsConfig配置的Certificates中匹配到服务端证书, 对应签名算法: %s", cert.Leaf.SignatureAlgorithm.String())
 			return &cert, nil
 		}
 	}

@@ -249,12 +249,17 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 	if !ok {
 		return nil
 	}
+	zclog.Debugf("证书私钥类型: %T", priv)
+	zclog.Debugf("证书私钥内部公钥类型: %T", priv.Public())
+
 	var sigAlgs []SignatureScheme
 	switch pub := priv.Public().(type) {
 	// 补充国密sm2分支
 	case *sm2.PublicKey:
 		sigAlgs = []SignatureScheme{SM2WITHSM3}
+		zclog.Debugln("根据证书私钥内部公钥获取到sm2签名算法")
 	case *ecdsa.PublicKey:
+		zclog.Debugln("根据证书私钥内部公钥获取到ecdsa签名算法")
 		if version != VersionTLS13 {
 			// In TLS 1.2 and earlier, ECDSA algorithms are not
 			// constrained to a single curve.
@@ -277,6 +282,7 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 			return nil
 		}
 	case *ecdsa_ext.PublicKey:
+		zclog.Debugln("根据证书私钥内部公钥获取到ecdsa_ext签名算法")
 		if version != VersionTLS13 {
 			// In TLS 1.2 and earlier, ECDSA algorithms are not
 			// constrained to a single curve.
@@ -298,6 +304,7 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 			return nil
 		}
 	case *rsa.PublicKey:
+		zclog.Debugln("根据证书私钥内部公钥获取到rsa签名算法")
 		size := pub.Size()
 		sigAlgs = make([]SignatureScheme, 0, len(rsaSignatureSchemes))
 		for _, candidate := range rsaSignatureSchemes {
@@ -306,8 +313,10 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 			}
 		}
 	case ed25519.PublicKey:
+		zclog.Debugln("根据证书私钥内部公钥获取到Ed25519签名算法")
 		sigAlgs = []SignatureScheme{Ed25519}
 	default:
+		zclog.Debugf("不支持的证书私钥内部公钥类型: %T", pub)
 		return nil
 	}
 	// 如果证书提供了支持签名算法信息，则检查是否与私钥对应的签名算法匹配，
@@ -318,6 +327,10 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 			if isSupportedSignatureAlgorithm(sigAlg, cert.SupportedSignatureAlgorithms) {
 				filteredSigAlgs = append(filteredSigAlgs, sigAlg)
 			}
+		}
+		zclog.Debugln("证书提供了支持签名算法信息，检查是否与私钥对应的签名算法匹配")
+		if len(filteredSigAlgs) == 0 {
+			zclog.Warnf("证书私钥类型与证书支持的签名算法不匹配, 证书私钥类型: %T, 证书支持的签名算法: %s", priv, cert.SupportedSignatureAlgorithms)
 		}
 		return filteredSigAlgs
 	}

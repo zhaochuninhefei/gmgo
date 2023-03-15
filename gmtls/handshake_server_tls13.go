@@ -415,7 +415,7 @@ func (hs *serverHandshakeStateTLS13) pickCertificate() error {
 	if len(hs.clientHello.supportedSignatureAlgorithms) == 0 {
 		return c.sendAlert(alertMissingExtension)
 	}
-
+	// 根据clientHello与服务端config选择服务端证书
 	certificate, err := c.config.getCertificate(clientHelloInfo(hs.ctx, c, hs.clientHello))
 	if err != nil {
 		if err == errNoCertificates {
