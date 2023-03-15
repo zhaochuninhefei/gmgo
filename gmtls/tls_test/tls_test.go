@@ -50,7 +50,8 @@ const (
 )
 
 func TestMain(m *testing.M) {
-
+	go ServerRun(true)
+	time.Sleep(5 * time.Second)
 	m.Run()
 }
 
@@ -58,8 +59,6 @@ var end chan bool
 
 func Test_tls13_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(5 * time.Second)
 	go ClientRunTls13("sm2")
 	<-end
 	fmt.Println("Test_tls13 over.")
@@ -67,8 +66,8 @@ func Test_tls13_sm2(t *testing.T) {
 
 func Test_tls13_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(5 * time.Second)
+	//go ServerRun(true)
+	//time.Sleep(5 * time.Second)
 	go ClientRunTls13("ecdsa")
 	<-end
 	fmt.Println("Test_tls13 over.")
@@ -76,8 +75,8 @@ func Test_tls13_ecdsa(t *testing.T) {
 
 func Test_tls13_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(5 * time.Second)
+	//go ServerRun(true)
+	//time.Sleep(5 * time.Second)
 	go ClientRunTls13("ecdsaext")
 	<-end
 	fmt.Println("Test_tls13 over.")
@@ -85,8 +84,8 @@ func Test_tls13_ecdsaext(t *testing.T) {
 
 func Test_gmssl_sm2(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(5 * time.Second)
+	//go ServerRun(true)
+	//time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("sm2")
 	<-end
 	fmt.Println("Test_gmssl over.")
@@ -94,8 +93,8 @@ func Test_gmssl_sm2(t *testing.T) {
 
 func Test_gmssl_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(5 * time.Second)
+	//go ServerRun(true)
+	//time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("ecdsa")
 	<-end
 	fmt.Println("Test_gmssl over.")
@@ -103,8 +102,8 @@ func Test_gmssl_ecdsa(t *testing.T) {
 
 func Test_gmssl_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
-	go ServerRun(true)
-	time.Sleep(5 * time.Second)
+	//go ServerRun(true)
+	//time.Sleep(5 * time.Second)
 	go ClientRunGMSSL("ecdsaext")
 	<-end
 	fmt.Println("Test_gmssl over.")
@@ -169,6 +168,8 @@ func ClientRunGMSSL(certType string) {
 	var curvePreference []gmtls.CurveID
 	// 客户端优先密码套件列表
 	var cipherSuitesPrefer []uint16
+	// 客户端优先签名算法
+	var sigAlgPrefer []gmtls.SignatureScheme
 	var err error
 	switch certType {
 	case "sm2":
@@ -189,6 +190,7 @@ func ClientRunGMSSL(certType string) {
 		cert, _ = gmtls.LoadX509KeyPair(ecdsaUserCertPath, ecdsaUserKeyPath)
 		curvePreference = append(curvePreference, gmtls.CurveP256)
 		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
+		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAWithP256AndSHA256)
 	case "ecdsaext":
 		// 读取ecdsaext ca证书
 		cacert, err = ioutil.ReadFile(ecdsaextCaCertPath)
@@ -198,6 +200,7 @@ func ClientRunGMSSL(certType string) {
 		cert, _ = gmtls.LoadX509KeyPair(ecdsaextUserCertPath, ecdsaextUserKeyPath)
 		curvePreference = append(curvePreference, gmtls.CurveP256)
 		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_AES_128_GCM_SHA256)
+		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAEXTWithP256AndSHA256)
 	default:
 		err = errors.New("目前只支持sm2/ecdsa/ecdsaext")
 	}
@@ -219,6 +222,7 @@ func ClientRunGMSSL(certType string) {
 		MaxVersion:         gmtls.VersionGMSSL,
 		CurvePreferences:   curvePreference,
 		PreferCipherSuites: cipherSuitesPrefer,
+		SignAlgPrefer:      sigAlgPrefer,
 	}
 
 	// 向服务端拨号，建立tls连接

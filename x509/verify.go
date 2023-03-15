@@ -851,10 +851,10 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 		hintCert *Certificate
 	)
 	// 定义considerCandidate用于验证c并添加信任链
-	considerCandidate := func(certType int, candidate *Certificate) {
+	considerCandidate := func(certType int, candidate *Certificate) (rootValid bool) {
 		for _, cert := range currentChain {
 			if cert.Equal(candidate) {
-				return
+				return false
 			}
 		}
 
@@ -865,7 +865,7 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 		if *sigChecks > maxChainSignatureChecks {
 			// 验签次数有限制，防止过多的验签
 			err = errors.New("x509: signature check attempts limit reached while verifying certificate chain")
-			return
+			return false
 		}
 		// 使用当前证书candidate对c进行验签，即检查证书c是否由candidate拥有者签署。
 		// 该步骤会最终调用到对应公钥的验签方法。
@@ -874,18 +874,19 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 				hintErr = err
 				hintCert = candidate
 			}
-			return
+			return false
 		}
 		// 检查candidate的有效性
 		err = candidate.isValid(certType, currentChain, opts)
 		if err != nil {
-			return
+			return false
 		}
 
 		switch certType {
 		case rootCertificate:
 			// 如果candidate是根证书，则直接加入c的信任链
 			chains = append(chains, appendToFreshChain(currentChain, candidate))
+			return true
 		case intermediateCertificate:
 			if cache == nil {
 				cache = make(map[*Certificate][][]*Certificate)
@@ -899,11 +900,17 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 			}
 			// 将candidate的信任链加入c的信任链
 			chains = append(chains, childChains...)
+			return false
 		}
+		return false
 	}
 	// 遍历根证书，尝试验证c
 	for _, root := range opts.Roots.findPotentialParents(c) {
-		considerCandidate(rootCertificate, root)
+		rootValid := considerCandidate(rootCertificate, root)
+		// 只要有一个根证书验证成功，就结束遍历
+		if rootValid {
+			break
+		}
 	}
 	// 遍历中间证书，尝试验证c
 	for _, intermediate := range opts.Intermediates.findPotentialParents(c) {
