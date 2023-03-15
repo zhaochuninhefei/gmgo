@@ -247,8 +247,8 @@ func ClientRunGMSSL(certType string) {
 }
 
 func ClientRunTls13(certType string) {
-	// 创建客户端本地的证书池
-	certPool := x509.NewCertPool()
+	// 创建客户端本地的CA证书池
+	caPool := x509.NewCertPool()
 	// ca证书
 	var cacert []byte
 	// 客户端证书
@@ -298,11 +298,11 @@ func ClientRunTls13(certType string) {
 	}
 	// 将ca证书作为根证书加入证书池
 	// 即，客户端相信持有该ca颁发的证书的服务端
-	certPool.AppendCertsFromPEM(cacert)
+	caPool.AppendCertsFromPEM(cacert)
 
 	// 定义gmtls配置
 	config := &gmtls.Config{
-		RootCAs:      certPool,
+		RootCAs:      caPool,
 		Certificates: []gmtls.Certificate{cert},
 		// 因为相关证书是由`x509/x509_test.go`的`TestCreateCertFromCA`生成的，
 		// 指定了SAN包含"server.test.com"
