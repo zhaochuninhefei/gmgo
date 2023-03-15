@@ -29,14 +29,33 @@ import (
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
+//goland:noinspection GoSnakeCaseUsage
 const (
-	port     = ":50051"
-	address  = "localhost:50051"
-	ca       = "testdata/ca.cert"
-	signCert = "testdata/sign.cert"
-	signKey  = "testdata/sign.key"
-	userCert = "testdata/user.cert"
-	userKey  = "testdata/user.key"
+	port    = ":50051"
+	address = "localhost:50051"
+	//ca       = "testdata/ca.cert"
+	//signCert = "testdata/sign.cert"
+	//signKey  = "testdata/sign.key"
+	//userCert = "testdata/user.cert"
+	//userKey  = "testdata/user.key"
+
+	sm2_ca       = "testdata/sm2_ca.cert"
+	sm2_signCert = "testdata/sm2_sign.cert"
+	sm2_signKey  = "testdata/sm2_sign.key"
+	sm2_userCert = "testdata/sm2_user.cert"
+	sm2_userKey  = "testdata/sm2_user.key"
+
+	ecdsa_ca       = "testdata/ecdsa_ca.cert"
+	ecdsa_signCert = "testdata/ecdsa_sign.cert"
+	ecdsa_signKey  = "testdata/ecdsa_sign.key"
+	ecdsa_userCert = "testdata/ecdsa_user.cert"
+	ecdsa_userKey  = "testdata/ecdsa_user.key"
+
+	ecdsaext_ca       = "testdata/ecdsaext_ca.cert"
+	ecdsaext_signCert = "testdata/ecdsaext_sign.cert"
+	ecdsaext_signKey  = "testdata/ecdsaext_sign.key"
+	ecdsaext_userCert = "testdata/ecdsaext_user.cert"
+	ecdsaext_userKey  = "testdata/ecdsaext_user.key"
 )
 
 var end chan bool
@@ -54,13 +73,13 @@ func Test_credentials(t *testing.T) {
 }
 
 func serverRun() {
-	signCert, err := gmtls.LoadX509KeyPair(signCert, signKey)
+	signCert, err := gmtls.LoadX509KeyPair(sm2_signCert, sm2_signKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	certPool := x509.NewCertPool()
-	cacert, err := ioutil.ReadFile(ca)
+	cacert, err := ioutil.ReadFile(sm2_ca)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,12 +102,12 @@ func serverRun() {
 }
 
 func clientRun() {
-	cert, err := gmtls.LoadX509KeyPair(userCert, userKey)
+	cert, err := gmtls.LoadX509KeyPair(sm2_userCert, sm2_userKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 	certPool := x509.NewCertPool()
-	cacert, err := ioutil.ReadFile(ca)
+	cacert, err := ioutil.ReadFile(sm2_ca)
 	if err != nil {
 		log.Fatal(err)
 	}
