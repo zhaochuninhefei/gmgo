@@ -1525,7 +1525,7 @@ func buildCertExtensions(template *Certificate, subjectIsEmpty bool, authorityKe
 
 	// TODO 添加gmx509的签名算法 SignatureAlgorithm
 	if template.SignatureAlgorithm > 0 && !oidInExtensions(oidExtensionSignatureAlgorithm, template.ExtraExtensions) {
-		zclog.Debugf("x509证书写入扩展信息: %s", template.SignatureAlgorithm.String())
+		zclog.Debugf("向x509证书写入扩展签名算法: %s", template.SignatureAlgorithm.String())
 		ret[n] = marshalSignatureAlgorithm(template.SignatureAlgorithm)
 		n++
 	}

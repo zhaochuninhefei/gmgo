@@ -824,7 +824,7 @@ func processExtensions(out *Certificate) error {
 			signAlg := SignatureAlgorithm(binary.BigEndian.Uint32(e.Value))
 			if signAlg > 0 {
 				out.SignatureAlgorithm = signAlg
-				zclog.Debugf("从x509证书扩展信息读取到更扩展的签名算法: %s", signAlg.String())
+				zclog.Debugf("从x509证书扩展信息读取到扩展签名算法: %s", signAlg.String())
 			}
 		} else {
 			// Unknown extensions are recorded if critical.
