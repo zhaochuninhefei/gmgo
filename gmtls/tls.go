@@ -318,6 +318,7 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	}
 
 	var signatures []SignatureScheme
+	zclog.Debugf("x509Cert.SignatureAlgorithm: %s", x509Cert.SignatureAlgorithm.String())
 	switch x509Cert.SignatureAlgorithm {
 	case x509.SM2WithSM3:
 		signatures = append(signatures, SM2WITHSM3)
@@ -337,6 +338,7 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	if len(signatures) > 0 {
 		cert.SupportedSignatureAlgorithms = signatures
 	}
+	zclog.Debugf("cert.SupportedSignatureAlgorithms: %s", cert.SupportedSignatureAlgorithms)
 
 	// 将key的DER字节数组转为私钥
 	cert.PrivateKey, err = parsePrivateKey(keyDERBlock.Bytes)
@@ -350,6 +352,20 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 				PrivateKey: *privKey,
 			}
 			zclog.Debugln("读取到ECDSA_EXT PRIVATE KEY，并转为ecdsa_ext.PrivateKey")
+			hasEcdsaExt := false
+			for _, algorithm := range cert.SupportedSignatureAlgorithms {
+				if algorithm == ECDSAEXTWithP256AndSHA256 ||
+					algorithm == ECDSAEXTWithP384AndSHA384 ||
+					algorithm == ECDSAEXTWithP521AndSHA512 {
+					hasEcdsaExt = true
+					break
+				}
+			}
+			if !hasEcdsaExt {
+				// 临时对应，解决SupportedSignatureAlgorithms在ecdsa_ext时可能不正确的问题
+				cert.SupportedSignatureAlgorithms = []SignatureScheme{ECDSAEXTWithP256AndSHA256}
+				zclog.Debugf("临时修改cert.SupportedSignatureAlgorithms为: %s", cert.SupportedSignatureAlgorithms)
+			}
 		} else {
 			return fail(errors.New("pem文件类型为`ECDSA_EXT PRIVATE KEY`, 但证书中的私钥类型不是*ecdsa.PrivateKey"))
 		}

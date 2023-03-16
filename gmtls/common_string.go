@@ -23,15 +23,19 @@ func _() {
 }
 
 const (
-	_SignatureScheme_name_0 = "PKCS1WithSHA1"
-	_SignatureScheme_name_1 = "ECDSAWithSHA1"
-	_SignatureScheme_name_2 = "PKCS1WithSHA256"
-	_SignatureScheme_name_3 = "ECDSAWithP256AndSHA256"
-	_SignatureScheme_name_4 = "PKCS1WithSHA384"
-	_SignatureScheme_name_5 = "ECDSAWithP384AndSHA384"
-	_SignatureScheme_name_6 = "PKCS1WithSHA512"
-	_SignatureScheme_name_7 = "ECDSAWithP521AndSHA512"
-	_SignatureScheme_name_8 = "PSSWithSHA256PSSWithSHA384PSSWithSHA512Ed25519"
+	_SignatureScheme_name_0  = "PKCS1WithSHA1"
+	_SignatureScheme_name_1  = "ECDSAWithSHA1"
+	_SignatureScheme_name_2  = "PKCS1WithSHA256"
+	_SignatureScheme_name_3  = "ECDSAWithP256AndSHA256"
+	_SignatureScheme_name_4  = "PKCS1WithSHA384"
+	_SignatureScheme_name_5  = "ECDSAWithP384AndSHA384"
+	_SignatureScheme_name_6  = "PKCS1WithSHA512"
+	_SignatureScheme_name_7  = "ECDSAWithP521AndSHA512"
+	_SignatureScheme_name_8  = "PSSWithSHA256PSSWithSHA384PSSWithSHA512Ed25519"
+	_SignatureScheme_name_9  = "ECDSAEXTWithP256AndSHA256"
+	_SignatureScheme_name_10 = "ECDSAEXTWithP384AndSHA384"
+	_SignatureScheme_name_11 = "ECDSAEXTWithP521AndSHA512"
+	_SignatureScheme_name_12 = "SM2WITHSM3"
 )
 
 var (
@@ -44,18 +48,26 @@ func (i SignatureScheme) String() string {
 		return _SignatureScheme_name_0
 	case i == 515:
 		return _SignatureScheme_name_1
+	case i == 516:
+		return _SignatureScheme_name_12
 	case i == 1025:
 		return _SignatureScheme_name_2
 	case i == 1027:
 		return _SignatureScheme_name_3
+	case i == 1028:
+		return _SignatureScheme_name_9
 	case i == 1281:
 		return _SignatureScheme_name_4
 	case i == 1283:
 		return _SignatureScheme_name_5
+	case i == 1284:
+		return _SignatureScheme_name_10
 	case i == 1537:
 		return _SignatureScheme_name_6
 	case i == 1539:
 		return _SignatureScheme_name_7
+	case i == 1540:
+		return _SignatureScheme_name_11
 	case 2052 <= i && i <= 2055:
 		i -= 2052
 		return _SignatureScheme_name_8[_SignatureScheme_index_8[i]:_SignatureScheme_index_8[i+1]]
