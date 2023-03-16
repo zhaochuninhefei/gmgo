@@ -328,9 +328,10 @@ func signatureSchemesForCertificate(version uint16, cert *Certificate) []Signatu
 				filteredSigAlgs = append(filteredSigAlgs, sigAlg)
 			}
 		}
-		zclog.Debugln("证书提供了支持签名算法信息，检查是否与私钥对应的签名算法匹配")
 		if len(filteredSigAlgs) == 0 {
-			zclog.Warnf("证书私钥类型与证书支持的签名算法不匹配, 证书私钥类型: %T, 证书支持的签名算法: %s", priv, cert.SupportedSignatureAlgorithms)
+			zclog.Errorf("证书私钥类型与证书支持的签名算法不匹配, 证书私钥类型: %T, 证书支持的签名算法: %s", priv, cert.SupportedSignatureAlgorithms)
+		} else {
+			zclog.Debugln("证书提供了支持签名算法信息，检查是否与私钥对应的签名算法匹配，结果OK")
 		}
 		return filteredSigAlgs
 	}
