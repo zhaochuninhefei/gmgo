@@ -1230,7 +1230,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 
 	if len(c.Certificates) == 1 {
 		// There's only one choice, so no point doing any work.
-		zclog.Debugf("tlsConfig的Certificates之存放了一个证书，直接返回它，对应私钥类型: %T", c.Certificates[0].PrivateKey)
+		zclog.Debugf("tlsConfig的Certificates只存放了一个证书，直接返回它，对应私钥类型: %T", c.Certificates[0].PrivateKey)
 		return &c.Certificates[0], nil
 	}
 
