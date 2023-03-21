@@ -18,6 +18,7 @@ import (
 //
 // NewChunkedReader is not needed by normal applications. The http package
 // automatically decodes chunking when reading response bodies.
+//goland:noinspection GoUnusedExportedFunction
 func NewChunkedReader(r io.Reader) io.Reader {
 	return internal.NewChunkedReader(r)
 }
@@ -39,4 +40,5 @@ func NewChunkedWriter(w io.Writer) io.WriteCloser {
 
 // ErrLineTooLong is returned when reading malformed chunked data
 // with lines that are too long.
+//goland:noinspection GoUnusedGlobalVariable
 var ErrLineTooLong = internal.ErrLineTooLong
