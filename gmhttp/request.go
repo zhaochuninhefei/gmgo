@@ -684,7 +684,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		}
 		if !waitForContinue() {
 			closed = true
-			r.closeBody()
+			_ = r.closeBody()
 			return nil
 		}
 	}
@@ -1345,7 +1345,7 @@ func (r *Request) ParseMultipartForm(maxMemory int64) error {
 // then inspect Request.Form directly.
 func (r *Request) FormValue(key string) string {
 	if r.Form == nil {
-		r.ParseMultipartForm(defaultMaxMemory)
+		_ = r.ParseMultipartForm(defaultMaxMemory)
 	}
 	if vs := r.Form[key]; len(vs) > 0 {
 		return vs[0]
@@ -1360,7 +1360,7 @@ func (r *Request) FormValue(key string) string {
 // If key is not present, PostFormValue returns the empty string.
 func (r *Request) PostFormValue(key string) string {
 	if r.PostForm == nil {
-		r.ParseMultipartForm(defaultMaxMemory)
+		_ = r.ParseMultipartForm(defaultMaxMemory)
 	}
 	if vs := r.PostForm[key]; len(vs) > 0 {
 		return vs[0]
