@@ -1062,6 +1062,7 @@ func readRequest(b *bufio.Reader) (req *Request, err error) {
 	// RPC to work.
 	justAuthority := req.Method == "CONNECT" && !strings.HasPrefix(rawurl, "/")
 	if justAuthority {
+		//goland:noinspection HttpUrlsUsage
 		rawurl = "http://" + rawurl
 	}
 
