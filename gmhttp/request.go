@@ -41,7 +41,7 @@ var ErrMissingFile = errors.New("http: no such file")
 
 // ProtocolError represents an HTTP protocol error.
 //
-// Deprecated: Not all errors in the http package related to protocol errors
+// ToDeprecated: Not all errors in the http package related to protocol errors
 // are of type ProtocolError.
 type ProtocolError struct {
 	ErrorString string
