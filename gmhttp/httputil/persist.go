@@ -227,7 +227,7 @@ func (sc *ServerConn) Write(req *http.Request, resp *http.Response) error {
 // It is low-level, old, and unused by Go's current HTTP stack.
 // We should have deleted it before Go 1.
 //
-// Deprecated: Use Client or Transport in package net/http instead.
+// ToDeprecated: Use Client or Transport in package net/http instead.
 type ClientConn struct {
 	mu              sync.Mutex // read-write protects the following fields
 	c               net.Conn
