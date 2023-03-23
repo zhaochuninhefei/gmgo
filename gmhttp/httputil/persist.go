@@ -245,7 +245,7 @@ type ClientConn struct {
 // It is low-level, old, and unused by Go's current HTTP stack.
 // We should have deleted it before Go 1.
 //
-// Deprecated: Use the Client or Transport in package net/http instead.
+// ToDeprecated: Use the Client or Transport in package net/http instead.
 func NewClientConn(c net.Conn, r *bufio.Reader) *ClientConn {
 	if r == nil {
 		r = bufio.NewReader(c)
