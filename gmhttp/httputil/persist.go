@@ -16,13 +16,13 @@ import (
 )
 
 var (
-	// Deprecated: No longer used.
+	// ErrPersistEOF ToDeprecated
 	ErrPersistEOF = &http.ProtocolError{ErrorString: "persistent connection closed"}
 
-	// Deprecated: No longer used.
+	// ErrClosed ToDeprecated
 	ErrClosed = &http.ProtocolError{ErrorString: "connection closed by user"}
 
-	// Deprecated: No longer used.
+	// ErrPipeline ToDeprecated
 	ErrPipeline = &http.ProtocolError{ErrorString: "pipeline error"}
 )
 
@@ -34,7 +34,7 @@ var errClosed = errors.New("i/o operation on closed connection")
 // It is low-level, old, and unused by Go's current HTTP stack.
 // We should have deleted it before Go 1.
 //
-// Deprecated: Use the Server in package net/http instead.
+// ToDeprecated: Use the Server in package net/http instead.
 type ServerConn struct {
 	mu              sync.Mutex // read-write protects the following fields
 	c               net.Conn
