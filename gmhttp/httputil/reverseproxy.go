@@ -205,7 +205,7 @@ func (p *ReverseProxy) modifyResponse(rw http.ResponseWriter, res *http.Response
 		return true
 	}
 	if err := p.ModifyResponse(res); err != nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		p.getErrorHandler()(rw, req, err)
 		return false
 	}
@@ -244,7 +244,9 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// Issue 46866). Although calling Close doesn't guarantee there isn't
 		// any Read in flight after the handle returns, in practice it's safe to
 		// read after closing it.
-		defer outreq.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(outreq.Body)
 	}
 	if outreq.Header == nil {
 		outreq.Header = make(http.Header) // Issue 33142: historical behavior was to always allocate
@@ -339,7 +341,9 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	err = p.copyResponse(rw, res.Body, p.flushInterval(res))
 	if err != nil {
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		// Since we're streaming the response, if we run into an error all we can do
 		// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
 		// on read error while copying body.
@@ -349,7 +353,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		panic(http.ErrAbortHandler)
 	}
-	res.Body.Close() // close now, instead of defer, to populate res.Trailer
+	_ = res.Body.Close() // close now, instead of defer, to populate res.Trailer
 
 	if len(res.Trailer) > 0 {
 		// Force chunking if we saw a response trailer.
@@ -583,7 +587,7 @@ func (p *ReverseProxy) handleUpgradeResponse(rw http.ResponseWriter, req *http.R
 		case <-req.Context().Done():
 		case <-backConnCloseCh:
 		}
-		backConn.Close()
+		_ = backConn.Close()
 	}()
 
 	defer close(backConnCloseCh)
@@ -593,7 +597,9 @@ func (p *ReverseProxy) handleUpgradeResponse(rw http.ResponseWriter, req *http.R
 		p.getErrorHandler()(rw, req, fmt.Errorf("Hijack failed on protocol switch: %v", err))
 		return
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	copyHeader(rw.Header(), res.Header)
 
