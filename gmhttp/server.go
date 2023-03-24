@@ -206,7 +206,7 @@ type Hijacker interface {
 // This mechanism can be used to cancel long operations on the server
 // if the client has disconnected before the response is ready.
 //
-// Deprecated: the CloseNotifier interface predates Go's context package.
+// ToDeprecated: the CloseNotifier interface predates Go's context package.
 // New code should use Request.Context instead.
 type CloseNotifier interface {
 	// CloseNotify returns a channel that receives at most a
