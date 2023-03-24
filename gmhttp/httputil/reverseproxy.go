@@ -185,6 +185,7 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
+//goland:noinspection GoUnusedParameter
 func (p *ReverseProxy) defaultErrorHandler(rw http.ResponseWriter, req *http.Request, err error) {
 	p.logf("http: proxy error: %v", err)
 	rw.WriteHeader(http.StatusBadGateway)
