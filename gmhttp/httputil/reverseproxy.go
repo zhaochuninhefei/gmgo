@@ -594,6 +594,7 @@ func (p *ReverseProxy) handleUpgradeResponse(rw http.ResponseWriter, req *http.R
 
 	conn, brw, err := hj.Hijack()
 	if err != nil {
+		//goland:noinspection GoErrorStringFormat
 		p.getErrorHandler()(rw, req, fmt.Errorf("Hijack failed on protocol switch: %v", err))
 		return
 	}
