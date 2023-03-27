@@ -649,13 +649,13 @@ func TestReverseProxyGetPutBuffer(t *testing.T) {
 	}
 
 	var (
-		mu  sync.Mutex
-		log []string
+		mu      sync.Mutex
+		logTest []string
 	)
 	addLog := func(event string) {
 		mu.Lock()
 		defer mu.Unlock()
-		log = append(log, event)
+		logTest = append(logTest, event)
 	}
 	rp := NewSingleHostReverseProxy(backendURL)
 	const size = 1234
@@ -688,8 +688,8 @@ func TestReverseProxyGetPutBuffer(t *testing.T) {
 	wantLog := []string{"getBuf", "putBuf-" + strconv.Itoa(size)}
 	mu.Lock()
 	defer mu.Unlock()
-	if !reflect.DeepEqual(log, wantLog) {
-		t.Errorf("Log events = %q; want %q", log, wantLog)
+	if !reflect.DeepEqual(logTest, wantLog) {
+		t.Errorf("Log events = %q; want %q", logTest, wantLog)
 	}
 }
 
