@@ -962,6 +962,7 @@ type staticTransport struct {
 	res *http.Response
 }
 
+//goland:noinspection GoUnusedParameter
 func (t *staticTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return t.res, nil
 }
