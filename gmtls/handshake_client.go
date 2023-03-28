@@ -23,6 +23,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"hash"
 	"io"
 	"net"
@@ -979,7 +980,7 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 
 	switch certs[0].PublicKey.(type) {
 	// 补充sm2条件
-	case *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
+	case *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, *ecdsa_ext.PublicKey, ed25519.PublicKey:
 		break
 	default:
 		_ = c.sendAlert(alertUnsupportedCertificate)

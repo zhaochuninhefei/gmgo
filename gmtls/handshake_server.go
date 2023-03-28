@@ -22,6 +22,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"hash"
 	"io"
 	"sync/atomic"
@@ -868,7 +869,7 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 	if len(certs) > 0 {
 		// 补充sm2条件
 		switch certs[0].PublicKey.(type) {
-		case *sm2.PublicKey, *ecdsa.PublicKey, *rsa.PublicKey, ed25519.PublicKey:
+		case *sm2.PublicKey, *ecdsa.PublicKey, *ecdsa_ext.PublicKey, *rsa.PublicKey, ed25519.PublicKey:
 		default:
 			_ = c.sendAlert(alertUnsupportedCertificate)
 			return fmt.Errorf("gmtls: client certificate contains an unsupported public key of type %T", certs[0].PublicKey)

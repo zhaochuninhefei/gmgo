@@ -82,21 +82,21 @@ func Test_gmssl_sm2(t *testing.T) {
 	end = make(chan bool, 64)
 	go ClientRunGMSSL("sm2")
 	<-end
-	fmt.Println("Test_gmssl over.")
+	fmt.Println("Test_gmssl_sm2 over.")
 }
 
 func Test_gmssl_ecdsa(t *testing.T) {
 	end = make(chan bool, 64)
 	go ClientRunGMSSL("ecdsa")
 	<-end
-	fmt.Println("Test_gmssl over.")
+	fmt.Println("Test_gmssl_ecdsa over.")
 }
 
 func Test_gmssl_ecdsaext(t *testing.T) {
 	end = make(chan bool, 64)
 	go ClientRunGMSSL("ecdsaext")
 	<-end
-	fmt.Println("Test_gmssl over.")
+	fmt.Println("Test_gmssl_ecdsaext over.")
 }
 
 // 启动服务端
@@ -108,7 +108,7 @@ func ServerRun(needClientAuth bool) {
 	zcgologConfig := &zclog.Config{
 		LogFileDir:        "logs",
 		LogFileNamePrefix: "tlstest",
-		LogMod:            zclog.LOG_MODE_SERVER,
+		LogMod:            zclog.LOG_MODE_LOCAL,
 		LogLevelGlobal:    zclog.LOG_LEVEL_DEBUG,
 	}
 	zclog.InitLogger(zcgologConfig)

@@ -1326,6 +1326,7 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 func (c *Conn) Read(b []byte) (int, error) {
 	zclog.Debug("===== tls连接读取到一条消息")
 	if err := c.Handshake(); err != nil {
+		zclog.Error(err)
 		return 0, err
 	}
 	if len(b) == 0 {
