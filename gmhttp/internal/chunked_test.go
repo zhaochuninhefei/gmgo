@@ -19,9 +19,9 @@ func TestChunk(t *testing.T) {
 	w := NewChunkedWriter(&b)
 	const chunk1 = "hello, "
 	const chunk2 = "world! 0123456789abcdef"
-	w.Write([]byte(chunk1))
-	w.Write([]byte(chunk2))
-	w.Close()
+	_, _ = w.Write([]byte(chunk1))
+	_, _ = w.Write([]byte(chunk2))
+	_ = w.Close()
 
 	if g, e := b.String(), "7\r\nhello, \r\n17\r\nworld! 0123456789abcdef\r\n0\r\n"; g != e {
 		t.Fatalf("chunk writer wrote %q; want %q", g, e)
@@ -43,9 +43,9 @@ func TestChunkReadMultiple(t *testing.T) {
 	{
 		var b bytes.Buffer
 		w := NewChunkedWriter(&b)
-		w.Write([]byte("foo"))
-		w.Write([]byte("bar"))
-		w.Close()
+		_, _ = w.Write([]byte("foo"))
+		_, _ = w.Write([]byte("bar"))
+		_ = w.Close()
 
 		r := NewChunkedReader(&b)
 		buf := make([]byte, 10)
@@ -70,9 +70,9 @@ func TestChunkReadMultiple(t *testing.T) {
 		// receive "foo", the second chunk header won't be read yet.
 		const fillBufChunk = "0123456789a"
 		const shortChunk = "foo"
-		w.Write([]byte(fillBufChunk))
-		w.Write([]byte(shortChunk))
-		w.Close()
+		_, _ = w.Write([]byte(fillBufChunk))
+		_, _ = w.Write([]byte(shortChunk))
+		_ = w.Close()
 
 		r := NewChunkedReader(bufio.NewReaderSize(&b, 16))
 		buf := make([]byte, len(fillBufChunk)+len(shortChunk))
@@ -112,16 +112,16 @@ func TestChunkReaderAllocs(t *testing.T) {
 	var buf bytes.Buffer
 	w := NewChunkedWriter(&buf)
 	a, b, c := []byte("aaaaaa"), []byte("bbbbbbbbbbbb"), []byte("cccccccccccccccccccccccc")
-	w.Write(a)
-	w.Write(b)
-	w.Write(c)
-	w.Close()
+	_, _ = w.Write(a)
+	_, _ = w.Write(b)
+	_, _ = w.Write(c)
+	_ = w.Close()
 
 	readBuf := make([]byte, len(a)+len(b)+len(c)+1)
 	byter := bytes.NewReader(buf.Bytes())
 	bufr := bufio.NewReader(byter)
 	mallocs := testing.AllocsPerRun(100, func() {
-		byter.Seek(0, io.SeekStart)
+		_, _ = byter.Seek(0, io.SeekStart)
 		bufr.Reset(byter)
 		r := NewChunkedReader(bufr)
 		n, err := io.ReadFull(r, readBuf)
@@ -190,7 +190,7 @@ func TestChunkReadingIgnoresExtensions(t *testing.T) {
 func TestChunkReadPartial(t *testing.T) {
 	pr, pw := io.Pipe()
 	go func() {
-		pw.Write([]byte("7\r\n1234567"))
+		_, _ = pw.Write([]byte("7\r\n1234567"))
 	}()
 	cr := NewChunkedReader(pr)
 	readBuf := make([]byte, 7)
@@ -203,7 +203,7 @@ func TestChunkReadPartial(t *testing.T) {
 		t.Fatalf("Read: %v %q; want %d, %q", n, readBuf[:n], len(want), want)
 	}
 	go func() {
-		pw.Write([]byte("xx"))
+		_, _ = pw.Write([]byte("xx"))
 	}()
 	_, err = cr.Read(readBuf)
 	if got := fmt.Sprint(err); !strings.Contains(got, "malformed") {
