@@ -44,7 +44,7 @@ const (
 )
 
 // ParsePKCS8PrivateKey 将未加密的PKCS #8, ASN.1 DER格式字节数组转为对应的私钥。
-//  - 私钥支持: sm2, ecdsa, ed25519, rsa
+//  - 私钥支持: sm2, ecdsa, ecdsa_ext, ed25519, rsa
 //
 // ParsePKCS8PrivateKey parses an unencrypted private key in PKCS #8, ASN.1 DER form.
 //
@@ -96,6 +96,17 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: failed to parse EC private key embedded in PKCS#8: %s", err.Error())
 		}
 		return key, nil
+	case privKey.Algo.Algorithm.Equal(oidPublicKeyECDSAEXT):
+		bytes := privKey.Algo.Parameters.FullBytes
+		namedCurveOID := new(asn1.ObjectIdentifier)
+		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {
+			namedCurveOID = nil
+		}
+		key, err = parseECPrivateKey(namedCurveOID, privKey.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("gmx509.ParsePKCS8PrivateKey: failed to parse EC private key embedded in PKCS#8: %s", err.Error())
+		}
+		return key, nil
 	case privKey.Algo.Algorithm.Equal(oidPublicKeyEd25519):
 		if l := len(privKey.Algo.Parameters.FullBytes); l != 0 {
 			return nil, errors.New("gmx509.ParsePKCS8PrivateKey: invalid Ed25519 private key parameters")
@@ -114,7 +125,7 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 }
 
 // MarshalPKCS8PrivateKey 将私钥转为PKCS #8, ASN.1 DER字节数组
-//  - 私钥支持: sm2, ecdsa, ed25519, rsa
+//  - 私钥支持: sm2, ecdsa, ecdsa_ext, ed25519, rsa
 //
 // MarshalPKCS8PrivateKey converts a private key to PKCS #8, ASN.1 DER form.
 //
@@ -180,7 +191,7 @@ func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 			return nil, errors.New("gmx509.MarshalPKCS8PrivateKey: failed to marshal curve OID: " + err.Error())
 		}
 		privKey.Algo = pkix.AlgorithmIdentifier{
-			Algorithm: oidPublicKeyECDSA,
+			Algorithm: oidPublicKeyECDSAEXT,
 			Parameters: asn1.RawValue{
 				FullBytes: oidBytes,
 			},

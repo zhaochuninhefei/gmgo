@@ -341,11 +341,12 @@ const (
 )
 
 var publicKeyAlgoName = [...]string{
-	RSA:     "RSA",
-	DSA:     "DSA",
-	ECDSA:   "ECDSA",
-	Ed25519: "Ed25519",
-	SM2:     "SM2", // 公钥算法名称定义添加SM2
+	RSA:      "RSA",
+	DSA:      "DSA",
+	ECDSA:    "ECDSA",
+	Ed25519:  "Ed25519",
+	SM2:      "SM2",      // 公钥算法名称定义添加SM2
+	ECDSAEXT: "ECDSAEXT", // ecdsa_ext 扩展的ecdsa公钥算法
 }
 
 func (algo PublicKeyAlgorithm) String() string {
@@ -590,10 +591,12 @@ func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm
 // id-ecPublicKey OBJECT IDENTIFIER ::= {
 //       iso(1) member-body(2) us(840) ansi-X9-62(10045) keyType(2) 1 }
 var (
-	oidPublicKeyRSA     = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
-	oidPublicKeyDSA     = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
-	oidPublicKeyECDSA   = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
-	oidPublicKeyEd25519 = oidSignatureEd25519
+	oidPublicKeyRSA   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
+	oidPublicKeyDSA   = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
+	oidPublicKeyECDSA = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
+	// ecdsa_ext算法标识，`1.3.6.1.4.1`是ISO分配给私人企业的节点，`99999`是私人企业分配给自己的节点
+	oidPublicKeyECDSAEXT = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 99999, 1, 2}
+	oidPublicKeyEd25519  = oidSignatureEd25519
 	// SM2算法标识 参考`GMT 0006-2012 密码应用标识规范.pdf`的`附录A 商用密码领域中的相关oID定义`
 	oidPublicKeySM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
 	// // 通过asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})计算得出
@@ -611,6 +614,8 @@ func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm 
 		return DSA
 	case oid.Equal(oidPublicKeyECDSA):
 		return ECDSA
+	case oid.Equal(oidPublicKeyECDSAEXT):
+		return ECDSAEXT
 	case oid.Equal(oidPublicKeyEd25519):
 		return Ed25519
 	}
