@@ -366,6 +366,8 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 				cert.SupportedSignatureAlgorithms = []SignatureScheme{ECDSAEXTWithP256AndSHA256}
 				zclog.Debugf("临时修改cert.SupportedSignatureAlgorithms为: %s", cert.SupportedSignatureAlgorithms)
 			}
+		} else if _, ok := cert.PrivateKey.(*ecdsa_ext.PrivateKey); ok {
+			// ok
 		} else {
 			return fail(errors.New("pem文件类型为`ECDSA_EXT PRIVATE KEY`, 但证书中的私钥类型不是*ecdsa.PrivateKey"))
 		}
@@ -437,8 +439,8 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 	}
 	if key, err := x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key := key.(type) {
-		// 添加SM2
-		case *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
+		// 添加SM2, ecdsa_ext
+		case *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, *ecdsa_ext.PrivateKey, ed25519.PrivateKey:
 			return key, nil
 		default:
 			return nil, errors.New("gmtls: found unknown private key type in PKCS#8 wrapping")
