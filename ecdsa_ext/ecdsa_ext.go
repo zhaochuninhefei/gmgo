@@ -29,6 +29,7 @@ type PublicKey struct {
 	ecdsa.PublicKey
 }
 
+// Equal 为ecdsa_ext扩展公钥绑定Equal方法, 用于实现`x509.publicKey`接口
 func (pub *PublicKey) Equal(x crypto.PublicKey) bool {
 	xx, ok := x.(*PublicKey)
 	if !ok {

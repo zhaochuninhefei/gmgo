@@ -1903,10 +1903,10 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 
 	// 检查签署者私钥是否匹配父证书中的公钥
 	// Check that the signer's public key matches the private key, if available.
-	type privateKey interface {
+	type publicKey interface {
 		Equal(crypto.PublicKey) bool
 	}
-	if privPub, ok := key.Public().(privateKey); !ok {
+	if privPub, ok := key.Public().(publicKey); !ok {
 		return nil, errors.New("x509: internal error: supported public key does not implement Equal")
 	} else if parent.PublicKey != nil && !privPub.Equal(parent.PublicKey) {
 		return nil, errors.New("x509: provided PrivateKey doesn't match parent's PublicKey")
