@@ -3801,12 +3801,12 @@ func createKeys(certType string) (interface{}, interface{}, error) {
 		}
 		pub = &priv.(*ecdsa.PrivateKey).PublicKey
 	} else if strings.HasPrefix(certType, "ecdsaext_") {
-		// 生成ecdsa密钥对
+		// 生成ecdsa_ext密钥对
 		priv, err = ecdsa_ext.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return nil, nil, err
 		}
-		pub = &priv.(*ecdsa_ext.PrivateKey).PublicKey
+		pub = priv.(*ecdsa_ext.PrivateKey).Public().(*ecdsa_ext.PublicKey)
 	}
 	// 生成私钥pem文件
 	_, err = WritePrivateKeytoPemFile("testdata/"+certType+"_key.pem", priv, nil)
@@ -3841,6 +3841,8 @@ func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca
 		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
 	case *ecdsa.PublicKey:
 		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
+	case *ecdsa_ext.PublicKey:
+		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
 	default:
 		panic("不支持的公钥类型")
 	}
@@ -3870,6 +3872,8 @@ func createCertSignParent(cn string, o string, c string, st string, bcs bool, is
 	case *sm2.PublicKey:
 		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
 	case *ecdsa.PublicKey:
+		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
+	case *ecdsa_ext.PublicKey:
 		ski = CreateEllipticSKI(pk.Curve, pk.X, pk.Y)
 	default:
 		panic("不支持的公钥类型")

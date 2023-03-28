@@ -157,7 +157,7 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 		if !ok {
 			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported elliptic curve")
 		}
-		publicKeyAlgorithm.Algorithm = oidPublicKeyECDSA
+		publicKeyAlgorithm.Algorithm = oidPublicKeyECDSAEXT
 		var paramBytes []byte
 		paramBytes, err = asn1.Marshal(oid)
 		if err != nil {

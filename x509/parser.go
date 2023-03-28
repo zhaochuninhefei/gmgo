@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"math/big"
 	"net"
@@ -260,6 +261,58 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 			Y:     y,
 		}
 		return pub, nil
+	case ECDSA:
+		paramsDer := cryptobyte.String(keyData.Algorithm.Parameters.FullBytes)
+		namedCurveOID := new(asn1.ObjectIdentifier)
+		if !paramsDer.ReadASN1ObjectIdentifier(namedCurveOID) {
+			return nil, errors.New("x509: invalid ECDSA parameters")
+		}
+		namedCurve := namedCurveFromOID(*namedCurveOID)
+		if namedCurve == nil {
+			return nil, errors.New("x509: unsupported elliptic curve")
+		}
+		x, y := elliptic.Unmarshal(namedCurve, der)
+		if x == nil {
+			return nil, errors.New("x509: failed to unmarshal elliptic curve point")
+		}
+		pub := &ecdsa.PublicKey{
+			Curve: namedCurve,
+			X:     x,
+			Y:     y,
+		}
+		return pub, nil
+	case ECDSAEXT:
+		paramsDer := cryptobyte.String(keyData.Algorithm.Parameters.FullBytes)
+		namedCurveOID := new(asn1.ObjectIdentifier)
+		if !paramsDer.ReadASN1ObjectIdentifier(namedCurveOID) {
+			return nil, errors.New("x509: invalid ECDSA parameters")
+		}
+		namedCurve := namedCurveFromOID(*namedCurveOID)
+		if namedCurve == nil {
+			return nil, errors.New("x509: unsupported elliptic curve")
+		}
+		x, y := elliptic.Unmarshal(namedCurve, der)
+		if x == nil {
+			return nil, errors.New("x509: failed to unmarshal elliptic curve point")
+		}
+		pub := &ecdsa_ext.PublicKey{
+			PublicKey: ecdsa.PublicKey{
+				Curve: namedCurve,
+				X:     x,
+				Y:     y,
+			},
+		}
+		return pub, nil
+	case Ed25519:
+		// RFC 8410, Section 3
+		// > For all of the OIDs, the parameters MUST be absent.
+		if len(keyData.Algorithm.Parameters.FullBytes) != 0 {
+			return nil, errors.New("x509: Ed25519 key encoded with illegal parameters")
+		}
+		if len(der) != ed25519.PublicKeySize {
+			return nil, errors.New("x509: wrong Ed25519 public key size")
+		}
+		return ed25519.PublicKey(der), nil
 	case RSA:
 		// RSA public keys must have a NULL in the parameters.
 		// See RFC 3279, Section 2.3.1.
@@ -290,36 +343,6 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 			N: p.N,
 		}
 		return pub, nil
-	case ECDSA:
-		paramsDer := cryptobyte.String(keyData.Algorithm.Parameters.FullBytes)
-		namedCurveOID := new(asn1.ObjectIdentifier)
-		if !paramsDer.ReadASN1ObjectIdentifier(namedCurveOID) {
-			return nil, errors.New("x509: invalid ECDSA parameters")
-		}
-		namedCurve := namedCurveFromOID(*namedCurveOID)
-		if namedCurve == nil {
-			return nil, errors.New("x509: unsupported elliptic curve")
-		}
-		x, y := elliptic.Unmarshal(namedCurve, der)
-		if x == nil {
-			return nil, errors.New("x509: failed to unmarshal elliptic curve point")
-		}
-		pub := &ecdsa.PublicKey{
-			Curve: namedCurve,
-			X:     x,
-			Y:     y,
-		}
-		return pub, nil
-	case Ed25519:
-		// RFC 8410, Section 3
-		// > For all of the OIDs, the parameters MUST be absent.
-		if len(keyData.Algorithm.Parameters.FullBytes) != 0 {
-			return nil, errors.New("x509: Ed25519 key encoded with illegal parameters")
-		}
-		if len(der) != ed25519.PublicKeySize {
-			return nil, errors.New("x509: wrong Ed25519 public key size")
-		}
-		return ed25519.PublicKey(der), nil
 	// 去除DSA处理(不推荐)
 	// case DSA:
 	// 	y := new(big.Int)

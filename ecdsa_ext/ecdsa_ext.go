@@ -29,6 +29,19 @@ type PublicKey struct {
 	ecdsa.PublicKey
 }
 
+func (pub *PublicKey) Equal(x crypto.PublicKey) bool {
+	xx, ok := x.(*PublicKey)
+	if !ok {
+		return false
+	}
+	return pub.X.Cmp(xx.X) == 0 && pub.Y.Cmp(xx.Y) == 0 &&
+		// Standard library Curve implementations are singletons, so this check
+		// will work for those. Other Curves might be equivalent even if not
+		// singletons, but there is no definitive way to check for that, and
+		// better to err on the side of safety.
+		pub.Curve == xx.Curve
+}
+
 // EcVerify 为ecdsa_ext扩展公钥绑定Verify方法, 用于实现`ecbase.EcVerifier`接口
 //  默认需要low-s检查
 func (pub *PublicKey) EcVerify(digest []byte, sig []byte, opts ecbase.EcSignerOpts) (bool, error) {
