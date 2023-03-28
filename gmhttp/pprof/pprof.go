@@ -224,6 +224,7 @@ func Symbol(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler returns an HTTP handler that serves the named profile.
+//goland:noinspection GoUnusedExportedFunction
 func Handler(name string) http.Handler {
 	return handler(name)
 }
