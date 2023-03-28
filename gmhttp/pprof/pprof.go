@@ -427,9 +427,9 @@ Types of profiles available:
 <thead><td>Count</td><td>Profile</td></thead>
 `)
 
-	for _, profile := range profiles {
-		link := &url.URL{Path: profile.Href, RawQuery: "debug=1"}
-		_, _ = fmt.Fprintf(&b, "<tr><td>%d</td><td><a href='%s'>%s</a></td></tr>\n", profile.Count, link, html.EscapeString(profile.Name))
+	for _, pfile := range profiles {
+		link := &url.URL{Path: pfile.Href, RawQuery: "debug=1"}
+		_, _ = fmt.Fprintf(&b, "<tr><td>%d</td><td><a href='%s'>%s</a></td></tr>\n", pfile.Count, link, html.EscapeString(pfile.Name))
 	}
 
 	b.WriteString(`</table>
@@ -439,8 +439,8 @@ Types of profiles available:
 Profile Descriptions:
 <ul>
 `)
-	for _, profile := range profiles {
-		_, _ = fmt.Fprintf(&b, "<li><div class=profile-name>%s: </div> %s</li>\n", html.EscapeString(profile.Name), html.EscapeString(profile.Desc))
+	for _, pfile := range profiles {
+		_, _ = fmt.Fprintf(&b, "<li><div class=profile-name>%s: </div> %s</li>\n", html.EscapeString(pfile.Name), html.EscapeString(pfile.Desc))
 	}
 	b.WriteString(`</ul>
 </p>
