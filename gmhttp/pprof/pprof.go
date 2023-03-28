@@ -92,7 +92,7 @@ func init() {
 func Cmdline(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprint(w, strings.Join(os.Args, "\x00"))
+	_, _ = fmt.Fprint(w, strings.Join(os.Args, "\x00"))
 }
 
 func sleep(r *http.Request, d time.Duration) {
@@ -112,7 +112,7 @@ func serveError(w http.ResponseWriter, status int, txt string) {
 	w.Header().Set("X-Go-Pprof", "1")
 	w.Header().Del("Content-Disposition")
 	w.WriteHeader(status)
-	fmt.Fprintln(w, txt)
+	_, _ = fmt.Fprintln(w, txt)
 }
 
 // Profile responds with the pprof-formatted cpu profile.
@@ -187,7 +187,7 @@ func Symbol(w http.ResponseWriter, r *http.Request) {
 	// We don't know how many symbols we have, but we
 	// do have symbol information. Pprof only cares whether
 	// this number is 0 (no symbols available) or > 0.
-	fmt.Fprintf(&buf, "num_symbols: 1\n")
+	_, _ = fmt.Fprintf(&buf, "num_symbols: 1\n")
 
 	var b *bufio.Reader
 	if r.Method == "POST" {
@@ -205,7 +205,7 @@ func Symbol(w http.ResponseWriter, r *http.Request) {
 		if pc != 0 {
 			f := runtime.FuncForPC(uintptr(pc))
 			if f != nil {
-				fmt.Fprintf(&buf, "%#x %s\n", pc, f.Name())
+				_, _ = fmt.Fprintf(&buf, "%#x %s\n", pc, f.Name())
 			}
 		}
 
@@ -213,13 +213,13 @@ func Symbol(w http.ResponseWriter, r *http.Request) {
 		// symbol will have an err because it doesn't end in +.
 		if err != nil {
 			if err != io.EOF {
-				fmt.Fprintf(&buf, "reading request: %v\n", err)
+				_, _ = fmt.Fprintf(&buf, "reading request: %v\n", err)
 			}
 			break
 		}
 	}
 
-	w.Write(buf.Bytes())
+	_, _ = w.Write(buf.Bytes())
 }
 
 // Handler returns an HTTP handler that serves the named profile.
@@ -251,7 +251,7 @@ func (name handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 	}
-	p.WriteTo(w, debug)
+	_ = p.WriteTo(w, debug)
 }
 
 func (name handler) serveDeltaProfile(w http.ResponseWriter, r *http.Request, p *pprof.Profile, secStr string) {
@@ -316,7 +316,7 @@ func (name handler) serveDeltaProfile(w http.ResponseWriter, r *http.Request, p 
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-delta"`, name))
-	p1.Write(w)
+	_ = p1.Write(w)
 }
 
 func collectProfile(p *pprof.Profile) (*profile.Profile, error) {
@@ -427,7 +427,7 @@ Types of profiles available:
 
 	for _, profile := range profiles {
 		link := &url.URL{Path: profile.Href, RawQuery: "debug=1"}
-		fmt.Fprintf(&b, "<tr><td>%d</td><td><a href='%s'>%s</a></td></tr>\n", profile.Count, link, html.EscapeString(profile.Name))
+		_, _ = fmt.Fprintf(&b, "<tr><td>%d</td><td><a href='%s'>%s</a></td></tr>\n", profile.Count, link, html.EscapeString(profile.Name))
 	}
 
 	b.WriteString(`</table>
@@ -438,7 +438,7 @@ Profile Descriptions:
 <ul>
 `)
 	for _, profile := range profiles {
-		fmt.Fprintf(&b, "<li><div class=profile-name>%s: </div> %s</li>\n", html.EscapeString(profile.Name), html.EscapeString(profile.Desc))
+		_, _ = fmt.Fprintf(&b, "<li><div class=profile-name>%s: </div> %s</li>\n", html.EscapeString(profile.Name), html.EscapeString(profile.Desc))
 	}
 	b.WriteString(`</ul>
 </p>
