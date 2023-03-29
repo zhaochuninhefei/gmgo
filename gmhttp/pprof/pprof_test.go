@@ -56,6 +56,7 @@ func TestHandlers(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.path, func(t *testing.T) {
+			//goland:noinspection HttpUrlsUsage
 			req := httptest.NewRequest("GET", "http://example.com"+tc.path, nil)
 			w := httptest.NewRecorder()
 			tc.handler(w, req)
@@ -232,7 +233,7 @@ func query(endpoint string) (*profile.Profile, error) {
 	}
 
 	b, err := io.ReadAll(r.Body)
-	r.Body.Close()
+	_ = r.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read and parse the result from %q: %v", url, err)
 	}
