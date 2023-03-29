@@ -109,6 +109,7 @@ func mutexHog1(mu1, mu2 *sync.Mutex, start time.Time, dt time.Duration) {
 			mu1.Unlock()
 			mu2.Unlock()
 		}
+		//goland:noinspection GoBoolExpressions
 		if runtime.Compiler == "gccgo" {
 			runtime.Gosched()
 		}
@@ -130,6 +131,7 @@ func mutexHog2(mu1, mu2 *sync.Mutex, start time.Time, dt time.Duration) {
 			mu1.Unlock()
 			mu2.Unlock()
 		}
+		//goland:noinspection GoBoolExpressions
 		if runtime.Compiler == "gccgo" {
 			runtime.Gosched()
 		}
