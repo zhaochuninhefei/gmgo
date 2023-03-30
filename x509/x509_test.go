@@ -3859,6 +3859,12 @@ func createCertSignSelf(cn string, o string, c string, st string, bcs bool, isca
 	if err != nil {
 		return nil, err
 	}
+	text, err := CertificateText(cert)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("打印证书信息：")
+	fmt.Println(text)
 	return cert, nil
 }
 

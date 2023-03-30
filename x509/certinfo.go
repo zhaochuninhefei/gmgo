@@ -6,8 +6,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"math/big"
 	"net"
 
@@ -162,6 +164,16 @@ func printSubjectInformation(subj *pkix.Name, pkAlgo PublicKeyAlgorithm, pk inte
 	case ECDSA:
 		buf.WriteString("ECDSA\n")
 		if ecdsaKey, ok := pk.(*ecdsa.PublicKey); ok {
+			buf.WriteString(fmt.Sprintf("%16sPublic-Key: (%d bit)\n", "", ecdsaKey.Params().BitSize))
+			dsaKeyPrinter("X", ecdsaKey.X, buf)
+			dsaKeyPrinter("Y", ecdsaKey.Y, buf)
+			buf.WriteString(fmt.Sprintf("%16sCurve: %s\n", "", ecdsaKey.Params().Name))
+		} else {
+			return errors.New("certinfo: Expected ecdsa.PublicKey for type x509.DSA")
+		}
+	case ECDSAEXT:
+		buf.WriteString("ECDSAEXT\n")
+		if ecdsaKey, ok := pk.(*ecdsa_ext.PublicKey); ok {
 			buf.WriteString(fmt.Sprintf("%16sPublic-Key: (%d bit)\n", "", ecdsaKey.Params().BitSize))
 			dsaKeyPrinter("X", ecdsaKey.X, buf)
 			dsaKeyPrinter("Y", ecdsaKey.Y, buf)
@@ -515,6 +527,13 @@ func CertificateText(cert *Certificate) (string, error) {
 					buf.WriteString(fmt.Sprintf("%12sNetscape Comment: critical\n%16s%s\n", "", "", comment))
 				} else {
 					buf.WriteString(fmt.Sprintf("%12sNetscape Comment:\n%16s%s\n", "", "", comment))
+				}
+			} else if ext.Id.Equal(oidExtensionSignatureAlgorithm) {
+				// SignatureAlgorithm反序列化操作
+				signAlg := SignatureAlgorithm(binary.BigEndian.Uint32(ext.Value))
+				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signature Algorithm:", ""))
+				if signAlg > 0 {
+					buf.WriteString(fmt.Sprintf(" %s\n", signAlg.String()))
 				}
 			} else {
 				buf.WriteString(fmt.Sprintf("%12sUnknown extension %s\n", "", ext.Id.String()))
