@@ -107,6 +107,7 @@ func TestNextProtoUpgrade(t *testing.T) {
 
 // handleTLSProtocol09 implements the HTTP/0.9 protocol over TLS, for the
 // TestNextProtoUpgrade test.
+//goland:noinspection GoUnusedParameter
 func handleTLSProtocol09(srv *Server, conn *tls.Conn, h Handler) {
 	br := bufio.NewReader(conn)
 	line, err := br.ReadString('\n')
