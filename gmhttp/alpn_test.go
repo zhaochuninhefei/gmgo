@@ -22,9 +22,9 @@ func TestNextProtoUpgrade(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ts := httptest.NewUnstartedServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "path=%s,proto=", r.URL.Path)
+		_, _ = fmt.Fprintf(w, "path=%s,proto=", r.URL.Path)
 		if r.TLS != nil {
-			w.Write([]byte(r.TLS.NegotiatedProtocol))
+			_, _ = w.Write([]byte(r.TLS.NegotiatedProtocol))
 		}
 		if r.RemoteAddr == "" {
 			t.Error("request with no RemoteAddr")
@@ -75,9 +75,11 @@ func TestNextProtoUpgrade(t *testing.T) {
 		}
 		res, err := c.Get(ts.URL)
 		if err == nil {
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 			var buf bytes.Buffer
-			res.Write(&buf)
+			_ = res.Write(&buf)
 			t.Errorf("expected error on unhandled-proto request; got: %s", buf.Bytes())
 		}
 	}
@@ -92,7 +94,7 @@ func TestNextProtoUpgrade(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		conn.Write([]byte("GET /foo\n"))
+		_, _ = conn.Write([]byte("GET /foo\n"))
 		body, err := io.ReadAll(conn)
 		if err != nil {
 			t.Fatal(err)
