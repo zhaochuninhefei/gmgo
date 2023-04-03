@@ -206,17 +206,17 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 	req := ireq // req is either the original request, or a modified fork
 
 	if rt == nil {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, alwaysFalse, errors.New("http: no Client.Transport or DefaultTransport")
 	}
 
 	if req.URL == nil {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, alwaysFalse, errors.New("http: nil Request.URL")
 	}
 
 	if req.RequestURI != "" {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, alwaysFalse, errors.New("http: Request.RequestURI can't be set in client requests")
 	}
 
@@ -601,7 +601,7 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 		defer func() { testHookClientDoResult(retres, reterr) }()
 	}
 	if req.URL == nil {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, &url.Error{
 			Op:  urlErrorOp(req.Method),
 			Err: errors.New("http: nil Request.URL"),
@@ -622,7 +622,7 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 	uerr := func(err error) error {
 		// the body may have been closed already by c.send()
 		if !reqBodyClosed {
-			req.closeBody()
+			_ = req.closeBody()
 		}
 		var urlStr string
 		if resp != nil && resp.Request != nil {
@@ -705,9 +705,9 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 			// fails, the Transport won't reuse it anyway.
 			const maxBodySlurpSize = 2 << 10
 			if resp.ContentLength == -1 || resp.ContentLength <= maxBodySlurpSize {
-				io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
+				_, _ = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			if err != nil {
 				// Special case for Go 1 compatibility: return both the response
@@ -741,7 +741,7 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 			return resp, nil
 		}
 
-		req.closeBody()
+		_ = req.closeBody()
 	}
 }
 
