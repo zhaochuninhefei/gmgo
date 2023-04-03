@@ -809,6 +809,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 	}
 }
 
+//goland:noinspection GoUnusedParameter
 func defaultCheckRedirect(req *Request, via []*Request) error {
 	if len(via) >= 10 {
 		return errors.New("stopped after 10 redirects")
