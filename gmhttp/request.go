@@ -308,7 +308,7 @@ type Request struct {
 	//
 	// For server requests, this field is not applicable.
 	//
-	// Deprecated: Set the Request's context with NewRequestWithContext
+	// ToDeprecated: Set the Request's context with NewRequestWithContext
 	// instead. If a Request's Cancel field and context are both
 	// set, it is undefined whether Cancel is respected.
 	Cancel <-chan struct{}
