@@ -876,6 +876,7 @@ func (c *Client) Post(url, contentType string, body io.Reader) (resp *Response, 
 //
 // To make a request with a specified context.Context, use NewRequestWithContext
 // and DefaultClient.Do.
+//goland:noinspection GoUnusedExportedFunction
 func PostForm(url string, data url.Values) (resp *Response, err error) {
 	return DefaultClient.PostForm(url, data)
 }
@@ -912,6 +913,7 @@ func (c *Client) PostForm(url string, data url.Values) (resp *Response, err erro
 //
 // To make a request with a specified context.Context, use NewRequestWithContext
 // and DefaultClient.Do.
+//goland:noinspection GoUnusedExportedFunction
 func Head(url string) (resp *Response, err error) {
 	return DefaultClient.Head(url)
 }
