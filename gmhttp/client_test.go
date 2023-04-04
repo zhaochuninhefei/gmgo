@@ -32,7 +32,7 @@ import (
 
 var robotsTxtHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
 	w.Header().Set("Last-Modified", "sometime")
-	fmt.Fprintf(w, "User-agent: go\nDisallow: /something/")
+	_, _ = fmt.Fprintf(w, "User-agent: go\nDisallow: /something/")
 })
 
 // pedanticReadAll works like io.ReadAll but additionally
@@ -77,7 +77,7 @@ func TestClient(t *testing.T) {
 	var b []byte
 	if err == nil {
 		b, err = pedanticReadAll(r.Body)
-		r.Body.Close()
+		_ = r.Body.Close()
 	}
 	if err != nil {
 		t.Error(err)
@@ -118,7 +118,7 @@ func TestGetRequestFormat(t *testing.T) {
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 	url := "http://dummy.faketld/"
-	client.Get(url) // Note: doesn't hit network
+	_, _ = client.Get(url) // Note: doesn't hit network
 	if tr.req.Method != "GET" {
 		t.Errorf("expected method %q; got %q", "GET", tr.req.Method)
 	}
@@ -138,7 +138,7 @@ func TestPostRequestFormat(t *testing.T) {
 	url := "http://dummy.faketld/"
 	json := `{"key":"value"}`
 	b := strings.NewReader(json)
-	client.Post(url, "application/json", b) // Note: doesn't hit network
+	_, _ = client.Post(url, "application/json", b) // Note: doesn't hit network
 
 	if tr.req.Method != "POST" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "POST")
@@ -167,7 +167,7 @@ func TestPostFormRequestFormat(t *testing.T) {
 	form.Set("foo", "bar")
 	form.Add("foo", "bar2")
 	form.Set("bar", "baz")
-	client.PostForm(urlStr, form) // Note: doesn't hit network
+	_, _ = client.PostForm(urlStr, form) // Note: doesn't hit network
 
 	if tr.req.Method != "POST" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "POST")
@@ -215,7 +215,7 @@ func TestClientRedirects(t *testing.T) {
 			Redirect(w, r, fmt.Sprintf("/?n=%d", n+1), StatusTemporaryRedirect)
 			return
 		}
-		fmt.Fprintf(w, "n=%d", n)
+		_, _ = fmt.Fprintf(w, "n=%d", n)
 	}))
 	defer ts.Close()
 
@@ -257,7 +257,7 @@ func TestClientRedirects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	finalURL := res.Request.URL.String()
 	if e, g := "<nil>", fmt.Sprintf("%v", err); e != g {
 		t.Errorf("with custom client, expected error %q, got %q", e, g)
@@ -291,7 +291,7 @@ func TestClientRedirects(t *testing.T) {
 	if res == nil {
 		t.Fatalf("Expected a non-nil Response on CheckRedirect failure (https://golang.org/issue/3795)")
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.Header.Get("Location") == "" {
 		t.Errorf("no Location header in Response")
 	}
@@ -422,11 +422,11 @@ func testRedirectsByMethod(t *testing.T, method string, table []redirectTest, wa
 	ts = httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		log.Lock()
 		slurp, _ := io.ReadAll(r.Body)
-		fmt.Fprintf(&log.Buffer, "%s %s %q", r.Method, r.RequestURI, slurp)
+		_, _ = fmt.Fprintf(&log.Buffer, "%s %s %q", r.Method, r.RequestURI, slurp)
 		if cl := r.Header.Get("Content-Length"); r.Method == "GET" && len(slurp) == 0 && (r.ContentLength != 0 || cl != "") {
-			fmt.Fprintf(&log.Buffer, " (but with body=%T, content-length = %v, %q)", r.Body, r.ContentLength, cl)
+			_, _ = fmt.Fprintf(&log.Buffer, " (but with body=%T, content-length = %v, %q)", r.Body, r.ContentLength, cl)
 		}
-		log.WriteByte('\n')
+		_ = log.WriteByte('\n')
 		log.Unlock()
 		urlQuery := r.URL.Query()
 		if v := urlQuery.Get("code"); v != "" {
@@ -498,11 +498,11 @@ func TestClientRedirectUseResponse(t *testing.T) {
 	var ts *httptest.Server
 	ts = httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		if strings.Contains(r.URL.Path, "/other") {
-			io.WriteString(w, "wrong body")
+			_, _ = io.WriteString(w, "wrong body")
 		} else {
 			w.Header().Set("Location", ts.URL+"/other")
 			w.WriteHeader(StatusFound)
-			io.WriteString(w, body)
+			_, _ = io.WriteString(w, body)
 		}
 	}))
 	defer ts.Close()
@@ -521,7 +521,9 @@ func TestClientRedirectUseResponse(t *testing.T) {
 	if res.StatusCode != StatusFound {
 		t.Errorf("status = %d; want %d", res.StatusCode, StatusFound)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	slurp, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -546,7 +548,7 @@ func TestClientRedirect308NoLocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.StatusCode != 308 {
 		t.Errorf("status = %d; want %d", res.StatusCode, 308)
 	}
@@ -575,7 +577,7 @@ func TestClientRedirect308NoGetBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.StatusCode != 308 {
 		t.Errorf("status = %d; want %d", res.StatusCode, 308)
 	}
@@ -599,7 +601,7 @@ var echoCookiesRedirectHandler = HandlerFunc(func(w ResponseWriter, r *Request) 
 		Redirect(w, r, "/second", StatusMovedPermanently)
 	} else {
 		SetCookie(w, expectedCookies[2])
-		w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello"))
 	}
 })
 
@@ -612,24 +614,24 @@ func TestClientSendsCookieFromJar(t *testing.T) {
 	u, _ := url.Parse(us)
 	client.Jar.SetCookies(u, expectedCookies)
 
-	client.Get(us) // Note: doesn't hit network
+	_, _ = client.Get(us) // Note: doesn't hit network
 	matchReturnedCookies(t, expectedCookies, tr.req.Cookies())
 
-	client.Head(us) // Note: doesn't hit network
+	_, _ = client.Head(us) // Note: doesn't hit network
 	matchReturnedCookies(t, expectedCookies, tr.req.Cookies())
 
-	client.Post(us, "text/plain", strings.NewReader("body")) // Note: doesn't hit network
+	_, _ = client.Post(us, "text/plain", strings.NewReader("body")) // Note: doesn't hit network
 	matchReturnedCookies(t, expectedCookies, tr.req.Cookies())
 
-	client.PostForm(us, url.Values{}) // Note: doesn't hit network
+	_, _ = client.PostForm(us, url.Values{}) // Note: doesn't hit network
 	matchReturnedCookies(t, expectedCookies, tr.req.Cookies())
 
 	req, _ := NewRequest("GET", us, nil)
-	client.Do(req) // Note: doesn't hit network
+	_, _ = client.Do(req) // Note: doesn't hit network
 	matchReturnedCookies(t, expectedCookies, tr.req.Cookies())
 
 	req, _ = NewRequest("POST", us, nil)
-	client.Do(req) // Note: doesn't hit network
+	_, _ = client.Do(req) // Note: doesn't hit network
 	matchReturnedCookies(t, expectedCookies, tr.req.Cookies())
 }
 
@@ -669,7 +671,7 @@ func TestRedirectCookiesJar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	matchReturnedCookies(t, expectedCookies, resp.Cookies())
 }
 
@@ -750,7 +752,7 @@ func (j *RecordingJar) Cookies(u *url.URL) []*Cookie {
 func (j *RecordingJar) logf(format string, args ...interface{}) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	fmt.Fprintf(&j.log, format, args...)
+	_, _ = fmt.Fprintf(&j.log, format, args...)
 }
 
 func TestStreamingGet_h1(t *testing.T) { testStreamingGet(t, h1Mode) }
@@ -762,7 +764,7 @@ func testStreamingGet(t *testing.T, h2 bool) {
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.(Flusher).Flush()
 		for str := range say {
-			w.Write([]byte(str))
+			_, _ = w.Write([]byte(str))
 			w.(Flusher).Flush()
 		}
 	}))
@@ -846,7 +848,7 @@ func TestClientInsecureTransport(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ts := httptest.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("Hello"))
+		_, _ = w.Write([]byte("Hello"))
 	}))
 	errc := make(chanWriter, 10) // but only expecting 1
 	ts.Config.ErrorLog = log.New(errc, "", 0)
@@ -865,7 +867,7 @@ func TestClientInsecureTransport(t *testing.T) {
 			t.Errorf("insecure=%v: got unexpected err=%v", insecure, err)
 		}
 		if res != nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 	}
 
@@ -949,7 +951,7 @@ func TestClientWithIncorrectTLSServerName(t *testing.T) {
 func TestTransportUsesTLSConfigServerName(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("Hello"))
+		_, _ = w.Write([]byte("Hello"))
 	}))
 	defer ts.Close()
 
@@ -963,13 +965,13 @@ func TestTransportUsesTLSConfigServerName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 func TestResponseSetsTLSConnectionState(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("Hello"))
+		_, _ = w.Write([]byte("Hello"))
 	}))
 	defer ts.Close()
 
@@ -984,7 +986,9 @@ func TestResponseSetsTLSConnectionState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.TLS == nil {
 		t.Fatal("Response didn't set TLS Connection State.")
 	}
@@ -1084,7 +1088,9 @@ func TestEmptyPasswordAuth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 }
 
 func TestBasicAuth(t *testing.T) {
@@ -1094,7 +1100,7 @@ func TestBasicAuth(t *testing.T) {
 
 	url := "http://My%20User:My%20Pass@dummy.faketld/"
 	expected := "My User:My Pass"
-	client.Get(url)
+	_, _ = client.Get(url)
 
 	if tr.req.Method != "GET" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "GET")
@@ -1134,7 +1140,7 @@ func TestBasicAuthHeadersPreserved(t *testing.T) {
 	}
 	req.SetBasicAuth("My User", "My Pass")
 	expected := "My User:My Pass"
-	client.Do(req)
+	_, _ = client.Do(req)
 
 	if tr.req.Method != "GET" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "GET")
@@ -1219,7 +1225,7 @@ func testClientTimeout(t *testing.T, h2 bool) {
 		}
 		if r.URL.Path == "/slow" {
 			sawSlow <- true
-			w.Write([]byte("Hello"))
+			_, _ = w.Write([]byte("Hello"))
 			w.(Flusher).Flush()
 			<-testDone
 			return
@@ -1259,7 +1265,7 @@ func testClientTimeout(t *testing.T, h2 bool) {
 	go func() {
 		_, err := io.ReadAll(res.Body)
 		errc <- err
-		res.Body.Close()
+		_ = res.Body.Close()
 	}()
 
 	const failTime = 5 * time.Second
@@ -1306,7 +1312,7 @@ func testClientTimeout_Headers(t *testing.T, h2 bool) {
 	cst.c.Timeout = 5 * time.Millisecond
 	res, err := cst.c.Get(cst.ts.URL)
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("got response from Get; expected error")
 	}
 	if _, ok := err.(*url.Error); !ok {
@@ -1363,7 +1369,7 @@ func testClientTimeoutDoesNotExpire(t *testing.T, h2 bool) {
 	defer afterTest(t)
 
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("body"))
+		_, _ = w.Write([]byte("body"))
 	}))
 	defer cst.close()
 
@@ -1400,7 +1406,7 @@ func testClientRedirectEatsBody(t *testing.T, h2 bool) {
 		t.Fatal(err)
 	}
 	_, err = io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1489,7 +1495,7 @@ func TestClientRedirectResponseWithoutRequest(t *testing.T) {
 		Transport:     issue15577Tripper{},
 	}
 	// Check that this doesn't crash:
-	c.Get("http://dummy.tld")
+	_, _ = c.Get("http://dummy.tld")
 }
 
 // Issue 4800: copy (some) headers when Client follows a redirect.
@@ -1544,7 +1550,9 @@ func TestClientCopyHeadersOnRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != 200 {
 		t.Fatal(res.Status)
 	}
@@ -1559,7 +1567,7 @@ func TestClientCopyHostOnRedirect(t *testing.T) {
 	virtual := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		t.Errorf("Virtual host received request %v", r.URL)
 		w.WriteHeader(403)
-		io.WriteString(w, "should not see this response")
+		_, _ = io.WriteString(w, "should not see this response")
 	}))
 	defer virtual.Close()
 	virtualHost := strings.TrimPrefix(virtual.URL, "http://")
@@ -1596,7 +1604,7 @@ func TestClientCopyHostOnRedirect(t *testing.T) {
 				return
 			}
 			w.WriteHeader(200)
-			io.WriteString(w, wantBody)
+			_, _ = io.WriteString(w, wantBody)
 		default:
 			t.Errorf("Serving unexpected path %q", r.URL.Path)
 			w.WriteHeader(404)
@@ -1614,7 +1622,9 @@ func TestClientCopyHostOnRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 	if resp.StatusCode != 200 {
 		t.Fatal(resp.Status)
 	}
@@ -1708,7 +1718,9 @@ func TestClientAltersCookiesOnRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != 200 {
 		t.Fatal(res.Status)
 	}
@@ -1844,7 +1856,7 @@ func TestClientRedirectTypes(t *testing.T) {
 			continue
 		}
 
-		res.Body.Close()
+		_ = res.Body.Close()
 	}
 }
 
@@ -1891,7 +1903,7 @@ func TestTransportBodyReadError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	var readCallsAtomic int32
 	var closeCallsAtomic int32 // atomic
@@ -1961,7 +1973,7 @@ func TestClientPropagatesTimeoutToContext(t *testing.T) {
 			},
 		},
 	}
-	c.Get("https://example.tld/")
+	_, _ = c.Get("https://example.tld/")
 }
 
 func TestClientDoCanceledVsTimeout_h1(t *testing.T) {
@@ -1977,7 +1989,7 @@ func TestClientDoCanceledVsTimeout_h2(t *testing.T) {
 func testClientDoCanceledVsTimeout(t *testing.T, h2 bool) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("Hello, World!"))
+		_, _ = w.Write([]byte("Hello, World!"))
 	}))
 	defer cst.close()
 
@@ -2075,7 +2087,7 @@ func TestClientCallsCloseOnlyOnce(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
