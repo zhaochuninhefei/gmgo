@@ -1433,6 +1433,7 @@ func testClientRedirectEatsBody(t *testing.T, h2 bool) {
 // eofReaderFunc is an io.Reader that runs itself, and then returns io.EOF.
 type eofReaderFunc func()
 
+//goland:noinspection GoUnusedParameter
 func (f eofReaderFunc) Read(p []byte) (n int, err error) {
 	f()
 	return 0, io.EOF
