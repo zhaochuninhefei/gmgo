@@ -1443,6 +1443,7 @@ func (f eofReaderFunc) Read(p []byte) (n int, err error) {
 }
 
 func TestReferer(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	tests := []struct {
 		lastReq, newReq string // from -> to URLs
 		want            string
@@ -1484,6 +1485,7 @@ func TestReferer(t *testing.T) {
 type issue15577Tripper struct{}
 
 func (issue15577Tripper) RoundTrip(*Request) (*Response, error) {
+	//goland:noinspection HttpUrlsUsage
 	resp := &Response{
 		StatusCode: 303,
 		Header:     map[string][]string{"Location": {"http://www.example.com/"}},
@@ -1577,6 +1579,7 @@ func TestClientCopyHostOnRedirect(t *testing.T) {
 		_, _ = io.WriteString(w, "should not see this response")
 	}))
 	defer virtual.Close()
+	//goland:noinspection HttpUrlsUsage
 	virtualHost := strings.TrimPrefix(virtual.URL, "http://")
 	t.Logf("Virtual host is %v", virtualHost)
 
@@ -1619,6 +1622,7 @@ func TestClientCopyHostOnRedirect(t *testing.T) {
 	}))
 	defer ts.Close()
 	tsURL = ts.URL
+	//goland:noinspection HttpUrlsUsage
 	tsHost = strings.TrimPrefix(ts.URL, "http://")
 	t.Logf("Server host is %v", tsHost)
 
@@ -1735,6 +1739,7 @@ func TestClientAltersCookiesOnRedirect(t *testing.T) {
 
 // Part of Issue 4800
 func TestShouldCopyHeaderOnRedirect(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	tests := []struct {
 		header     string
 		initialURL string
