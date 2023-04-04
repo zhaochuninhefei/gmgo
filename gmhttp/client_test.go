@@ -117,13 +117,13 @@ func TestGetRequestFormat(t *testing.T) {
 	defer afterTest(t)
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
-	url := "http://dummy.faketld/"
-	_, _ = client.Get(url) // Note: doesn't hit network
+	urlTest := "http://dummy.faketld/"
+	_, _ = client.Get(urlTest) // Note: doesn't hit network
 	if tr.req.Method != "GET" {
 		t.Errorf("expected method %q; got %q", "GET", tr.req.Method)
 	}
-	if tr.req.URL.String() != url {
-		t.Errorf("expected URL %q; got %q", url, tr.req.URL.String())
+	if tr.req.URL.String() != urlTest {
+		t.Errorf("expected URL %q; got %q", urlTest, tr.req.URL.String())
 	}
 	if tr.req.Header == nil {
 		t.Errorf("expected non-nil request Header")
@@ -135,16 +135,16 @@ func TestPostRequestFormat(t *testing.T) {
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 
-	url := "http://dummy.faketld/"
+	urlTest := "http://dummy.faketld/"
 	json := `{"key":"value"}`
 	b := strings.NewReader(json)
-	_, _ = client.Post(url, "application/json", b) // Note: doesn't hit network
+	_, _ = client.Post(urlTest, "application/json", b) // Note: doesn't hit network
 
 	if tr.req.Method != "POST" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "POST")
 	}
-	if tr.req.URL.String() != url {
-		t.Errorf("got URL %q, want %q", tr.req.URL.String(), url)
+	if tr.req.URL.String() != urlTest {
+		t.Errorf("got URL %q, want %q", tr.req.URL.String(), urlTest)
 	}
 	if tr.req.Header == nil {
 		t.Fatalf("expected non-nil request Header")
@@ -414,20 +414,20 @@ func TestDeleteRedirects(t *testing.T) {
 
 func testRedirectsByMethod(t *testing.T, method string, table []redirectTest, want string) {
 	defer afterTest(t)
-	var log struct {
+	var logBuffer struct {
 		sync.Mutex
 		bytes.Buffer
 	}
 	var ts *httptest.Server
 	ts = httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		log.Lock()
+		logBuffer.Lock()
 		slurp, _ := io.ReadAll(r.Body)
-		_, _ = fmt.Fprintf(&log.Buffer, "%s %s %q", r.Method, r.RequestURI, slurp)
+		_, _ = fmt.Fprintf(&logBuffer.Buffer, "%s %s %q", r.Method, r.RequestURI, slurp)
 		if cl := r.Header.Get("Content-Length"); r.Method == "GET" && len(slurp) == 0 && (r.ContentLength != 0 || cl != "") {
-			_, _ = fmt.Fprintf(&log.Buffer, " (but with body=%T, content-length = %v, %q)", r.Body, r.ContentLength, cl)
+			_, _ = fmt.Fprintf(&logBuffer.Buffer, " (but with body=%T, content-length = %v, %q)", r.Body, r.ContentLength, cl)
 		}
-		_ = log.WriteByte('\n')
-		log.Unlock()
+		_ = logBuffer.WriteByte('\n')
+		logBuffer.Unlock()
 		urlQuery := r.URL.Query()
 		if v := urlQuery.Get("code"); v != "" {
 			location := ts.URL
@@ -462,9 +462,9 @@ func testRedirectsByMethod(t *testing.T, method string, table []redirectTest, wa
 			t.Errorf("POST %s: status code = %d; want %d", tt.suffix, res.StatusCode, tt.want)
 		}
 	}
-	log.Lock()
-	got := log.String()
-	log.Unlock()
+	logBuffer.Lock()
+	got := logBuffer.String()
+	logBuffer.Unlock()
 
 	got = strings.TrimSpace(got)
 	want = strings.TrimSpace(want)
@@ -1098,15 +1098,15 @@ func TestBasicAuth(t *testing.T) {
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 
-	url := "http://My%20User:My%20Pass@dummy.faketld/"
+	urlTest := "http://My%20User:My%20Pass@dummy.faketld/"
 	expected := "My User:My Pass"
-	_, _ = client.Get(url)
+	_, _ = client.Get(urlTest)
 
 	if tr.req.Method != "GET" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "GET")
 	}
-	if tr.req.URL.String() != url {
-		t.Errorf("got URL %q, want %q", tr.req.URL.String(), url)
+	if tr.req.URL.String() != urlTest {
+		t.Errorf("got URL %q, want %q", tr.req.URL.String(), urlTest)
 	}
 	if tr.req.Header == nil {
 		t.Fatalf("expected non-nil request Header")
@@ -1133,8 +1133,8 @@ func TestBasicAuthHeadersPreserved(t *testing.T) {
 	client := &Client{Transport: tr}
 
 	// If Authorization header is provided, username in URL should not override it
-	url := "http://My%20User@dummy.faketld/"
-	req, err := NewRequest("GET", url, nil)
+	urlTest := "http://My%20User@dummy.faketld/"
+	req, err := NewRequest("GET", urlTest, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1145,8 +1145,8 @@ func TestBasicAuthHeadersPreserved(t *testing.T) {
 	if tr.req.Method != "GET" {
 		t.Errorf("got method %q, want %q", tr.req.Method, "GET")
 	}
-	if tr.req.URL.String() != url {
-		t.Errorf("got URL %q, want %q", tr.req.URL.String(), url)
+	if tr.req.URL.String() != urlTest {
+		t.Errorf("got URL %q, want %q", tr.req.URL.String(), urlTest)
 	}
 	if tr.req.Header == nil {
 		t.Fatalf("expected non-nil request Header")
