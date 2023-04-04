@@ -43,12 +43,14 @@ func pedanticReadAll(r io.Reader) (b []byte, err error) {
 	for {
 		n, err := r.Read(buf)
 		if n == 0 && err == nil {
+			//goland:noinspection GoErrorStringFormat
 			return nil, fmt.Errorf("Read: n=0 with err=nil")
 		}
 		b = append(b, buf[:n]...)
 		if err == io.EOF {
 			n, err := r.Read(buf)
 			if n != 0 || err != io.EOF {
+				//goland:noinspection GoErrorStringFormat
 				return nil, fmt.Errorf("Read: n=%d err=%#v after EOF", n, err)
 			}
 			return b, nil
@@ -1492,8 +1494,11 @@ func (issue15577Tripper) RoundTrip(*Request) (*Response, error) {
 // Issue 15577: don't assume the roundtripper's response populates its Request field.
 func TestClientRedirectResponseWithoutRequest(t *testing.T) {
 	c := &Client{
-		CheckRedirect: func(*Request, []*Request) error { return fmt.Errorf("no redirects!") },
-		Transport:     issue15577Tripper{},
+		CheckRedirect: func(*Request, []*Request) error {
+			//goland:noinspection GoErrorStringFormat
+			return fmt.Errorf("no redirects!")
+		},
+		Transport: issue15577Tripper{},
 	}
 	// Check that this doesn't crash:
 	_, _ = c.Get("http://dummy.tld")
