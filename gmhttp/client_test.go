@@ -1294,6 +1294,7 @@ func TestClientTimeout_Headers_h1(t *testing.T) { testClientTimeout_Headers(t, h
 func TestClientTimeout_Headers_h2(t *testing.T) { testClientTimeout_Headers(t, h2Mode) }
 
 // Client.Timeout firing before getting to the body
+//goland:noinspection GoSnakeCaseUsage
 func testClientTimeout_Headers(t *testing.T, h2 bool) {
 	setParallel(t)
 	defer afterTest(t)
