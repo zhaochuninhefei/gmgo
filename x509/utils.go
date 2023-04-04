@@ -45,6 +45,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -57,7 +58,6 @@ import (
 	"strings"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
-	"gitee.com/zhaochuninhefei/gmgo/sm3"
 )
 
 // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
@@ -588,8 +588,8 @@ func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 	}
 	//Marshall the public key
 	raw := elliptic.Marshal(curve, x, y)
-	// Hash it 国密改造后改为sm3
-	hash := sm3.New()
+	// Hash it 计算ski一律使用SHA256
+	hash := sha256.New()
 	hash.Write(raw)
 	return hash.Sum(nil)
 }

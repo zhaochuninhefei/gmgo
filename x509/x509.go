@@ -40,6 +40,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -1065,6 +1066,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if sm2Opts, ok := opts.(*sm2.SM2SignerOption); ok {
 			_, err = pub.EcVerify(signed, signature, sm2Opts)
 			if err != nil {
+				zclog.ErrorStack("sm2 checkSignature 失败, 调用栈如下:")
 				return errors.New("x509: SM2 verification failure")
 			}
 		} else {
@@ -1096,6 +1098,8 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 				}
 			}
 			if !ecdsa.VerifyASN1(pub, signed, signature) {
+				zclog.ErrorStack("ecdsa checkSignature 失败, 调用栈如下:")
+				zclog.Errorf("x509: ECDSA verification failure, 公钥SKI: %s, 签名主体: %s, 签名: %s", CreateEllipticSKI(pub.Curve, pub.X, pub.Y), hex.EncodeToString(signed), hex.EncodeToString(signature))
 				return errors.New("x509: ECDSA verification failure")
 			}
 		} else {
@@ -1109,7 +1113,9 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if ecOpts, ok := opts.(ecbase.EcSignerOpts); ok {
 			_, err = pub.EcVerify(signed, signature, ecOpts)
 			if err != nil {
-				return fmt.Errorf("x509: ECDSA verification failure: %s", err.Error())
+				zclog.ErrorStack("ecdsa_ext checkSignature 失败, 调用栈如下:")
+				zclog.Errorf("x509: ECDSAEXT verification failure, 公钥SKI: %s, 签名主体: %s, 签名: %s", CreateEllipticSKI(pub.Curve, pub.X, pub.Y), hex.EncodeToString(signed), hex.EncodeToString(signature))
+				return fmt.Errorf("x509: ECDSAEXT verification failure: %s", err.Error())
 			}
 		} else {
 			return errors.New("x509: 内建签名算法列表中ecdsa的opts类型不正确")
@@ -1977,6 +1983,7 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 			}
 		}
 	}
+	zclog.Debugf("x509签名结果, 签名内容: %s, 签名: %s", hex.EncodeToString(signed), hex.EncodeToString(signature))
 	// 构建证书(证书主体 + 签名算法 + 签名)，并转为字节数组
 	signedCert, err := asn1.Marshal(certificate{
 		nil,
