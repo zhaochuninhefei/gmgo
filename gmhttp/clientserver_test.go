@@ -327,6 +327,7 @@ func TestH2_204NoBody(t *testing.T) { testH12_noBody(t, 204) }
 func TestH2_304NoBody(t *testing.T) { testH12_noBody(t, 304) }
 func TestH2_404NoBody(t *testing.T) { testH12_noBody(t, 404) }
 
+//goland:noinspection GoSnakeCaseUsage
 func testH12_noBody(t *testing.T, status int) {
 	h12Compare{Handler: func(w ResponseWriter, r *Request) {
 		w.WriteHeader(status)
