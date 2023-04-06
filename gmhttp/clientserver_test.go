@@ -52,7 +52,9 @@ func (t *clientServerTest) getURL(u string) string {
 	if err != nil {
 		t.t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	slurp, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.t.Fatal(err)
@@ -110,7 +112,7 @@ func newClientServerTest(t *testing.T, h2 bool, h Handler, opts ...interface{}) 
 		cst.ts.Start()
 		return cst
 	}
-	ExportHttp2ConfigureServer(cst.ts.Config, nil)
+	_ = ExportHttp2ConfigureServer(cst.ts.Config, nil)
 	cst.ts.TLS = cst.ts.Config.TLSConfig
 	cst.ts.StartTLS()
 
@@ -157,7 +159,7 @@ func testChunkedResponseHeaders(t *testing.T, h2 bool) {
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Length", "intentional gibberish") // we check that this is deleted
 		w.(Flusher).Flush()
-		fmt.Fprintf(w, "I am a chunked response.")
+		_, _ = fmt.Fprintf(w, "I am a chunked response.")
 	}))
 	defer cst.close()
 
@@ -165,7 +167,9 @@ func testChunkedResponseHeaders(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if g, e := res.ContentLength, int64(-1); g != e {
 		t.Errorf("expected ContentLength of %d; got %d", e, g)
 	}
@@ -268,7 +272,7 @@ func (tt h12Compare) normalizeRes(t *testing.T, res *Response, wantProto string)
 	}
 	slurp, err := io.ReadAll(res.Body)
 
-	res.Body.Close()
+	_ = res.Body.Close()
 	res.Body = slurpResult{
 		ReadCloser: io.NopCloser(bytes.NewReader(slurp)),
 		body:       slurp,
@@ -298,7 +302,7 @@ func TestH12_HeadContentLengthSmallBody(t *testing.T) {
 	h12Compare{
 		ReqFunc: (*Client).Head,
 		Handler: func(w ResponseWriter, r *Request) {
-			io.WriteString(w, "small")
+			_, _ = io.WriteString(w, "small")
 		},
 	}.run(t)
 }
@@ -309,7 +313,7 @@ func TestH12_HeadContentLengthLargeBody(t *testing.T) {
 		Handler: func(w ResponseWriter, r *Request) {
 			chunk := strings.Repeat("x", 512<<10)
 			for i := 0; i < 10; i++ {
-				io.WriteString(w, chunk)
+				_, _ = io.WriteString(w, chunk)
 			}
 		},
 	}.run(t)
@@ -331,29 +335,29 @@ func testH12_noBody(t *testing.T, status int) {
 
 func TestH12_SmallBody(t *testing.T) {
 	h12Compare{Handler: func(w ResponseWriter, r *Request) {
-		io.WriteString(w, "small body")
+		_, _ = io.WriteString(w, "small body")
 	}}.run(t)
 }
 
 func TestH12_ExplicitContentLength(t *testing.T) {
 	h12Compare{Handler: func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Length", "3")
-		io.WriteString(w, "foo")
+		_, _ = io.WriteString(w, "foo")
 	}}.run(t)
 }
 
 func TestH12_FlushBeforeBody(t *testing.T) {
 	h12Compare{Handler: func(w ResponseWriter, r *Request) {
 		w.(Flusher).Flush()
-		io.WriteString(w, "foo")
+		_, _ = io.WriteString(w, "foo")
 	}}.run(t)
 }
 
 func TestH12_FlushMidBody(t *testing.T) {
 	h12Compare{Handler: func(w ResponseWriter, r *Request) {
-		io.WriteString(w, "foo")
+		_, _ = io.WriteString(w, "foo")
 		w.(Flusher).Flush()
-		io.WriteString(w, "bar")
+		_, _ = io.WriteString(w, "bar")
 	}}.run(t)
 }
 
@@ -376,7 +380,7 @@ func TestH12_Head_ImplicitLen(t *testing.T) {
 			if r.Method != "HEAD" {
 				t.Errorf("unexpected method %q", r.Method)
 			}
-			io.WriteString(w, "foo")
+			_, _ = io.WriteString(w, "foo")
 		},
 	}.run(t)
 }
@@ -385,7 +389,7 @@ func TestH12_HandlerWritesTooLittle(t *testing.T) {
 	h12Compare{
 		Handler: func(w ResponseWriter, r *Request) {
 			w.Header().Set("Content-Length", "3")
-			io.WriteString(w, "12") // one byte short
+			_, _ = io.WriteString(w, "12") // one byte short
 		},
 		CheckResponse: func(proto string, res *Response) {
 			sr, ok := res.Body.(slurpResult)
@@ -414,7 +418,7 @@ func TestH12_HandlerWritesTooMuch(t *testing.T) {
 		Handler: func(w ResponseWriter, r *Request) {
 			w.Header().Set("Content-Length", "3")
 			w.(Flusher).Flush()
-			io.WriteString(w, "123")
+			_, _ = io.WriteString(w, "123")
 			w.(Flusher).Flush()
 			n, err := io.WriteString(w, "x") // too many
 			if n > 0 || err == nil {
@@ -434,8 +438,8 @@ func TestH12_AutoGzip(t *testing.T) {
 			}
 			w.Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(w)
-			io.WriteString(gz, "I am some gzipped content. Go go go go go go go go go go go go should compress well.")
-			gz.Close()
+			_, _ = io.WriteString(gz, "I am some gzipped content. Go go go go go go go go go go go go should compress well.")
+			_ = gz.Close()
 		},
 	}.run(t)
 }
@@ -446,7 +450,7 @@ func TestH12_AutoGzip_Disabled(t *testing.T) {
 			func(tr *Transport) { tr.DisableCompression = true },
 		},
 		Handler: func(w ResponseWriter, r *Request) {
-			fmt.Fprintf(w, "%q", r.Header["Accept-Encoding"])
+			_, _ = fmt.Fprintf(w, "%q", r.Header["Accept-Encoding"])
 			if ae := r.Header.Get("Accept-Encoding"); ae != "" {
 				t.Errorf("%s Accept-Encoding = %q; want empty", r.Proto, ae)
 			}
@@ -490,7 +494,7 @@ func TestH12_ServerEmptyContentLength(t *testing.T) {
 	h12Compare{
 		Handler: func(w ResponseWriter, r *Request) {
 			w.Header()["Content-Type"] = []string{""}
-			io.WriteString(w, "<html><body>hi</body></html>")
+			_, _ = io.WriteString(w, "<html><body>hi</body></html>")
 		},
 	}.run(t)
 }
@@ -511,7 +515,7 @@ func h12requestContentLength(t *testing.T, bodyfn func() io.Reader, wantLen int6
 	h12Compare{
 		Handler: func(w ResponseWriter, r *Request) {
 			w.Header().Set("Got-Length", fmt.Sprint(r.ContentLength))
-			fmt.Fprintf(w, "Req.ContentLength=%v", r.ContentLength)
+			_, _ = fmt.Fprintf(w, "Req.ContentLength=%v", r.ContentLength)
 		},
 		ReqFunc: func(c *Client, url string) (*Response, error) {
 			return c.Post(url, "text/plain", bodyfn())
@@ -533,11 +537,11 @@ func testCancelRequestMidBody(t *testing.T, h2 bool) {
 	unblock := make(chan bool)
 	didFlush := make(chan bool, 1)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.WriteString(w, "Hello")
+		_, _ = io.WriteString(w, "Hello")
 		w.(Flusher).Flush()
 		didFlush <- true
 		<-unblock
-		io.WriteString(w, ", world.")
+		_, _ = io.WriteString(w, ", world.")
 	}))
 	defer cst.close()
 	defer close(unblock)
@@ -550,7 +554,9 @@ func testCancelRequestMidBody(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	<-didFlush
 
 	// Read a bit before we cancel. (Issue 13626)
@@ -595,9 +601,9 @@ func testTrailersClientToServer(t *testing.T, h2 bool) {
 			t.Errorf("Server read request body %q; want foo", slurp)
 		}
 		if r.Trailer == nil {
-			io.WriteString(w, "nil Trailer")
+			_, _ = io.WriteString(w, "nil Trailer")
 		} else {
-			fmt.Fprintf(w, "decl: %v, vals: %s, %s",
+			_, _ = fmt.Fprintf(w, "decl: %v, vals: %s, %s",
 				decl,
 				r.Trailer.Get("Client-Trailer-A"),
 				r.Trailer.Get("Client-Trailer-B"))
@@ -642,7 +648,7 @@ func testTrailersServerToClient(t *testing.T, h2, flush bool) {
 		w.Header().Set("Trailer", "Server-Trailer-A, Server-Trailer-B")
 		w.Header().Add("Trailer", "Server-Trailer-C")
 
-		io.WriteString(w, body)
+		_, _ = io.WriteString(w, body)
 		if flush {
 			w.(Flusher).Flush()
 		}
@@ -713,14 +719,14 @@ func testResponseBodyReadAfterClose(t *testing.T, h2 bool) {
 	defer afterTest(t)
 	const body = "Some body"
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.WriteString(w, body)
+		_, _ = io.WriteString(w, body)
 	}))
 	defer cst.close()
 	res, err := cst.c.Get(cst.ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	data, err := io.ReadAll(res.Body)
 	if len(data) != 0 || err == nil {
 		t.Fatalf("ReadAll returned %q, %v; want error", data, err)
@@ -759,7 +765,7 @@ func testConcurrentReadWriteReqBody(t *testing.T, h2 bool) {
 				// relaxed, change this.
 				<-didRead
 			}
-			io.WriteString(w, resBody)
+			_, _ = io.WriteString(w, resBody)
 		}()
 		wg.Wait()
 	}))
@@ -771,7 +777,9 @@ func testConcurrentReadWriteReqBody(t *testing.T, h2 bool) {
 		t.Fatal(err)
 	}
 	data, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -824,7 +832,7 @@ func testConnectRequest(t *testing.T, h2 bool) {
 			t.Errorf("%d. RoundTrip = %v", i, err)
 			continue
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		req := <-gotc
 		if req.Method != "CONNECT" {
 			t.Errorf("method = %q; want CONNECT", req.Method)
@@ -843,7 +851,7 @@ func TestTransportUserAgent_h2(t *testing.T) { testTransportUserAgent(t, h2Mode)
 func testTransportUserAgent(t *testing.T, h2 bool) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "%q", r.Header["User-Agent"])
+		_, _ = fmt.Fprintf(w, "%q", r.Header["User-Agent"])
 	}))
 	defer cst.close()
 
@@ -888,7 +896,7 @@ func testTransportUserAgent(t *testing.T, h2 bool) {
 			continue
 		}
 		slurp, err := io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if err != nil {
 			t.Errorf("%d. read body = %v", i, err)
 			continue
@@ -929,7 +937,7 @@ func testStarRequest(t *testing.T, method string, h2 bool) {
 	if err != nil {
 		t.Fatalf("RoundTrip = %v", err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	wantFoo := "bar"
 	wantLen := int64(-1)
@@ -973,7 +981,7 @@ func TestTransportDiscardsUnneededConns(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "Hello, %v", r.RemoteAddr)
+		_, _ = fmt.Fprintf(w, "Hello, %v", r.RemoteAddr)
 	}))
 	defer cst.close()
 
@@ -1018,7 +1026,9 @@ func TestTransportDiscardsUnneededConns(t *testing.T) {
 					return
 				}
 			}
-			defer resp.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(resp.Body)
 			slurp, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Error(err)
@@ -1064,9 +1074,9 @@ func testTransportGCRequest(t *testing.T, h2, body bool) {
 	setParallel(t)
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.ReadAll(r.Body)
+		_, _ = io.ReadAll(r.Body)
 		if body {
-			io.WriteString(w, "Hello.")
+			_, _ = io.WriteString(w, "Hello.")
 		}
 	}))
 	defer cst.close()
@@ -1111,7 +1121,7 @@ func testTransportRejectsInvalidHeaders(t *testing.T, h2 bool) {
 	setParallel(t)
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "Handler saw headers: %q", r.Header)
+		_, _ = fmt.Fprintf(w, "Handler saw headers: %q", r.Header)
 	}), optQuietLog)
 	defer cst.close()
 	cst.tr.DisableKeepAlives = true
@@ -1142,7 +1152,7 @@ func testTransportRejectsInvalidHeaders(t *testing.T, h2 bool) {
 		var body []byte
 		if err == nil {
 			body, _ = io.ReadAll(res.Body)
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 		var dialed bool
 		select {
@@ -1180,7 +1190,7 @@ func testInterruptWithPanic(t *testing.T, h2 bool, panicValue interface{}) {
 	var errorLog lockedBytesBuffer
 	gotHeaders := make(chan bool, 1)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		w.(Flusher).Flush()
 
 		select {
@@ -1197,7 +1207,9 @@ func testInterruptWithPanic(t *testing.T, h2 bool, panicValue interface{}) {
 		t.Fatal(err)
 	}
 	gotHeaders <- true
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	slurp, err := io.ReadAll(res.Body)
 	if string(slurp) != msg {
 		t.Errorf("client read %q; want %q", slurp, msg)
@@ -1250,7 +1262,7 @@ func TestH12_AutoGzipWithDumpResponse(t *testing.T) {
 			h := w.Header()
 			h.Set("Content-Encoding", "gzip")
 			h.Set("Content-Length", "23")
-			io.WriteString(w, "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\x00s\xf3\xf7\a\x00\xab'\xd4\x1a\x03\x00\x00\x00")
+			_, _ = io.WriteString(w, "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\x00s\xf3\xf7\a\x00\xab'\xd4\x1a\x03\x00\x00\x00")
 		},
 		EarlyCheckResponse: func(proto string, res *Response) {
 			if !res.Uncompressed {
@@ -1286,7 +1298,7 @@ func testCloseIdleConnections(t *testing.T, h2 bool) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		v := res.Header.Get("X-Addr")
 		if v == "" {
 			t.Fatal("didn't get X-Addr")
@@ -1341,7 +1353,9 @@ func testNoSniffExpectRequestBody(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != StatusUnauthorized {
 		t.Errorf("status code = %v; want %v", res.StatusCode, StatusUnauthorized)
 	}
@@ -1366,7 +1380,7 @@ func testServerUndeclaredTrailers(t *testing.T, h2 bool) {
 	if _, err := io.Copy(io.Discard, res.Body); err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	delete(res.Header, "Date")
 	delete(res.Header, "Content-Type")
 
@@ -1389,15 +1403,17 @@ func TestBadResponseAfterReadingBody(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
-		fmt.Fprintln(c, "some bogus crap")
+		defer func(c net.Conn) {
+			_ = c.Close()
+		}(c)
+		_, _ = fmt.Fprintln(c, "some bogus crap")
 	}))
 	defer cst.close()
 
 	closes := 0
 	res, err := cst.c.Post(cst.ts.URL, "text/plain", countCloseReader{&closes, strings.NewReader("hello")})
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("expected an error to be returned from Post")
 	}
 	if closes != 1 {
@@ -1455,16 +1471,18 @@ func testWriteHeaderAfterWrite(t *testing.T, h2, hijack bool) {
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
 		if hijack {
 			conn, _, _ := w.(Hijacker).Hijack()
-			defer conn.Close()
-			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nfoo"))
+			defer func(conn net.Conn) {
+				_ = conn.Close()
+			}(conn)
+			_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nfoo"))
 			w.WriteHeader(0) // verify this doesn't panic if there's already output; Issue 23010
-			conn.Write([]byte("bar"))
+			_, _ = conn.Write([]byte("bar"))
 			return
 		}
-		io.WriteString(w, "foo")
+		_, _ = io.WriteString(w, "foo")
 		w.(Flusher).Flush()
 		w.WriteHeader(0) // verify this doesn't panic if there's already output; Issue 23010
-		io.WriteString(w, "bar")
+		_, _ = io.WriteString(w, "bar")
 	}), func(ts *httptest.Server) {
 		ts.Config.ErrorLog = log.New(&errorLog, "", 0)
 	})
@@ -1473,7 +1491,9 @@ func testWriteHeaderAfterWrite(t *testing.T, h2, hijack bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -1528,7 +1548,9 @@ func TestBidiStreamReverseProxy(t *testing.T) {
 	go func() {
 		h := sha1.New()
 		_, err := io.CopyN(io.MultiWriter(h, pw), rand.Reader, size)
-		go pw.Close()
+		go func() {
+			_ = pw.Close()
+		}()
 		if err != nil {
 			bodyRes <- err
 		} else {
@@ -1539,7 +1561,9 @@ func TestBidiStreamReverseProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	hgot := sha1.New()
 	n, err := io.Copy(hgot, res.Body)
 	if err != nil {
@@ -1602,7 +1626,7 @@ func testIdentityTransferEncoding(t *testing.T, h2 bool) {
 		w.Header().Set("Transfer-Encoding", "identity")
 		w.WriteHeader(StatusOK)
 		w.(Flusher).Flush()
-		io.WriteString(w, body)
+		_, _ = io.WriteString(w, body)
 	}))
 	defer cst.close()
 	req, _ := NewRequest("GET", cst.ts.URL, strings.NewReader(body))
@@ -1610,7 +1634,9 @@ func testIdentityTransferEncoding(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	gotBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
