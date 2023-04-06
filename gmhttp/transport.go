@@ -158,7 +158,7 @@ type Transport struct {
 	// DialTLS specifies an optional dial function for creating
 	// TLS connections for non-proxied HTTPS requests.
 	//
-	// Deprecated: Use DialTLSContext instead, which allows the transport
+	// ToDeprecated: Use DialTLSContext instead, which allows the transport
 	// to cancel dials as soon as they are no longer needed.
 	// If both are set, DialTLSContext takes priority.
 	DialTLS func(network, addr string) (net.Conn, error)
