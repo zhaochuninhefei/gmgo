@@ -1050,13 +1050,13 @@ func TestTransportDiscardsUnneededConns(t *testing.T) {
 		}
 	}
 
-	var open, close int32
+	var open, closeTmp int32
 	for i := 0; i < 150; i++ {
-		open, close = atomic.LoadInt32(&numOpen), atomic.LoadInt32(&numClose)
+		open, closeTmp = atomic.LoadInt32(&numOpen), atomic.LoadInt32(&numClose)
 		if open < 1 {
 			t.Fatalf("open = %d; want at least", open)
 		}
-		if close == open-1 {
+		if closeTmp == open-1 {
 			// Success
 			return
 		}
