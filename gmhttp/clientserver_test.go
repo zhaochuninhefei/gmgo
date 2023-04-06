@@ -1063,6 +1063,8 @@ func TestTransportDiscardsUnneededConns(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+
+	//goland:noinspection GoPrintFunctions
 	t.Errorf("%d connections opened, %d closed; want %d to close", open, close, open-1)
 }
 
