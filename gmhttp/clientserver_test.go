@@ -1325,6 +1325,7 @@ func (x noteCloseConn) Close() error {
 
 type testErrorReader struct{ t *testing.T }
 
+//goland:noinspection GoUnusedParameter
 func (r testErrorReader) Read(p []byte) (n int, err error) {
 	r.t.Error("unexpected Read call")
 	return 0, io.EOF
