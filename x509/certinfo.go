@@ -533,12 +533,13 @@ func CertificateText(cert *Certificate) (string, error) {
 			} else if ext.Id.Equal(oidExtensionSignatureAlgorithm) {
 				// SignatureAlgorithm反序列化操作
 				signAlg := SignatureAlgorithm(binary.BigEndian.Uint32(ext.Value))
-				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signature Algorithm:", ""))
+				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signature Algorithm:\n", ""))
 				if signAlg > 0 {
-					buf.WriteString(fmt.Sprintf(" %s\n", signAlg.String()))
+					buf.WriteString(fmt.Sprintf("%16s%s\n", "", signAlg.String()))
 				}
 			} else {
-				buf.WriteString(fmt.Sprintf("%12sUnknown extension %s\n", "", ext.Id.String()))
+				// 输出未知扩展属性
+				buf.WriteString(fmt.Sprintf("%12sUnknown extension %s\n%16s%s\n", "", ext.Id.String(), "", string(ext.Value)))
 			}
 		}
 		buf.WriteString("\n")
