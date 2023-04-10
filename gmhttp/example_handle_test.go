@@ -22,7 +22,7 @@ func (h *countHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.n++
-	fmt.Fprintf(w, "count is %d\n", h.n)
+	_, _ = fmt.Fprintf(w, "count is %d\n", h.n)
 }
 
 func ExampleHandle() {
