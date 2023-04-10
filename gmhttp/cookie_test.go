@@ -219,6 +219,7 @@ var addCookieTests = []struct {
 
 func TestAddCookie(t *testing.T) {
 	for i, tt := range addCookieTests {
+		//goland:noinspection HttpUrlsUsage
 		req, _ := NewRequest("GET", "http://example.com/", nil)
 		for _, c := range tt.Cookies {
 			req.AddCookie(c)
