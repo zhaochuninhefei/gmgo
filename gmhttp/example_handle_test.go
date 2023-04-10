@@ -17,6 +17,7 @@ type countHandler struct {
 	n  int
 }
 
+//goland:noinspection GoUnusedParameter
 func (h *countHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
