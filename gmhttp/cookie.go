@@ -107,8 +107,8 @@ func readSetCookies(h Header) []*Cookie {
 
 			switch lowerAttr {
 			case "samesite":
-				lowerVal, ascii := ascii.ToLower(val)
-				if !ascii {
+				lowerVal, asciiOk := ascii.ToLower(val)
+				if !asciiOk {
 					c.SameSite = SameSiteDefaultMode
 					continue
 				}
