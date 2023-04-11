@@ -264,10 +264,10 @@ func ExportHttp2ConfigureTransport(t *Transport) error {
 	return nil
 }
 
-func (s *Server) ExportAllConnsIdle() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for c := range s.activeConn {
+func (srv *Server) ExportAllConnsIdle() bool {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	for c := range srv.activeConn {
 		st, unixSec := c.getState()
 		if unixSec == 0 || st != StateIdle {
 			return false
@@ -276,11 +276,11 @@ func (s *Server) ExportAllConnsIdle() bool {
 	return true
 }
 
-func (s *Server) ExportAllConnsByState() map[ConnState]int {
+func (srv *Server) ExportAllConnsByState() map[ConnState]int {
 	states := map[ConnState]int{}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for c := range s.activeConn {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	for c := range srv.activeConn {
 		st, _ := c.getState()
 		states[st] += 1
 	}
