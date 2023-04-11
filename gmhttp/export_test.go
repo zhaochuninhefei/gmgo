@@ -306,7 +306,7 @@ func ExportCloseTransportConnsAbruptly(tr *Transport) {
 	tr.idleMu.Lock()
 	for _, pcs := range tr.idleConn {
 		for _, pc := range pcs {
-			pc.conn.Close()
+			_ = pc.conn.Close()
 		}
 	}
 	tr.idleMu.Unlock()
