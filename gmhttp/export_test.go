@@ -18,6 +18,7 @@ import (
 	"time"
 )
 
+//goland:noinspection GoSnakeCaseUsage
 var (
 	DefaultUserAgent                  = defaultUserAgent
 	NewLoggingConn                    = newLoggingConn
@@ -141,6 +142,7 @@ func (t *Transport) IdleConnStrsForTesting() []string {
 	return ret
 }
 
+//goland:noinspection GoSnakeCaseUsage
 func (t *Transport) IdleConnStrsForTesting_h2() []string {
 	var ret []string
 	noDialPool := t.h2transport.(*http2Transport).ConnPool.(http2noDialClientConnPool)
