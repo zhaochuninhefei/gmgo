@@ -2630,27 +2630,27 @@ type Server struct {
 	onShutdown []func()
 }
 
-func (s *Server) getDoneChan() <-chan struct{} {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.getDoneChanLocked()
+func (srv *Server) getDoneChan() <-chan struct{} {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	return srv.getDoneChanLocked()
 }
 
-func (s *Server) getDoneChanLocked() chan struct{} {
-	if s.doneChan == nil {
-		s.doneChan = make(chan struct{})
+func (srv *Server) getDoneChanLocked() chan struct{} {
+	if srv.doneChan == nil {
+		srv.doneChan = make(chan struct{})
 	}
-	return s.doneChan
+	return srv.doneChan
 }
 
-func (s *Server) closeDoneChanLocked() {
-	ch := s.getDoneChanLocked()
+func (srv *Server) closeDoneChanLocked() {
+	ch := srv.getDoneChanLocked()
 	select {
 	case <-ch:
 		// Already closed. Don't close again.
 	default:
 		// Safe to close here. We're the only closer, guarded
-		// by s.mu.
+		// by srv.mu.
 		close(ch)
 	}
 }
@@ -2755,41 +2755,41 @@ func (srv *Server) RegisterOnShutdown(f func()) {
 	srv.mu.Unlock()
 }
 
-func (s *Server) numListeners() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return len(s.listeners)
+func (srv *Server) numListeners() int {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	return len(srv.listeners)
 }
 
 // closeIdleConns closes all idle connections and reports whether the
 // server is quiescent.
-func (s *Server) closeIdleConns() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (srv *Server) closeIdleConns() bool {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
 	quiescent := true
-	for c := range s.activeConn {
+	for c := range srv.activeConn {
 		st, unixSec := c.getState()
 		// Issue 22682: treat StateNew connections as if
-		// they're idle if we haven't read the first request's
+		// they're idle if we haven't read the first request'srv
 		// header in over 5 seconds.
 		if st == StateNew && unixSec < time.Now().Unix()-5 {
 			st = StateIdle
 		}
 		if st != StateIdle || unixSec == 0 {
-			// Assume unixSec == 0 means it's a very new
+			// Assume unixSec == 0 means it'srv a very new
 			// connection, without state set yet.
 			quiescent = false
 			continue
 		}
 		c.rwc.Close()
-		delete(s.activeConn, c)
+		delete(srv.activeConn, c)
 	}
 	return quiescent
 }
 
-func (s *Server) closeListenersLocked() error {
+func (srv *Server) closeListenersLocked() error {
 	var err error
-	for ln := range s.listeners {
+	for ln := range srv.listeners {
 		if cerr := (*ln).Close(); cerr != nil && err == nil {
 			err = cerr
 		}
@@ -3084,56 +3084,56 @@ func (srv *Server) ServeTLS(l net.Listener, certFile, keyFile string) error {
 // Listener from another caller.
 //
 // It reports whether the server is still up (not Shutdown or Closed).
-func (s *Server) trackListener(ln *net.Listener, add bool) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.listeners == nil {
-		s.listeners = make(map[*net.Listener]struct{})
+func (srv *Server) trackListener(ln *net.Listener, add bool) bool {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	if srv.listeners == nil {
+		srv.listeners = make(map[*net.Listener]struct{})
 	}
 	if add {
-		if s.shuttingDown() {
+		if srv.shuttingDown() {
 			return false
 		}
-		s.listeners[ln] = struct{}{}
+		srv.listeners[ln] = struct{}{}
 	} else {
-		delete(s.listeners, ln)
+		delete(srv.listeners, ln)
 	}
 	return true
 }
 
-func (s *Server) trackConn(c *conn, add bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.activeConn == nil {
-		s.activeConn = make(map[*conn]struct{})
+func (srv *Server) trackConn(c *conn, add bool) {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	if srv.activeConn == nil {
+		srv.activeConn = make(map[*conn]struct{})
 	}
 	if add {
-		s.activeConn[c] = struct{}{}
+		srv.activeConn[c] = struct{}{}
 	} else {
-		delete(s.activeConn, c)
+		delete(srv.activeConn, c)
 	}
 }
 
-func (s *Server) idleTimeout() time.Duration {
-	if s.IdleTimeout != 0 {
-		return s.IdleTimeout
+func (srv *Server) idleTimeout() time.Duration {
+	if srv.IdleTimeout != 0 {
+		return srv.IdleTimeout
 	}
-	return s.ReadTimeout
+	return srv.ReadTimeout
 }
 
-func (s *Server) readHeaderTimeout() time.Duration {
-	if s.ReadHeaderTimeout != 0 {
-		return s.ReadHeaderTimeout
+func (srv *Server) readHeaderTimeout() time.Duration {
+	if srv.ReadHeaderTimeout != 0 {
+		return srv.ReadHeaderTimeout
 	}
-	return s.ReadTimeout
+	return srv.ReadTimeout
 }
 
-func (s *Server) doKeepAlives() bool {
-	return atomic.LoadInt32(&s.disableKeepAlives) == 0 && !s.shuttingDown()
+func (srv *Server) doKeepAlives() bool {
+	return atomic.LoadInt32(&srv.disableKeepAlives) == 0 && !srv.shuttingDown()
 }
 
-func (s *Server) shuttingDown() bool {
-	return s.inShutdown.isSet()
+func (srv *Server) shuttingDown() bool {
+	return srv.inShutdown.isSet()
 }
 
 // SetKeepAlivesEnabled controls whether HTTP keep-alives are enabled.
@@ -3153,9 +3153,9 @@ func (srv *Server) SetKeepAlivesEnabled(v bool) {
 	// TODO: Issue 26303: close HTTP/2 conns as soon as they become idle.
 }
 
-func (s *Server) logf(format string, args ...interface{}) {
-	if s.ErrorLog != nil {
-		s.ErrorLog.Printf(format, args...)
+func (srv *Server) logf(format string, args ...interface{}) {
+	if srv.ErrorLog != nil {
+		srv.ErrorLog.Printf(format, args...)
 	} else {
 		log.Printf(format, args...)
 	}
