@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 
@@ -28,16 +29,18 @@ func ExampleHijacker() {
 			return
 		}
 		// Don't forget to close the connection:
-		defer conn.Close()
-		bufrw.WriteString("Now we're speaking raw TCP. Say hi: ")
-		bufrw.Flush()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
+		_, _ = bufrw.WriteString("Now we're speaking raw TCP. Say hi: ")
+		_ = bufrw.Flush()
 		s, err := bufrw.ReadString('\n')
 		if err != nil {
 			log.Printf("error reading string: %v", err)
 			return
 		}
-		fmt.Fprintf(bufrw, "You said: %q\nBye.\n", s)
-		bufrw.Flush()
+		_, _ = fmt.Fprintf(bufrw, "You said: %q\nBye.\n", s)
+		_ = bufrw.Flush()
 	})
 }
 
@@ -47,7 +50,7 @@ func ExampleGet() {
 		log.Fatal(err)
 	}
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
@@ -90,7 +93,7 @@ func ExampleServeMux_Handle() {
 			http.NotFound(w, req)
 			return
 		}
-		fmt.Fprintf(w, "Welcome to the home page!")
+		_, _ = fmt.Fprintf(w, "Welcome to the home page!")
 	})
 }
 
@@ -110,7 +113,7 @@ func ExampleResponseWriter_trailers() {
 		w.WriteHeader(http.StatusOK)
 
 		w.Header().Set("AtEnd1", "value 1")
-		io.WriteString(w, "This HTTP response has both headers before this text and trailers at the end.\n")
+		_, _ = io.WriteString(w, "This HTTP response has both headers before this text and trailers at the end.\n")
 		w.Header().Set("AtEnd2", "value 2")
 		w.Header().Set("AtEnd3", "value 3") // These will appear as trailers.
 	})
@@ -143,7 +146,7 @@ func ExampleServer_Shutdown() {
 
 func ExampleListenAndServeTLS() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		io.WriteString(w, "Hello, TLS!\n")
+		_, _ = io.WriteString(w, "Hello, TLS!\n")
 	})
 
 	// One can use generate_cert.go in crypto/tls to generate cert.pem and key.pem.
@@ -156,7 +159,7 @@ func ExampleListenAndServe() {
 	// Hello world, the web server
 
 	helloHandler := func(w http.ResponseWriter, req *http.Request) {
-		io.WriteString(w, "Hello, world!\n")
+		_, _ = io.WriteString(w, "Hello, world!\n")
 	}
 
 	http.HandleFunc("/hello", helloHandler)
@@ -165,10 +168,10 @@ func ExampleListenAndServe() {
 
 func ExampleHandleFunc() {
 	h1 := func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, "Hello from a HandleFunc #1!\n")
+		_, _ = io.WriteString(w, "Hello from a HandleFunc #1!\n")
 	}
 	h2 := func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, "Hello from a HandleFunc #2!\n")
+		_, _ = io.WriteString(w, "Hello from a HandleFunc #2!\n")
 	}
 
 	http.HandleFunc("/", h1)
@@ -179,7 +182,7 @@ func ExampleHandleFunc() {
 
 func newPeopleHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "This is the people handler.")
+		_, _ = fmt.Fprintln(w, "This is the people handler.")
 	})
 }
 
