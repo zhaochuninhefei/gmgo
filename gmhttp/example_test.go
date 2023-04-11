@@ -45,6 +45,7 @@ func ExampleHijacker() {
 }
 
 func ExampleGet() {
+	//goland:noinspection HttpUrlsUsage
 	res, err := http.Get("http://www.google.com/robots.txt")
 	if err != nil {
 		log.Fatal(err)
