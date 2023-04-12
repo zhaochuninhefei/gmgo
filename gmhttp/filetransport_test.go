@@ -27,7 +27,9 @@ func TestFileTransport(t *testing.T) {
 	fname := filepath.Join(dname, "foo.txt")
 	err := os.WriteFile(fname, []byte("Bar"), 0644)
 	check("WriteFile", err)
-	defer os.Remove(fname)
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(fname)
 
 	tr := &Transport{}
 	tr.RegisterProtocol("file", NewFileTransport(Dir(dname)))
@@ -47,7 +49,7 @@ func TestFileTransport(t *testing.T) {
 			t.Fatalf("for %s, nil Body", urlstr)
 		}
 		slurp, err := io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		check("ReadAll "+urlstr, err)
 		if string(slurp) != "Bar" {
 			t.Errorf("for %s, got content %q, want %q", urlstr, string(slurp), "Bar")
@@ -60,5 +62,5 @@ func TestFileTransport(t *testing.T) {
 	if res.StatusCode != 404 {
 		t.Errorf("for %s, StatusCode = %d, want 404", badURL, res.StatusCode)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
