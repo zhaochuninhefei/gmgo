@@ -82,7 +82,7 @@ func (pr *populateResponse) finish() {
 	if !pr.sentResponse {
 		pr.sendResponse()
 	}
-	pr.pw.Close()
+	_ = pr.pw.Close()
 }
 
 func (pr *populateResponse) sendResponse() {
