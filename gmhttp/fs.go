@@ -158,8 +158,8 @@ func dirList(w ResponseWriter, r *Request, f File) {
 		// name may contain '?' or '#', which must be escaped to remain
 		// part of the URL path, and not indicate the start of a query
 		// string or fragment.
-		url := url.URL{Path: name}
-		_, _ = fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n", url.String(), htmlReplacer.Replace(name))
+		urlNew := url.URL{Path: name}
+		_, _ = fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n", urlNew.String(), htmlReplacer.Replace(name))
 	}
 	_, _ = fmt.Fprintf(w, "</pre>\n")
 }
@@ -616,25 +616,25 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 	if redirect {
 		// redirect to canonical path: / at end of directory url
 		// r.URL.Path always begins with /
-		url := r.URL.Path
+		urlR := r.URL.Path
 		if d.IsDir() {
-			if url[len(url)-1] != '/' {
-				localRedirect(w, r, path.Base(url)+"/")
+			if urlR[len(urlR)-1] != '/' {
+				localRedirect(w, r, path.Base(urlR)+"/")
 				return
 			}
 		} else {
-			if url[len(url)-1] == '/' {
-				localRedirect(w, r, "../"+path.Base(url))
+			if urlR[len(urlR)-1] == '/' {
+				localRedirect(w, r, "../"+path.Base(urlR))
 				return
 			}
 		}
 	}
 
 	if d.IsDir() {
-		url := r.URL.Path
+		urlR := r.URL.Path
 		// redirect if the directory name doesn't end in a slash
-		if url == "" || url[len(url)-1] != '/' {
-			localRedirect(w, r, path.Base(url)+"/")
+		if urlR == "" || urlR[len(urlR)-1] != '/' {
+			localRedirect(w, r, path.Base(urlR)+"/")
 			return
 		}
 
