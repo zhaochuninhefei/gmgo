@@ -149,7 +149,7 @@ func dirList(w ResponseWriter, r *Request, f File) {
 	sort.Slice(dirs, func(i, j int) bool { return dirs.name(i) < dirs.name(j) })
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, "<pre>\n")
+	_, _ = fmt.Fprintf(w, "<pre>\n")
 	for i, n := 0, dirs.len(); i < n; i++ {
 		name := dirs.name(i)
 		if dirs.isDir(i) {
@@ -159,9 +159,9 @@ func dirList(w ResponseWriter, r *Request, f File) {
 		// part of the URL path, and not indicate the start of a query
 		// string or fragment.
 		url := url.URL{Path: name}
-		fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n", url.String(), htmlReplacer.Replace(name))
+		_, _ = fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n", url.String(), htmlReplacer.Replace(name))
 	}
-	fmt.Fprintf(w, "</pre>\n")
+	_, _ = fmt.Fprintf(w, "</pre>\n")
 }
 
 // ServeContent replies to the request using the content in the
@@ -303,25 +303,27 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 			mw := multipart.NewWriter(pw)
 			w.Header().Set("Content-Type", "multipart/byteranges; boundary="+mw.Boundary())
 			sendContent = pr
-			defer pr.Close() // cause writing goroutine to fail and exit if CopyN doesn't finish.
+			defer func(pr *io.PipeReader) {
+				_ = pr.Close()
+			}(pr) // cause writing goroutine to fail and exit if CopyN doesn't finish.
 			go func() {
 				for _, ra := range ranges {
 					part, err := mw.CreatePart(ra.mimeHeader(ctype, size))
 					if err != nil {
-						pw.CloseWithError(err)
+						_ = pw.CloseWithError(err)
 						return
 					}
 					if _, err := content.Seek(ra.start, io.SeekStart); err != nil {
-						pw.CloseWithError(err)
+						_ = pw.CloseWithError(err)
 						return
 					}
 					if _, err := io.CopyN(part, content, ra.length); err != nil {
-						pw.CloseWithError(err)
+						_ = pw.CloseWithError(err)
 						return
 					}
 				}
-				mw.Close()
-				pw.Close()
+				_ = mw.Close()
+				_ = pw.Close()
 			}()
 		}
 
@@ -334,7 +336,7 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 	w.WriteHeader(code)
 
 	if r.Method != "HEAD" {
-		io.CopyN(w, sendContent, sendSize)
+		_, _ = io.CopyN(w, sendContent, sendSize)
 	}
 }
 
@@ -600,7 +602,9 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 		Error(w, msg, code)
 		return
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 
 	d, err := f.Stat()
 	if err != nil {
@@ -638,7 +642,9 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 		index := strings.TrimSuffix(name, "/") + indexPage
 		ff, err := fs.Open(index)
 		if err == nil {
-			defer ff.Close()
+			defer func(ff File) {
+				_ = ff.Close()
+			}(ff)
 			dd, err := ff.Stat()
 			if err == nil {
 				name = index
@@ -954,10 +960,10 @@ func rangesMIMESize(ranges []httpRange, contentType string, contentSize int64) (
 	var w countingWriter
 	mw := multipart.NewWriter(&w)
 	for _, ra := range ranges {
-		mw.CreatePart(ra.mimeHeader(contentType, contentSize))
+		_, _ = mw.CreatePart(ra.mimeHeader(contentType, contentSize))
 		encSize += ra.length
 	}
-	mw.Close()
+	_ = mw.Close()
 	encSize += int64(w)
 	return
 }
