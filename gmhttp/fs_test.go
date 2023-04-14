@@ -267,6 +267,7 @@ func TestFileServerCleans(t *testing.T) {
 		{"//foo.txt", "/foo.txt"},
 		{"/../foo.txt", "/foo.txt"},
 	}
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://example.com", nil)
 	for n, test := range tests {
 		rec := httptest.NewRecorder()
@@ -1110,6 +1111,7 @@ func TestServeContent(t *testing.T) {
 // Issue 12991
 func TestServerFileStatError(t *testing.T) {
 	rec := httptest.NewRecorder()
+	//goland:noinspection HttpUrlsUsage
 	r, _ := NewRequest("GET", "http://foo/", nil)
 	name := "file.txt"
 	f := issue12991FS{}
@@ -1202,6 +1204,7 @@ func TestLinuxSendfile(t *testing.T) {
 		t.Skipf("skipping; failed to start straced child: %v", err)
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	res, err := Get(fmt.Sprintf("http://%s/%s", ln.Addr(), filename))
 	if err != nil {
 		t.Fatalf("http client error: %v", err)
@@ -1213,6 +1216,7 @@ func TestLinuxSendfile(t *testing.T) {
 	_ = res.Body.Close()
 
 	// Force child to exit cleanly.
+	//goland:noinspection HttpUrlsUsage
 	_, _ = Post(fmt.Sprintf("http://%s/quit", ln.Addr()), "", nil)
 	_ = child.Wait()
 
