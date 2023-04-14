@@ -1057,6 +1057,7 @@ func TestServeContent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("test %q: %v", testName, err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(f *os.File) {
 				_ = f.Close()
 			}(f)
