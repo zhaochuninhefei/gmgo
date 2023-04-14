@@ -1111,10 +1111,9 @@ func TestServeContent(t *testing.T) {
 func TestServerFileStatError(t *testing.T) {
 	rec := httptest.NewRecorder()
 	r, _ := NewRequest("GET", "http://foo/", nil)
-	redirect := false
 	name := "file.txt"
 	f := issue12991FS{}
-	ExportServeFile(rec, r, f, name, redirect)
+	ExportServeFile(rec, r, f, name, false)
 	if body := rec.Body.String(); !strings.Contains(body, "403") || !strings.Contains(body, "Forbidden") {
 		t.Errorf("wanted 403 forbidden message; got: %s", body)
 	}
