@@ -372,6 +372,7 @@ func TestFileServerSortsNames(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedFunction
 func mustRemoveAll(dir string) {
 	err := os.RemoveAll(dir)
 	if err != nil {
