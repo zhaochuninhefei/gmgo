@@ -433,18 +433,18 @@ func TestDirJoin(t *testing.T) {
 			t.Errorf("%s got different file", name)
 		}
 	}
-	test(Dir("/etc/"), "/hosts")
-	test(Dir("/etc/"), "hosts")
-	test(Dir("/etc/"), "../../../../hosts")
-	test(Dir("/etc"), "/hosts")
-	test(Dir("/etc"), "hosts")
-	test(Dir("/etc"), "../../../../hosts")
+	test("/etc/", "/hosts")
+	test("/etc/", "hosts")
+	test("/etc/", "../../../../hosts")
+	test("/etc", "/hosts")
+	test("/etc", "hosts")
+	test("/etc", "../../../../hosts")
 
 	// Not really directories, but since we use this trick in
 	// ServeFile, test it:
-	test(Dir("/etc/hosts"), "")
-	test(Dir("/etc/hosts"), "/")
-	test(Dir("/etc/hosts"), "../")
+	test("/etc/hosts", "")
+	test("/etc/hosts", "/")
+	test("/etc/hosts", "../")
 }
 
 func TestEmptyDirOpenCWD(t *testing.T) {
@@ -458,9 +458,9 @@ func TestEmptyDirOpenCWD(t *testing.T) {
 			_ = f.Close()
 		}(f)
 	}
-	test(Dir(""))
-	test(Dir("."))
-	test(Dir("./"))
+	test("")
+	test(".")
+	test("./")
 }
 
 func TestServeFileContentType(t *testing.T) {
@@ -1305,7 +1305,7 @@ func TestFileServerNotDirError(t *testing.T) {
 		t.Fatal("get abs path:", err)
 	}
 
-	test("RelativePath", Dir("testdata"))
+	test("RelativePath", "testdata")
 	test("AbsolutePath", Dir(absPath))
 }
 
