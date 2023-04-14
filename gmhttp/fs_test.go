@@ -256,7 +256,7 @@ func (fs *testFileSystem) Open(name string) (File, error) {
 func TestFileServerCleans(t *testing.T) {
 	defer afterTest(t)
 	ch := make(chan string, 1)
-	fs := FileServer(&testFileSystem{func(name string) (File, error) {
+	fileServer := FileServer(&testFileSystem{func(name string) (File, error) {
 		ch <- name
 		return nil, errors.New("file does not exist")
 	}})
@@ -271,7 +271,7 @@ func TestFileServerCleans(t *testing.T) {
 	for n, test := range tests {
 		rec := httptest.NewRecorder()
 		req.URL.Path = test.reqPath
-		fs.ServeHTTP(rec, req)
+		fileServer.ServeHTTP(rec, req)
 		if got := <-ch; got != test.openArg {
 			t.Errorf("test %d: got %q, want %q", n, got, test.openArg)
 		}
@@ -293,22 +293,22 @@ func TestFileServerEscapesNames(t *testing.T) {
 	}
 
 	// We put each test file in its own directory in the fakeFS so we can look at it in isolation.
-	fs := make(fakeFS)
+	f := make(fakeFS)
 	for i, test := range tests {
 		testFile := &fakeFileInfo{basename: test.name}
-		fs[fmt.Sprintf("/%d", i)] = &fakeFileInfo{
+		f[fmt.Sprintf("/%d", i)] = &fakeFileInfo{
 			dir:     true,
 			modtime: time.Unix(1000000000, 0).UTC(),
 			ents:    []*fakeFileInfo{testFile},
 		}
-		fs[fmt.Sprintf("/%d/%s", i, test.name)] = testFile
+		f[fmt.Sprintf("/%d/%s", i, test.name)] = testFile
 	}
 
-	ts := httptest.NewServer(FileServer(&fs))
+	ts := httptest.NewServer(FileServer(&f))
 	defer ts.Close()
 	for i, test := range tests {
-		url := fmt.Sprintf("%s/%d", ts.URL, i)
-		res, err := Get(url)
+		urlTmp := fmt.Sprintf("%s/%d", ts.URL, i)
+		res, err := Get(urlTmp)
 		if err != nil {
 			t.Fatalf("test %q: Get: %v", test.name, err)
 		}
@@ -332,7 +332,7 @@ func TestFileServerSortsNames(t *testing.T) {
 	const contents = "I am a fake file"
 	dirMod := time.Unix(123, 0).UTC()
 	fileMod := time.Unix(1000000000, 0).UTC()
-	fs := fakeFS{
+	f := fakeFS{
 		"/": &fakeFileInfo{
 			dir:     true,
 			modtime: dirMod,
@@ -351,7 +351,7 @@ func TestFileServerSortsNames(t *testing.T) {
 		},
 	}
 
-	ts := httptest.NewServer(FileServer(&fs))
+	ts := httptest.NewServer(FileServer(&f))
 	defer ts.Close()
 
 	res, err := Get(ts.URL)
@@ -590,8 +590,8 @@ func TestServeIndexHtml(t *testing.T) {
 			ts := httptest.NewServer(h)
 			defer ts.Close()
 
-			for _, path := range []string{"/testdata/", "/testdata/index.html"} {
-				res, err := Get(ts.URL + path)
+			for _, p := range []string{"/testdata/", "/testdata/index.html"} {
+				res, err := Get(ts.URL + p)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -600,7 +600,7 @@ func TestServeIndexHtml(t *testing.T) {
 					t.Fatal("reading Body:", err)
 				}
 				if s := string(b); s != want {
-					t.Errorf("for path %q got %q, want %q", path, s, want)
+					t.Errorf("for path %q got %q, want %q", p, s, want)
 				}
 				_ = res.Body.Close()
 			}
@@ -614,8 +614,8 @@ func TestServeIndexHtmlFS(t *testing.T) {
 	ts := httptest.NewServer(FileServer(Dir(".")))
 	defer ts.Close()
 
-	for _, path := range []string{"/testdata/", "/testdata/index.html"} {
-		res, err := Get(ts.URL + path)
+	for _, p := range []string{"/testdata/", "/testdata/index.html"} {
+		res, err := Get(ts.URL + p)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -624,7 +624,7 @@ func TestServeIndexHtmlFS(t *testing.T) {
 			t.Fatal("reading Body:", err)
 		}
 		if s := string(b); s != want {
-			t.Errorf("for path %q got %q, want %q", path, s, want)
+			t.Errorf("for path %q got %q, want %q", p, s, want)
 		}
 		_ = res.Body.Close()
 	}
@@ -733,7 +733,7 @@ func TestDirectoryIfNotModified(t *testing.T) {
 		modtime:  fileMod,
 		contents: indexContents,
 	}
-	fs := fakeFS{
+	f := fakeFS{
 		"/": &fakeFileInfo{
 			dir:     true,
 			modtime: dirMod,
@@ -742,7 +742,7 @@ func TestDirectoryIfNotModified(t *testing.T) {
 		"/index.html": indexFile,
 	}
 
-	ts := httptest.NewServer(FileServer(fs))
+	ts := httptest.NewServer(FileServer(f))
 	defer ts.Close()
 
 	res, err := Get(ts.URL)
@@ -1112,8 +1112,8 @@ func TestServerFileStatError(t *testing.T) {
 	r, _ := NewRequest("GET", "http://foo/", nil)
 	redirect := false
 	name := "file.txt"
-	fs := issue12991FS{}
-	ExportServeFile(rec, r, fs, name, redirect)
+	f := issue12991FS{}
+	ExportServeFile(rec, r, f, name, redirect)
 	if body := rec.Body.String(); !strings.Contains(body, "403") || !strings.Contains(body, "Forbidden") {
 		t.Errorf("wanted 403 forbidden message; got: %s", body)
 	}
@@ -1130,7 +1130,7 @@ func (issue12991File) Close() error               { return nil }
 
 func TestServeContentErrorMessages(t *testing.T) {
 	defer afterTest(t)
-	fs := fakeFS{
+	f := fakeFS{
 		"/500": &fakeFileInfo{
 			err: errors.New("random error"),
 		},
@@ -1138,7 +1138,7 @@ func TestServeContentErrorMessages(t *testing.T) {
 			err: &fs.PathError{Err: fs.ErrPermission},
 		},
 	}
-	ts := httptest.NewServer(FileServer(fs))
+	ts := httptest.NewServer(FileServer(f))
 	defer ts.Close()
 	c := ts.Client()
 	for _, code := range []int{403, 404, 500} {
@@ -1183,14 +1183,14 @@ func TestLinuxSendfile(t *testing.T) {
 	}
 
 	filename := fmt.Sprintf("1kb-%d", os.Getpid())
-	filepath := path.Join(os.TempDir(), filename)
+	fp := path.Join(os.TempDir(), filename)
 
-	if err := os.WriteFile(filepath, bytes.Repeat([]byte{'a'}, 1<<10), 0755); err != nil {
+	if err := os.WriteFile(fp, bytes.Repeat([]byte{'a'}, 1<<10), 0755); err != nil {
 		t.Fatal(err)
 	}
 	defer func(name string) {
 		_ = os.Remove(name)
-	}(filepath)
+	}(fp)
 
 	var buf bytes.Buffer
 	child := exec.Command("strace", "-f", "-q", os.Args[0], "-test.run=TestLinuxSendfileChild")
