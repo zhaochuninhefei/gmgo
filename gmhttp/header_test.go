@@ -95,7 +95,7 @@ var headerWriteTests = []struct {
 func TestHeaderWrite(t *testing.T) {
 	var buf bytes.Buffer
 	for i, test := range headerWriteTests {
-		test.h.WriteSubset(&buf, test.exclude)
+		_ = test.h.WriteSubset(&buf, test.exclude)
 		if buf.String() != test.expected {
 			t.Errorf("#%d:\n got: %q\nwant: %q", i, buf.String(), test.expected)
 		}
@@ -199,7 +199,7 @@ func BenchmarkHeaderWriteSubset(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		buf.Reset()
-		testHeader.WriteSubset(&buf, nil)
+		_ = testHeader.WriteSubset(&buf, nil)
 	}
 }
 
@@ -215,7 +215,7 @@ func TestHeaderWriteSubsetAllocs(t *testing.T) {
 	}
 	n := testing.AllocsPerRun(100, func() {
 		buf.Reset()
-		testHeader.WriteSubset(&buf, nil)
+		_ = testHeader.WriteSubset(&buf, nil)
 	})
 	if n > 0 {
 		t.Errorf("allocs = %g; want 0", n)
