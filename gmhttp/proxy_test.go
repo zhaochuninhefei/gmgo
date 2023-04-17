@@ -13,6 +13,7 @@ import (
 // TODO(mattn):
 //	test ProxyAuth
 
+//goland:noinspection HttpUrlsUsage
 var cacheKeysTests = []struct {
 	proxy  string
 	scheme string
