@@ -7,6 +7,7 @@ package gmhttp
 // Common HTTP methods.
 //
 // Unless otherwise noted, these are defined in RFC 7231 section 4.3.
+//goland:noinspection GoUnusedConst
 const (
 	MethodGet     = "GET"
 	MethodHead    = "HEAD"
