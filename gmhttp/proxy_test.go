@@ -44,7 +44,7 @@ func TestCacheKeys(t *testing.T) {
 
 func ResetProxyEnv() {
 	for _, v := range []string{"HTTP_PROXY", "http_proxy", "NO_PROXY", "no_proxy", "REQUEST_METHOD"} {
-		os.Unsetenv(v)
+		_ = os.Unsetenv(v)
 	}
 	ResetCachedEnvironment()
 }
