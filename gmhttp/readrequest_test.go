@@ -422,7 +422,7 @@ func TestReadRequest(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s: copying body: %v", testName, err)
 			}
-			rbody.Close()
+			_ = rbody.Close()
 		}
 		body := bout.String()
 		if body != tt.Body {
