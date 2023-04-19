@@ -27,6 +27,7 @@ var noError = ""
 var noBodyStr = ""
 var noTrailer Header = nil
 
+//goland:noinspection HttpUrlsUsage
 var reqTests = []reqTest{
 	// Baseline test; All Request fields included for template use
 	{
