@@ -1366,6 +1366,7 @@ func runFileAndServerBenchmarks(b *testing.B, tlsOption bool, f *os.File, n int6
 		}
 
 		if nc != n {
+			//goland:noinspection GoErrorStringFormat
 			panic(fmt.Errorf("Copied %d Wanted %d bytes", nc, n))
 		}
 	})
