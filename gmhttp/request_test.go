@@ -775,7 +775,7 @@ func (l logWrites) Write(p []byte) (n int, err error) {
 }
 
 func TestRequestWriteBufferedWriter(t *testing.T) {
-	got := []string{}
+	var got []string
 	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://foo.com/", nil)
 	_ = req.Write(logWrites{t, &got})
@@ -791,7 +791,7 @@ func TestRequestWriteBufferedWriter(t *testing.T) {
 }
 
 func TestRequestBadHost(t *testing.T) {
-	got := []string{}
+	var got []string
 	//goland:noinspection HttpUrlsUsage
 	req, err := NewRequest("GET", "http://foo/after", nil)
 	if err != nil {
