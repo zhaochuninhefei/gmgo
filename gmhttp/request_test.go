@@ -27,6 +27,7 @@ import (
 
 func TestQuery(t *testing.T) {
 	req := &Request{Method: "GET"}
+	//goland:noinspection HttpUrlsUsage
 	req.URL, _ = url.Parse("http://www.google.com/search?q=foo&q=bar")
 	if q := req.FormValue("q"); q != "foo" {
 		t.Errorf(`req.FormValue("q") = %q, want "foo"`, q)
@@ -36,6 +37,7 @@ func TestQuery(t *testing.T) {
 // Issue #25192: Test that ParseForm fails but still parses the form when an URL
 // containing a semicolon is provided.
 func TestParseFormSemicolonSeparator(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	for _, method := range []string{"POST", "PATCH", "PUT", "GET"} {
 		req, _ := NewRequest(method, "http://www.google.com/search?q=foo;q=bar&a=1",
 			strings.NewReader("q"))
@@ -51,6 +53,7 @@ func TestParseFormSemicolonSeparator(t *testing.T) {
 }
 
 func TestParseFormQuery(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("POST", "http://www.google.com/search?q=foo&q=bar&both=x&prio=1&orphan=nope&empty=not",
 		strings.NewReader("z=post&both=y&prio=2&=nokey&orphan&empty=&"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
@@ -89,6 +92,7 @@ func TestParseFormQuery(t *testing.T) {
 
 // Tests that we only parse the form automatically for certain methods.
 func TestParseFormQueryMethods(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	for _, method := range []string{"POST", "PATCH", "PUT", "FOO"} {
 		req, _ := NewRequest(method, "http://www.google.com/search",
 			strings.NewReader("foo=bar"))
@@ -138,6 +142,7 @@ func TestParseFormUnknownContentType(t *testing.T) {
 }
 
 func TestParseFormInitializeOnError(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	nilBody, _ := NewRequest("POST", "http://www.google.com/search?q=foo", nil)
 	tests := []*Request{
 		nilBody,
@@ -360,6 +365,7 @@ func testRedirect(t *testing.T, h2 bool) {
 }
 
 func TestSetBasicAuth(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r, _ := NewRequest("GET", "http://example.com/", nil)
 	r.SetBasicAuth("Aladdin", "open sesame")
 	if g, e := r.Header.Get("Authorization"), "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="; g != e {
@@ -420,6 +426,7 @@ func TestMissingFileMultipartRequest(t *testing.T) {
 
 // Test that FormValue invokes ParseMultipartForm.
 func TestFormValueCallsParseMultipartForm(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("POST", "http://www.google.com/", strings.NewReader("z=post"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 	if req.Form != nil {
@@ -554,6 +561,7 @@ func TestReadRequestErrors(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 var newRequestHostTests = []struct {
 	in, out string
 }{
@@ -585,6 +593,7 @@ func TestNewRequestHost(t *testing.T) {
 }
 
 func TestRequestInvalidMethod(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	_, err := NewRequest("bad method", "http://foo.com/", nil)
 	if err == nil {
 		t.Error("expected error from NewRequest with invalid method")
@@ -599,6 +608,7 @@ func TestRequestInvalidMethod(t *testing.T) {
 		t.Errorf("Transport error = %v; want invalid method", err)
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	req, err = NewRequest("", "http://foo.com/", nil)
 	if err != nil {
 		t.Errorf("NewRequest(empty method) = %v; want nil", err)
@@ -692,6 +702,7 @@ var getBasicAuthTests = []struct {
 }
 
 func TestGetBasicAuth(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	for _, tt := range getBasicAuthTests {
 		r, _ := NewRequest("GET", "http://example.com/", nil)
 		r.SetBasicAuth(tt.username, tt.password)
@@ -702,6 +713,7 @@ func TestGetBasicAuth(t *testing.T) {
 		}
 	}
 	// Unauthenticated request.
+	//goland:noinspection HttpUrlsUsage
 	r, _ := NewRequest("GET", "http://example.com/", nil)
 	username, password, ok := r.BasicAuth()
 	if ok {
@@ -734,6 +746,7 @@ var parseBasicAuthTests = []struct {
 }
 
 func TestParseBasicAuth(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	for _, tt := range parseBasicAuthTests {
 		r, _ := NewRequest("GET", "http://example.com/", nil)
 		r.Header.Set("Authorization", tt.header)
@@ -763,6 +776,7 @@ func (l logWrites) Write(p []byte) (n int, err error) {
 
 func TestRequestWriteBufferedWriter(t *testing.T) {
 	got := []string{}
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://foo.com/", nil)
 	_ = req.Write(logWrites{t, &got})
 	want := []string{
@@ -778,6 +792,7 @@ func TestRequestWriteBufferedWriter(t *testing.T) {
 
 func TestRequestBadHost(t *testing.T) {
 	got := []string{}
+	//goland:noinspection HttpUrlsUsage
 	req, err := NewRequest("GET", "http://foo/after", nil)
 	if err != nil {
 		t.Fatal(err)
