@@ -324,7 +324,7 @@ func TestMaxInt64ForMultipartFormMaxMemoryOverflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if g, w := res.StatusCode, StatusOK; g != w {
 		t.Fatalf("Status code mismatch: got %d, want %d", g, w)
 	}
@@ -340,7 +340,7 @@ func testRedirect(t *testing.T, h2 bool) {
 			w.Header().Set("Location", "/foo/")
 			w.WriteHeader(StatusSeeOther)
 		case "/foo/":
-			fmt.Fprintf(w, "foo")
+			_, _ = fmt.Fprintf(w, "foo")
 		default:
 			w.WriteHeader(StatusBadRequest)
 		}
@@ -352,7 +352,7 @@ func testRedirect(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Body.Close()
+	_ = r.Body.Close()
 	url := r.Request.URL.String()
 	if r.StatusCode != 200 || !end.MatchString(url) {
 		t.Fatalf("Get got status %d at %q, want 200 matching /foo/$", r.StatusCode, url)
@@ -375,7 +375,9 @@ func TestMultipartRequest(t *testing.T) {
 	if err := req.ParseMultipartForm(25); err != nil {
 		t.Fatal("ParseMultipartForm first call:", err)
 	}
-	defer req.MultipartForm.RemoveAll()
+	defer func(MultipartForm *multipart.Form) {
+		_ = MultipartForm.RemoveAll()
+	}(req.MultipartForm)
 	validateTestMultipartContents(t, req, false)
 	if err := req.ParseMultipartForm(25); err != nil {
 		t.Fatal("ParseMultipartForm second call:", err)
@@ -391,7 +393,9 @@ func TestParseMultipartFormSemicolonSeparator(t *testing.T) {
 	if err := req.ParseMultipartForm(25); err == nil {
 		t.Fatal("ParseMultipartForm expected error due to invalid semicolon, got nil")
 	}
-	defer req.MultipartForm.RemoveAll()
+	defer func(MultipartForm *multipart.Form) {
+		_ = MultipartForm.RemoveAll()
+	}(req.MultipartForm)
 	validateTestMultipartContents(t, req, false)
 }
 
@@ -401,7 +405,7 @@ func TestMultipartRequestAuto(t *testing.T) {
 	req := newTestMultipartRequest(t)
 	defer func() {
 		if req.MultipartForm != nil {
-			req.MultipartForm.RemoveAll()
+			_ = req.MultipartForm.RemoveAll()
 		}
 	}()
 	validateTestMultipartContents(t, req, true)
@@ -433,7 +437,7 @@ func TestFormFileCallsParseMultipartForm(t *testing.T) {
 	if req.Form != nil {
 		t.Fatal("Unexpected request Form, want nil")
 	}
-	req.FormFile("")
+	_, _, _ = req.FormFile("")
 	if req.Form == nil {
 		t.Fatal("ParseMultipartForm not called by FormFile")
 	}
@@ -458,7 +462,9 @@ func TestMultipartReaderOrder(t *testing.T) {
 	if err := req.ParseMultipartForm(25); err != nil {
 		t.Fatalf("ParseMultipartForm: %v", err)
 	}
-	defer req.MultipartForm.RemoveAll()
+	defer func(MultipartForm *multipart.Form) {
+		_ = MultipartForm.RemoveAll()
+	}(req.MultipartForm)
 	if _, err := req.MultipartReader(); err == nil {
 		t.Fatal("expected an error from MultipartReader after call to ParseMultipartForm")
 	}
@@ -604,7 +610,7 @@ func TestRequestInvalidMethod(t *testing.T) {
 func TestNewRequestContentLength(t *testing.T) {
 	readByte := func(r io.Reader) io.Reader {
 		var b [1]byte
-		r.Read(b[:])
+		_, _ = r.Read(b[:])
 		return r
 	}
 	tests := []struct {
@@ -757,7 +763,7 @@ func (l logWrites) Write(p []byte) (n int, err error) {
 func TestRequestWriteBufferedWriter(t *testing.T) {
 	got := []string{}
 	req, _ := NewRequest("GET", "http://foo.com/", nil)
-	req.Write(logWrites{t, &got})
+	_ = req.Write(logWrites{t, &got})
 	want := []string{
 		"GET / HTTP/1.1\r\n",
 		"Host: foo.com\r\n",
@@ -777,7 +783,7 @@ func TestRequestBadHost(t *testing.T) {
 	}
 	req.Host = "foo.com with spaces"
 	req.URL.Host = "foo.com with spaces"
-	req.Write(logWrites{t, &got})
+	_ = req.Write(logWrites{t, &got})
 	want := []string{
 		"GET /after HTTP/1.1\r\n",
 		"Host: foo.com\r\n",
@@ -876,7 +882,7 @@ func TestMaxBytesReaderStickyError(t *testing.T) {
 		var firstErr error
 		for {
 			n, err := r.Read(buf)
-			fmt.Fprintf(&log, "Read(%d) = %d, %v\n", len(buf), n, err)
+			_, _ = fmt.Fprintf(&log, "Read(%d) = %d, %v\n", len(buf), n, err)
 			if err == nil {
 				continue
 			}
@@ -1146,10 +1152,14 @@ func validateTestMultipartContents(t *testing.T, req *Request, allMem bool) {
 		}
 	}
 	fda := testMultipartFile(t, req, "filea", "filea.txt", fileaContents)
-	defer fda.Close()
+	defer func(fda multipart.File) {
+		_ = fda.Close()
+	}(fda)
 	assertMem("filea", fda)
 	fdb := testMultipartFile(t, req, "fileb", "fileb.txt", filebContents)
-	defer fdb.Close()
+	defer func(fdb multipart.File) {
+		_ = fdb.Close()
+	}(fdb)
 	if allMem {
 		assertMem("fileb", fdb)
 	} else {
@@ -1312,8 +1322,8 @@ func benchmarkFileAndServer(b *testing.B, n int64) {
 	}
 
 	defer func() {
-		f.Close()
-		os.RemoveAll(f.Name())
+		_ = f.Close()
+		_ = os.RemoveAll(f.Name())
 	}()
 
 	if _, err := io.CopyN(f, rand.Reader, n); err != nil {
@@ -1331,7 +1341,9 @@ func benchmarkFileAndServer(b *testing.B, n int64) {
 
 func runFileAndServerBenchmarks(b *testing.B, tlsOption bool, f *os.File, n int64) {
 	handler := HandlerFunc(func(rw ResponseWriter, req *Request) {
-		defer req.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(req.Body)
 		nc, err := io.Copy(io.Discard, req.Body)
 		if err != nil {
 			panic(err)
@@ -1372,7 +1384,7 @@ func runFileAndServerBenchmarks(b *testing.B, tlsOption bool, f *os.File, n int6
 			b.Fatalf("Failed to make request to backend: %v", err)
 		}
 
-		res.Body.Close()
+		_ = res.Body.Close()
 		b.SetBytes(n)
 	}
 }
