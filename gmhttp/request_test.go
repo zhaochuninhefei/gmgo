@@ -750,6 +750,7 @@ type logWrites struct {
 	dst *[]string
 }
 
+//goland:noinspection GoUnusedParameter
 func (l logWrites) WriteByte(c byte) error {
 	l.t.Fatalf("unexpected WriteByte call")
 	return nil
