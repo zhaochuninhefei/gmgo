@@ -170,15 +170,15 @@ func TestMultipartReader(t *testing.T) {
 			Header: Header{"Content-Type": {test.contentType}},
 			Body:   io.NopCloser(new(bytes.Buffer)),
 		}
-		multipart, err := req.MultipartReader()
+		multipartReader, err := req.MultipartReader()
 		if test.shouldError {
-			if err == nil || multipart != nil {
-				t.Errorf("test %d: unexpectedly got nil-error (%v) or non-nil-multipart (%v)", i, err, multipart)
+			if err == nil || multipartReader != nil {
+				t.Errorf("test %d: unexpectedly got nil-error (%v) or non-nil-multipart (%v)", i, err, multipartReader)
 			}
 			continue
 		}
-		if err != nil || multipart == nil {
-			t.Errorf("test %d: unexpectedly got error (%v) or nil-multipart (%v)", i, err, multipart)
+		if err != nil || multipartReader == nil {
+			t.Errorf("test %d: unexpectedly got error (%v) or nil-multipart (%v)", i, err, multipartReader)
 		}
 	}
 }
@@ -353,9 +353,9 @@ func testRedirect(t *testing.T, h2 bool) {
 		t.Fatal(err)
 	}
 	_ = r.Body.Close()
-	url := r.Request.URL.String()
-	if r.StatusCode != 200 || !end.MatchString(url) {
-		t.Fatalf("Get got status %d at %q, want 200 matching /foo/$", r.StatusCode, url)
+	urlStr := r.Request.URL.String()
+	if r.StatusCode != 200 || !end.MatchString(urlStr) {
+		t.Fatalf("Get got status %d at %q, want 200 matching /foo/$", r.StatusCode, urlStr)
 	}
 }
 
