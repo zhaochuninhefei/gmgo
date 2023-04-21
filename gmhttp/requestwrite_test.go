@@ -29,7 +29,7 @@ type reqWriteTest struct {
 	WantError error // wanted error from Request.Write
 }
 
-//goland:noinspection HttpUrlsUsage
+//goland:noinspection HttpUrlsUsage,GoErrorStringFormat
 var reqWriteTests = []reqWriteTest{
 	// HTTP/1.1 => chunked coding; no body; no trailer
 	0: {
