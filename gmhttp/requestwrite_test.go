@@ -29,6 +29,7 @@ type reqWriteTest struct {
 	WantError error // wanted error from Request.Write
 }
 
+//goland:noinspection HttpUrlsUsage
 var reqWriteTests = []reqWriteTest{
 	// HTTP/1.1 => chunked coding; no body; no trailer
 	0: {
@@ -811,6 +812,7 @@ func (rc *closeChecker) Close() error {
 // inside a NopCloser, and that it serializes it correctly.
 func TestRequestWriteClosesBody(t *testing.T) {
 	rc := &closeChecker{Reader: strings.NewReader("my body")}
+	//goland:noinspection HttpUrlsUsage
 	req, err := NewRequest("POST", "http://foo.com/", rc)
 	if err != nil {
 		t.Fatal(err)
@@ -873,6 +875,7 @@ func TestRequestWriteError(t *testing.T) {
 		}),
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://example.com/", nil)
 	const writeCalls = 4 // number of Write calls in current implementation
 	sawGood := false
