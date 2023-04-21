@@ -763,7 +763,7 @@ func TestRequestWriteTransport(t *testing.T) {
 			init: func(tt *testCase) {
 				pr, pw := io.Pipe()
 				tt.afterReqRead = func() {
-					pw.Close()
+					_ = pw.Close()
 				}
 				tt.body = io.NopCloser(pr)
 			},
@@ -916,8 +916,12 @@ func dumpRequestOut(req *Request, onReadHeaders func()) ([]byte, error) {
 	// with a dummy response.
 	var buf bytes.Buffer // records the output
 	pr, pw := io.Pipe()
-	defer pr.Close()
-	defer pw.Close()
+	defer func(pr *io.PipeReader) {
+		_ = pr.Close()
+	}(pr)
+	defer func(pw *io.PipeWriter) {
+		_ = pw.Close()
+	}(pw)
 	dr := &delegateReader{c: make(chan io.Reader)}
 
 	t := &Transport{
@@ -936,8 +940,8 @@ func dumpRequestOut(req *Request, onReadHeaders func()) ([]byte, error) {
 			}
 			// Ensure all the body is read; otherwise
 			// we'll get a partial dump.
-			io.Copy(io.Discard, req.Body)
-			req.Body.Close()
+			_, _ = io.Copy(io.Discard, req.Body)
+			_ = req.Body.Close()
 		}
 		dr.c <- strings.NewReader("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
 	}()
