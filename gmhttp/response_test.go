@@ -604,7 +604,7 @@ func TestReadResponse(t *testing.T) {
 				t.Errorf("#%d: %v", i, err)
 				continue
 			}
-			rbody.Close()
+			_ = rbody.Close()
 		}
 		body := bout.String()
 		if body != tt.Body {
@@ -681,7 +681,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 				_, err := io.ReadFull(rand.Reader, chunk)
 				checkErr(err, "rand.Reader ReadFull")
 			}
-			wr.Write(chunk)
+			_, _ = wr.Write(chunk)
 		}
 		if test.compressed {
 			err := wr.(*gzip.Writer).Close()
@@ -720,7 +720,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 		if test.compressed == false && !bytes.Equal(bytes.Repeat([]byte{'x'}, 2500), rbuf) {
 			fatalf("ReadFull didn't read 2500 'x'; got %q", string(rbuf))
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		rest, err := io.ReadAll(bufr)
 		checkErr(err, "ReadAll on remainder")
@@ -811,7 +811,7 @@ func TestResponseStatusStutter(t *testing.T) {
 		ProtoMinor: 3,
 	}
 	var buf bytes.Buffer
-	r.Write(&buf)
+	_ = r.Write(&buf)
 	if strings.Contains(buf.String(), "123 123") {
 		t.Errorf("stutter in status: %s", buf.String())
 	}
