@@ -336,7 +336,7 @@ func (r *Response) Write(w io.Writer) error {
 
 func (r *Response) closeBody() {
 	if r.Body != nil {
-		r.Body.Close()
+		_ = r.Body.Close()
 	}
 }
 
