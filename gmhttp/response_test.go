@@ -973,6 +973,7 @@ func matchErr(err error, wantErr interface{}) error {
 	return fmt.Errorf("%v; want %v", err, wantErr)
 }
 
+//goland:noinspection GoBoolExpressions
 func TestNeedsSniff(t *testing.T) {
 	// needsSniff returns true with an empty response.
 	r := &response{}
