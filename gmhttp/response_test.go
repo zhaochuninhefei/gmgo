@@ -760,6 +760,7 @@ type responseLocationTest struct {
 	wantErr  error
 }
 
+//goland:noinspection HttpUrlsUsage
 var responseLocationTests = []responseLocationTest{
 	{"/foo", "http://bar.com/baz", "http://bar.com/foo", nil},
 	{"http://foo.com/", "http://bar.com/baz", "http://foo.com/", nil},
