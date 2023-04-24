@@ -595,8 +595,8 @@ var (
 	oidPublicKeyRSA   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
 	oidPublicKeyDSA   = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
 	oidPublicKeyECDSA = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
-	// ecdsa_ext算法标识，`1.3.6.1.4.1`是ISO分配给私人企业的节点，`99999`是私人企业分配给自己的节点
-	oidPublicKeyECDSAEXT = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 99999, 1, 2}
+	// 自定义ecdsa_ext算法标识，`1.3.6.1.4.1`是ISO分配给私人企业的节点，`60387`是向IANA申请到的企业ID(zhaochuninhefei)，`1`是该企业在该节点下的子节点,`2`是该子节点下的ecdsa_ext算法标识
+	oidPublicKeyECDSAEXT = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 60387, 1, 2}
 	oidPublicKeyEd25519  = oidSignatureEd25519
 	// SM2算法标识 参考`GMT 0006-2012 密码应用标识规范.pdf`的`附录A 商用密码领域中的相关oID定义`
 	oidPublicKeySM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301}
@@ -1223,22 +1223,8 @@ var (
 	oidExtensionAuthorityInfoAccess   = []int{1, 3, 6, 1, 5, 5, 7, 1, 1}
 	oidExtensionCRLNumber             = []int{2, 5, 29, 20}
 
-	// 追加扩展信息oid
-	// 根据 X.660 标准，OID（Object Identifier）是用于标识对象的一种长整数类型的唯一标识符，它由一串数字组成，每个数字用点分隔开。OID 能够提供非常丰富的命名空间，通常用于标识各种类型的对象，例如算法、协议、特定领域中的术语等等。
-	// 根据RFC 5280中的规定，X.509证书中的扩展信息应该使用OID来表示，因此，我们需要为 SignatureAlgorithm 定义一个 OID。根据 OID 的分配规则和命名规范，我们可以按照以下方式为 SignatureAlgorithm 定义一个 OID：
-	// 第一段：ISO OBJECT IDENTIFIER arc，值为 1。
-	// 第二段：member-body OBJECT IDENTIFIER arc，值为 2。
-	// 第三段：ISO US OBJECT IDENTIFIER arc，值为 840。
-	// 第四段：organization arc，由分配给组织的数字定义，假设为 114027。
-	// 第五段：dod OBJECT IDENTIFIER arc，值为 1。
-	// 第六段：internet OBJECT IDENTIFIER arc，值为 1。
-	// 第七段：security OBJECT IDENTIFIER arc，值为 5。
-	// 第八段：algorithm OBJECT IDENTIFIER arc，值为 8。
-	// 第九段：SignatureAlgorithm 的值，假设为 1。
-	// 将以上每一段用点号相连，就得到了 SignatureAlgorithm 的 OID：1.2.840.114027.1.1.5.8.1。
-	// 因此，我们可以在 X.509 证书的扩展信息中使用该 OID 来表示 SignatureAlgorithm
-	// 在证书与证书申请的创建以及反序列化中使用
-	oidExtensionSignatureAlgorithm = []int{1, 2, 840, 114027, 1, 1, 5, 8, 1}
+	// 扩展签名算法OID,`1.3.6.1.4.1`是ISO分配给私人企业的节点，`60387`是向IANA申请到的企业ID(zhaochuninhefei),`1`是该企业下的子节点，`1`是该子节点下的扩展签名算法OID
+	oidExtensionSignatureAlgorithm = []int{1, 3, 6, 1, 4, 1, 60387, 1, 1}
 )
 
 var (
