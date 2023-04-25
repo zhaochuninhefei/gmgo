@@ -1501,6 +1501,7 @@ func TestTLSServer(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoBoolExpressions
 func TestServeTLS(t *testing.T) {
 	CondSkipHTTP2(t)
 	// Not parallel: uses global test hooks.
@@ -1658,6 +1659,7 @@ func TestAutomaticHTTP2_ListenAndServe_GetCertificate(t *testing.T) {
 	})
 }
 
+//goland:noinspection GoBoolExpressions
 func testAutomaticHTTP2_ListenAndServe(t *testing.T, tlsConf *tls.Config) {
 	CondSkipHTTP2(t)
 	// Not parallel: uses global test hooks.
