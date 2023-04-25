@@ -795,6 +795,7 @@ func TestHTTP2WriteDeadlineExtendedOnNewRequest(t *testing.T) {
 
 		// fail test if no response after 1 second
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 		req = req.WithContext(ctx)
 
