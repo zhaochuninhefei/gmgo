@@ -1609,6 +1609,7 @@ func TestAutomaticHTTP2_Serve_H2TLSConfig(t *testing.T) {
 	testAutomaticHTTP2_Serve(t, &tls.Config{NextProtos: []string{"h2"}}, true)
 }
 
+//goland:noinspection GoSnakeCaseUsage
 func testAutomaticHTTP2_Serve(t *testing.T, tlsConf *tls.Config, wantH2 bool) {
 	setParallel(t)
 	defer afterTest(t)
@@ -1667,7 +1668,7 @@ func TestAutomaticHTTP2_ListenAndServe_GetCertificate(t *testing.T) {
 	})
 }
 
-//goland:noinspection GoBoolExpressions
+//goland:noinspection GoBoolExpressions,GoSnakeCaseUsage
 func testAutomaticHTTP2_ListenAndServe(t *testing.T, tlsConf *tls.Config) {
 	CondSkipHTTP2(t)
 	// Not parallel: uses global test hooks.
@@ -4924,6 +4925,8 @@ func TestServerRequestContextCancel_ServeHTTPDone_h1(t *testing.T) {
 func TestServerRequestContextCancel_ServeHTTPDone_h2(t *testing.T) {
 	testServerRequestContextCancel_ServeHTTPDone(t, h2Mode)
 }
+
+//goland:noinspection GoSnakeCaseUsage
 func testServerRequestContextCancel_ServeHTTPDone(t *testing.T, h2 bool) {
 	setParallel(t)
 	defer afterTest(t)
@@ -4998,6 +5001,8 @@ func TestServerContext_ServerContextKey_h1(t *testing.T) {
 func TestServerContext_ServerContextKey_h2(t *testing.T) {
 	testServerContext_ServerContextKey(t, h2Mode)
 }
+
+//goland:noinspection GoSnakeCaseUsage
 func testServerContext_ServerContextKey(t *testing.T, h2 bool) {
 	setParallel(t)
 	defer afterTest(t)
@@ -5022,6 +5027,8 @@ func TestServerContext_LocalAddrContextKey_h1(t *testing.T) {
 func TestServerContext_LocalAddrContextKey_h2(t *testing.T) {
 	testServerContext_LocalAddrContextKey(t, h2Mode)
 }
+
+//goland:noinspection GoSnakeCaseUsage
 func testServerContext_LocalAddrContextKey(t *testing.T, h2 bool) {
 	setParallel(t)
 	defer afterTest(t)
