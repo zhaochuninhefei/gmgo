@@ -5297,7 +5297,7 @@ func BenchmarkClient(b *testing.B) {
 			b.Fatalf("Get: %v", err)
 		}
 		body, err := io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if err != nil {
 			b.Fatalf("ReadAll: %v", err)
 		}
@@ -5308,7 +5308,7 @@ func BenchmarkClient(b *testing.B) {
 	b.StopTimer()
 
 	// Instruct server process to stop.
-	getNoBody(url + "?stop=yes")
+	_, _ = getNoBody(url + "?stop=yes")
 	select {
 	case err := <-done:
 		if err != nil {
@@ -5338,7 +5338,7 @@ Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
 	}
 	handler := HandlerFunc(func(rw ResponseWriter, r *Request) {
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-		rw.Write(res)
+		_, _ = rw.Write(res)
 	})
 	ln := new(oneConnListener)
 	for i := 0; i < b.N; i++ {
@@ -5346,7 +5346,7 @@ Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
 		conn.writeBuf.Reset()
 		conn.readBuf.Write(req)
 		ln.conn = conn
-		Serve(ln, handler)
+		_ = Serve(ln, handler)
 		<-conn.closec
 	}
 }
@@ -5393,10 +5393,12 @@ Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
 	handler := HandlerFunc(func(rw ResponseWriter, r *Request) {
 		handled++
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-		rw.Write(res)
+		_, _ = rw.Write(res)
 	})
 	ln := &oneConnListener{conn: conn}
-	go Serve(ln, handler)
+	go func() {
+		_ = Serve(ln, handler)
+	}()
 	<-conn.closec
 	if b.N != handled {
 		b.Errorf("b.N=%d but handled %d", b.N, handled)
@@ -5421,10 +5423,12 @@ Host: golang.org
 	handled := 0
 	handler := HandlerFunc(func(rw ResponseWriter, r *Request) {
 		handled++
-		rw.Write(res)
+		_, _ = rw.Write(res)
 	})
 	ln := &oneConnListener{conn: conn}
-	go Serve(ln, handler)
+	go func() {
+		_ = Serve(ln, handler)
+	}()
 	<-conn.closec
 	if b.N != handled {
 		b.Errorf("b.N=%d but handled %d", b.N, handled)
@@ -5441,7 +5445,7 @@ func BenchmarkServerHandlerTypeLen(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.Header().Set("Content-Length", strconv.Itoa(len(response)))
-		w.Write(response)
+		_, _ = w.Write(response)
 	}))
 }
 
@@ -5449,7 +5453,7 @@ func BenchmarkServerHandlerTypeLen(b *testing.B) {
 func BenchmarkServerHandlerNoLen(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write(response)
+		_, _ = w.Write(response)
 	}))
 }
 
@@ -5457,14 +5461,14 @@ func BenchmarkServerHandlerNoLen(b *testing.B) {
 func BenchmarkServerHandlerNoType(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(len(response)))
-		w.Write(response)
+		_, _ = w.Write(response)
 	}))
 }
 
 // Neither a Content-Type or Content-Length, so sniffed and counted.
 func BenchmarkServerHandlerNoHeader(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write(response)
+		_, _ = w.Write(response)
 	}))
 }
 
@@ -5484,7 +5488,9 @@ Host: golang.org
 		h.ServeHTTP(rw, r)
 	})
 	ln := &oneConnListener{conn: conn}
-	go Serve(ln, handler)
+	go func() {
+		_ = Serve(ln, handler)
+	}()
 	<-conn.closec
 	if b.N != handled {
 		b.Errorf("b.N=%d but handled %d", b.N, handled)
@@ -5501,7 +5507,7 @@ Host: golang.org
 		if err != nil {
 			panic(err)
 		}
-		conn.Close()
+		_ = conn.Close()
 	})
 	conn := &rwTestConn{
 		Writer: io.Discard,
@@ -5511,7 +5517,7 @@ Host: golang.org
 	for i := 0; i < b.N; i++ {
 		conn.Reader = bytes.NewReader(req)
 		ln.conn = conn
-		Serve(ln, h)
+		_ = Serve(ln, h)
 		<-conn.closec
 	}
 }
@@ -5537,7 +5543,7 @@ func BenchmarkCloseNotifier(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		conn.Close()
+		_ = conn.Close()
 		tot.Reset(5 * time.Second)
 		select {
 		case <-sawClose:
@@ -5555,8 +5561,12 @@ func TestConcurrentServerServe(t *testing.T) {
 		ln1 := &oneConnListener{conn: nil}
 		ln2 := &oneConnListener{conn: nil}
 		srv := Server{}
-		go func() { srv.Serve(ln1) }()
-		go func() { srv.Serve(ln2) }()
+		go func() {
+			_ = srv.Serve(ln1)
+		}()
+		go func() {
+			_ = srv.Serve(ln2)
+		}()
 	}
 }
 
@@ -5567,8 +5577,8 @@ func TestServerIdleTimeout(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ts := httptest.NewUnstartedServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.Copy(io.Discard, r.Body)
-		io.WriteString(w, r.RemoteAddr)
+		_, _ = io.Copy(io.Discard, r.Body)
+		_, _ = io.WriteString(w, r.RemoteAddr)
 	}))
 	ts.Config.ReadHeaderTimeout = 1 * time.Second
 	ts.Config.IdleTimeout = 2 * time.Second
@@ -5581,7 +5591,9 @@ func TestServerIdleTimeout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -5604,8 +5616,10 @@ func TestServerIdleTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
-	conn.Write([]byte("GET / HTTP/1.1\r\nHost: foo.com\r\n"))
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
+	_, _ = conn.Write([]byte("GET / HTTP/1.1\r\nHost: foo.com\r\n"))
 	time.Sleep(2 * time.Second)
 	if _, err := io.CopyN(io.Discard, conn, 1); err == nil {
 		t.Fatal("copy byte succeeded; want err")
@@ -5617,7 +5631,9 @@ func get(t *testing.T, c *Client, url string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	slurp, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -5631,7 +5647,7 @@ func TestServerSetKeepAlivesEnabledClosesConns(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.WriteString(w, r.RemoteAddr)
+		_, _ = io.WriteString(w, r.RemoteAddr)
 	}))
 	defer ts.Close()
 
@@ -5695,7 +5711,7 @@ func testServerShutdown(t *testing.T, h2 bool) {
 		// increase the odds of a failure if shutdown has
 		// bugs.
 		time.Sleep(20 * time.Millisecond)
-		io.WriteString(w, r.RemoteAddr)
+		_, _ = io.WriteString(w, r.RemoteAddr)
 	})
 	cst := newClientServerTest(t, h2, handler, func(srv *httptest.Server) {
 		srv.Config.RegisterOnShutdown(func() { gotOnShutdown <- struct{}{} })
@@ -5725,7 +5741,7 @@ func testServerShutdown(t *testing.T, h2 bool) {
 
 	res, err := cst.c.Get(cst.ts.URL)
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("second request should fail. server should be shut down")
 	}
 }
@@ -5755,7 +5771,9 @@ func TestServerShutdownStateNew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 
 	// Wait for the connection to be accepted by the server. Otherwise, if
 	// Shutdown happens to run first, the server will be closed when
@@ -5803,8 +5821,8 @@ func TestServerShutdownStateNew(t *testing.T) {
 // Issue 17878: tests that we can call Close twice.
 func TestServerCloseDeadlock(t *testing.T) {
 	var s Server
-	s.Close()
-	s.Close()
+	_ = s.Close()
+	_ = s.Close()
 }
 
 // Issue 17717: tests that Server.SetKeepAlivesEnabled is respected by
@@ -5819,7 +5837,7 @@ func testServerKeepAlivesEnabled(t *testing.T, h2 bool) {
 	// Not parallel: messes with global variable. (http2goAwayTimeout)
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "%v", r.RemoteAddr)
+		_, _ = fmt.Fprintf(w, "%v", r.RemoteAddr)
 	}))
 	defer cst.close()
 	srv := cst.ts.Config
@@ -5853,9 +5871,9 @@ func TestServerCancelsReadTimeoutWhenIdle(t *testing.T) {
 		ts := httptest.NewUnstartedServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 			select {
 			case <-time.After(2 * timeout):
-				fmt.Fprint(w, "ok")
+				_, _ = fmt.Fprint(w, "ok")
 			case <-r.Context().Done():
-				fmt.Fprint(w, r.Context().Err())
+				_, _ = fmt.Fprint(w, r.Context().Err())
 			}
 		}))
 		ts.Config.ReadTimeout = timeout
@@ -5869,7 +5887,7 @@ func TestServerCancelsReadTimeoutWhenIdle(t *testing.T) {
 			return fmt.Errorf("Get: %v", err)
 		}
 		slurp, err := io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if err != nil {
 			return fmt.Errorf("Body ReadAll: %v", err)
 		}
@@ -5926,12 +5944,14 @@ func TestServerDuplicateBackgroundRead(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			defer cn.Close()
+			defer func(cn net.Conn) {
+				_ = cn.Close()
+			}(cn)
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				io.Copy(io.Discard, cn)
+				_, _ = io.Copy(io.Discard, cn)
 			}()
 
 			for j := 0; j < requests; j++ {
@@ -5973,7 +5993,9 @@ func TestServerHijackGetsBackgroundByte(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 
 		peek, err := buf.Reader.Peek(3)
 		if string(peek) != "foo" || err != nil {
@@ -5992,7 +6014,9 @@ func TestServerHijackGetsBackgroundByte(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cn.Close()
+	defer func(cn net.Conn) {
+		_ = cn.Close()
+	}(cn)
 	if _, err := cn.Write([]byte("GET / HTTP/1.1\r\nHost: e.com\r\n\r\n")); err != nil {
 		t.Fatal(err)
 	}
@@ -6030,7 +6054,9 @@ func TestServerHijackGetsBackgroundByte_big(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 		slurp, err := io.ReadAll(buf.Reader)
 		if err != nil {
 			t.Errorf("Copy: %v", err)
@@ -6053,7 +6079,9 @@ func TestServerHijackGetsBackgroundByte_big(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cn.Close()
+	defer func(cn net.Conn) {
+		_ = cn.Close()
+	}(cn)
 	if _, err := fmt.Fprintf(cn, "GET / HTTP/1.1\r\nHost: e.com\r\n\r\n%s",
 		strings.Repeat("x", size)); err != nil {
 		t.Fatal(err)
@@ -6080,10 +6108,12 @@ func TestServerValidatesMethod(t *testing.T) {
 	}
 	for _, tt := range tests {
 		conn := &testConn{closec: make(chan bool, 1)}
-		io.WriteString(&conn.readBuf, tt.method+" / HTTP/1.1\r\nHost: foo.example\r\n\r\n")
+		_, _ = io.WriteString(&conn.readBuf, tt.method+" / HTTP/1.1\r\nHost: foo.example\r\n\r\n")
 
 		ln := &oneConnListener{conn}
-		go Serve(ln, serve(200))
+		go func() {
+			_ = Serve(ln, serve(200))
+		}()
 		<-conn.closec
 		res, err := ReadResponse(bufio.NewReader(&conn.writeBuf), nil)
 		if err != nil {
@@ -6106,7 +6136,7 @@ func (eofListenerNotComparable) Close() error              { return nil }
 // Issue 24812: don't crash on non-comparable Listener
 func TestServerListenNotComparableListener(t *testing.T) {
 	var s Server
-	s.Serve(make(eofListenerNotComparable, 1)) // used to panic
+	_ = s.Serve(make(eofListenerNotComparable, 1)) // used to panic
 }
 
 // countCloseListener is a Listener wrapper that counts the number of Close calls.
@@ -6129,19 +6159,21 @@ func TestServerCloseListenerOnce(t *testing.T) {
 	defer afterTest(t)
 
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	cl := &countCloseListener{Listener: ln}
 	server := &Server{}
 	sdone := make(chan bool, 1)
 
 	go func() {
-		server.Serve(cl)
+		_ = server.Serve(cl)
 		sdone <- true
 	}()
 	time.Sleep(10 * time.Millisecond)
-	server.Shutdown(context.Background())
-	ln.Close()
+	_ = server.Shutdown(context.Background())
+	_ = ln.Close()
 	<-sdone
 
 	nclose := atomic.LoadInt32(&cl.closes)
@@ -6154,7 +6186,7 @@ func TestServerCloseListenerOnce(t *testing.T) {
 func TestServerShutdownThenServe(t *testing.T) {
 	var srv Server
 	cl := &countCloseListener{Listener: nil}
-	srv.Shutdown(context.Background())
+	_ = srv.Shutdown(context.Background())
 	got := srv.Serve(cl)
 	if got != ErrServerClosed {
 		t.Errorf("Serve err = %v; want ErrServerClosed", got)
@@ -6170,10 +6202,10 @@ func TestStripPortFromHost(t *testing.T) {
 	mux := NewServeMux()
 
 	mux.HandleFunc("example.com/", func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "OK")
+		_, _ = fmt.Fprintf(w, "OK")
 	})
 	mux.HandleFunc("example.com:9000/", func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "uh-oh!")
+		_, _ = fmt.Fprintf(w, "uh-oh!")
 	})
 
 	req := httptest.NewRequest("GET", "http://example.com:9000/", nil)
@@ -6214,7 +6246,7 @@ func TestServerContexts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	ctx := <-ch
 	if got, want := ctx.Value(baseKey{}), "base"; got != want {
 		t.Errorf("base context key = %#v; want %q", got, want)
@@ -6258,7 +6290,7 @@ func TestServerContextsHTTP2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	ctx := <-ch
 	if got, want := ctx.Value(baseKey{}), "base"; got != want {
 		t.Errorf("base context key = %#v; want %q", got, want)
@@ -6292,20 +6324,20 @@ func TestConnContextNotModifyingAllContexts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	res, err = ts.Client().Get(ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 // Issue 30710: ensure that as per the spec, a server responds
 // with 501 Not Implemented for unsupported transfer-encodings.
 func TestUnsupportedTransferEncodingsReturn501(t *testing.T) {
 	cst := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("Hello, World!"))
+		_, _ = w.Write([]byte("Hello, World!"))
 	}))
 	defer cst.Close()
 
@@ -6373,8 +6405,8 @@ func testContentEncodingNoSniffing(t *testing.T, h2 bool) {
 			body: func() []byte {
 				buf := new(bytes.Buffer)
 				gzw := gzip.NewWriter(buf)
-				gzw.Write([]byte("doctype html><p>Hello</p>"))
-				gzw.Close()
+				_, _ = gzw.Write([]byte("doctype html><p>Hello</p>"))
+				_ = gzw.Close()
 				return buf.Bytes()
 			}(),
 		},
@@ -6385,8 +6417,8 @@ func testContentEncodingNoSniffing(t *testing.T, h2 bool) {
 			body: func() []byte {
 				buf := new(bytes.Buffer)
 				zw := zlib.NewWriter(buf)
-				zw.Write([]byte("doctype html><p>Hello</p>"))
-				zw.Close()
+				_, _ = zw.Write([]byte("doctype html><p>Hello</p>"))
+				_ = zw.Close()
 				return buf.Bytes()
 			}(),
 		},
@@ -6396,8 +6428,8 @@ func testContentEncodingNoSniffing(t *testing.T, h2 bool) {
 			body: func() []byte {
 				buf := new(bytes.Buffer)
 				gzw := gzip.NewWriter(buf)
-				gzw.Write([]byte("doctype html><p>Hello</p>"))
-				gzw.Close()
+				_, _ = gzw.Write([]byte("doctype html><p>Hello</p>"))
+				_ = gzw.Close()
 				return buf.Bytes()
 			}(),
 		},
@@ -6420,7 +6452,7 @@ func testContentEncodingNoSniffing(t *testing.T, h2 bool) {
 				if tt.contentEncoding != nil {
 					rw.Header().Set("Content-Encoding", tt.contentEncoding.(string))
 				}
-				rw.Write(tt.body)
+				_, _ = rw.Write(tt.body)
 			}))
 			defer cst.close()
 
@@ -6428,7 +6460,9 @@ func testContentEncodingNoSniffing(t *testing.T, h2 bool) {
 			if err != nil {
 				t.Fatalf("Failed to fetch URL: %v", err)
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 
 			if g, w := res.Header.Get("Content-Encoding"), tt.contentEncoding; g != w {
 				if w != nil { // The case where contentEncoding was set explicitly.
@@ -6560,7 +6594,9 @@ func fetchWireResponse(host string, http1ReqBody []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	if _, err := conn.Write(http1ReqBody); err != nil {
 		return nil, err
@@ -6594,11 +6630,13 @@ func TestDisableKeepAliveUpgrade(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer c.Close()
+		defer func(c net.Conn) {
+			_ = c.Close()
+		}(c)
 
 		// Copy from the *bufio.ReadWriter, which may contain buffered data.
 		// Copy to the net.Conn, to avoid buffering the output.
-		io.Copy(c, buf)
+		_, _ = io.Copy(c, buf)
 	}))
 	s.Config.SetKeepAlivesEnabled(false)
 	s.Start()
@@ -6611,7 +6649,9 @@ func TestDisableKeepAliveUpgrade(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to perform request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != StatusSwitchingProtocols {
 		t.Fatalf("unexpected status code: %v", resp.StatusCode)
@@ -6700,7 +6740,7 @@ func testQuerySemicolon(t *testing.T, query string, wantX string, allowSemicolon
 		if got := r.FormValue("x"); x != got {
 			t.Errorf("got %q from FormValue, want %q", got, x)
 		}
-		fmt.Fprintf(w, "%s", x)
+		_, _ = fmt.Fprintf(w, "%s", x)
 	}
 
 	h := Handler(HandlerFunc(writeBackX))
@@ -6720,7 +6760,7 @@ func testQuerySemicolon(t *testing.T, query string, wantX string, allowSemicolon
 		t.Fatal(err)
 	}
 	slurp, _ := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if got, want := res.StatusCode, 200; got != want {
 		t.Errorf("Status = %d; want = %d", got, want)
 	}
