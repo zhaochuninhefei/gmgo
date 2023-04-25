@@ -2575,7 +2575,9 @@ func TestTimeoutHandlerEmptyResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != StatusOK {
 		t.Errorf("got res.StatusCode %d, want %v", res.StatusCode, StatusOK)
 	}
@@ -2787,7 +2789,9 @@ func testHandlerPanic(t *testing.T, withHijack, h2 bool, wrapper func(Handler) H
 	pr, pw := io.Pipe()
 	log.SetOutput(pw)
 	defer log.SetOutput(os.Stderr)
-	defer pw.Close()
+	defer func(pw *io.PipeWriter) {
+		_ = pw.Close()
+	}(pw)
 
 	var handler Handler = HandlerFunc(func(w ResponseWriter, r *Request) {
 		if withHijack {
@@ -2795,7 +2799,9 @@ func testHandlerPanic(t *testing.T, withHijack, h2 bool, wrapper func(Handler) H
 			if err != nil {
 				t.Logf("unexpected error: %v", err)
 			}
-			defer rwc.Close()
+			defer func(rwc net.Conn) {
+				_ = rwc.Close()
+			}(rwc)
 		}
 		panic(panicValue)
 	})
@@ -2812,7 +2818,7 @@ func testHandlerPanic(t *testing.T, withHijack, h2 bool, wrapper func(Handler) H
 	go func() {
 		buf := make([]byte, 4<<10)
 		_, err := pr.Read(buf)
-		pr.Close()
+		_ = pr.Close()
 		if err != nil && err != io.EOF {
 			t.Error(err)
 		}
@@ -2856,7 +2862,9 @@ func TestServerWriteHijackZeroBytes(t *testing.T) {
 			t.Errorf("Hijack: %v", err)
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 		_, err = w.Write(nil)
 		if err != ErrHijacked {
 			t.Errorf("Write error = %v; want ErrHijacked", err)
@@ -2871,7 +2879,7 @@ func TestServerWriteHijackZeroBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
@@ -2889,14 +2897,14 @@ func testServerNoHeader(t *testing.T, h2 bool, header string) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header()[header] = nil
-		io.WriteString(w, "<html>foo</html>") // non-empty
+		_, _ = io.WriteString(w, "<html>foo</html>") // non-empty
 	}))
 	defer cst.close()
 	res, err := cst.c.Get(cst.ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if got, ok := res.Header[header]; ok {
 		t.Fatalf("Expected no %s header; got %q", header, got)
 	}
@@ -2930,7 +2938,7 @@ func TestStripPrefix(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 			if tc.path == "" {
 				if res.StatusCode != StatusNotFound {
 					t.Errorf("got %q, want 404 Not Found", res.Status)
@@ -2976,7 +2984,9 @@ func testRequestLimit(t *testing.T, h2 bool) {
 	}
 	res, err := cst.c.Do(req)
 	if res != nil {
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 	}
 	if h2 {
 		// In HTTP/2, the result depends on a race. If the client has received the
@@ -3101,12 +3111,14 @@ func TestServerBufferedChunking(t *testing.T) {
 	conn.readBuf.Write([]byte("GET / HTTP/1.1\r\nHost: foo\r\n\r\n"))
 	conn.closec = make(chan bool, 1)
 	ls := &oneConnListener{conn}
-	go Serve(ls, HandlerFunc(func(rw ResponseWriter, req *Request) {
-		rw.(Flusher).Flush() // force the Header to be sent, in chunking mode, not counting the length
-		rw.Write([]byte{'x'})
-		rw.Write([]byte{'y'})
-		rw.Write([]byte{'z'})
-	}))
+	go func() {
+		_ = Serve(ls, HandlerFunc(func(rw ResponseWriter, req *Request) {
+			rw.(Flusher).Flush() // force the Header to be sent, in chunking mode, not counting the length
+			_, _ = rw.Write([]byte{'x'})
+			_, _ = rw.Write([]byte{'y'})
+			_, _ = rw.Write([]byte{'z'})
+		}))
+	}()
 	<-conn.closec
 	if !bytes.HasSuffix(conn.writeBuf.Bytes(), []byte("\r\n\r\n3\r\nxyz\r\n0\r\n\r\n")) {
 		t.Errorf("response didn't end with a single 3 byte 'xyz' chunk; got:\n%q",
