@@ -707,6 +707,7 @@ func testServerTimeouts(timeout time.Duration) error {
 	got, err := io.ReadAll(r.Body)
 	expected := "req=1"
 	if string(got) != expected || err != nil {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Unexpected response for request #1; got %q ,%v; expected %q, nil",
 			string(got), err, expected)
 	}
@@ -715,6 +716,7 @@ func testServerTimeouts(timeout time.Duration) error {
 	t1 := time.Now()
 	conn, err := net.Dial("tcp", ts.Listener.Addr().String())
 	if err != nil {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Dial: %v", err)
 	}
 	buf := make([]byte, 1)
@@ -722,6 +724,7 @@ func testServerTimeouts(timeout time.Duration) error {
 	_ = conn.Close()
 	latency := time.Since(t1)
 	if n != 0 || err != io.EOF {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Read = %v, %v, wanted %v, %v", n, err, 0, io.EOF)
 	}
 	minLatency := timeout / 5 * 4
@@ -740,6 +743,7 @@ func testServerTimeouts(timeout time.Duration) error {
 	_ = r.Body.Close()
 	expected = "req=2"
 	if string(got) != expected || err != nil {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Get #2 got %q, %v, want %q, nil", string(got), err, expected)
 	}
 
@@ -5891,11 +5895,13 @@ func TestServerCancelsReadTimeoutWhenIdle(t *testing.T) {
 
 		res, err := c.Get(ts.URL)
 		if err != nil {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Get: %v", err)
 		}
 		slurp, err := io.ReadAll(res.Body)
 		_ = res.Body.Close()
 		if err != nil {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Body ReadAll: %v", err)
 		}
 		if string(slurp) != "ok" {
