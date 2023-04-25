@@ -5172,7 +5172,7 @@ func BenchmarkServer(b *testing.B) {
 				log.Panicf("Get: %v", err)
 			}
 			all, err := io.ReadAll(res.Body)
-			res.Body.Close()
+			_ = res.Body.Close()
 			if err != nil {
 				log.Panicf("ReadAll: %v", err)
 			}
@@ -5189,7 +5189,7 @@ func BenchmarkServer(b *testing.B) {
 	b.StopTimer()
 	ts := httptest.NewServer(HandlerFunc(func(rw ResponseWriter, r *Request) {
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-		rw.Write(res)
+		_, _ = rw.Write(res)
 	}))
 	defer ts.Close()
 	b.StartTimer()
@@ -5211,7 +5211,7 @@ func getNoBody(urlStr string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	return res, nil
 }
 
@@ -5231,17 +5231,17 @@ func BenchmarkClient(b *testing.B) {
 		}
 		ln, err := net.Listen("tcp", "localhost:"+port)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
+			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 		fmt.Println(ln.Addr().String())
 		HandleFunc("/", func(w ResponseWriter, r *Request) {
-			r.ParseForm()
+			_ = r.ParseForm()
 			if r.Form.Get("stop") != "" {
 				os.Exit(0)
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write(data)
+			_, _ = w.Write(data)
 		})
 		var srv Server
 		log.Fatal(srv.Serve(ln))
@@ -5258,12 +5258,14 @@ func BenchmarkClient(b *testing.B) {
 	if err := cmd.Start(); err != nil {
 		b.Fatalf("subprocess failed to start: %v", err)
 	}
-	defer cmd.Process.Kill()
+	defer func(Process *os.Process) {
+		_ = Process.Kill()
+	}(cmd.Process)
 
 	// Wait for the server in the child process to respond and tell us
 	// its listening address, once it's started listening:
 	timer := time.AfterFunc(10*time.Second, func() {
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 	})
 	defer timer.Stop()
 	bs := bufio.NewScanner(stdout)
