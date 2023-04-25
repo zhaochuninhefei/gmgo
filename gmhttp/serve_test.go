@@ -5161,13 +5161,13 @@ func benchmarkClientServerParallel(b *testing.B, parallelism int, useTLS bool) {
 func BenchmarkServer(b *testing.B) {
 	b.ReportAllocs()
 	// Child process mode;
-	if url := os.Getenv("TEST_BENCH_SERVER_URL"); url != "" {
+	if urlTmp := os.Getenv("TEST_BENCH_SERVER_URL"); urlTmp != "" {
 		n, err := strconv.Atoi(os.Getenv("TEST_BENCH_CLIENT_N"))
 		if err != nil {
 			panic(err)
 		}
 		for i := 0; i < n; i++ {
-			res, err := Get(url)
+			res, err := Get(urlTmp)
 			if err != nil {
 				log.Panicf("Get: %v", err)
 			}
@@ -5272,9 +5272,9 @@ func BenchmarkClient(b *testing.B) {
 	if !bs.Scan() {
 		b.Fatalf("failed to read listening URL from child: %v", bs.Err())
 	}
-	url := "http://" + strings.TrimSpace(bs.Text()) + "/"
+	urlTmp := "http://" + strings.TrimSpace(bs.Text()) + "/"
 	timer.Stop()
-	if _, err := getNoBody(url); err != nil {
+	if _, err := getNoBody(urlTmp); err != nil {
 		b.Fatalf("initial probe of child process failed: %v", err)
 	}
 
@@ -5292,7 +5292,7 @@ func BenchmarkClient(b *testing.B) {
 	// Do b.N requests to the server.
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		res, err := Get(url)
+		res, err := Get(urlTmp)
 		if err != nil {
 			b.Fatalf("Get: %v", err)
 		}
@@ -5308,7 +5308,7 @@ func BenchmarkClient(b *testing.B) {
 	b.StopTimer()
 
 	// Instruct server process to stop.
-	_, _ = getNoBody(url + "?stop=yes")
+	_, _ = getNoBody(urlTmp + "?stop=yes")
 	select {
 	case err := <-done:
 		if err != nil {
@@ -6696,6 +6696,7 @@ func TestMuxRedirectRelative(t *testing.T) {
 }
 
 // TestQuerySemicolon tests the behavior of semicolons in queries. See Issue 25192.
+//goland:noinspection GoBoolExpressions
 func TestQuerySemicolon(t *testing.T) {
 	t.Cleanup(func() { afterTest(t) })
 
