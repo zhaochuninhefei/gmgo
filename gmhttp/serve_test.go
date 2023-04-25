@@ -3742,7 +3742,7 @@ func TestAcceptMaxFds(t *testing.T) {
 			Err: syscall.EMFILE,
 		}}}
 	server := &Server{
-		Handler:  HandlerFunc(HandlerFunc(func(ResponseWriter, *Request) {})),
+		Handler:  HandlerFunc(func(ResponseWriter, *Request) {}),
 		ErrorLog: log.New(io.Discard, "", 0), // noisy otherwise
 	}
 	err := server.Serve(ln)
