@@ -3757,15 +3757,17 @@ func TestWriteAfterHijack(t *testing.T) {
 			return
 		}
 		go func() {
-			bufrw.Write([]byte("[hijack-to-bufw]"))
-			bufrw.Flush()
-			conn.Write([]byte("[hijack-to-conn]"))
-			conn.Close()
+			_, _ = bufrw.Write([]byte("[hijack-to-bufw]"))
+			_ = bufrw.Flush()
+			_, _ = conn.Write([]byte("[hijack-to-conn]"))
+			_ = conn.Close()
 			wrotec <- true
 		}()
 	})
 	ln := &oneConnListener{conn: conn}
-	go Serve(ln, handler)
+	go func() {
+		_ = Serve(ln, handler)
+	}()
 	<-conn.closec
 	<-wrotec
 	if g, w := buf.String(), "[hijack-to-bufw][hijack-to-conn]"; g != w {
@@ -3791,10 +3793,12 @@ func TestDoubleHijack(t *testing.T) {
 		if err == nil {
 			t.Errorf("got err = nil;  want err != nil")
 		}
-		conn.Close()
+		_ = conn.Close()
 	})
 	ln := &oneConnListener{conn: conn}
-	go Serve(ln, handler)
+	go func() {
+		_ = Serve(ln, handler)
+	}()
 	<-conn.closec
 }
 
@@ -3846,8 +3850,8 @@ func TestHTTP10ConnectionHeader(t *testing.T) {
 		if err != nil {
 			t.Fatal("ReadResponse err:", err)
 		}
-		conn.Close()
-		resp.Body.Close()
+		_ = conn.Close()
+		_ = resp.Body.Close()
 
 		got := resp.Header["Connection"]
 		if !reflect.DeepEqual(got, tt.expect) {
@@ -3868,7 +3872,7 @@ func testServerReaderFromOrder(t *testing.T, h2 bool) {
 		rw.Header().Set("Content-Type", "text/plain") // prevent sniffing path
 		done := make(chan bool)
 		go func() {
-			io.Copy(rw, pr)
+			_, _ = io.Copy(rw, pr)
 			close(done)
 		}()
 		time.Sleep(25 * time.Millisecond) // give Copy a chance to break things
@@ -3880,8 +3884,8 @@ func testServerReaderFromOrder(t *testing.T, h2 bool) {
 		if n != size {
 			t.Errorf("handler Copy = %d; want %d", n, size)
 		}
-		pw.Write([]byte("hi"))
-		pw.Close()
+		_, _ = pw.Write([]byte("hi"))
+		_ = pw.Close()
 		<-done
 	}))
 	defer cst.close()
