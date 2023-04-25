@@ -78,10 +78,16 @@ func (a dummyAddr) String() string {
 
 type noopConn struct{}
 
-func (noopConn) LocalAddr() net.Addr                { return dummyAddr("local-addr") }
-func (noopConn) RemoteAddr() net.Addr               { return dummyAddr("remote-addr") }
-func (noopConn) SetDeadline(t time.Time) error      { return nil }
-func (noopConn) SetReadDeadline(t time.Time) error  { return nil }
+func (noopConn) LocalAddr() net.Addr  { return dummyAddr("local-addr") }
+func (noopConn) RemoteAddr() net.Addr { return dummyAddr("remote-addr") }
+
+//goland:noinspection GoUnusedParameter
+func (noopConn) SetDeadline(t time.Time) error { return nil }
+
+//goland:noinspection GoUnusedParameter
+func (noopConn) SetReadDeadline(t time.Time) error { return nil }
+
+//goland:noinspection GoUnusedParameter
 func (noopConn) SetWriteDeadline(t time.Time) error { return nil }
 
 type rwTestConn struct {
@@ -217,6 +223,7 @@ func TestConsumingBodyOnNextConn(t *testing.T) {
 
 type stringHandler string
 
+//goland:noinspection GoUnusedParameter
 func (s stringHandler) ServeHTTP(w ResponseWriter, r *Request) {
 	w.Header().Set("Result", string(s))
 }
