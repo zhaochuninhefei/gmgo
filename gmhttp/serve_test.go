@@ -4973,7 +4973,7 @@ func TestServerRequestContextCancel_ConnClose(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatalf("timeout waiting to see ServeHTTP get called")
 	}
-	c.Close() // this should trigger the context being done
+	_ = c.Close() // this should trigger the context being done
 
 	select {
 	case <-handlerDone:
@@ -5003,7 +5003,7 @@ func testServerContext_ServerContextKey(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 func TestServerContext_LocalAddrContextKey_h1(t *testing.T) {
@@ -5043,7 +5043,7 @@ func TestHandlerSetTransferEncodingChunked(t *testing.T) {
 	defer afterTest(t)
 	ht := newHandlerTest(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Transfer-Encoding", "chunked")
-		w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello"))
 	}))
 	resp := ht.rawResponse("GET / HTTP/1.1\nHost: foo")
 	const hdr = "Transfer-Encoding: chunked"
@@ -5059,8 +5059,8 @@ func TestHandlerSetTransferEncodingGzip(t *testing.T) {
 	ht := newHandlerTest(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Transfer-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
-		gz.Write([]byte("hello"))
-		gz.Close()
+		_, _ = gz.Write([]byte("hello"))
+		_ = gz.Close()
 	}))
 	resp := ht.rawResponse("GET / HTTP/1.1\nHost: foo")
 	for _, v := range []string{"gzip", "chunked"} {
@@ -5075,7 +5075,7 @@ func BenchmarkClientServer(b *testing.B) {
 	b.ReportAllocs()
 	b.StopTimer()
 	ts := httptest.NewServer(HandlerFunc(func(rw ResponseWriter, r *Request) {
-		fmt.Fprintf(rw, "Hello world.\n")
+		_, _ = fmt.Fprintf(rw, "Hello world.\n")
 	}))
 	defer ts.Close()
 	b.StartTimer()
@@ -5086,7 +5086,7 @@ func BenchmarkClientServer(b *testing.B) {
 			b.Fatal("Get:", err)
 		}
 		all, err := io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if err != nil {
 			b.Fatal("ReadAll:", err)
 		}
@@ -5118,7 +5118,7 @@ func BenchmarkClientServerParallelTLS64(b *testing.B) {
 func benchmarkClientServerParallel(b *testing.B, parallelism int, useTLS bool) {
 	b.ReportAllocs()
 	ts := httptest.NewUnstartedServer(HandlerFunc(func(rw ResponseWriter, r *Request) {
-		fmt.Fprintf(rw, "Hello world.\n")
+		_, _ = fmt.Fprintf(rw, "Hello world.\n")
 	}))
 	if useTLS {
 		ts.StartTLS()
@@ -5137,7 +5137,7 @@ func benchmarkClientServerParallel(b *testing.B, parallelism int, useTLS bool) {
 				continue
 			}
 			all, err := io.ReadAll(res.Body)
-			res.Body.Close()
+			_ = res.Body.Close()
 			if err != nil {
 				b.Logf("ReadAll: %v", err)
 				continue
