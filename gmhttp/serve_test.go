@@ -3902,7 +3902,7 @@ func testServerReaderFromOrder(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if string(all) != "hi" {
 		t.Errorf("Body = %q; want hi", all)
 	}
@@ -3917,7 +3917,7 @@ func TestCodesPreventingContentTypeAndBody(t *testing.T) {
 			}
 			w.WriteHeader(code)
 			if r.URL.Path == "/more" {
-				w.Write([]byte("stuff"))
+				_, _ = w.Write([]byte("stuff"))
 			}
 		}))
 		for _, req := range []string{
@@ -4037,7 +4037,7 @@ func testTransportAndServerSharedBodyRace(t *testing.T, h2 bool) {
 		} else {
 			proxy.c.Transport.(*Transport).CancelRequest(req2)
 		}
-		rw.Write([]byte("OK"))
+		_, _ = rw.Write([]byte("OK"))
 	}))
 	defer proxy.close()
 	defer func() {
@@ -4050,7 +4050,7 @@ func testTransportAndServerSharedBodyRace(t *testing.T, h2 bool) {
 			debug.SetTraceback("ALL")
 			stacks := make([]byte, 1<<20)
 			stacks = stacks[:runtime.Stack(stacks, true)]
-			fmt.Fprintf(os.Stderr, "%s", stacks)
+			_, _ = fmt.Fprintf(os.Stderr, "%s", stacks)
 			log.Fatalf("Timeout.")
 		})
 	}()
@@ -4063,10 +4063,10 @@ func testTransportAndServerSharedBodyRace(t *testing.T, h2 bool) {
 	}
 
 	// Cleanup, so we don't leak goroutines.
-	res.Body.Close()
+	_ = res.Body.Close()
 	select {
 	case res := <-backendRespc:
-		res.Body.Close()
+		_ = res.Body.Close()
 	default:
 		// We failed earlier. (e.g. on proxy.c.Do(req2))
 	}
@@ -4101,7 +4101,9 @@ func TestRequestBodyCloseDoesntBlock(t *testing.T) {
 			errCh <- err
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 		_, err = conn.Write([]byte("POST / HTTP/1.1\r\nConnection: close\r\nHost: foo\r\nContent-Length: 100000\r\n\r\n"))
 		if err != nil {
 			errCh <- err
@@ -4159,21 +4161,21 @@ func TestServerConnState(t *testing.T) {
 	defer afterTest(t)
 	handler := map[string]func(w ResponseWriter, r *Request){
 		"/": func(w ResponseWriter, r *Request) {
-			fmt.Fprintf(w, "Hello.")
+			_, _ = fmt.Fprintf(w, "Hello.")
 		},
 		"/close": func(w ResponseWriter, r *Request) {
 			w.Header().Set("Connection", "close")
-			fmt.Fprintf(w, "Hello.")
+			_, _ = fmt.Fprintf(w, "Hello.")
 		},
 		"/hijack": func(w ResponseWriter, r *Request) {
 			c, _, _ := w.(Hijacker).Hijack()
-			c.Write([]byte("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello."))
-			c.Close()
+			_, _ = c.Write([]byte("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello."))
+			_ = c.Close()
 		},
 		"/hijack-panic": func(w ResponseWriter, r *Request) {
 			c, _, _ := w.(Hijacker).Hijack()
-			c.Write([]byte("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello."))
-			c.Close()
+			_, _ = c.Write([]byte("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello."))
+			_ = c.Close()
 			panic("intentional panic")
 		},
 	}
@@ -4271,7 +4273,9 @@ func TestServerConnState(t *testing.T) {
 			return
 		}
 		_, err = io.ReadAll(res.Body)
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if err != nil {
 			t.Errorf("Error reading %s: %v", url, err)
 		}
@@ -4300,7 +4304,7 @@ func TestServerConnState(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		c.Close()
+		_ = c.Close()
 	}, StateNew, StateClosed)
 
 	wantLog(func() {
@@ -4311,8 +4315,8 @@ func TestServerConnState(t *testing.T) {
 		if _, err := io.WriteString(c, "BOGUS REQUEST\r\n\r\n"); err != nil {
 			t.Fatal(err)
 		}
-		c.Read(make([]byte, 1)) // block until server hangs up on us
-		c.Close()
+		_, _ = c.Read(make([]byte, 1)) // block until server hangs up on us
+		_ = c.Close()
 	}, StateNew, StateActive, StateClosed)
 
 	wantLog(func() {
@@ -4330,7 +4334,7 @@ func TestServerConnState(t *testing.T) {
 		if _, err := io.Copy(io.Discard, res.Body); err != nil {
 			t.Fatal(err)
 		}
-		c.Close()
+		_ = c.Close()
 	}, StateNew, StateActive, StateIdle, StateClosed)
 }
 
@@ -4344,7 +4348,9 @@ func TestServerKeepAlivesEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if !res.Close {
 		t.Errorf("Body.Close == false; want true")
 	}
@@ -4378,7 +4384,9 @@ func testServerEmptyBodyRace(t *testing.T, h2 bool) {
 					return
 				}
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 			_, err = io.Copy(io.Discard, res.Body)
 			if err != nil {
 				t.Error(err)
@@ -4402,7 +4410,7 @@ func TestServerConnStateNew(t *testing.T) {
 		},
 		Handler: HandlerFunc(func(w ResponseWriter, r *Request) {}), // irrelevant
 	}
-	srv.Serve(&oneConnListener{
+	_ = srv.Serve(&oneConnListener{
 		conn: &rwTestConn{
 			Reader: strings.NewReader("GET / HTTP/1.1\r\nHost: foo\r\n\r\n"),
 			Writer: io.Discard,
@@ -4444,10 +4452,10 @@ func TestCloseWrite(t *testing.T) {
 func TestServerFlushAndHijack(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.WriteString(w, "Hello, ")
+		_, _ = io.WriteString(w, "Hello, ")
 		w.(Flusher).Flush()
 		conn, buf, _ := w.(Hijacker).Hijack()
-		buf.WriteString("6\r\nworld!\r\n0\r\n\r\n")
+		_, _ = buf.WriteString("6\r\nworld!\r\n0\r\n\r\n")
 		if err := buf.Flush(); err != nil {
 			t.Error(err)
 		}
@@ -4460,7 +4468,9 @@ func TestServerFlushAndHijack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	all, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -4498,7 +4508,7 @@ func TestServerKeepAliveAfterWriteError(t *testing.T) {
 		for i := 0; i < numReq; i++ {
 			res, err := Get(ts.URL)
 			if res != nil {
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 			errc <- err
 		}
@@ -4537,14 +4547,16 @@ func TestNoContentLengthIfTransferEncoding(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Transfer-Encoding", "foo")
-		io.WriteString(w, "<html>")
+		_, _ = io.WriteString(w, "<html>")
 	}))
 	defer ts.Close()
 	c, err := net.Dial("tcp", ts.Listener.Addr().String())
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 	if _, err := io.WriteString(c, "GET / HTTP/1.1\r\nHost: foo\r\n\r\n"); err != nil {
 		t.Fatal(err)
 	}
@@ -4582,9 +4594,11 @@ func TestTolerateCRLFBeforeRequestLine(t *testing.T) {
 	}
 	ln := &oneConnListener{conn: conn}
 	numReq := 0
-	go Serve(ln, HandlerFunc(func(rw ResponseWriter, r *Request) {
-		numReq++
-	}))
+	go func() {
+		_ = Serve(ln, HandlerFunc(func(rw ResponseWriter, r *Request) {
+			numReq++
+		}))
+	}()
 	<-conn.closec
 	if numReq != 2 {
 		t.Errorf("num requests = %d; want 2", numReq)
@@ -4611,11 +4625,14 @@ HelloWorld
 		closec: make(chan bool, 1),
 	}
 	ln := &oneConnListener{conn: conn}
-	go Serve(ln, HandlerFunc(func(w ResponseWriter, r *Request) {
-		if _, ok := r.Header["Expect"]; !ok {
-			t.Error("Expect header should not be filtered out")
-		}
-	}))
+	go func() {
+		_ = Serve(ln, HandlerFunc(func(w ResponseWriter, r *Request) {
+			if _, ok := r.Header["Expect"]; !ok {
+
+				t.Error("Expect header should not be filtered out")
+			}
+		}))
+	}()
 	<-conn.closec
 }
 
@@ -4646,13 +4663,15 @@ Host: foo
 	}
 	ln := &oneConnListener{conn: conn}
 	numReq := 0
-	go Serve(ln, HandlerFunc(func(w ResponseWriter, r *Request) {
-		numReq++
-		if r.URL.Path == "/readbody" {
-			io.ReadAll(r.Body)
-		}
-		io.WriteString(w, "Hello world!")
-	}))
+	go func() {
+		_ = Serve(ln, HandlerFunc(func(w ResponseWriter, r *Request) {
+			numReq++
+			if r.URL.Path == "/readbody" {
+				_, _ = io.ReadAll(r.Body)
+			}
+			_, _ = io.WriteString(w, "Hello world!")
+		}))
+	}()
 	<-conn.closec
 	if numReq != 2 {
 		t.Errorf("num requests = %d; want 2", numReq)
@@ -4675,10 +4694,12 @@ func TestHandlerFinishSkipBigContentLengthRead(t *testing.T) {
 
 	ls := &oneConnListener{conn}
 	var inHandlerLen int
-	go Serve(ls, HandlerFunc(func(rw ResponseWriter, req *Request) {
-		inHandlerLen = conn.readBuf.Len()
-		rw.WriteHeader(404)
-	}))
+	go func() {
+		_ = Serve(ls, HandlerFunc(func(rw ResponseWriter, req *Request) {
+			inHandlerLen = conn.readBuf.Len()
+			rw.WriteHeader(404)
+		}))
+	}()
 	<-conn.closec
 	afterHandlerLen := conn.readBuf.Len()
 
@@ -4693,7 +4714,7 @@ func testHandlerSetsBodyNil(t *testing.T, h2 bool) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
 		r.Body = nil
-		fmt.Fprintf(w, "%v", r.RemoteAddr)
+		_, _ = fmt.Fprintf(w, "%v", r.RemoteAddr)
 	}))
 	defer cst.close()
 	get := func() string {
@@ -4701,7 +4722,9 @@ func testHandlerSetsBodyNil(t *testing.T, h2 bool) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -4764,14 +4787,16 @@ func TestServerValidatesHostHeader(t *testing.T) {
 		if !strings.HasPrefix(tt.proto, "HTTP/") {
 			methodTarget = ""
 		}
-		io.WriteString(&conn.readBuf, methodTarget+tt.proto+"\r\n"+tt.host+"\r\n")
+		_, _ = io.WriteString(&conn.readBuf, methodTarget+tt.proto+"\r\n"+tt.host+"\r\n")
 
 		ln := &oneConnListener{conn}
 		srv := Server{
 			ErrorLog: quietLog,
 			Handler:  HandlerFunc(func(ResponseWriter, *Request) {}),
 		}
-		go srv.Serve(ln)
+		go func() {
+			_ = srv.Serve(ln)
+		}()
 		<-conn.closec
 		res, err := ReadResponse(bufio.NewReader(&conn.writeBuf), nil)
 		if err != nil {
@@ -4793,7 +4818,9 @@ func TestServerHandlersCanHandleH2PRI(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 		if r.Method != "PRI" || r.RequestURI != "*" {
 			t.Errorf("Got method/target %q %q; want PRI *", r.Method, r.RequestURI)
 			return
@@ -4808,7 +4835,7 @@ func TestServerHandlersCanHandleH2PRI(t *testing.T) {
 			t.Errorf("Read = %v, %v (%q), want %q", n, err, buf[:n], want)
 			return
 		}
-		io.WriteString(conn, upgradeResponse)
+		_, _ = io.WriteString(conn, upgradeResponse)
 	}))
 	defer ts.Close()
 
@@ -4816,8 +4843,10 @@ func TestServerHandlersCanHandleH2PRI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
-	defer c.Close()
-	io.WriteString(c, "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
+	_, _ = io.WriteString(c, "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
 	slurp, err := io.ReadAll(c)
 	if err != nil {
 		t.Fatal(err)
@@ -4857,14 +4886,16 @@ func TestServerValidatesHeaders(t *testing.T) {
 	}
 	for _, tt := range tests {
 		conn := &testConn{closec: make(chan bool, 1)}
-		io.WriteString(&conn.readBuf, "GET / HTTP/1.1\r\nHost: foo\r\n"+tt.header+"\r\n")
+		_, _ = io.WriteString(&conn.readBuf, "GET / HTTP/1.1\r\nHost: foo\r\n"+tt.header+"\r\n")
 
 		ln := &oneConnListener{conn}
 		srv := Server{
 			ErrorLog: quietLog,
 			Handler:  HandlerFunc(func(ResponseWriter, *Request) {}),
 		}
-		go srv.Serve(ln)
+		go func() {
+			_ = srv.Serve(ln)
+		}()
 		<-conn.closec
 		res, err := ReadResponse(bufio.NewReader(&conn.writeBuf), nil)
 		if err != nil {
@@ -4901,7 +4932,7 @@ func testServerRequestContextCancel_ServeHTTPDone(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	ctx := <-ctxc
 	select {
 	case <-ctx.Done():
@@ -4933,8 +4964,10 @@ func TestServerRequestContextCancel_ConnClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
-	io.WriteString(c, "GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
+	_, _ = io.WriteString(c, "GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
 	select {
 	case <-inHandler:
 	case <-time.After(3 * time.Second):
