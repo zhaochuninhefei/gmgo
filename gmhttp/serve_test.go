@@ -1036,29 +1036,29 @@ func TestIdentityResponse(t *testing.T) {
 	// server wouldn't have the choice to send back chunked
 	// responses.
 	for _, te := range []string{"", "identity"} {
-		url := ts.URL + "/?te=" + te
-		res, err := c.Get(url)
+		urlTmp := ts.URL + "/?te=" + te
+		res, err := c.Get(urlTmp)
 		if err != nil {
-			t.Fatalf("error with Get of %s: %v", url, err)
+			t.Fatalf("error with Get of %s: %v", urlTmp, err)
 		}
 		if cl, expected := res.ContentLength, int64(3); cl != expected {
-			t.Errorf("for %s expected res.ContentLength of %d; got %d", url, expected, cl)
+			t.Errorf("for %s expected res.ContentLength of %d; got %d", urlTmp, expected, cl)
 		}
 		if cl, expected := res.Header.Get("Content-Length"), "3"; cl != expected {
-			t.Errorf("for %s expected Content-Length header of %q; got %q", url, expected, cl)
+			t.Errorf("for %s expected Content-Length header of %q; got %q", urlTmp, expected, cl)
 		}
 		if tl, expected := len(res.TransferEncoding), 0; tl != expected {
 			t.Errorf("for %s expected len(res.TransferEncoding) of %d; got %d (%v)",
-				url, expected, tl, res.TransferEncoding)
+				urlTmp, expected, tl, res.TransferEncoding)
 		}
 		_ = res.Body.Close()
 	}
 
 	// Verify that ErrContentLength is returned
-	url := ts.URL + "/?overwrite=1"
-	res, err := c.Get(url)
+	urlTmp := ts.URL + "/?overwrite=1"
+	res, err := c.Get(urlTmp)
 	if err != nil {
-		t.Fatalf("error with Get of %s: %v", url, err)
+		t.Fatalf("error with Get of %s: %v", urlTmp, err)
 	}
 	_ = res.Body.Close()
 
