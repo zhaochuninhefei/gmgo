@@ -3142,7 +3142,9 @@ func TestServerGracefulClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 	const bodySize = 5 << 20
 	req := []byte(fmt.Sprintf("POST / HTTP/1.1\r\nHost: foo.com\r\nContent-Length: %d\r\n\r\n", bodySize))
 	for i := 0; i < bodySize; i++ {
@@ -3191,7 +3193,7 @@ func testCaseSensitiveMethod(t *testing.T, h2 bool) {
 		return
 	}
 
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 // TestContentLengthZero tests that for both an HTTP/1.0 and HTTP/1.1
@@ -3222,7 +3224,7 @@ func TestContentLengthZero(t *testing.T) {
 		if cl := res.ContentLength; cl != 0 {
 			t.Errorf("For version %q, Content-Length = %v; want 0", version, cl)
 		}
-		conn.Close()
+		_ = conn.Close()
 	}
 }
 
@@ -3248,7 +3250,7 @@ func TestCloseNotifier(t *testing.T) {
 			return
 		}
 		<-diec
-		conn.Close()
+		_ = conn.Close()
 	}()
 For:
 	for {
@@ -3298,7 +3300,7 @@ func TestCloseNotifierPipelined(t *testing.T) {
 			return
 		}
 		<-diec
-		conn.Close()
+		_ = conn.Close()
 	}()
 	reqs := 0
 	closes := 0
@@ -3338,7 +3340,9 @@ func TestCloseNotifierChanLeak(t *testing.T) {
 			// on the sending side:
 			_ = rw.(CloseNotifier).CloseNotify()
 		})
-		go Serve(ln, handler)
+		go func() {
+			_ = Serve(ln, handler)
+		}()
 		<-conn.closec
 	}
 }
@@ -3377,8 +3381,8 @@ func TestHijackAfterCloseNotifier(t *testing.T) {
 				// Not strictly a go1 compat issue, but in practice it probably is.
 				t.Errorf("type of hijacked conn is %T; want *net.TCPConn", c)
 			}
-			fmt.Fprintf(c, "HTTP/1.0 200 OK\r\nX-Addr: %v\r\nContent-Length: 0\r\n\r\n", r.RemoteAddr)
-			c.Close()
+			_, _ = fmt.Fprintf(c, "HTTP/1.0 200 OK\r\nX-Addr: %v\r\nContent-Length: 0\r\n\r\n", r.RemoteAddr)
+			_ = c.Close()
 			return
 		}
 	}))
@@ -3438,15 +3442,17 @@ func TestHijackBeforeRequestBodyRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
-	fmt.Fprintf(conn, "POST / HTTP/1.1\r\nHost: foo\r\nContent-Length: %d\r\n\r\n%s",
+	_, _ = fmt.Fprintf(conn, "POST / HTTP/1.1\r\nHost: foo\r\nContent-Length: %d\r\n\r\n%s",
 		len(requestBody), requestBody)
 	if !<-bodyOkay {
 		// already failed.
 		return
 	}
-	conn.Close()
+	_ = conn.Close()
 	if !<-gotCloseNotify {
 		t.Error("timeout waiting for CloseNotify")
 	}
@@ -3465,7 +3471,9 @@ func TestOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	// An OPTIONS * request should succeed.
 	_, err = conn.Write([]byte("OPTIONS * HTTP/1.1\r\nHost: foo.com\r\n\r\n"))
@@ -3498,7 +3506,7 @@ func TestOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if got := <-uric; got != "/second" {
 		t.Errorf("Handler saw request for %q; want /second", got)
 	}
@@ -3522,7 +3530,7 @@ func TestHeaderToWire(t *testing.T) {
 		{
 			name: "write without Header",
 			handler: func(rw ResponseWriter, r *Request) {
-				rw.Write([]byte("hello world"))
+				_, _ = rw.Write([]byte("hello world"))
 			},
 			check: func(got, logs string) error {
 				if !strings.Contains(got, "Content-Length:") {
@@ -3539,7 +3547,7 @@ func TestHeaderToWire(t *testing.T) {
 			handler: func(rw ResponseWriter, r *Request) {
 				h := rw.Header()
 				h.Set("Content-Type", "some/type")
-				rw.Write([]byte("hello world"))
+				_, _ = rw.Write([]byte("hello world"))
 				h.Set("Too-Late", "bogus")
 			},
 			check: func(got, logs string) error {
@@ -3558,7 +3566,7 @@ func TestHeaderToWire(t *testing.T) {
 		{
 			name: "write then useless Header mutation",
 			handler: func(rw ResponseWriter, r *Request) {
-				rw.Write([]byte("hello world"))
+				_, _ = rw.Write([]byte("hello world"))
 				rw.Header().Set("Too-Late", "Write already wrote headers")
 			},
 			check: func(got, logs string) error {
@@ -3572,7 +3580,7 @@ func TestHeaderToWire(t *testing.T) {
 			name: "flush then write",
 			handler: func(rw ResponseWriter, r *Request) {
 				rw.(Flusher).Flush()
-				rw.Write([]byte("post-flush"))
+				_, _ = rw.Write([]byte("post-flush"))
 				rw.Header().Set("Too-Late", "Write already wrote headers")
 			},
 			check: func(got, logs string) error {
@@ -3590,7 +3598,7 @@ func TestHeaderToWire(t *testing.T) {
 			handler: func(rw ResponseWriter, r *Request) {
 				rw.Header().Set("Content-Type", "some/type")
 				rw.(Flusher).Flush()
-				rw.Write([]byte("post-flush"))
+				_, _ = rw.Write([]byte("post-flush"))
 				rw.Header().Set("Too-Late", "Write already wrote headers")
 			},
 			check: func(got, logs string) error {
@@ -3609,7 +3617,7 @@ func TestHeaderToWire(t *testing.T) {
 		{
 			name: "sniff-on-first-write content-type",
 			handler: func(rw ResponseWriter, r *Request) {
-				rw.Write([]byte("<html><head></head><body>some html</body></html>"))
+				_, _ = rw.Write([]byte("<html><head></head><body>some html</body></html>"))
 				rw.Header().Set("Content-Type", "x/wrong")
 			},
 			check: func(got, logs string) error {
@@ -3623,7 +3631,7 @@ func TestHeaderToWire(t *testing.T) {
 			name: "explicit content-type wins",
 			handler: func(rw ResponseWriter, r *Request) {
 				rw.Header().Set("Content-Type", "some/type")
-				rw.Write([]byte("<html><head></head><body>some html</body></html>"))
+				_, _ = rw.Write([]byte("<html><head></head><body>some html</body></html>"))
 			},
 			check: func(got, logs string) error {
 				if !strings.Contains(got, "Content-Type: some/type") {
