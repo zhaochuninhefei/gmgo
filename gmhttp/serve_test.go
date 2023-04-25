@@ -1191,7 +1191,10 @@ func TestHTTP2UpgradeClosesConnection(t *testing.T) {
 	}))
 }
 
+//goland:noinspection GoUnusedParameter
 func send204(w ResponseWriter, r *Request) { w.WriteHeader(204) }
+
+//goland:noinspection GoUnusedParameter
 func send304(w ResponseWriter, r *Request) { w.WriteHeader(304) }
 
 // Issue 15647: 204 responses can't have bodies, so HTTP/1.0 keep-alive conns should stay open.
