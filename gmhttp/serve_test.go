@@ -238,6 +238,7 @@ var handlers = []struct {
 	{"someHost.com/someDir/", "someHost.com/someDir"},
 }
 
+//goland:noinspection HttpUrlsUsage
 var vtests = []struct {
 	url      string
 	expected string
@@ -331,6 +332,7 @@ func checkQueryStringHandler(w ResponseWriter, r *Request) {
 	u.Scheme = "http"
 	u.Host = r.Host
 	u.RawQuery = ""
+	//goland:noinspection HttpUrlsUsage
 	if "http://"+r.URL.RawQuery == u.String() {
 		w.WriteHeader(200)
 	} else {
@@ -566,6 +568,7 @@ func TestServeWithSlashRedirectForHostPatterns(t *testing.T) {
 	mux.Handle("example.com:9000/", stringHandler("example.com:9000/"))
 	mux.Handle("/pkg/baz/", stringHandler("/pkg/baz/"))
 
+	//goland:noinspection HttpUrlsUsage
 	tests := []struct {
 		method string
 		url    string
@@ -2621,6 +2624,7 @@ func TestRedirectBadPath(t *testing.T) {
 }
 
 // Test different URL formats and schemes
+//goland:noinspection HttpUrlsUsage
 func TestRedirect(t *testing.T) {
 	req, _ := NewRequest("GET", "http://example.com/qux/", nil)
 
@@ -2668,6 +2672,7 @@ func TestRedirect(t *testing.T) {
 
 // Test that Redirect sets Content-Type header for GET and HEAD requests
 // and writes a short HTML body, unless the request already has a Content-Type header.
+//goland:noinspection HttpUrlsUsage
 func TestRedirectContentTypeAndBody(t *testing.T) {
 	type ctHeader struct {
 		Values []string
@@ -5272,6 +5277,7 @@ func BenchmarkClient(b *testing.B) {
 	if !bs.Scan() {
 		b.Fatalf("failed to read listening URL from child: %v", bs.Err())
 	}
+	//goland:noinspection HttpUrlsUsage
 	urlTmp := "http://" + strings.TrimSpace(bs.Text()) + "/"
 	timer.Stop()
 	if _, err := getNoBody(urlTmp); err != nil {
@@ -5660,6 +5666,7 @@ func TestServerSetKeepAlivesEnabledClosesConns(t *testing.T) {
 	if a1 != a2 {
 		t.Fatal("expected first two requests on same connection")
 	}
+	//goland:noinspection HttpUrlsUsage
 	addr := strings.TrimPrefix(ts.URL, "http://")
 
 	// The two requests should have used the same connection,
@@ -6208,6 +6215,7 @@ func TestStripPortFromHost(t *testing.T) {
 		_, _ = fmt.Fprintf(w, "uh-oh!")
 	})
 
+	//goland:noinspection HttpUrlsUsage
 	req := httptest.NewRequest("GET", "http://example.com:9000/", nil)
 	rw := httptest.NewRecorder()
 
@@ -6680,6 +6688,7 @@ func TestDisableKeepAliveUpgrade(t *testing.T) {
 
 func TestMuxRedirectRelative(t *testing.T) {
 	setParallel(t)
+	//goland:noinspection HttpUrlsUsage
 	req, err := ReadRequest(bufio.NewReader(strings.NewReader("GET http://example.com HTTP/1.1\r\nHost: test\r\n\r\n")))
 	if err != nil {
 		t.Errorf("%s", err)
