@@ -2377,17 +2377,17 @@ func (mux *ServeMux) Handler(r *Request) (h Handler, pattern string) {
 	// All other requests have any port stripped and path cleaned
 	// before passing to mux.handler.
 	host := stripHostPort(r.Host)
-	path := cleanPath(r.URL.Path)
+	pathCleaned := cleanPath(r.URL.Path)
 
 	// If the given path is /tree and its handler is not registered,
 	// redirect for /tree/.
-	if u, ok := mux.redirectToPathSlash(host, path, r.URL); ok {
+	if u, ok := mux.redirectToPathSlash(host, pathCleaned, r.URL); ok {
 		return RedirectHandler(u.String(), StatusMovedPermanently), u.Path
 	}
 
-	if path != r.URL.Path {
-		_, pattern = mux.handler(host, path)
-		u := &url.URL{Path: path, RawQuery: r.URL.RawQuery}
+	if pathCleaned != r.URL.Path {
+		_, pattern = mux.handler(host, pathCleaned)
+		u := &url.URL{Path: pathCleaned, RawQuery: r.URL.RawQuery}
 		return RedirectHandler(u.String(), StatusMovedPermanently), pattern
 	}
 
