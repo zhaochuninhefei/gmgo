@@ -3239,6 +3239,7 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 // setupHTTP2_ServeTLS conditionally configures HTTP/2 on
 // srv and reports whether there was an error setting it up. If it is
 // not configured for policy reasons, nil is returned.
+//goland:noinspection GoSnakeCaseUsage
 func (srv *Server) setupHTTP2_ServeTLS() error {
 	srv.nextProtoOnce.Do(srv.onceSetNextProtoDefaults)
 	return srv.nextProtoErr
@@ -3252,11 +3253,13 @@ func (srv *Server) setupHTTP2_ServeTLS() error {
 // The tests named TestTransportAutomaticHTTP2* and
 // TestConcurrentServerServe in server_test.go demonstrate some
 // of the supported use cases and motivations.
+//goland:noinspection GoSnakeCaseUsage
 func (srv *Server) setupHTTP2_Serve() error {
 	srv.nextProtoOnce.Do(srv.onceSetNextProtoDefaults_Serve)
 	return srv.nextProtoErr
 }
 
+//goland:noinspection GoSnakeCaseUsage
 func (srv *Server) onceSetNextProtoDefaults_Serve() {
 	if srv.shouldConfigureHTTP2ForServe() {
 		srv.onceSetNextProtoDefaults()
