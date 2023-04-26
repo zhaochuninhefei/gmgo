@@ -1489,18 +1489,18 @@ func foreachHeaderElement(v string, fn func(string)) {
 // scratch is an optional scratch buffer. If it has at least capacity 3, it's used.
 func writeStatusLine(bw *bufio.Writer, is11 bool, code int, scratch []byte) {
 	if is11 {
-		bw.WriteString("HTTP/1.1 ")
+		_, _ = bw.WriteString("HTTP/1.1 ")
 	} else {
-		bw.WriteString("HTTP/1.0 ")
+		_, _ = bw.WriteString("HTTP/1.0 ")
 	}
 	if text, ok := statusText[code]; ok {
-		bw.Write(strconv.AppendInt(scratch[:0], int64(code), 10))
-		bw.WriteByte(' ')
-		bw.WriteString(text)
-		bw.WriteString("\r\n")
+		_, _ = bw.Write(strconv.AppendInt(scratch[:0], int64(code), 10))
+		_ = bw.WriteByte(' ')
+		_, _ = bw.WriteString(text)
+		_, _ = bw.WriteString("\r\n")
 	} else {
 		// don't worry about performance
-		fmt.Fprintf(bw, "%03d status code %d\r\n", code, code)
+		_, _ = fmt.Fprintf(bw, "%03d status code %d\r\n", code, code)
 	}
 }
 
@@ -1603,19 +1603,19 @@ func (w *response) finishRequest() {
 		w.WriteHeader(StatusOK)
 	}
 
-	w.w.Flush()
+	_ = w.w.Flush()
 	putBufioWriter(w.w)
 	w.cw.close()
-	w.conn.bufw.Flush()
+	_ = w.conn.bufw.Flush()
 
 	w.conn.r.abortPendingRead()
 
 	// Close the body (regardless of w.closeAfterReply) so we can
 	// re-use its bufio.Reader later safely.
-	w.reqBody.Close()
+	_ = w.reqBody.Close()
 
 	if w.req.MultipartForm != nil {
-		w.req.MultipartForm.RemoveAll()
+		_ = w.req.MultipartForm.RemoveAll()
 	}
 }
 
@@ -1656,7 +1656,7 @@ func (w *response) Flush() {
 	if !w.wroteHeader {
 		w.WriteHeader(StatusOK)
 	}
-	w.w.Flush()
+	_ = w.w.Flush()
 	w.cw.flush()
 }
 
@@ -1669,7 +1669,7 @@ func (c *conn) finalFlush() {
 	}
 
 	if c.bufw != nil {
-		c.bufw.Flush()
+		_ = c.bufw.Flush()
 		// Steal the bufio.Writer (~4KB worth of memory) and its associated
 		// writer for a future connection.
 		putBufioWriter(c.bufw)
@@ -1680,7 +1680,7 @@ func (c *conn) finalFlush() {
 // Close the connection.
 func (c *conn) close() {
 	c.finalFlush()
-	c.rwc.Close()
+	_ = c.rwc.Close()
 }
 
 // rstAvoidanceDelay is the amount of time we sleep after closing the
@@ -1707,7 +1707,7 @@ var _ closeWriter = (*net.TCPConn)(nil)
 func (c *conn) closeWriteAndWait() {
 	c.finalFlush()
 	if tcp, ok := c.rwc.(closeWriter); ok {
-		tcp.CloseWrite()
+		_ = tcp.CloseWrite()
 	}
 	time.Sleep(rstAvoidanceDelay)
 }
@@ -1810,18 +1810,18 @@ func (c *conn) serve(ctx context.Context) {
 
 	if tlsConn, ok := c.rwc.(*tls.Conn); ok {
 		if d := c.server.ReadTimeout; d > 0 {
-			c.rwc.SetReadDeadline(time.Now().Add(d))
+			_ = c.rwc.SetReadDeadline(time.Now().Add(d))
 		}
 		if d := c.server.WriteTimeout; d > 0 {
-			c.rwc.SetWriteDeadline(time.Now().Add(d))
+			_ = c.rwc.SetWriteDeadline(time.Now().Add(d))
 		}
 		if err := tlsConn.HandshakeContext(ctx); err != nil {
 			// If the handshake failed due to the client not speaking
 			// TLS, assume they're speaking plaintext HTTP and write a
 			// 400 response on the TLS conn's underlying net.Conn.
 			if re, ok := err.(tls.RecordHeaderError); ok && re.Conn != nil && tlsRecordHeaderLooksLikeHTTP(re.RecordHeader) {
-				io.WriteString(re.Conn, "HTTP/1.0 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.\n")
-				re.Conn.Close()
+				_, _ = io.WriteString(re.Conn, "HTTP/1.0 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.\n")
+				_ = re.Conn.Close()
 				return
 			}
 			c.server.logf("http: TLS handshake error from %s: %v", c.rwc.RemoteAddr(), err)
@@ -1882,7 +1882,7 @@ func (c *conn) serve(ctx context.Context) {
 
 				// We purposefully aren't echoing back the transfer-encoding's value,
 				// so as to mitigate the risk of cross side scripting by an attacker.
-				fmt.Fprintf(c.rwc, "HTTP/1.1 %d %s%sUnsupported transfer encoding", code, StatusText(code), errorHeaders)
+				_, _ = fmt.Fprintf(c.rwc, "HTTP/1.1 %d %s%sUnsupported transfer encoding", code, StatusText(code), errorHeaders)
 				return
 
 			case isCommonNetReadError(err):
@@ -1890,11 +1890,11 @@ func (c *conn) serve(ctx context.Context) {
 
 			default:
 				if v, ok := err.(statusError); ok {
-					fmt.Fprintf(c.rwc, "HTTP/1.1 %d %s: %s%s%d %s: %s", v.code, StatusText(v.code), v.text, errorHeaders, v.code, StatusText(v.code), v.text)
+					_, _ = fmt.Fprintf(c.rwc, "HTTP/1.1 %d %s: %s%s%d %s: %s", v.code, StatusText(v.code), v.text, errorHeaders, v.code, StatusText(v.code), v.text)
 					return
 				}
 				publicErr := "400 Bad Request"
-				fmt.Fprintf(c.rwc, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
+				_, _ = fmt.Fprintf(c.rwc, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
 				return
 			}
 		}
@@ -1951,12 +1951,12 @@ func (c *conn) serve(ctx context.Context) {
 		}
 
 		if d := c.server.idleTimeout(); d != 0 {
-			c.rwc.SetReadDeadline(time.Now().Add(d))
+			_ = c.rwc.SetReadDeadline(time.Now().Add(d))
 			if _, err := c.bufr.Peek(4); err != nil {
 				return
 			}
 		}
-		c.rwc.SetReadDeadline(time.Time{})
+		_ = c.rwc.SetReadDeadline(time.Time{})
 	}
 }
 
