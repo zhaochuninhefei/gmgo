@@ -316,7 +316,7 @@ func (c *conn) hijackLocked() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
 
 	c.hijackedv = true
 	rwc = c.rwc
-	rwc.SetDeadline(time.Time{})
+	_ = rwc.SetDeadline(time.Time{})
 
 	buf = bufio.NewReadWriter(c.bufr, bufio.NewWriter(rwc))
 	if c.r.hasByte {
@@ -376,7 +376,7 @@ func (cw *chunkWriter) Write(p []byte) (n int, err error) {
 	if cw.chunking {
 		_, err = fmt.Fprintf(cw.res.conn.bufw, "%x\r\n", len(p))
 		if err != nil {
-			cw.res.conn.rwc.Close()
+			_ = cw.res.conn.rwc.Close()
 			return
 		}
 	}
@@ -385,7 +385,7 @@ func (cw *chunkWriter) Write(p []byte) (n int, err error) {
 		_, err = cw.res.conn.bufw.Write(crlf)
 	}
 	if err != nil {
-		cw.res.conn.rwc.Close()
+		_ = cw.res.conn.rwc.Close()
 	}
 	return
 }
@@ -394,7 +394,7 @@ func (cw *chunkWriter) flush() {
 	if !cw.wroteHeader {
 		cw.writeHeader(nil)
 	}
-	cw.res.conn.bufw.Flush()
+	_ = cw.res.conn.bufw.Flush()
 }
 
 func (cw *chunkWriter) close() {
@@ -404,13 +404,13 @@ func (cw *chunkWriter) close() {
 	if cw.chunking {
 		bw := cw.res.conn.bufw // conn's bufio writer
 		// zero chunk to mark EOF
-		bw.WriteString("0\r\n")
+		_, _ = bw.WriteString("0\r\n")
 		if trailers := cw.res.finalTrailers(); trailers != nil {
-			trailers.Write(bw) // the writer handles noting errors
+			_ = trailers.Write(bw) // the writer handles noting errors
 		}
 		// final blank line after the trailers (whether
 		// present or not)
-		bw.WriteString("\r\n")
+		_, _ = bw.WriteString("\r\n")
 	}
 }
 
@@ -589,8 +589,8 @@ func (w *response) ReadFrom(src io.Reader) (n int64, err error) {
 		}
 	}
 
-	w.w.Flush()  // get rid of any previous writes
-	w.cw.flush() // make sure Header is written; flush data to rwc
+	_ = w.w.Flush() // get rid of any previous writes
+	w.cw.flush()    // make sure Header is written; flush data to rwc
 
 	// Now that cw has been flushed, its chunking field is guaranteed initialized.
 	if !w.cw.chunking && w.bodyAllowed() {
@@ -664,7 +664,7 @@ func (cr *connReader) startBackgroundRead() {
 		return
 	}
 	cr.inRead = true
-	cr.conn.rwc.SetReadDeadline(time.Time{})
+	_ = cr.conn.rwc.SetReadDeadline(time.Time{})
 	go cr.backgroundRead()
 }
 
@@ -715,11 +715,11 @@ func (cr *connReader) abortPendingRead() {
 		return
 	}
 	cr.aborted = true
-	cr.conn.rwc.SetReadDeadline(aLongTimeAgo)
+	_ = cr.conn.rwc.SetReadDeadline(aLongTimeAgo)
 	for cr.inRead {
 		cr.cond.Wait()
 	}
-	cr.conn.rwc.SetReadDeadline(time.Time{})
+	_ = cr.conn.rwc.SetReadDeadline(time.Time{})
 }
 
 func (cr *connReader) setReadLimit(remain int64) { cr.remain = remain }
@@ -883,8 +883,8 @@ func (ecr *expectContinueReader) Read(p []byte) (n int, err error) {
 		w.wroteContinue = true
 		w.writeContinueMu.Lock()
 		if w.canWriteContinue.isSet() {
-			w.conn.bufw.WriteString("HTTP/1.1 100 Continue\r\n\r\n")
-			w.conn.bufw.Flush()
+			_, _ = w.conn.bufw.WriteString("HTTP/1.1 100 Continue\r\n\r\n")
+			_ = w.conn.bufw.Flush()
 			w.canWriteContinue.setFalse()
 		}
 		w.writeContinueMu.Unlock()
@@ -950,10 +950,10 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 	if d := c.server.ReadTimeout; d > 0 {
 		wholeReqDeadline = t0.Add(d)
 	}
-	c.rwc.SetReadDeadline(hdrDeadline)
+	_ = c.rwc.SetReadDeadline(hdrDeadline)
 	if d := c.server.WriteTimeout; d > 0 {
 		defer func() {
-			c.rwc.SetWriteDeadline(time.Now().Add(d))
+			_ = c.rwc.SetWriteDeadline(time.Now().Add(d))
 		}()
 	}
 
@@ -961,7 +961,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 	if c.lastMethod == "POST" {
 		// RFC 7230 section 3 tolerance for old buggy clients.
 		peek, _ := c.bufr.Peek(4) // ReadRequest will get err below
-		c.bufr.Discard(numLeadingCRorLF(peek))
+		_, _ = c.bufr.Discard(numLeadingCRorLF(peek))
 	}
 	req, err := readRequest(c.bufr)
 	if err != nil {
@@ -1008,7 +1008,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 
 	// Adjust the read deadline if necessary.
 	if !hdrDeadline.Equal(wholeReqDeadline) {
-		c.rwc.SetReadDeadline(wholeReqDeadline)
+		_ = c.rwc.SetReadDeadline(wholeReqDeadline)
 	}
 
 	w = &response{
@@ -1169,21 +1169,21 @@ var (
 // smart enough to realize this function doesn't mutate h.
 func (h extraHeader) Write(w *bufio.Writer) {
 	if h.date != nil {
-		w.Write(headerDate)
-		w.Write(h.date)
-		w.Write(crlf)
+		_, _ = w.Write(headerDate)
+		_, _ = w.Write(h.date)
+		_, _ = w.Write(crlf)
 	}
 	if h.contentLength != nil {
-		w.Write(headerContentLength)
-		w.Write(h.contentLength)
-		w.Write(crlf)
+		_, _ = w.Write(headerContentLength)
+		_, _ = w.Write(h.contentLength)
+		_, _ = w.Write(crlf)
 	}
 	for i, v := range []string{h.contentType, h.connection, h.transferEncoding} {
 		if v != "" {
-			w.Write(extraHeaderKeys[i])
-			w.Write(colonSpace)
-			w.WriteString(v)
-			w.Write(crlf)
+			_, _ = w.Write(extraHeaderKeys[i])
+			_, _ = w.Write(colonSpace)
+			_, _ = w.WriteString(v)
+			_, _ = w.Write(crlf)
 		}
 	}
 }
@@ -1460,9 +1460,9 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 	}
 
 	writeStatusLine(w.conn.bufw, w.req.ProtoAtLeast(1, 1), code, w.statusBuf[:])
-	cw.header.WriteSubset(w.conn.bufw, excludeHeader)
+	_ = cw.header.WriteSubset(w.conn.bufw, excludeHeader)
 	setHeader.Write(w.conn.bufw)
-	w.conn.bufw.Write(crlf)
+	_, _ = w.conn.bufw.Write(crlf)
 }
 
 // foreachHeaderElement splits v according to the "#rule" construction
