@@ -2520,6 +2520,7 @@ func Serve(l net.Listener, handler Handler) error {
 // of the server's certificate, any intermediates, and the CA's certificate.
 //
 // ServeTLS always returns a non-nil error.
+//goland:noinspection GoUnusedExportedFunction
 func ServeTLS(l net.Listener, handler Handler, certFile, keyFile string) error {
 	srv := &Server{Handler: handler}
 	return srv.ServeTLS(l, certFile, keyFile)
