@@ -34,6 +34,7 @@ import (
 )
 
 // Errors used by the HTTP server.
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	// ErrBodyNotAllowed is returned by ResponseWriter.Write calls
 	// when the HTTP method or response code does not permit a
