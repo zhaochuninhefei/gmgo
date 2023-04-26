@@ -1869,7 +1869,7 @@ func (c *conn) serve(ctx context.Context) {
 				// while they're still writing their
 				// request. Undefined behavior.
 				const publicErr = "431 Request Header Fields Too Large"
-				fmt.Fprintf(c.rwc, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
+				_, _ = fmt.Fprintf(c.rwc, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
 				c.closeWriteAndWait()
 				return
 
@@ -2057,7 +2057,7 @@ func Error(w ResponseWriter, error string, code int) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
-	fmt.Fprintln(w, error)
+	_, _ = fmt.Fprintln(w, error)
 }
 
 // NotFound replies to the request with an HTTP 404 not found error.
@@ -2155,7 +2155,7 @@ func Redirect(w ResponseWriter, r *Request, url string, code int) {
 	// Shouldn't send the body for POST or HEAD; that leaves GET.
 	if !hadCT && r.Method == "GET" {
 		body := "<a href=\"" + htmlEscape(url) + "\">" + statusText[code] + "</a>.\n"
-		fmt.Fprintln(w, body)
+		_, _ = fmt.Fprintln(w, body)
 	}
 }
 
@@ -2671,7 +2671,7 @@ func (srv *Server) Close() error {
 	srv.closeDoneChanLocked()
 	err := srv.closeListenersLocked()
 	for c := range srv.activeConn {
-		c.rwc.Close()
+		_ = c.rwc.Close()
 		delete(srv.activeConn, c)
 	}
 	return err
@@ -2781,7 +2781,7 @@ func (srv *Server) closeIdleConns() bool {
 			quiescent = false
 			continue
 		}
-		c.rwc.Close()
+		_ = c.rwc.Close()
 		delete(srv.activeConn, c)
 	}
 	return quiescent
@@ -2976,7 +2976,9 @@ func (srv *Server) Serve(l net.Listener) error {
 
 	origListener := l
 	l = &onceCloseListener{Listener: l}
-	defer l.Close()
+	defer func(l net.Listener) {
+		_ = l.Close()
+	}(l)
 
 	if err := srv.setupHTTP2_Serve(); err != nil {
 		return err
@@ -3224,7 +3226,9 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 		return err
 	}
 
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	return srv.ServeTLS(ln, certFile, keyFile)
 }
@@ -3351,12 +3355,12 @@ func (h *timeoutHandler) ServeHTTP(w ResponseWriter, r *Request) {
 			tw.code = StatusOK
 		}
 		w.WriteHeader(tw.code)
-		w.Write(tw.wbuf.Bytes())
+		_, _ = w.Write(tw.wbuf.Bytes())
 	case <-ctx.Done():
 		tw.mu.Lock()
 		defer tw.mu.Unlock()
 		w.WriteHeader(StatusServiceUnavailable)
-		io.WriteString(w, h.errorBody())
+		_, _ = io.WriteString(w, h.errorBody())
 		tw.timedOut = true
 	}
 }
@@ -3447,7 +3451,7 @@ func (globalOptionsHandler) ServeHTTP(w ResponseWriter, r *Request) {
 		// (or an attack) and we abort and close the connection,
 		// courtesy of MaxBytesReader's EOF behavior.
 		mb := MaxBytesReader(w, r.Body, 4<<10)
-		io.Copy(io.Discard, mb)
+		_, _ = io.Copy(io.Discard, mb)
 	}
 }
 
