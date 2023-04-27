@@ -204,6 +204,7 @@ type exactSig struct {
 	ct  string
 }
 
+//goland:noinspection GoUnusedParameter
 func (e *exactSig) match(data []byte, firstNonWS int) string {
 	if bytes.HasPrefix(data, e.sig) {
 		return e.ct
@@ -267,6 +268,7 @@ var mp4 = []byte("mp4")
 
 type mp4Sig struct{}
 
+//goland:noinspection GoUnusedParameter
 func (mp4Sig) match(data []byte, firstNonWS int) string {
 	// https://mimesniff.spec.whatwg.org/#signature-for-mp4
 	// c.f. section 6.2.1
