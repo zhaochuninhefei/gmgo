@@ -13,7 +13,7 @@ import (
 
 func BenchmarkServerMatch(b *testing.B) {
 	fn := func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "OK")
+		_, _ = fmt.Fprintf(w, "OK")
 	}
 	mux := NewServeMux()
 	mux.HandleFunc("/", fn)
