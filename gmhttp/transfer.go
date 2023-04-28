@@ -27,6 +27,7 @@ import (
 
 // ErrLineTooLong is returned when reading request or response bodies
 // with malformed chunked encoding.
+//goland:noinspection GoUnusedGlobalVariable
 var ErrLineTooLong = internal.ErrLineTooLong
 
 type errorReader struct {
