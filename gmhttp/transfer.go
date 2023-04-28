@@ -34,6 +34,7 @@ type errorReader struct {
 	err error
 }
 
+//goland:noinspection GoUnusedParameter
 func (r errorReader) Read(p []byte) (n int, err error) {
 	return 0, r.err
 }
