@@ -129,7 +129,7 @@ func testServerContentType(t *testing.T, h2 bool) {
 		} else if !bytes.Equal(data, tt.data) {
 			t.Errorf("%v: data is %q, want %q", tt.desc, data, tt.data)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -141,7 +141,7 @@ func testServerIssue5953(t *testing.T, h2 bool) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h2, HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header()["Content-Type"] = []string{""}
-		fmt.Fprintf(w, "<html><head></head><body>hi</body></html>")
+		_, _ = fmt.Fprintf(w, "<html><head></head><body>hi</body></html>")
 	}))
 	defer cst.close()
 
@@ -155,7 +155,7 @@ func testServerIssue5953(t *testing.T, h2 bool) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Content-Type = %q; want %q", got, want)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 type byteAtATimeReader struct {
@@ -259,7 +259,7 @@ func testContentTypeWithVariousSources(t *testing.T, h2 bool) {
 			} else if !bytes.Equal(data, []byte(input)) {
 				t.Errorf("data is %q, want %q", data, input)
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 		})
 
