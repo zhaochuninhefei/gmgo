@@ -913,7 +913,7 @@ func (b *body) readTrailer() error {
 	// The common case, since nobody uses trailers.
 	buf, err := b.r.Peek(2)
 	if bytes.Equal(buf, singleCRLF) {
-		b.r.Discard(2)
+		_, _ = b.r.Discard(2)
 		return nil
 	}
 	if len(buf) < 2 {
