@@ -192,7 +192,7 @@ func testContentTypeWithVariousSources(t *testing.T, h2 bool) {
 		handler: func(w ResponseWriter, r *Request) {
 			// Write the whole input at once.
 			n, err := w.Write([]byte(input))
-			if int(n) != len(input) || err != nil {
+			if n != len(input) || err != nil {
 				t.Errorf("w.Write(%q) = %v, %v want %d, nil", input, n, err, len(input))
 			}
 		},
