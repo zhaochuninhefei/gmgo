@@ -131,8 +131,8 @@ func TestTransferWriterWriteBodyReaderTypes(t *testing.T) {
 		}
 
 		done = func() {
-			f.Close()
-			os.Remove(f.Name())
+			_ = f.Close()
+			_ = os.Remove(f.Name())
 		}
 
 		return f, done, nil
