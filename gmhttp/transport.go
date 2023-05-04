@@ -508,11 +508,11 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 	trace := httptrace.ContextClientTrace(ctx)
 
 	if req.URL == nil {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, errors.New("http: nil Request.URL")
 	}
 	if req.Header == nil {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, errors.New("http: nil Request.Header")
 	}
 	scheme := req.URL.Scheme
@@ -520,12 +520,12 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 	if isHTTP {
 		for k, vv := range req.Header {
 			if !httpguts.ValidHeaderFieldName(k) {
-				req.closeBody()
+				_ = req.closeBody()
 				return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: invalid header field name %q", k)
 			}
 			for _, v := range vv {
 				if !httpguts.ValidHeaderFieldValue(v) {
-					req.closeBody()
+					_ = req.closeBody()
 					return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: invalid header field value %q for key %v", v, k)
 				}
 			}
@@ -547,22 +547,22 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 		}
 	}
 	if !isHTTP {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, badStringError("unsupported protocol scheme", scheme)
 	}
 	if req.Method != "" && !validMethod(req.Method) {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, fmt.Errorf("gitee.com/zhaochuninhefei/gmgo/gmhttp: invalid method %q", req.Method)
 	}
 	if req.URL.Host == "" {
-		req.closeBody()
+		_ = req.closeBody()
 		return nil, errors.New("http: no Host in request URL")
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			req.closeBody()
+			_ = req.closeBody()
 			return nil, ctx.Err()
 		default:
 		}
@@ -571,7 +571,7 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 		treq := &transportRequest{Request: req, trace: trace, cancelKey: cancelKey}
 		cm, err := t.connectMethodForRequest(treq)
 		if err != nil {
-			req.closeBody()
+			_ = req.closeBody()
 			return nil, err
 		}
 
@@ -582,7 +582,7 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 		pconn, err := t.getConn(treq, cm)
 		if err != nil {
 			t.setReqCanceler(cancelKey, nil)
-			req.closeBody()
+			_ = req.closeBody()
 			return nil, err
 		}
 
@@ -662,7 +662,7 @@ func rewindBody(req *Request) (rewound *Request, err error) {
 		return req, nil // nothing to rewind
 	}
 	if !req.Body.(*readTrackingBody).didClose {
-		req.closeBody()
+		_ = req.closeBody()
 	}
 	if req.GetBody == nil {
 		return nil, errCannotRewind
@@ -1539,7 +1539,7 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 		errc <- err
 	}()
 	if err := <-errc; err != nil {
-		plainConn.Close()
+		_ = plainConn.Close()
 		if trace != nil && trace.TLSHandshakeDone != nil {
 			trace.TLSHandshakeDone(tls.ConnectionState{}, err)
 		}
@@ -1589,7 +1589,9 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 				trace.TLSHandshakeStart()
 			}
 			if err := tc.HandshakeContext(ctx); err != nil {
-				go pconn.conn.Close()
+				go func() {
+					_ = pconn.conn.Close()
+				}()
 				if trace != nil && trace.TLSHandshakeDone != nil {
 					trace.TLSHandshakeDone(tls.ConnectionState{}, err)
 				}
@@ -1637,7 +1639,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			d.Authenticate = auth.Authenticate
 		}
 		if _, err := d.DialWithConn(ctx, conn, "tcp", cm.targetAddr); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	case cm.targetScheme == "http":
@@ -1654,7 +1656,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			var err error
 			hdr, err = t.GetProxyConnectHeader(ctx, cm.proxyURL, cm.targetAddr)
 			if err != nil {
-				conn.Close()
+				_ = conn.Close()
 				return nil, err
 			}
 		} else {
@@ -1705,19 +1707,19 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		}()
 		select {
 		case <-connectCtx.Done():
-			conn.Close()
+			_ = conn.Close()
 			<-didReadResponse
 			return nil, connectCtx.Err()
 		case <-didReadResponse:
 			// resp or err now set
 		}
 		if err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 		if resp.StatusCode != 200 {
 			f := strings.SplitN(resp.Status, " ", 2)
-			conn.Close()
+			_ = conn.Close()
 			if len(f) < 2 {
 				return nil, errors.New("unknown status code")
 			}
@@ -2706,7 +2708,7 @@ func (pc *persistConn) closeLocked(err error) {
 		// HTTP/2 closes its connection itself.
 		if pc.alt == nil {
 			if err != errCallerOwnsConn {
-				pc.conn.Close()
+				_ = pc.conn.Close()
 			}
 			close(pc.closech)
 		}
