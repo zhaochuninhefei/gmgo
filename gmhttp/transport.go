@@ -1028,11 +1028,11 @@ func (t *Transport) queueForIdleConn(w *wantConn) (delivered bool) {
 	}
 
 	// Look for most recently-used idle connection.
-	if list, ok := t.idleConn[w.key]; ok {
+	if lst, ok := t.idleConn[w.key]; ok {
 		stop := false
 		delivered := false
-		for len(list) > 0 && !stop {
-			pconn := list[len(list)-1]
+		for len(lst) > 0 && !stop {
+			pconn := lst[len(lst)-1]
 
 			// See whether this connection has been idle too long, considering
 			// only the wall time (the Round(0)), in case this is a laptop or VM
@@ -1050,7 +1050,7 @@ func (t *Transport) queueForIdleConn(w *wantConn) (delivered bool) {
 				// from the idle list, or if this persistConn is too old (it was
 				// idle too long), then ignore it and look for another. In both
 				// cases it's already in the process of being closed.
-				list = list[:len(list)-1]
+				lst = lst[:len(lst)-1]
 				continue
 			}
 			delivered = w.tryDeliver(pconn, nil)
@@ -1062,13 +1062,13 @@ func (t *Transport) queueForIdleConn(w *wantConn) (delivered bool) {
 					// HTTP/1: only one client can use pconn.
 					// Remove it from the list.
 					t.idleLRU.remove(pconn)
-					list = list[:len(list)-1]
+					lst = lst[:len(lst)-1]
 				}
 			}
 			stop = true
 		}
-		if len(list) > 0 {
-			t.idleConn[w.key] = list
+		if len(lst) > 0 {
+			t.idleConn[w.key] = lst
 		} else {
 			delete(t.idleConn, w.key)
 		}
