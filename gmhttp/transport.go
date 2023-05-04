@@ -2628,6 +2628,7 @@ func (pc *persistConn) roundTrip(req *transportRequest) (resp *Response, err err
 					req.logf("starting timer for %v", d)
 				}
 				timer := time.NewTimer(d)
+				//goland:noinspection GoDeferInLoop
 				defer timer.Stop() // prevent leaks
 				respHeaderTimer = timer.C
 			}
