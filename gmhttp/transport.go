@@ -360,7 +360,7 @@ func (t *Transport) hasCustomTLSDialer() bool {
 // onceSetNextProtoDefaults initializes TLSNextProto.
 // It must be called via t.nextProtoOnce.Do.
 func (t *Transport) onceSetNextProtoDefaults() {
-	t.tlsNextProtoWasNil = (t.TLSNextProto == nil)
+	t.tlsNextProtoWasNil = t.TLSNextProto == nil
 	if strings.Contains(os.Getenv("GODEBUG"), "http2client=0") {
 		return
 	}
