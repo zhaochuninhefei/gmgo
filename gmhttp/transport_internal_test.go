@@ -37,6 +37,7 @@ func TestTransportPersistConnReadLoopEOF(t *testing.T) {
 	}()
 
 	tr := new(Transport)
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://"+ln.Addr().String(), nil)
 	req = req.WithT(t)
 	treq := &transportRequest{Request: req}
