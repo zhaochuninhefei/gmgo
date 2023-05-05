@@ -279,8 +279,8 @@ func CertificateText(cert *Certificate) (string, error) {
 
 	// Validity information
 	buf.WriteString(fmt.Sprintf("%8sValidity\n", ""))
-	buf.WriteString(fmt.Sprintf("%12sNot Before: %s\n", "", cert.NotBefore.Format("Jan 2 15:04:05 2006 MST")))
-	buf.WriteString(fmt.Sprintf("%12sNot After : %s\n", "", cert.NotAfter.Format("Jan 2 15:04:05 2006 MST")))
+	buf.WriteString(fmt.Sprintf("%12sNot Before: %s\n", "", cert.NotBefore.Format("2006/01/02 15:04:05")))
+	buf.WriteString(fmt.Sprintf("%12sNot After : %s\n", "", cert.NotAfter.Format("2006/01/02 15:04:05")))
 
 	// Subject information
 	err := printSubjectInformation(&cert.Subject, cert.PublicKeyAlgorithm, cert.PublicKey, &buf)
@@ -442,9 +442,15 @@ func CertificateText(cert *Certificate) (string, error) {
 					} else {
 						buf.WriteString("\n")
 					}
-					buf.WriteString(fmt.Sprintf("%16skeyid", ""))
-					for _, val := range cert.AuthorityKeyId {
-						buf.WriteString(fmt.Sprintf(":%02X", val))
+					//buf.WriteString(fmt.Sprintf("%16skeyid", ""))
+					buf.WriteString(fmt.Sprintf("%16s", ""))
+					for i, val := range cert.AuthorityKeyId {
+						if i == 0 {
+							buf.WriteString(fmt.Sprintf("%02X", val))
+						} else {
+							buf.WriteString(fmt.Sprintf(":%02X", val))
+						}
+
 					}
 					buf.WriteString("\n")
 				case 37:
