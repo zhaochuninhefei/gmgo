@@ -21,7 +21,9 @@ import (
 // Issue 15446: incorrect wrapping of errors when server closes an idle connection.
 func TestTransportPersistConnReadLoopEOF(t *testing.T) {
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	connc := make(chan net.Conn, 1)
 	go func() {
@@ -50,7 +52,7 @@ func TestTransportPersistConnReadLoopEOF(t *testing.T) {
 		// Already called t.Error in the accept goroutine.
 		return
 	}
-	conn.Close() // simulate the server hanging up on the client
+	_ = conn.Close() // simulate the server hanging up on the client
 
 	_, err = pc.roundTrip(treq)
 	if !isTransportReadFromServerError(err) && err != errServerClosedIdle {
@@ -197,7 +199,9 @@ func TestTransportBodyAltRewind(t *testing.T) {
 		t.Fatal(err)
 	}
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	go func() {
 		tln := tls.NewListener(ln, &tls.Config{
@@ -214,7 +218,7 @@ func TestTransportBodyAltRewind(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			sc.Close()
+			_ = sc.Close()
 		}
 	}()
 
