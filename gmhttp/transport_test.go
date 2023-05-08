@@ -1237,7 +1237,9 @@ func TestSOCKS5Proxy(t *testing.T) {
 	defer afterTest(t)
 	ch := make(chan string, 1)
 	l := newLocalListener(t)
-	defer l.Close()
+	defer func(l net.Listener) {
+		_ = l.Close()
+	}(l)
 	defer close(ch)
 	proxy := func(t *testing.T) {
 		s, err := l.Accept()
@@ -1245,7 +1247,9 @@ func TestSOCKS5Proxy(t *testing.T) {
 			t.Errorf("socks5 proxy Accept(): %v", err)
 			return
 		}
-		defer s.Close()
+		defer func(s net.Conn) {
+			_ = s.Close()
+		}(s)
 		var buf [22]byte
 		if _, err := io.ReadFull(s, buf[:3]); err != nil {
 			t.Errorf("socks5 proxy initial read: %v", err)
@@ -1297,9 +1301,11 @@ func TestSOCKS5Proxy(t *testing.T) {
 			t.Errorf("net.Dial failed")
 			return
 		}
-		go io.Copy(targetConn, s)
-		io.Copy(s, targetConn) // Wait for the client to close the socket.
-		targetConn.Close()
+		go func() {
+			_, _ = io.Copy(targetConn, s)
+		}()
+		_, _ = io.Copy(s, targetConn) // Wait for the client to close the socket.
+		_ = targetConn.Close()
 	}
 
 	pu, err := url.Parse("socks5://" + l.Addr().String())
@@ -1399,10 +1405,12 @@ func TestTransportProxy(t *testing.T) {
 						return
 					}
 
-					go io.Copy(targetConn, clientConn)
 					go func() {
-						io.Copy(clientConn, targetConn)
-						targetConn.Close()
+						_, _ = io.Copy(targetConn, clientConn)
+					}()
+					go func() {
+						_, _ = io.Copy(clientConn, targetConn)
+						_ = targetConn.Close()
 					}()
 				}
 			})
