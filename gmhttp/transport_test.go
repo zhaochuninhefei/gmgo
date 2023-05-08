@@ -874,7 +874,7 @@ func TestStressSurpriseServerCloses(t *testing.T) {
 					// actually care what the error is.
 					// But we want to close the body in cases
 					// where we won the race.
-					res.Body.Close()
+					_ = res.Body.Close()
 				}
 				if !<-activityc { // Receives false when close(activityc) is executed
 					return
@@ -994,11 +994,11 @@ func TestRoundTripGzip(t *testing.T) {
 		if accept == "gzip" {
 			rw.Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(rw)
-			gz.Write([]byte(responseBody))
-			gz.Close()
+			_, _ = gz.Write([]byte(responseBody))
+			_ = gz.Close()
 		} else {
 			rw.Header().Set("Content-Encoding", accept)
-			rw.Write([]byte(responseBody))
+			_, _ = rw.Write([]byte(responseBody))
 		}
 	}))
 	defer ts.Close()
@@ -1024,7 +1024,7 @@ func TestRoundTripGzip(t *testing.T) {
 				continue
 			}
 			body, err = io.ReadAll(r)
-			res.Body.Close()
+			_ = res.Body.Close()
 		} else {
 			body, err = io.ReadAll(res.Body)
 		}
@@ -1066,17 +1066,19 @@ func TestTransportGzip(t *testing.T) {
 		var buf bytes.Buffer
 		if req.FormValue("chunked") == "0" {
 			w = &buf
-			defer io.Copy(rw, &buf)
+			defer func(dst io.Writer, src io.Reader) {
+				_, _ = io.Copy(dst, src)
+			}(rw, &buf)
 			defer func() {
 				rw.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
 			}()
 		}
 		gz := gzip.NewWriter(w)
-		gz.Write([]byte(testString))
+		_, _ = gz.Write([]byte(testString))
 		if req.FormValue("body") == "large" {
-			io.CopyN(gz, rand.Reader, nRandBytes)
+			_, _ = io.CopyN(gz, rand.Reader, nRandBytes)
 		}
-		gz.Close()
+		_ = gz.Close()
 	}))
 	defer ts.Close()
 	c := ts.Client()
@@ -1095,7 +1097,7 @@ func TestTransportGzip(t *testing.T) {
 		if e, g := testString, string(buf); e != g {
 			t.Errorf("partial read got %q, expected %q", g, e)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		// Read on the body, even though it's closed
 		n, err = res.Body.Read(buf)
 		if n != 0 || err == nil {
@@ -1123,7 +1125,7 @@ func TestTransportGzip(t *testing.T) {
 		if n != 0 || err == nil {
 			t.Errorf("expected Read error after exhausted reads; got %d, %v", n, err)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		n, err = res.Body.Read(buf)
 		if n != 0 || err == nil {
 			t.Errorf("expected Read error after Close; got %d, %v", n, err)
@@ -1166,9 +1168,9 @@ func TestTransportExpect100Continue(t *testing.T) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			bufrw.WriteString("HTTP/1.1 500 Internal Server Error\r\n")
-			bufrw.WriteString("Content-Length: 0\r\n\r\n")
-			bufrw.Flush()
+			_, _ = bufrw.WriteString("HTTP/1.1 500 Internal Server Error\r\n")
+			_, _ = bufrw.WriteString("Content-Length: 0\r\n\r\n")
+			_ = bufrw.Flush()
 		case "/timeout":
 			// This endpoint tries to read body without 100 (Continue) response.
 			// After ExpectContinueTimeout, the reading will be started.
@@ -1179,9 +1181,9 @@ func TestTransportExpect100Continue(t *testing.T) {
 			if _, err := io.CopyN(io.Discard, bufrw, req.ContentLength); err != nil {
 				t.Error("Failed to read Body", err)
 			}
-			bufrw.WriteString("HTTP/1.1 200 OK\r\n\r\n")
-			bufrw.Flush()
-			conn.Close()
+			_, _ = bufrw.WriteString("HTTP/1.1 200 OK\r\n\r\n")
+			_ = bufrw.Flush()
+			_ = conn.Close()
 		}
 
 	}))
@@ -1219,7 +1221,7 @@ func TestTransportExpect100Continue(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		sent := len(v.body) - body.Len()
 		if v.status != resp.StatusCode {
