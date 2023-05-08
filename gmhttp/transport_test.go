@@ -56,7 +56,7 @@ var hostPortHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Connection", "close")
 	}
 	w.Header().Set("X-Saw-Close", fmt.Sprint(r.Close))
-	w.Write([]byte(r.RemoteAddr))
+	_, _ = w.Write([]byte(r.RemoteAddr))
 })
 
 // testCloseConn is a net.Conn tracked by a testConnSet.
@@ -132,7 +132,7 @@ func (tcs *testConnSet) check(t *testing.T) {
 func TestReuseRequest(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Write([]byte("{}"))
+		_, _ = w.Write([]byte("{}"))
 	}))
 	defer ts.Close()
 
@@ -218,7 +218,9 @@ func TestTransportConnectionCloseOnResponse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error in connectionClose=%v, req #%d, Do: %v", connectionClose, n, err)
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
 				t.Fatalf("error in connectionClose=%v, req #%d, ReadAll: %v", connectionClose, n, err)
@@ -308,7 +310,7 @@ func TestTransportConnectionCloseOnRequestDisableKeepAlive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if res.Header.Get("X-Saw-Close") != "true" {
 		t.Errorf("handler didn't see Connection: close ")
 	}
@@ -357,7 +359,9 @@ func TestTransportRespectRequestWantsClose(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer res.Body.Close()
+				defer func(Body io.ReadCloser) {
+					_ = Body.Close()
+				}(res.Body)
 				if want := tc.disableKeepAlives || tc.close; count > 1 || (count == 1) != want {
 					t.Errorf("expecting want:%v, got 'Connection: close':%d", want, count)
 				}
@@ -381,7 +385,7 @@ func TestTransportIdleCacheKeys(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	io.ReadAll(resp.Body)
+	_, _ = io.ReadAll(resp.Body)
 
 	keys := tr.IdleConnKeysForTesting()
 	if e, g := 1, len(keys); e != g {
@@ -414,7 +418,7 @@ func TestTransportReadToEndReusesConn(t *testing.T) {
 			w.Header().Set("Content-Length", strconv.Itoa(len(msg)))
 			w.WriteHeader(200)
 		}
-		w.Write([]byte(msg))
+		_, _ = w.Write([]byte(msg))
 	}))
 	defer ts.Close()
 
@@ -434,7 +438,9 @@ func TestTransportReadToEndReusesConn(t *testing.T) {
 			// len(addrSeen) check at the bottom of this test,
 			// since Closing this early in the loop would risk
 			// making connections be re-used for the wrong reason.
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 
 			if res.ContentLength != int64(wantLen) {
 				t.Errorf("%s res.ContentLength = %d; want %d", path, res.ContentLength, wantLen)
@@ -656,7 +662,9 @@ func TestTransportMaxConnsPerHost(t *testing.T) {
 			if err != nil {
 				t.Fatalf("request failed: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(resp.Body)
 			_, err = io.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatalf("read body failed: %v", err)
@@ -690,7 +698,7 @@ func TestTransportMaxConnsPerHost(t *testing.T) {
 
 		mu.Lock()
 		for _, c := range conns {
-			c.Close()
+			_ = c.Close()
 		}
 		conns = nil
 		mu.Unlock()
@@ -722,7 +730,7 @@ func TestTransportRemovesDeadIdleConnections(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.WriteString(w, r.RemoteAddr)
+		_, _ = io.WriteString(w, r.RemoteAddr)
 	}))
 	defer ts.Close()
 
@@ -739,7 +747,9 @@ func TestTransportRemovesDeadIdleConnections(t *testing.T) {
 		if res.StatusCode != 200 {
 			t.Fatalf("%s: %v", name, res.Status)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
@@ -795,7 +805,7 @@ func TestTransportServerClosingUnexpectedly(t *testing.T) {
 				condFatalf("error in req #%d, ReadAll: %v", n, err)
 				continue
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 			return string(body)
 		}
 		panic("unreachable")
@@ -833,11 +843,11 @@ func TestStressSurpriseServerCloses(t *testing.T) {
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Length", "5")
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte("Hello"))
+		_, _ = w.Write([]byte("Hello"))
 		w.(Flusher).Flush()
 		conn, buf, _ := w.(Hijacker).Hijack()
-		buf.Flush()
-		conn.Close()
+		_ = buf.Flush()
+		_ = conn.Close()
 	}))
 	defer ts.Close()
 	c := ts.Client()
