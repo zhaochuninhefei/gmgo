@@ -2022,7 +2022,7 @@ func TestIssue3644(t *testing.T) {
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Connection", "close")
 		for i := 0; i < numFoos; i++ {
-			w.Write([]byte("foo "))
+			_, _ = w.Write([]byte("foo "))
 		}
 	}))
 	defer ts.Close()
@@ -2031,7 +2031,9 @@ func TestIssue3644(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	bs, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -2084,7 +2086,7 @@ func TestChunkedNoContent(t *testing.T) {
 				t.Errorf("closingBody=%v, req %d/%d: %v", closeBody, i, n, err)
 			} else {
 				if closeBody {
-					res.Body.Close()
+					_ = res.Body.Close()
 				}
 			}
 		}
@@ -2100,7 +2102,7 @@ func TestTransportConcurrency(t *testing.T) {
 	}
 	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(maxProcs))
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "%v", r.FormValue("echo"))
+		_, _ = fmt.Fprintf(w, "%v", r.FormValue("echo"))
 	}))
 	defer ts.Close()
 
@@ -2138,7 +2140,7 @@ func TestTransportConcurrency(t *testing.T) {
 				if string(all) != req {
 					t.Errorf("body of req %s = %q; want %q", req, all, req)
 				}
-				res.Body.Close()
+				_ = res.Body.Close()
 				wg.Done()
 			}
 		}()
