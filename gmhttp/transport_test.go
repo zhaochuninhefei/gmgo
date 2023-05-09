@@ -2157,7 +2157,7 @@ func TestIssue4191_InfiniteGetTimeout(t *testing.T) {
 	const debug = false
 	mux := NewServeMux()
 	mux.HandleFunc("/get", func(w ResponseWriter, r *Request) {
-		io.Copy(w, neverEnding('a'))
+		_, _ = io.Copy(w, neverEnding('a'))
 	})
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
@@ -2169,7 +2169,7 @@ func TestIssue4191_InfiniteGetTimeout(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		conn.SetDeadline(time.Now().Add(timeout))
+		_ = conn.SetDeadline(time.Now().Add(timeout))
 		if debug {
 			conn = NewLoggingConn("client", conn)
 		}
@@ -2215,11 +2215,13 @@ func TestIssue4191_InfiniteGetToPutTimeout(t *testing.T) {
 	const debug = false
 	mux := NewServeMux()
 	mux.HandleFunc("/get", func(w ResponseWriter, r *Request) {
-		io.Copy(w, neverEnding('a'))
+		_, _ = io.Copy(w, neverEnding('a'))
 	})
 	mux.HandleFunc("/put", func(w ResponseWriter, r *Request) {
-		defer r.Body.Close()
-		io.Copy(io.Discard, r.Body)
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(r.Body)
+		_, _ = io.Copy(io.Discard, r.Body)
 	})
 	ts := httptest.NewServer(mux)
 	timeout := 100 * time.Millisecond
@@ -2230,7 +2232,7 @@ func TestIssue4191_InfiniteGetToPutTimeout(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		conn.SetDeadline(time.Now().Add(timeout))
+		_ = conn.SetDeadline(time.Now().Add(timeout))
 		if debug {
 			conn = NewLoggingConn("client", conn)
 		}
@@ -2262,11 +2264,11 @@ func TestIssue4191_InfiniteGetToPutTimeout(t *testing.T) {
 		req, _ := NewRequest("PUT", ts.URL+"/put", sres.Body)
 		_, err = c.Do(req)
 		if err == nil {
-			sres.Body.Close()
+			_ = sres.Body.Close()
 			t.Errorf("Unexpected successful PUT")
 			break
 		}
-		sres.Body.Close()
+		_ = sres.Body.Close()
 	}
 	if debug {
 		println("tests complete; waiting for handlers to finish")
