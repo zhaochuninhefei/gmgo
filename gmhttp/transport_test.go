@@ -1499,7 +1499,9 @@ func TestTransportProxyHTTPSConnectLeak(t *testing.T) {
 	defer cancel()
 
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 	listenerDone := make(chan struct{})
 	go func() {
 		defer close(listenerDone)
@@ -1508,7 +1510,9 @@ func TestTransportProxyHTTPSConnectLeak(t *testing.T) {
 			t.Errorf("Accept: %v", err)
 			return
 		}
-		defer c.Close()
+		defer func(c net.Conn) {
+			_ = c.Close()
+		}(c)
 		// Read the CONNECT request
 		br := bufio.NewReader(c)
 		cr, err := ReadRequest(br)
@@ -1575,7 +1579,7 @@ func TestTransportDialPreservesNetOpProxyError(t *testing.T) {
 	req, _ := NewRequest("GET", "http://fake.tld", nil)
 	res, err := c.Do(req)
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("wanted a non-nil error")
 	}
 
@@ -1643,7 +1647,7 @@ func TestTransportGzipRecursive(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Encoding", "gzip")
-		w.Write(rgz)
+		_, _ = w.Write(rgz)
 	}))
 	defer ts.Close()
 
@@ -1671,7 +1675,7 @@ func TestTransportGzipShort(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Encoding", "gzip")
-		w.Write([]byte{0x1f, 0x8b})
+		_, _ = w.Write([]byte{0x1f, 0x8b})
 	}))
 	defer ts.Close()
 
@@ -1680,7 +1684,9 @@ func TestTransportGzipShort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	_, err = io.ReadAll(res.Body)
 	if err == nil {
 		t.Fatal("Expect an error from reading a body.")
@@ -1732,7 +1738,7 @@ func TestTransportPersistConnLeak(t *testing.T) {
 				failed <- true
 				return
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 		}()
 	}
 
@@ -1860,7 +1866,7 @@ func TestTransportPersistConnLeakNeverIdle(t *testing.T) {
 			t.Errorf("Hijack failed unexpectedly: %v", err)
 			return
 		}
-		conn.Close()
+		_ = conn.Close()
 	}))
 	defer ts.Close()
 
@@ -1998,7 +2004,7 @@ func TestTransportIdleConnCrash(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else {
-			res.Body.Close() // returns idle conn
+			_ = res.Body.Close() // returns idle conn
 		}
 		didreq <- true
 	}()
