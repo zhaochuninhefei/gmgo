@@ -2355,7 +2355,7 @@ func TestTransportCancelRequest(t *testing.T) {
 	}
 	unblockc := make(chan bool)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "Hello")
+		_, _ = fmt.Fprintf(w, "Hello")
 		w.(Flusher).Flush() // send headers and some body
 		<-unblockc
 	}))
@@ -2421,7 +2421,7 @@ func testTransportCancelRequestInDo(t *testing.T, body io.Reader) {
 	req, _ := NewRequest("GET", ts.URL, body)
 	go func() {
 		defer close(donec)
-		c.Do(req)
+		_, _ = c.Do(req)
 	}()
 	start := time.Now()
 	timeout := 10 * time.Second
@@ -2511,7 +2511,7 @@ func TestCancelRequestWithChannel(t *testing.T) {
 	}
 	unblockc := make(chan bool)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "Hello")
+		_, _ = fmt.Fprintf(w, "Hello")
 		w.(Flusher).Flush() // send headers and some body
 		<-unblockc
 	}))
@@ -2632,7 +2632,9 @@ func TestTransportCancelBeforeResponseHeaders(t *testing.T) {
 	if string(verb) != "GET" {
 		t.Errorf("server received %q; want GET", verb)
 	}
-	defer sc.Close()
+	defer func(sc net.Conn) {
+		_ = sc.Close()
+	}(sc)
 
 	tr.CancelRequest(req)
 
@@ -2806,8 +2808,8 @@ func TestTransportSocketLateBinding(t *testing.T) {
 		// let the foo response finish so we can use its
 		// connection for /bar
 		fooGate <- true
-		io.Copy(io.Discard, fooRes.Body)
-		fooRes.Body.Close()
+		_, _ = io.Copy(io.Discard, fooRes.Body)
+		_ = fooRes.Body.Close()
 	})
 
 	barRes, err := c.Get(ts.URL + "/bar")
@@ -2818,7 +2820,7 @@ func TestTransportSocketLateBinding(t *testing.T) {
 	if barAddr != fooAddr {
 		t.Fatalf("/foo came from conn %q; /bar came from %q instead", fooAddr, barAddr)
 	}
-	barRes.Body.Close()
+	_ = barRes.Body.Close()
 	dialGate <- false
 }
 
