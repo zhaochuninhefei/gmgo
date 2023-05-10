@@ -3040,26 +3040,26 @@ func (t proxyFromEnvTest) String() string {
 		}
 	}
 	if t.env != "" {
-		fmt.Fprintf(&buf, "http_proxy=%q", t.env)
+		_, _ = fmt.Fprintf(&buf, "http_proxy=%q", t.env)
 	}
 	if t.httpsenv != "" {
 		space()
-		fmt.Fprintf(&buf, "https_proxy=%q", t.httpsenv)
+		_, _ = fmt.Fprintf(&buf, "https_proxy=%q", t.httpsenv)
 	}
 	if t.noenv != "" {
 		space()
-		fmt.Fprintf(&buf, "no_proxy=%q", t.noenv)
+		_, _ = fmt.Fprintf(&buf, "no_proxy=%q", t.noenv)
 	}
 	if t.reqmeth != "" {
 		space()
-		fmt.Fprintf(&buf, "request_method=%q", t.reqmeth)
+		_, _ = fmt.Fprintf(&buf, "request_method=%q", t.reqmeth)
 	}
 	req := "http://example.com"
 	if t.req != "" {
 		req = t.req
 	}
 	space()
-	fmt.Fprintf(&buf, "req=%q", req)
+	_, _ = fmt.Fprintf(&buf, "req=%q", req)
 	return strings.TrimSpace(buf.String())
 }
 
