@@ -2833,8 +2833,12 @@ func TestTransportReading100Continue(t *testing.T) {
 	reqID := func(n int) string { return fmt.Sprintf("REQ-ID-%d", n) }
 
 	send100Response := func(w *io.PipeWriter, r *io.PipeReader) {
-		defer w.Close()
-		defer r.Close()
+		defer func(w *io.PipeWriter) {
+			_ = w.Close()
+		}(w)
+		defer func(r *io.PipeReader) {
+			_ = r.Close()
+		}(r)
 		br := bufio.NewReader(r)
 		n := 0
 		for {
@@ -2870,7 +2874,7 @@ Echo-Request-Id: %s
 Content-Length: %d
 
 %s`, resCode, id, len(body), body), "\n", "\r\n", -1))
-			w.Write(v)
+			_, _ = w.Write(v)
 			if id == reqID(numReqs) {
 				return
 			}
@@ -2886,8 +2890,8 @@ Content-Length: %d
 				Reader: cr,
 				Writer: sw,
 				closeFunc: func() error {
-					sw.Close()
-					cw.Close()
+					_ = sw.Close()
+					_ = cw.Close()
 					return nil
 				},
 			}
@@ -2932,9 +2936,9 @@ func TestTransportIgnore1xxResponses(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h1Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
 		conn, buf, _ := w.(Hijacker).Hijack()
-		buf.Write([]byte("HTTP/1.1 123 OneTwoThree\r\nFoo: bar\r\n\r\nHTTP/1.1 200 OK\r\nBar: baz\r\nContent-Length: 5\r\n\r\nHello"))
-		buf.Flush()
-		conn.Close()
+		_, _ = buf.Write([]byte("HTTP/1.1 123 OneTwoThree\r\nFoo: bar\r\n\r\nHTTP/1.1 200 OK\r\nBar: baz\r\nContent-Length: 5\r\n\r\nHello"))
+		_ = buf.Flush()
+		_ = conn.Close()
 	}))
 	defer cst.close()
 	cst.tr.DisableKeepAlives = true // prevent log spam; our test server is hanging up anyway
@@ -2944,7 +2948,7 @@ func TestTransportIgnore1xxResponses(t *testing.T) {
 	req, _ := NewRequest("GET", cst.ts.URL, nil)
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), &httptrace.ClientTrace{
 		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
-			fmt.Fprintf(&got, "1xx: code=%v, header=%v\n", code, header)
+			_, _ = fmt.Fprintf(&got, "1xx: code=%v, header=%v\n", code, header)
 			return nil
 		},
 	}))
@@ -2952,9 +2956,11 @@ func TestTransportIgnore1xxResponses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 
-	res.Write(&got)
+	_ = res.Write(&got)
 	want := "1xx: code=123, header=map[Foo:[bar]]\nHTTP/1.1 200 OK\r\nContent-Length: 5\r\nBar: baz\r\n\r\nHello"
 	if got.String() != want {
 		t.Errorf(" got: %q\nwant: %q\n", got.Bytes(), want)
@@ -2967,18 +2973,20 @@ func TestTransportLimits1xxResponses(t *testing.T) {
 	cst := newClientServerTest(t, h1Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
 		conn, buf, _ := w.(Hijacker).Hijack()
 		for i := 0; i < 10; i++ {
-			buf.Write([]byte("HTTP/1.1 123 OneTwoThree\r\n\r\n"))
+			_, _ = buf.Write([]byte("HTTP/1.1 123 OneTwoThree\r\n\r\n"))
 		}
-		buf.Write([]byte("HTTP/1.1 204 No Content\r\n\r\n"))
-		buf.Flush()
-		conn.Close()
+		_, _ = buf.Write([]byte("HTTP/1.1 204 No Content\r\n\r\n"))
+		_ = buf.Flush()
+		_ = conn.Close()
 	}))
 	defer cst.close()
 	cst.tr.DisableKeepAlives = true // prevent log spam; our test server is hanging up anyway
 
 	res, err := cst.c.Get(cst.ts.URL)
 	if res != nil {
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 	}
 	got := fmt.Sprint(err)
 	wantSub := "too many 1xx informational responses"
@@ -2994,17 +3002,19 @@ func TestTransportTreat101Terminal(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h1Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
 		conn, buf, _ := w.(Hijacker).Hijack()
-		buf.Write([]byte("HTTP/1.1 101 Switching Protocols\r\n\r\n"))
-		buf.Write([]byte("HTTP/1.1 204 No Content\r\n\r\n"))
-		buf.Flush()
-		conn.Close()
+		_, _ = buf.Write([]byte("HTTP/1.1 101 Switching Protocols\r\n\r\n"))
+		_, _ = buf.Write([]byte("HTTP/1.1 204 No Content\r\n\r\n"))
+		_ = buf.Flush()
+		_ = conn.Close()
 	}))
 	defer cst.close()
 	res, err := cst.c.Get(cst.ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != StatusSwitchingProtocols {
 		t.Errorf("StatusCode = %v; want 101 Switching Protocols", res.StatusCode)
 	}
