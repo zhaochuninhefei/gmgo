@@ -3200,7 +3200,7 @@ func TestIdleConnChannelLeak(t *testing.T) {
 func TestTransportClosesRequestBody(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		io.Copy(io.Discard, r.Body)
+		_, _ = io.Copy(io.Discard, r.Body)
 	}))
 	defer ts.Close()
 
@@ -3212,7 +3212,7 @@ func TestTransportClosesRequestBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	if closes != 1 {
 		t.Errorf("closes = %d; want 1", closes)
 	}
@@ -3224,7 +3224,9 @@ func TestTransportTLSHandshakeTimeout(t *testing.T) {
 		t.Skip("skipping in short mode")
 	}
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 	testdonec := make(chan struct{})
 	defer close(testdonec)
 
@@ -3235,7 +3237,7 @@ func TestTransportTLSHandshakeTimeout(t *testing.T) {
 			return
 		}
 		<-testdonec
-		c.Close()
+		_ = c.Close()
 	}()
 
 	getdonec := make(chan struct{})
