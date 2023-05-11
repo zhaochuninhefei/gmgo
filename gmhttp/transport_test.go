@@ -4347,7 +4347,7 @@ func TestTransportReuseConnEmptyResponseBody(t *testing.T) {
 		} else if addr != firstAddr {
 			t.Fatalf("On request %d, addr %q != original addr %q", i+1, addr, firstAddr)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 	}
 }
 
