@@ -3376,7 +3376,7 @@ func TestTransportNoReuseAfterEarlyResponse(t *testing.T) {
 		sconn.Lock()
 		defer sconn.Unlock()
 		if sconn.c != nil {
-			sconn.c.Close()
+			_ = sconn.c.Close()
 			sconn.c = nil
 			if !getOkay {
 				t.Logf("Closed server connection")
@@ -3387,15 +3387,17 @@ func TestTransportNoReuseAfterEarlyResponse(t *testing.T) {
 
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		if r.Method == "GET" {
-			io.WriteString(w, "bar")
+			_, _ = io.WriteString(w, "bar")
 			return
 		}
 		conn, _, _ := w.(Hijacker).Hijack()
 		sconn.Lock()
 		sconn.c = conn
 		sconn.Unlock()
-		conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nfoo")) // keep-alive
-		go io.Copy(io.Discard, conn)
+		_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nfoo")) // keep-alive
+		go func() {
+			_, _ = io.Copy(io.Discard, conn)
+		}()
 	}))
 	defer ts.Close()
 	c := ts.Client()
@@ -3439,8 +3441,8 @@ func TestTransportIssue10457(t *testing.T) {
 		// immediately Peek an io.EOF and get to the point
 		// that used to hang.
 		conn, _, _ := w.(Hijacker).Hijack()
-		conn.Write([]byte("HTTP/1.1 200 OK\r\nFoo: Bar\r\nContent-Length: 0\r\n\r\n")) // keep-alive
-		conn.Close()
+		_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nFoo: Bar\r\nContent-Length: 0\r\n\r\n")) // keep-alive
+		_ = conn.Close()
 	}))
 	defer ts.Close()
 	c := ts.Client()
@@ -3449,7 +3451,9 @@ func TestTransportIssue10457(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 
 	// Just a sanity check that we at least get the response. The real
 	// test here is that the "defer afterTest" above doesn't find any
@@ -3561,7 +3565,7 @@ func TestRetryRequestsOnError(t *testing.T) {
 			logf := func(format string, args ...interface{}) {
 				mu.Lock()
 				defer mu.Unlock()
-				fmt.Fprintf(&logbuf, format, args...)
+				_, _ = fmt.Fprintf(&logbuf, format, args...)
 				logbuf.WriteByte('\n')
 			}
 
@@ -3611,7 +3615,7 @@ func TestRetryRequestsOnError(t *testing.T) {
 					}
 					t.Skipf("connection likely wasn't recycled within %d, interfering with actual test; skipping", MaxWriteWaitBeforeConnReuse)
 				}
-				res.Body.Close()
+				_ = res.Body.Close()
 				if res.Request != req {
 					t.Errorf("Response.Request != original request; want identical Request")
 				}
@@ -3666,7 +3670,9 @@ func TestTransportClosesBodyOnError(t *testing.T) {
 	})
 	res, err := c.Do(req)
 	if res != nil {
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 	}
 	if err == nil || !strings.Contains(err.Error(), fakeErr.Error()) {
 		t.Fatalf("Do error = %v; want something containing %q", err, fakeErr.Error())
@@ -3714,7 +3720,7 @@ func TestTransportDialTLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	mu.Lock()
 	if !gotReq {
 		t.Error("didn't get request")
@@ -3754,7 +3760,7 @@ func TestTransportDialContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	mu.Lock()
 	if !gotReq {
 		t.Error("didn't get request")
@@ -3798,7 +3804,7 @@ func TestTransportDialTLSContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	mu.Lock()
 	if !gotReq {
 		t.Error("didn't get request")
@@ -3966,7 +3972,7 @@ func TestTransportRangeAndGzip(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("timeout")
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 // Test for issue 10474
@@ -3976,7 +3982,7 @@ func TestTransportResponseCancelRace(t *testing.T) {
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		// important that this response has a body.
 		var b [1024]byte
-		w.Write(b[:])
+		_, _ = w.Write(b[:])
 	}))
 	defer ts.Close()
 	tr := ts.Client().Transport.(*Transport)
@@ -4005,7 +4011,7 @@ func TestTransportResponseCancelRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 // Test for issue 19248: Content-Encoding's value is case insensitive.
@@ -4019,8 +4025,8 @@ func TestTransportContentEncodingCaseInsensitive(t *testing.T) {
 			ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 				w.Header().Set("Content-Encoding", ce)
 				gz := gzip.NewWriter(w)
-				gz.Write([]byte(encodedString))
-				gz.Close()
+				_, _ = gz.Write([]byte(encodedString))
+				_ = gz.Close()
 			}))
 			defer ts.Close()
 
@@ -4030,7 +4036,7 @@ func TestTransportContentEncodingCaseInsensitive(t *testing.T) {
 			}
 
 			body, err := io.ReadAll(res.Body)
-			res.Body.Close()
+			_ = res.Body.Close()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4061,7 +4067,7 @@ func TestTransportDialCancelRace(t *testing.T) {
 	if err != ExportErrRequestCanceled {
 		t.Errorf("expected canceled request error; got %v", err)
 		if err == nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 	}
 }
@@ -4113,9 +4119,11 @@ func TestTransportFlushesBodyChunks(t *testing.T) {
 	}
 	bodyr, bodyw := io.Pipe() // body pipe pair
 	go func() {
-		defer bodyw.Close()
+		defer func(bodyw *io.PipeWriter) {
+			_ = bodyw.Close()
+		}(bodyw)
 		for i := 0; i < 3; i++ {
-			fmt.Fprintf(bodyw, "num%d\n", i)
+			_, _ = fmt.Fprintf(bodyw, "num%d\n", i)
 		}
 	}()
 	resc := make(chan *Response)
@@ -4136,7 +4144,7 @@ func TestTransportFlushesBodyChunks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	io.Copy(io.Discard, req.Body)
+	_, _ = io.Copy(io.Discard, req.Body)
 
 	// Unblock the transport's roundTrip goroutine.
 	resBody <- strings.NewReader("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
@@ -4144,7 +4152,9 @@ func TestTransportFlushesBodyChunks(t *testing.T) {
 	if !ok {
 		return
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 
 	want := []string{
 		"POST / HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: x\r\nTransfer-Encoding: chunked\r\nAccept-Encoding: gzip\r\n\r\n",
@@ -4180,12 +4190,12 @@ func TestTransportFlushesRequestHeader(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 	}()
 
 	select {
 	case <-gotReq:
-		pw.Close()
+		_ = pw.Close()
 	case <-time.After(5 * time.Second):
 		t.Fatal("timeout waiting for handler to get request")
 	}
@@ -4202,7 +4212,7 @@ func TestTransportPrefersResponseOverWriteError(t *testing.T) {
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		if r.ContentLength >= contentLengthLimit {
 			w.WriteHeader(StatusBadRequest)
-			r.Body.Close()
+			_ = r.Body.Close()
 			return
 		}
 		w.WriteHeader(StatusOK)
@@ -4229,7 +4239,7 @@ func TestTransportPrefersResponseOverWriteError(t *testing.T) {
 				}
 			}
 		} else {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode != 400 {
 				t.Errorf("Expected status code 400, got %v", resp.Status)
 			}
