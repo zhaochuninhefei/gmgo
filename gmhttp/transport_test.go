@@ -3287,12 +3287,12 @@ func TestTLSServerClosesConnection(t *testing.T) {
 	ts := httptest.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		if strings.Contains(r.URL.Path, "/keep-alive-then-die") {
 			conn, _, _ := w.(Hijacker).Hijack()
-			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nfoo"))
-			conn.Close()
+			_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nfoo"))
+			_ = conn.Close()
 			closedc <- true
 			return
 		}
-		fmt.Fprintf(w, "hello")
+		_, _ = fmt.Fprintf(w, "hello")
 	}))
 	defer ts.Close()
 
