@@ -4358,7 +4358,9 @@ func TestNoCrashReturningTransportAltConn(t *testing.T) {
 		t.Fatal(err)
 	}
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	var wg sync.WaitGroup
 	SetPendingDialHooks(func() { wg.Add(1) }, wg.Done)
