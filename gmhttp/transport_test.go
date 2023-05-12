@@ -5182,7 +5182,9 @@ func testTransportIDNA(t *testing.T, h2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.Header.Get("Hit-Handler") != "1" {
 		out, err := httputil.DumpResponse(res, true)
 		if err != nil {
