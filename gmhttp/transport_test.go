@@ -4839,7 +4839,7 @@ func skipIfDNSHijacked(t *testing.T) {
 func TestTransportRejectsAlphaPort(t *testing.T) {
 	res, err := Get("http://dummy.tld:123foo/bar")
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("unexpected success")
 	}
 	ue, ok := err.(*url.Error)
@@ -4889,7 +4889,7 @@ func TestTLSHandshakeTrace(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unexpected error making request:", err)
 	}
-	r.Body.Close()
+	_ = r.Body.Close()
 	mu.Lock()
 	defer mu.Unlock()
 	if !start {
@@ -4994,7 +4994,7 @@ func testTransportIdleConnTimeout(t *testing.T, h2 bool) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		conns := idleConns()
 		if len(conns) != 1 {
 			t.Fatalf("req %v: unexpected number of idle conns: %q", n, conns)
