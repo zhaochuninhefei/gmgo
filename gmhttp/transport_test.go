@@ -4541,7 +4541,7 @@ func testTransportEventTrace(t *testing.T, h2 bool, noHooks bool) {
 				t.Error("timeout waiting for WroteRequest event")
 			}
 		}
-		io.WriteString(w, resBody)
+		_, _ = io.WriteString(w, resBody)
 	}))
 	defer cst.close()
 
@@ -4552,7 +4552,7 @@ func testTransportEventTrace(t *testing.T, h2 bool, noHooks bool) {
 	logf := func(format string, args ...interface{}) {
 		mu.Lock()
 		defer mu.Unlock()
-		fmt.Fprintf(&buf, format, args...)
+		_, _ = fmt.Fprintf(&buf, format, args...)
 		buf.WriteByte('\n')
 	}
 
@@ -4627,7 +4627,7 @@ func testTransportEventTrace(t *testing.T, h2 bool, noHooks bool) {
 	if string(slurp) != resBody || res.StatusCode != 200 {
 		t.Fatalf("Got %q, %v; want %q, 200 OK", slurp, res.Status, resBody)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	if noHooks {
 		// Done at this point. Just testing a full HTTP
@@ -4692,7 +4692,7 @@ func testTransportEventTrace(t *testing.T, h2 bool, noHooks bool) {
 	if res.StatusCode != 200 {
 		t.Fatal(res.Status)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	mu.Lock()
 	got = buf.String()
@@ -4711,7 +4711,7 @@ func TestTransportEventTraceTLSVerify(t *testing.T) {
 	logf := func(format string, args ...interface{}) {
 		mu.Lock()
 		defer mu.Unlock()
-		fmt.Fprintf(&buf, format, args...)
+		_, _ = fmt.Fprintf(&buf, format, args...)
 		buf.WriteByte('\n')
 	}
 
