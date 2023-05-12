@@ -4383,7 +4383,7 @@ func TestNoCrashReturningTransportAltConn(t *testing.T) {
 			return
 		}
 		<-testDone
-		sc.Close()
+		_ = sc.Close()
 	}()
 
 	addr := ln.Addr().String()
@@ -4455,7 +4455,7 @@ func testTransportReuseConnection_Gzip(t *testing.T, chunked bool) {
 		if chunked {
 			w.(Flusher).Flush()
 		}
-		w.Write(rgz) // arbitrary gzip response
+		_, _ = w.Write(rgz) // arbitrary gzip response
 	}))
 	defer ts.Close()
 	c := ts.Client()
@@ -4494,12 +4494,14 @@ func TestTransportResponseHeaderLength(t *testing.T) {
 	if res, err := c.Get(ts.URL); err != nil {
 		t.Fatal(err)
 	} else {
-		res.Body.Close()
+		_ = res.Body.Close()
 	}
 
 	res, err := c.Get(ts.URL + "/long")
 	if err == nil {
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		var n int64
 		for k, vv := range res.Header {
 			for _, v := range vv {
