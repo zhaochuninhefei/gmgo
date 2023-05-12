@@ -5053,7 +5053,7 @@ func TestIdleConnH2Crash(t *testing.T) {
 		}
 		if cs := c.ConnectionState(); cs.NegotiatedProtocol != "h2" {
 			t.Errorf("protocol = %q; want %q", cs.NegotiatedProtocol, "h2")
-			c.Close()
+			_ = c.Close()
 			return nil, errors.New("bogus")
 		}
 
@@ -5074,7 +5074,7 @@ func TestIdleConnH2Crash(t *testing.T) {
 	req = req.WithContext(ctx)
 	res, err := cst.c.Do(req)
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("unexpected success")
 	}
 	sawDoErr <- true
