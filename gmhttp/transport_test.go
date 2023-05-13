@@ -5274,7 +5274,7 @@ func TestTransportProxyGetConnectHeader(t *testing.T) {
 
 	res, err := c.Get("https://dummy.tld/") // https to force a CONNECT
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Errorf("unexpected success")
 	}
 	select {
@@ -5397,9 +5397,9 @@ func TestMissingStatusNoPanic(t *testing.T) {
 
 		conn, _ := ln.Accept()
 		if conn != nil {
-			io.WriteString(conn, raw)
-			io.ReadAll(conn)
-			conn.Close()
+			_, _ = io.WriteString(conn, raw)
+			_, _ = io.ReadAll(conn)
+			_ = conn.Close()
 		}
 	}()
 
@@ -5424,7 +5424,7 @@ func TestMissingStatusNoPanic(t *testing.T) {
 		t.Errorf("got=%v want=%q", err, want)
 	}
 
-	ln.Close()
+	_ = ln.Close()
 	<-done
 }
 
