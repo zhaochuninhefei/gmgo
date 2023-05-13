@@ -5208,7 +5208,7 @@ func TestTransportProxyConnectHeader(t *testing.T) {
 			t.Errorf("Hijack: %v", err)
 			return
 		}
-		c.Close()
+		_ = c.Close()
 	}))
 	defer ts.Close()
 
@@ -5223,7 +5223,7 @@ func TestTransportProxyConnectHeader(t *testing.T) {
 
 	res, err := c.Get("https://dummy.tld/") // https to force a CONNECT
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Errorf("unexpected success")
 	}
 	select {
@@ -5252,7 +5252,7 @@ func TestTransportProxyGetConnectHeader(t *testing.T) {
 			t.Errorf("Hijack: %v", err)
 			return
 		}
-		c.Close()
+		_ = c.Close()
 	}))
 	defer ts.Close()
 
