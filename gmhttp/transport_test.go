@@ -5416,8 +5416,8 @@ func TestMissingStatusNoPanic(t *testing.T) {
 		t.Error("panicked, expecting an error")
 	}
 	if res != nil && res.Body != nil {
-		io.Copy(io.Discard, res.Body)
-		res.Body.Close()
+		_, _ = io.Copy(io.Discard, res.Body)
+		_ = res.Body.Close()
 	}
 
 	if err == nil || !strings.Contains(err.Error(), want) {
