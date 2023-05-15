@@ -5444,9 +5444,9 @@ func TestNoBodyOnChunked304Response(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h1Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
 		conn, buf, _ := w.(Hijacker).Hijack()
-		buf.Write([]byte("HTTP/1.1 304 NOT MODIFIED\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n"))
-		buf.Flush()
-		conn.Close()
+		_, _ = buf.Write([]byte("HTTP/1.1 304 NOT MODIFIED\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n"))
+		_ = buf.Flush()
+		_ = conn.Close()
 	}))
 	defer cst.close()
 
