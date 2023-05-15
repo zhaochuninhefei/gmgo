@@ -5635,11 +5635,13 @@ func TestTransportResponseBodyWritableOnProtocolSwitch(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
-		io.WriteString(conn, "HTTP/1.1 101 Switching Protocols Hi\r\nConnection: upgRADe\r\nUpgrade: foo\r\n\r\nSome buffered data\n")
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
+		_, _ = io.WriteString(conn, "HTTP/1.1 101 Switching Protocols Hi\r\nConnection: upgRADe\r\nUpgrade: foo\r\n\r\nSome buffered data\n")
 		bs := bufio.NewScanner(conn)
 		bs.Scan()
-		fmt.Fprintf(conn, "%s\n", strings.ToUpper(bs.Text()))
+		_, _ = fmt.Fprintf(conn, "%s\n", strings.ToUpper(bs.Text()))
 		<-done
 	}))
 	defer cst.close()
@@ -5658,7 +5660,9 @@ func TestTransportResponseBodyWritableOnProtocolSwitch(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected a ReadWriteCloser; got a %T", res.Body)
 	}
-	defer rwc.Close()
+	defer func(rwc io.ReadWriteCloser) {
+		_ = rwc.Close()
+	}(rwc)
 	bs := bufio.NewScanner(rwc)
 	if !bs.Scan() {
 		t.Fatalf("expected readable input")
@@ -5666,7 +5670,7 @@ func TestTransportResponseBodyWritableOnProtocolSwitch(t *testing.T) {
 	if got, want := bs.Text(), "Some buffered data"; got != want {
 		t.Errorf("read %q; want %q", got, want)
 	}
-	io.WriteString(rwc, "echo\n")
+	_, _ = io.WriteString(rwc, "echo\n")
 	if !bs.Scan() {
 		t.Fatalf("expected another line")
 	}
