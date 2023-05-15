@@ -5536,7 +5536,7 @@ func TestClientTimeoutKillsConn_BeforeHeaders(t *testing.T) {
 			return
 		case <-time.After(5 * time.Second):
 			t.Error("Handler's conn.Read seems to be stuck in Read")
-			c.Close() // close it to unblock Handler
+			_ = c.Close() // close it to unblock Handler
 		}
 	case <-time.After(timeout * 10):
 		// If we didn't get into the Handler in 50ms, that probably means
@@ -5565,7 +5565,7 @@ func TestClientTimeoutKillsConn_AfterHeaders(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		conn.Write([]byte("foo"))
+		_, _ = conn.Write([]byte("foo"))
 		inHandler <- conn
 		n, err := conn.Read([]byte{0})
 		// The error should be io.EOF or "read tcp
@@ -5617,7 +5617,7 @@ func TestClientTimeoutKillsConn_AfterHeaders(t *testing.T) {
 			return
 		case <-time.After(5 * time.Second):
 			t.Error("Handler's conn.Read seems to be stuck in Read")
-			c.Close() // close it to unblock Handler
+			_ = c.Close() // close it to unblock Handler
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("timeout")
