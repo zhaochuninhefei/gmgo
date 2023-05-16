@@ -5698,8 +5698,10 @@ func TestTransportCONNECTBidi(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer nc.Close()
-		nc.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		defer func(nc net.Conn) {
+			_ = nc.Close()
+		}(nc)
+		_, _ = nc.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		// Switch to a little protocol that capitalize its input lines:
 		for {
 			line, err := brw.ReadString('\n')
@@ -5709,13 +5711,15 @@ func TestTransportCONNECTBidi(t *testing.T) {
 				}
 				return
 			}
-			io.WriteString(brw, strings.ToUpper(line))
-			brw.Flush()
+			_, _ = io.WriteString(brw, strings.ToUpper(line))
+			_ = brw.Flush()
 		}
 	}))
 	defer cst.close()
 	pr, pw := io.Pipe()
-	defer pw.Close()
+	defer func(pw *io.PipeWriter) {
+		_ = pw.Close()
+	}(pw)
 	req, err := NewRequest("CONNECT", cst.ts.URL, pr)
 	if err != nil {
 		t.Fatal(err)
@@ -5725,13 +5729,15 @@ func TestTransportCONNECTBidi(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != 200 {
 		t.Fatalf("status code = %d; want 200", res.StatusCode)
 	}
 	br := bufio.NewReader(res.Body)
 	for _, str := range []string{"foo", "bar", "baz"} {
-		fmt.Fprintf(pw, "%s\n", str)
+		_, _ = fmt.Fprintf(pw, "%s\n", str)
 		got, err := br.ReadString('\n')
 		if err != nil {
 			t.Fatal(err)
