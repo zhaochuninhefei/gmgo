@@ -5833,8 +5833,8 @@ func TestTransportRequestWriteRoundTrip(t *testing.T) {
 		}
 
 		done = func() {
-			f.Close()
-			os.Remove(f.Name())
+			_ = f.Close()
+			_ = os.Remove(f.Name())
 		}
 
 		return f, done, nil
@@ -5912,8 +5912,8 @@ func TestTransportRequestWriteRoundTrip(t *testing.T) {
 				t,
 				h1Mode,
 				HandlerFunc(func(w ResponseWriter, r *Request) {
-					io.Copy(io.Discard, r.Body)
-					r.Body.Close()
+					_, _ = io.Copy(io.Discard, r.Body)
+					_ = r.Body.Close()
 					w.WriteHeader(200)
 				}),
 				trFunc,
@@ -5930,7 +5930,9 @@ func TestTransportRequestWriteRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer resp.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(resp.Body)
 			if resp.StatusCode != 200 {
 				t.Fatalf("status code = %d; want 200", resp.StatusCode)
 			}
@@ -6035,9 +6037,11 @@ func TestTransportIgnores408(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer nc.Close()
-		nc.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok"))
-		nc.Write([]byte("HTTP/1.1 408 bye\r\n")) // changing 408 to 409 makes test fail
+		defer func(nc net.Conn) {
+			_ = nc.Close()
+		}(nc)
+		_, _ = nc.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok"))
+		_, _ = nc.Write([]byte("HTTP/1.1 408 bye\r\n")) // changing 408 to 409 makes test fail
 	}))
 	defer cst.close()
 	req, err := NewRequest("GET", cst.ts.URL, nil)
