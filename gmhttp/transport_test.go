@@ -6081,20 +6081,22 @@ func TestInvalidHeaderResponse(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, h1Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
 		conn, buf, _ := w.(Hijacker).Hijack()
-		buf.Write([]byte("HTTP/1.1 200 OK\r\n" +
+		_, _ = buf.Write([]byte("HTTP/1.1 200 OK\r\n" +
 			"Date: Wed, 30 Aug 2017 19:09:27 GMT\r\n" +
 			"Content-Type: text/html; charset=utf-8\r\n" +
 			"Content-Length: 0\r\n" +
 			"Foo : bar\r\n\r\n"))
-		buf.Flush()
-		conn.Close()
+		_ = buf.Flush()
+		_ = conn.Close()
 	}))
 	defer cst.close()
 	res, err := cst.c.Get(cst.ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if v := res.Header.Get("Foo"); v != "" {
 		t.Errorf(`unexpected "Foo" header: %q`, v)
 	}
