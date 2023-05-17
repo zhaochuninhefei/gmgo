@@ -6315,7 +6315,9 @@ func TestTransportDecrementConnWhenIdleConnRemoved(t *testing.T) {
 			errCh <- fmt.Errorf("request failed: %v", err)
 			return
 		}
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
 		_, err = io.ReadAll(resp.Body)
 		if err != nil {
 			errCh <- fmt.Errorf("read body failed: %v", err)
