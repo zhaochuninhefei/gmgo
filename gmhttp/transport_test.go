@@ -6403,7 +6403,7 @@ func TestIssue32441(t *testing.T) {
 func TestTransportRejectsSignInContentLength(t *testing.T) {
 	cst := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set("Content-Length", "+3")
-		w.Write([]byte("abc"))
+		_, _ = w.Write([]byte("abc"))
 	}))
 	defer cst.Close()
 
