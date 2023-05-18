@@ -6555,7 +6555,7 @@ func TestCancelRequestWhenSharingConnection(t *testing.T) {
 		req, _ := NewRequestWithContext(ctx, "GET", ts.URL, nil)
 		res, err := client.Do(req)
 		if err == nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 		if err != nil {
 			t.Errorf("request 1: got err %v, want nil", err)
@@ -6575,7 +6575,7 @@ func TestCancelRequestWhenSharingConnection(t *testing.T) {
 		req, _ := NewRequestWithContext(cancelctx, "GET", ts.URL, nil)
 		res, err := client.Do(req)
 		if err == nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 		if !errors.Is(err, context.Canceled) {
 			t.Errorf("request 2: got err %v, want Canceled", err)
