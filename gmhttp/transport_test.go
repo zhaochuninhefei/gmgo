@@ -6450,8 +6450,12 @@ func (r *delegateReader) Read(p []byte) (int, error) {
 func testTransportRace(req *Request) {
 	save := req.Body
 	pr, pw := io.Pipe()
-	defer pr.Close()
-	defer pw.Close()
+	defer func(pr *io.PipeReader) {
+		_ = pr.Close()
+	}(pr)
+	defer func(pw *io.PipeWriter) {
+		_ = pw.Close()
+	}(pw)
 	dr := &delegateReader{c: make(chan io.Reader)}
 
 	t := &Transport{
@@ -6470,8 +6474,8 @@ func testTransportRace(req *Request) {
 		if err == nil {
 			// Ensure all the body is read; otherwise
 			// we'll get a partial dump.
-			io.Copy(io.Discard, req.Body)
-			req.Body.Close()
+			_, _ = io.Copy(io.Discard, req.Body)
+			_ = req.Body.Close()
 		}
 		select {
 		case dr.c <- strings.NewReader("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n"):
@@ -6481,11 +6485,11 @@ func testTransportRace(req *Request) {
 		}
 	}()
 
-	t.RoundTrip(req)
+	_, _ = t.RoundTrip(req)
 
 	// Ensure the reader returns before we reset req.Body to prevent
 	// a data race on req.Body.
-	pw.Close()
+	_ = pw.Close()
 	<-quitReadCh
 
 	req.Body = save
