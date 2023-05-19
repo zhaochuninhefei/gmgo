@@ -6115,6 +6115,8 @@ func (bc *bodyCloser) Close() error {
 	*bc = true
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (bc *bodyCloser) Read(b []byte) (n int, err error) {
 	return 0, io.EOF
 }
@@ -6427,11 +6429,17 @@ type dumpConn struct {
 	io.Reader
 }
 
-func (c *dumpConn) Close() error                       { return nil }
-func (c *dumpConn) LocalAddr() net.Addr                { return nil }
-func (c *dumpConn) RemoteAddr() net.Addr               { return nil }
-func (c *dumpConn) SetDeadline(t time.Time) error      { return nil }
-func (c *dumpConn) SetReadDeadline(t time.Time) error  { return nil }
+func (c *dumpConn) Close() error         { return nil }
+func (c *dumpConn) LocalAddr() net.Addr  { return nil }
+func (c *dumpConn) RemoteAddr() net.Addr { return nil }
+
+//goland:noinspection GoUnusedParameter
+func (c *dumpConn) SetDeadline(t time.Time) error { return nil }
+
+//goland:noinspection GoUnusedParameter
+func (c *dumpConn) SetReadDeadline(t time.Time) error { return nil }
+
+//goland:noinspection GoUnusedParameter
 func (c *dumpConn) SetWriteDeadline(t time.Time) error { return nil }
 
 // delegateReader is a reader that delegates to another reader,
