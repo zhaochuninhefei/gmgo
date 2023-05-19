@@ -4522,6 +4522,7 @@ func TestTransportResponseHeaderLength(t *testing.T) {
 // func TestTransportEventTrace_NoHooks(t *testing.T)    { testTransportEventTrace(t, h1Mode, true) }
 // func TestTransportEventTrace_NoHooks_h2(t *testing.T) { testTransportEventTrace(t, h2Mode, true) }
 
+//goland:noinspection GoUnusedFunction
 func testTransportEventTrace(t *testing.T, h2 bool, noHooks bool) {
 	defer afterTest(t)
 	const resBody = "some body"
@@ -4772,6 +4773,7 @@ var (
 	isDNSHijacked     bool
 )
 
+//goland:noinspection GoUnusedFunction
 func skipIfDNSHijacked(t *testing.T) {
 	// Skip this test if the user is using a shady/ISP
 	// DNS server hijacking queries.
@@ -5125,6 +5127,7 @@ func TestTransportReturnsPeekError(t *testing.T) {
 // Issue 13835: international domain names should work
 // func TestTransportIDNA_h1(t *testing.T) { testTransportIDNA(t, h1Mode) }
 // func TestTransportIDNA_h2(t *testing.T) { testTransportIDNA(t, h2Mode) }
+//goland:noinspection GoUnusedFunction
 func testTransportIDNA(t *testing.T, h2 bool) {
 	defer afterTest(t)
 
