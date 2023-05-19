@@ -3100,13 +3100,13 @@ func testProxyForRequest(t *testing.T, tt proxyFromEnvTest, proxyForRequest func
 		reqURL = "http://example.com"
 	}
 	req, _ := NewRequest("GET", reqURL, nil)
-	url, err := proxyForRequest(req)
+	urlTest, err := proxyForRequest(req)
 	if g, e := fmt.Sprintf("%v", err), fmt.Sprintf("%v", tt.wanterr); g != e {
 		t.Errorf("%v: got error = %q, want %q", tt, g, e)
 		return
 	}
-	if got := fmt.Sprintf("%s", url); got != tt.want {
-		t.Errorf("%v: got URL = %q, want %q", tt, url, tt.want)
+	if got := fmt.Sprintf("%s", urlTest); got != tt.want {
+		t.Errorf("%v: got URL = %q, want %q", tt, urlTest, tt.want)
 	}
 }
 
