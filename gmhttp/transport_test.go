@@ -6032,6 +6032,7 @@ func TestTransportIgnores408(t *testing.T) {
 	log.SetOutput(&logout)
 
 	defer afterTest(t)
+	//goland:noinspection GoUnusedConst
 	const target = "backend:443"
 
 	cst := newClientServerTest(t, h1Mode, HandlerFunc(func(w ResponseWriter, r *Request) {
