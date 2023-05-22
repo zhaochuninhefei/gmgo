@@ -438,6 +438,7 @@ func TestTransportReadToEndReusesConn(t *testing.T) {
 			// len(addrSeen) check at the bottom of this test,
 			// since Closing this early in the loop would risk
 			// making connections be re-used for the wrong reason.
+			//goland:noinspection GoDeferInLoop
 			defer func(Body io.ReadCloser) {
 				_ = Body.Close()
 			}(res.Body)
@@ -1207,6 +1208,7 @@ func TestTransportExpect100Continue(t *testing.T) {
 		tr := &Transport{
 			ExpectContinueTimeout: 2 * time.Second,
 		}
+		//goland:noinspection GoDeferInLoop
 		defer tr.CloseIdleConnections()
 		c.Transport = tr
 		body := bytes.NewReader(v.body)
