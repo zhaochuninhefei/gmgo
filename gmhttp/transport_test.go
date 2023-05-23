@@ -1542,6 +1542,7 @@ func TestTransportProxyHTTPSConnectLeak(t *testing.T) {
 	c := &Client{
 		Transport: &Transport{
 			Proxy: func(*Request) (*url.URL, error) {
+				//goland:noinspection HttpUrlsUsage
 				return url.Parse("http://" + ln.Addr().String())
 			},
 		},
@@ -2620,6 +2621,7 @@ func TestTransportCancelBeforeResponseHeaders(t *testing.T) {
 	}
 	defer tr.CloseIdleConnections()
 	errc := make(chan error, 1)
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://example.com/", nil)
 	go func() {
 		_, err := tr.RoundTrip(req)
@@ -2760,6 +2762,7 @@ func TestTransportNoHost(t *testing.T) {
 
 // Issue 13311
 func TestTransportEmptyMethod(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://foo.com/", nil)
 	req.Method = ""                                 // docs say "For client requests an empty string means GET"
 	got, err := httputil.DumpRequestOut(req, false) // DumpRequestOut uses Transport
@@ -3056,6 +3059,7 @@ func (t proxyFromEnvTest) String() string {
 		space()
 		_, _ = fmt.Fprintf(&buf, "request_method=%q", t.reqmeth)
 	}
+	//goland:noinspection HttpUrlsUsage
 	req := "http://example.com"
 	if t.req != "" {
 		req = t.req
@@ -3065,6 +3069,7 @@ func (t proxyFromEnvTest) String() string {
 	return strings.TrimSpace(buf.String())
 }
 
+//goland:noinspection HttpUrlsUsage
 var proxyFromEnvTests = []proxyFromEnvTest{
 	{env: "127.0.0.1:8080", want: "http://127.0.0.1:8080"},
 	{env: "cache.corp.example.com:1234", want: "http://cache.corp.example.com:1234"},
@@ -3099,6 +3104,7 @@ func testProxyForRequest(t *testing.T, tt proxyFromEnvTest, proxyForRequest func
 	t.Helper()
 	reqURL := tt.req
 	if reqURL == "" {
+		//goland:noinspection HttpUrlsUsage
 		reqURL = "http://example.com"
 	}
 	req, _ := NewRequest("GET", reqURL, nil)
@@ -3169,6 +3175,7 @@ func TestIdleConnChannelLeak(t *testing.T) {
 	for _, disableKeep := range []bool{true, false} {
 		tr.DisableKeepAlives = disableKeep
 		for i := 0; i < nReqs; i++ {
+			//goland:noinspection HttpUrlsUsage
 			_, err := c.Get(fmt.Sprintf("http://foo-host-%d.tld/", i))
 			if err != nil {
 				t.Fatal(err)
@@ -3825,6 +3832,7 @@ func TestRoundTripReturnsProxyError(t *testing.T) {
 
 	tr := &Transport{Proxy: badProxy}
 
+	//goland:noinspection HttpUrlsUsage
 	req, _ := NewRequest("GET", "http://example.com", nil)
 
 	_, err := tr.RoundTrip(req)
@@ -4841,6 +4849,7 @@ func skipIfDNSHijacked(t *testing.T) {
 
 // Issue 14353: port can only contain digits.
 func TestTransportRejectsAlphaPort(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	res, err := Get("http://dummy.tld:123foo/bar")
 	if err == nil {
 		_ = res.Body.Close()
@@ -5388,6 +5397,7 @@ func TestMissingStatusNoPanic(t *testing.T) {
 	ln := newLocalListener(t)
 	addr := ln.Addr().String()
 	done := make(chan bool)
+	//goland:noinspection HttpUrlsUsage
 	fullAddrURL := fmt.Sprintf("http://%s", addr)
 	raw := "HTTP/1.1 400\r\n" +
 		"Date: Wed, 30 Aug 2017 19:09:27 GMT\r\n" +
@@ -6524,6 +6534,7 @@ func TestErrorWriteLoopRace(t *testing.T) {
 		defer cancel()
 
 		r := bytes.NewBuffer(make([]byte, 10000))
+		//goland:noinspection HttpUrlsUsage
 		req, err := NewRequestWithContext(ctx, MethodPost, "http://example.com", r)
 		if err != nil {
 			t.Fatal(err)
