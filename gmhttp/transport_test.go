@@ -4455,6 +4455,7 @@ func TestTransportReuseConnection_Gzip_ContentLength(t *testing.T) {
 }
 
 // Make sure we re-use underlying TCP connection for gzipped responses too.
+//goland:noinspection GoSnakeCaseUsage
 func testTransportReuseConnection_Gzip(t *testing.T, chunked bool) {
 	setParallel(t)
 	defer afterTest(t)
