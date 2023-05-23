@@ -5348,7 +5348,7 @@ type countCloseReader struct {
 }
 
 func (cr countCloseReader) Close() error {
-	(*cr.n)++
+	*cr.n++
 	return nil
 }
 
@@ -6532,6 +6532,7 @@ func TestErrorWriteLoopRace(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		delay := time.Duration(mrand.Intn(5)) * time.Millisecond
 		ctx, cancel := context.WithTimeout(context.Background(), delay)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 
 		r := bytes.NewBuffer(make([]byte, 10000))
