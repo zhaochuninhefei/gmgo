@@ -46,7 +46,7 @@ func main() {
 	flag.Parse()
 
 	// Create a cache
-	cache := cache.NewSnapshotCache(false, cache.IDHash{}, l)
+	cacheTmp := cache.NewSnapshotCache(false, cache.IDHash{}, l)
 
 	// Create the snapshot that we'll serve to Envoy
 	snapshot := example.GenerateSnapshot()
@@ -57,7 +57,7 @@ func main() {
 	l.Debugf("will serve snapshot %+v", snapshot)
 
 	// Add the snapshot to the cache
-	if err := cache.SetSnapshot(context.Background(), nodeID, snapshot); err != nil {
+	if err := cacheTmp.SetSnapshot(context.Background(), nodeID, snapshot); err != nil {
 		l.Errorf("snapshot error %q for %+v", err, snapshot)
 		os.Exit(1)
 	}
@@ -65,6 +65,6 @@ func main() {
 	// Run the xDS server
 	ctx := context.Background()
 	cb := &test.Callbacks{Debug: l.Debug}
-	srv := server.NewServer(ctx, cache, cb)
+	srv := server.NewServer(ctx, cacheTmp, cb)
 	example.RunServer(ctx, srv, port)
 }
