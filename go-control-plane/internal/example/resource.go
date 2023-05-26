@@ -41,6 +41,7 @@ const (
 )
 
 func makeCluster(clusterName string) *cluster.Cluster {
+	//goland:noinspection GoDeprecation
 	return &cluster.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
@@ -118,6 +119,7 @@ func makeHTTPListener(listenerName string, route string) *listener.Listener {
 			Name: wellknown.Router,
 		}},
 	}
+	//goland:noinspection GoDeprecation
 	pbst, err := ptypes.MarshalAny(manager)
 	if err != nil {
 		panic(err)
