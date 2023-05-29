@@ -11,6 +11,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 package example
 
 import (
@@ -52,6 +53,7 @@ func registerServer(grpcServer *grpc.Server, server server.Server) {
 }
 
 // RunServer starts an xDS server at the given port.
+//goland:noinspection GoUnusedParameter
 func RunServer(ctx context.Context, srv server.Server, port uint) {
 	// gRPC golang library sets a very small upper bound for the number gRPC/h2
 	// streams over a single TCP connection. If a proxy multiplexes requests over
