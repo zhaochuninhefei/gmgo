@@ -77,36 +77,36 @@ type Cache interface {
 
 // Response is a wrapper around Envoy's DiscoveryResponse.
 type Response interface {
-	// Get the Constructed DiscoveryResponse
+	// GetDiscoveryResponse Get the Constructed DiscoveryResponse
 	GetDiscoveryResponse() (*discovery.DiscoveryResponse, error)
 
-	// Get the original Request for the Response.
+	// GetRequest Get the original Request for the Response.
 	GetRequest() *discovery.DiscoveryRequest
 
-	// Get the version in the Response.
+	// GetVersion Get the version in the Response.
 	GetVersion() (string, error)
 
-	// Get the context provided during response creation.
+	// GetContext Get the context provided during response creation.
 	GetContext() context.Context
 }
 
 // DeltaResponse is a wrapper around Envoy's DeltaDiscoveryResponse
 type DeltaResponse interface {
-	// Get the constructed DeltaDiscoveryResponse
+	// GetDeltaDiscoveryResponse Get the constructed DeltaDiscoveryResponse
 	GetDeltaDiscoveryResponse() (*discovery.DeltaDiscoveryResponse, error)
 
-	// Get the request that created the watch that we're now responding to. This is provided to allow the caller to correlate the
+	// GetDeltaRequest Get the request that created the watch that we're now responding to. This is provided to allow the caller to correlate the
 	// response with a request. Generally this will be the latest request seen on the stream for the specific type.
 	GetDeltaRequest() *discovery.DeltaDiscoveryRequest
 
-	// Get the version in the DeltaResponse. This field is generally used for debugging purposes as noted by the Envoy documentation.
+	// GetSystemVersion Get the version in the DeltaResponse. This field is generally used for debugging purposes as noted by the Envoy documentation.
 	GetSystemVersion() (string, error)
 
-	// Get the version map of the internal cache.
+	// GetNextVersionMap Get the version map of the internal cache.
 	// The version map consists of updated version mappings after this response is applied
 	GetNextVersionMap() map[string]string
 
-	// Get the context provided during response creation
+	// GetContext Get the context provided during response creation
 	GetContext() context.Context
 }
 
@@ -295,7 +295,7 @@ func (r *RawDeltaResponse) GetSystemVersion() (string, error) {
 	return r.SystemVersionInfo, nil
 }
 
-// NextVersionMap returns the version map which consists of updated version mappings after this response is applied
+// GetNextVersionMap returns the version map which consists of updated version mappings after this response is applied
 func (r *RawDeltaResponse) GetNextVersionMap() map[string]string {
 	return r.NextVersionMap
 }
@@ -370,7 +370,7 @@ func (r *DeltaPassthroughResponse) GetSystemVersion() (string, error) {
 	return "", fmt.Errorf("DeltaDiscoveryResponse is nil")
 }
 
-// NextVersionMap returns the version map from a DeltaPassthroughResponse
+// GetNextVersionMap returns the version map from a DeltaPassthroughResponse
 func (r *DeltaPassthroughResponse) GetNextVersionMap() map[string]string {
 	return r.NextVersionMap
 }
