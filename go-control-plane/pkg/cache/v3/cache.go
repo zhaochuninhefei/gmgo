@@ -304,16 +304,19 @@ func (r *RawDeltaResponse) GetContext() context.Context {
 	return r.Ctx
 }
 
+//goland:noinspection GoDeprecation
 var deltaResourceTypeURL = "type.googleapis.com/" + proto.MessageName(&discovery.Resource{})
 
 func (r *RawResponse) maybeCreateTTLResource(resource types.ResourceWithTTL) (types.Resource, string, error) {
 	if resource.TTL != nil {
+		//goland:noinspection GoDeprecation
 		wrappedResource := &discovery.Resource{
 			Name: GetResourceName(resource.Resource),
 			Ttl:  ptypes.DurationProto(*resource.TTL),
 		}
 
 		if !r.Heartbeat {
+			//goland:noinspection GoDeprecation
 			any, err := ptypes.MarshalAny(resource.Resource)
 			if err != nil {
 				return nil, "", err
