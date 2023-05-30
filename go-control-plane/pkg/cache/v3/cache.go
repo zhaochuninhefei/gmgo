@@ -317,12 +317,12 @@ func (r *RawResponse) maybeCreateTTLResource(resource types.ResourceWithTTL) (ty
 
 		if !r.Heartbeat {
 			//goland:noinspection GoDeprecation
-			any, err := ptypes.MarshalAny(resource.Resource)
+			res, err := ptypes.MarshalAny(resource.Resource)
 			if err != nil {
 				return nil, "", err
 			}
-			any.TypeUrl = r.Request.TypeUrl
-			wrappedResource.Resource = any
+			res.TypeUrl = r.Request.TypeUrl
+			wrappedResource.Resource = res
 		}
 
 		return wrappedResource, deltaResourceTypeURL, nil
