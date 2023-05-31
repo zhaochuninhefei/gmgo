@@ -4,7 +4,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
 
@@ -64,7 +63,8 @@ func TestPassthroughResponseGetDiscoveryResponse(t *testing.T) {
 	assert.Equal(t, len(discoveryResponse.Resources), 1)
 
 	r := &route.RouteConfiguration{}
-	err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
+	//err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
+	err = discoveryResponse.Resources[0].UnmarshalTo(r)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Name, resourceName)
 	assert.Equal(t, discoveryResponse, dr)
@@ -90,14 +90,16 @@ func TestHeartbeatResponseGetDiscoveryResponse(t *testing.T) {
 	assert.Same(t, discoveryResponse, cachedResponse)
 
 	r := &route.RouteConfiguration{}
-	err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
+	//err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
+	err = discoveryResponse.Resources[0].UnmarshalTo(r)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Name, resourceName)
 }
 
 func isTTLResource(resource *any.Any) bool {
 	wrappedResource := &discovery.Resource{}
-	err := ptypes.UnmarshalAny(resource, wrappedResource)
+	//err := ptypes.UnmarshalAny(resource, wrappedResource)
+	err := resource.UnmarshalTo(wrappedResource)
 	if err != nil {
 		return false
 	}
