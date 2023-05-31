@@ -1,6 +1,7 @@
 package cache_test
 
 import (
+	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes"
@@ -36,15 +37,17 @@ func TestResponseGetDiscoveryResponse(t *testing.T) {
 	assert.Same(t, discoveryResponse, cachedResponse)
 
 	r := &route.RouteConfiguration{}
-	err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
+	//err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
+	err = discoveryResponse.Resources[0].UnmarshalTo(r)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Name, resourceName)
 }
 
 func TestPassthroughResponseGetDiscoveryResponse(t *testing.T) {
 	routes := []types.Resource{&route.RouteConfiguration{Name: resourceName}}
-	rsrc, err := ptypes.MarshalAny(routes[0])
-	assert.Nil(t, err)
+	//rsrc, err := ptypes.MarshalAny(routes[0])
+	rsrc, err := anypb.New(routes[0].(*route.RouteConfiguration))
+
 	dr := &discovery.DiscoveryResponse{
 		TypeUrl:     resource.RouteType,
 		Resources:   []*any.Any{rsrc},
