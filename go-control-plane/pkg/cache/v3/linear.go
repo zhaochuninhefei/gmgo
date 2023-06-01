@@ -263,7 +263,7 @@ func (cache *LinearCache) CreateWatch(request *Request, value chan Response) fun
 	// been updated between the last version and the current version. This avoids the problem
 	// of sending empty updates whenever an irrelevant resource changes.
 	stale := false
-	staleResources := []string{} // empty means all
+	var staleResources []string // empty means all
 
 	// strip version prefix if it is present
 	var lastVersion uint64
