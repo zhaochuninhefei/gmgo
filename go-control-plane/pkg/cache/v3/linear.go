@@ -89,6 +89,7 @@ func WithInitialResources(resources map[string]types.Resource) LinearCacheOption
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func WithLogger(log log.Logger) LinearCacheOption {
 	return func(cache *LinearCache) {
 		cache.log = log
