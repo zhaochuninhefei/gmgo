@@ -67,7 +67,7 @@ type LinearCache struct {
 
 var _ Cache = &LinearCache{}
 
-// Options for modifying the behavior of the linear cache.
+// LinearCacheOption Options for modifying the behavior of the linear cache.
 type LinearCacheOption func(*LinearCache)
 
 // WithVersionPrefix sets a version prefix of the form "prefixN" in the version info.
