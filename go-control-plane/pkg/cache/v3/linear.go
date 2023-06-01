@@ -155,7 +155,7 @@ func (cache *LinearCache) notifyAll(modified map[string]struct{}) {
 	}
 	cache.watchAll = make(watches)
 
-	cache.updateVersionMap(modified)
+	_ = cache.updateVersionMap(modified)
 
 	for id, watch := range cache.deltaWatches {
 		res := cache.respondDelta(watch.Request, watch.Response, watch.StreamState)
