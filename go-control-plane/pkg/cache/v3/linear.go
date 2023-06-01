@@ -398,14 +398,14 @@ func (cache *LinearCache) Fetch(ctx context.Context, request *Request) (Response
 	return nil, errors.New("not implemented")
 }
 
-// Number of active watches for a resource name.
+// NumWatches Number of active watches for a resource name.
 func (cache *LinearCache) NumWatches(name string) int {
 	cache.mu.RLock()
 	defer cache.mu.RUnlock()
 	return len(cache.watches[name]) + len(cache.watchAll)
 }
 
-// Number of active delta watches.
+// NumDeltaWatches Number of active delta watches.
 func (cache *LinearCache) NumDeltaWatches() int {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
