@@ -393,6 +393,7 @@ func (cache *LinearCache) nextDeltaWatchID() int64 {
 	return atomic.AddInt64(&cache.deltaWatchCount, 1)
 }
 
+//goland:noinspection GoUnusedParameter
 func (cache *LinearCache) Fetch(ctx context.Context, request *Request) (Response, error) {
 	return nil, errors.New("not implemented")
 }
