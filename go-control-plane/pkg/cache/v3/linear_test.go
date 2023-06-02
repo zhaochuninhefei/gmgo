@@ -22,7 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	wrappers "github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/golang/protobuf/ptypes/wrappers"
 
 	endpoint "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
