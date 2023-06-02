@@ -419,7 +419,7 @@ func TestLinearDeltaWildcard(t *testing.T) {
 
 	a := &endpoint.ClusterLoadAssignment{ClusterName: "a"}
 	hash := hashResource(t, a)
-	c.UpdateResource("a", a)
+	_ = c.UpdateResource("a", a)
 	checkDeltaWatchCount(t, c, 0)
 	verifyDeltaResponse(t, w1, []resourceInfo{{"a", hash}}, nil)
 	verifyDeltaResponse(t, w2, []resourceInfo{{"a", hash}}, nil)
@@ -429,10 +429,10 @@ func TestLinearDeltaExistingResources(t *testing.T) {
 	c := NewLinearCache(testType)
 	a := &endpoint.ClusterLoadAssignment{ClusterName: "a"}
 	hashA := hashResource(t, a)
-	c.UpdateResource("a", a)
+	_ = c.UpdateResource("a", a)
 	b := &endpoint.ClusterLoadAssignment{ClusterName: "b"}
 	hashB := hashResource(t, b)
-	c.UpdateResource("b", b)
+	_ = c.UpdateResource("b", b)
 
 	state := stream.NewStreamState(false, map[string]string{"b": "", "c": ""}) // watching b and c - not interested in a
 	w := make(chan DeltaResponse, 1)
@@ -451,10 +451,10 @@ func TestLinearDeltaInitialResourcesVersionSet(t *testing.T) {
 	c := NewLinearCache(testType)
 	a := &endpoint.ClusterLoadAssignment{ClusterName: "a"}
 	hashA := hashResource(t, a)
-	c.UpdateResource("a", a)
+	_ = c.UpdateResource("a", a)
 	b := &endpoint.ClusterLoadAssignment{ClusterName: "b"}
 	hashB := hashResource(t, b)
-	c.UpdateResource("b", b)
+	_ = c.UpdateResource("b", b)
 
 	state := stream.NewStreamState(false, map[string]string{"a": "", "b": hashB})
 	w := make(chan DeltaResponse, 1)
@@ -469,7 +469,7 @@ func TestLinearDeltaInitialResourcesVersionSet(t *testing.T) {
 	checkDeltaWatchCount(t, c, 1)
 	b = &endpoint.ClusterLoadAssignment{ClusterName: "b", Endpoints: []*endpoint.LocalityLbEndpoints{{Priority: 10}}} // new version of b
 	hashB = hashResource(t, b)
-	c.UpdateResource("b", b)
+	_ = c.UpdateResource("b", b)
 	checkDeltaWatchCount(t, c, 0)
 	verifyDeltaResponse(t, w, []resourceInfo{{"b", hashB}}, nil)
 }
@@ -478,10 +478,10 @@ func TestLinearDeltaResourceUpdate(t *testing.T) {
 	c := NewLinearCache(testType)
 	a := &endpoint.ClusterLoadAssignment{ClusterName: "a"}
 	hashA := hashResource(t, a)
-	c.UpdateResource("a", a)
+	_ = c.UpdateResource("a", a)
 	b := &endpoint.ClusterLoadAssignment{ClusterName: "b"}
 	hashB := hashResource(t, b)
-	c.UpdateResource("b", b)
+	_ = c.UpdateResource("b", b)
 
 	state := stream.NewStreamState(false, map[string]string{"a": "", "b": ""})
 	w := make(chan DeltaResponse, 1)
@@ -499,7 +499,7 @@ func TestLinearDeltaResourceUpdate(t *testing.T) {
 		{Priority: 10},
 	}}
 	hashA = hashResource(t, a)
-	c.UpdateResource("a", a)
+	_ = c.UpdateResource("a", a)
 	verifyDeltaResponse(t, w, []resourceInfo{{"a", hashA}}, nil)
 }
 
@@ -507,10 +507,10 @@ func TestLinearDeltaResourceDelete(t *testing.T) {
 	c := NewLinearCache(testType)
 	a := &endpoint.ClusterLoadAssignment{ClusterName: "a"}
 	hashA := hashResource(t, a)
-	c.UpdateResource("a", a)
+	_ = c.UpdateResource("a", a)
 	b := &endpoint.ClusterLoadAssignment{ClusterName: "b"}
 	hashB := hashResource(t, b)
-	c.UpdateResource("b", b)
+	_ = c.UpdateResource("b", b)
 
 	state := stream.NewStreamState(false, map[string]string{"a": "", "b": ""})
 	w := make(chan DeltaResponse, 1)
