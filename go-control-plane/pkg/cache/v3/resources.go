@@ -31,7 +31,7 @@ func IndexRawResourcesByName(items []types.Resource) map[string]types.Resource {
 
 // NewResources creates a new resource group.
 func NewResources(version string, items []types.Resource) Resources {
-	itemsWithTTL := []types.ResourceWithTTL{}
+	var itemsWithTTL []types.ResourceWithTTL
 	for _, item := range items {
 		itemsWithTTL = append(itemsWithTTL, types.ResourceWithTTL{Resource: item})
 	}
