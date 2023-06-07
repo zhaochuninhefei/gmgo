@@ -40,13 +40,13 @@ type Snapshot struct {
 func NewSnapshot(version string, resources map[resource.Type][]types.Resource) (Snapshot, error) {
 	out := Snapshot{}
 
-	for typ, resource := range resources {
+	for typ, res := range resources {
 		index := GetResponseType(typ)
 		if index == types.UnknownType {
 			return out, errors.New("unknown resource type: " + typ)
 		}
 
-		out.Resources[index] = NewResources(version, resource)
+		out.Resources[index] = NewResources(version, res)
 	}
 
 	return out, nil
@@ -57,13 +57,13 @@ func NewSnapshot(version string, resources map[resource.Type][]types.Resource) (
 func NewSnapshotWithTTLs(version string, resources map[resource.Type][]types.ResourceWithTTL) (Snapshot, error) {
 	out := Snapshot{}
 
-	for typ, resource := range resources {
+	for typ, res := range resources {
 		index := GetResponseType(typ)
 		if index == types.UnknownType {
 			return out, errors.New("unknown resource type: " + typ)
 		}
 
-		out.Resources[index] = NewResourcesWithTTL(version, resource)
+		out.Resources[index] = NewResourcesWithTTL(version, res)
 	}
 
 	return out, nil
