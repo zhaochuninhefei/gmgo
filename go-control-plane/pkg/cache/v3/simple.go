@@ -48,7 +48,7 @@ type SnapshotCache interface {
 	// the version differs from the snapshot version.
 	SetSnapshot(ctx context.Context, node string, snapshot Snapshot) error
 
-	// GetSnapshots gets the snapshot for a node.
+	// GetSnapshot gets the snapshot for a node.
 	GetSnapshot(node string) (Snapshot, error)
 
 	// ClearSnapshot removes all status and snapshot information associated with a node.
@@ -183,7 +183,7 @@ func (cache *snapshotCache) sendHeartbeats(ctx context.Context, node string) {
 	}
 }
 
-// SetSnapshotCacheContext updates a snapshot for a node.
+// SetSnapshot updates a snapshot for a node.
 func (cache *snapshotCache) SetSnapshot(ctx context.Context, node string, snapshot Snapshot) error {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
@@ -245,7 +245,7 @@ func (cache *snapshotCache) SetSnapshot(ctx context.Context, node string, snapsh
 	return nil
 }
 
-// GetSnapshots gets the snapshot for a node, and returns an error if not found.
+// GetSnapshot gets the snapshot for a node, and returns an error if not found.
 func (cache *snapshotCache) GetSnapshot(node string) (Snapshot, error) {
 	cache.mu.RLock()
 	defer cache.mu.RUnlock()
