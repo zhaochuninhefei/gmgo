@@ -2,12 +2,12 @@ package integration
 
 import (
 	"context"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"net"
 	"testing"
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/assert"
 
 	envoy_config_core_v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
@@ -49,7 +49,9 @@ func TestTTLResponse(t *testing.T) {
 	}()
 	defer grpcServer.Stop()
 
-	conn, err := grpc.Dial(":9999", grpc.WithInsecure())
+	// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//conn, err := grpc.Dial(":9999", grpc.WithInsecure())
+	conn, err := grpc.Dial(":9999", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	assert.NoError(t, err)
 	client := endpointservice.NewEndpointDiscoveryServiceClient(conn)
 
@@ -122,7 +124,10 @@ func isFullResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.Di
 	assert.Len(t, response.Resources, 1)
 	r := response.Resources[0]
 	res := &envoy_service_discovery_v3.Resource{}
-	err := ptypes.UnmarshalAny(r, res)
+	// ptypes.UnmarshalAny is deprecated, Call the any.UnmarshalTo method instead.
+	//err := ptypes.UnmarshalAny(r, res)
+	err := r.UnmarshalTo(res)
+
 	assert.NoError(t, err)
 
 	assert.NotNil(t, res.Ttl)
@@ -135,7 +140,9 @@ func isHeartbeatResponseWithTTL(t *testing.T, response *envoy_service_discovery_
 	assert.Len(t, response.Resources, 1)
 	r := response.Resources[0]
 	res := &envoy_service_discovery_v3.Resource{}
-	err := ptypes.UnmarshalAny(r, res)
+	// ptypes.UnmarshalAny is deprecated, Call the any.UnmarshalTo method instead.
+	//err := ptypes.UnmarshalAny(r, res)
+	err := r.UnmarshalTo(res)
 	assert.NoError(t, err)
 
 	assert.NotNil(t, res.Ttl)
