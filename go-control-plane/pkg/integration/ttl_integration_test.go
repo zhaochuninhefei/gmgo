@@ -36,10 +36,10 @@ func TestTTLResponse(t *testing.T) {
 
 	snapshotCache := cache.NewSnapshotCacheWithHeartbeating(ctx, false, cache.IDHash{}, logger{t: t}, time.Second)
 
-	server := server.NewServer(ctx, snapshotCache, nil)
+	ttlServer := server.NewServer(ctx, snapshotCache, nil)
 
 	grpcServer := grpc.NewServer()
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
+	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, ttlServer)
 
 	l, err := net.Listen("tcp", ":9999") // nolint:gosec
 	assert.NoError(t, err)
@@ -121,12 +121,12 @@ func isFullResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.Di
 
 	assert.Len(t, response.Resources, 1)
 	r := response.Resources[0]
-	resource := &envoy_service_discovery_v3.Resource{}
-	err := ptypes.UnmarshalAny(r, resource)
+	res := &envoy_service_discovery_v3.Resource{}
+	err := ptypes.UnmarshalAny(r, res)
 	assert.NoError(t, err)
 
-	assert.NotNil(t, resource.Ttl)
-	assert.NotNil(t, resource.Resource)
+	assert.NotNil(t, res.Ttl)
+	assert.NotNil(t, res.Resource)
 }
 
 func isHeartbeatResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.DiscoveryResponse) {
@@ -134,10 +134,10 @@ func isHeartbeatResponseWithTTL(t *testing.T, response *envoy_service_discovery_
 
 	assert.Len(t, response.Resources, 1)
 	r := response.Resources[0]
-	resource := &envoy_service_discovery_v3.Resource{}
-	err := ptypes.UnmarshalAny(r, resource)
+	res := &envoy_service_discovery_v3.Resource{}
+	err := ptypes.UnmarshalAny(r, res)
 	assert.NoError(t, err)
 
-	assert.NotNil(t, resource.Ttl)
-	assert.Nil(t, resource.Resource)
+	assert.NotNil(t, res.Ttl)
+	assert.Nil(t, res.Resource)
 }
