@@ -10,9 +10,9 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"github.com/stretchr/testify/assert"
 
-	envoy_config_core_v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
-	envoy_service_discovery_v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	envoyconfigcorev3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	envoyconfigendpointv3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
+	envoyservicediscoveryv3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	endpointservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/endpoint/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
@@ -58,8 +58,8 @@ func TestTTLResponse(t *testing.T) {
 	sclient, err := client.StreamEndpoints(ctx)
 	assert.NoError(t, err)
 
-	err = sclient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
-		Node: &envoy_config_core_v3.Node{
+	err = sclient.Send(&envoyservicediscoveryv3.DiscoveryRequest{
+		Node: &envoyconfigcorev3.Node{
 			Id: "test",
 		},
 		ResourceNames: []string{"resource"},
@@ -68,7 +68,7 @@ func TestTTLResponse(t *testing.T) {
 	assert.NoError(t, err)
 
 	oneSecond := time.Second
-	cla := &envoy_config_endpoint_v3.ClusterLoadAssignment{ClusterName: "resource"}
+	cla := &envoyconfigendpointv3.ClusterLoadAssignment{ClusterName: "resource"}
 	snap, _ := cache.NewSnapshotWithTTLs("1", map[resource.Type][]types.ResourceWithTTL{
 		resource.EndpointType: {{
 			Resource: cla,
@@ -80,9 +80,9 @@ func TestTTLResponse(t *testing.T) {
 
 	timeout := time.NewTimer(5 * time.Second)
 
-	awaitResponse := func() *envoy_service_discovery_v3.DiscoveryResponse {
+	awaitResponse := func() *envoyservicediscoveryv3.DiscoveryResponse {
 		t.Helper()
-		doneCh := make(chan *envoy_service_discovery_v3.DiscoveryResponse)
+		doneCh := make(chan *envoyservicediscoveryv3.DiscoveryResponse)
 		go func() {
 
 			r, err := sclient.Recv()
@@ -103,8 +103,8 @@ func TestTTLResponse(t *testing.T) {
 	response := awaitResponse()
 	isFullResponseWithTTL(t, response)
 
-	err = sclient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
-		Node: &envoy_config_core_v3.Node{
+	err = sclient.Send(&envoyservicediscoveryv3.DiscoveryRequest{
+		Node: &envoyconfigcorev3.Node{
 			Id: "test",
 		},
 		ResourceNames: []string{"resource"},
@@ -118,12 +118,12 @@ func TestTTLResponse(t *testing.T) {
 	isHeartbeatResponseWithTTL(t, response)
 }
 
-func isFullResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.DiscoveryResponse) {
+func isFullResponseWithTTL(t *testing.T, response *envoyservicediscoveryv3.DiscoveryResponse) {
 	t.Helper()
 
 	assert.Len(t, response.Resources, 1)
 	r := response.Resources[0]
-	res := &envoy_service_discovery_v3.Resource{}
+	res := &envoyservicediscoveryv3.Resource{}
 	// ptypes.UnmarshalAny is deprecated, Call the any.UnmarshalTo method instead.
 	//err := ptypes.UnmarshalAny(r, res)
 	err := r.UnmarshalTo(res)
@@ -134,12 +134,12 @@ func isFullResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.Di
 	assert.NotNil(t, res.Resource)
 }
 
-func isHeartbeatResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.DiscoveryResponse) {
+func isHeartbeatResponseWithTTL(t *testing.T, response *envoyservicediscoveryv3.DiscoveryResponse) {
 	t.Helper()
 
 	assert.Len(t, response.Resources, 1)
 	r := response.Resources[0]
-	res := &envoy_service_discovery_v3.Resource{}
+	res := &envoyservicediscoveryv3.Resource{}
 	// ptypes.UnmarshalAny is deprecated, Call the any.UnmarshalTo method instead.
 	//err := ptypes.UnmarshalAny(r, res)
 	err := r.UnmarshalTo(res)
