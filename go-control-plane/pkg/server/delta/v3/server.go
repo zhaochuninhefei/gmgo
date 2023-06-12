@@ -212,15 +212,15 @@ func (s *server) DeltaStreamHandler(str stream.DeltaStream, typeURL string) erro
 // When we subscribe, we just want to make the cache know we are subscribing to a resource.
 // Providing a name with an empty version is enough to make that happen.
 func (s *server) subscribe(resources []string, sv map[string]string) {
-	for _, resource := range resources {
-		sv[resource] = ""
+	for _, res := range resources {
+		sv[res] = ""
 	}
 }
 
 // Unsubscriptions remove resources from the stream state to
 // indicate to the cache that we don't care about the resource anymore
 func (s *server) unsubscribe(resources []string, sv map[string]string) {
-	for _, resource := range resources {
-		delete(sv, resource)
+	for _, res := range resources {
+		delete(sv, res)
 	}
 }
