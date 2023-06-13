@@ -18,8 +18,8 @@ type watches struct {
 func newWatches() watches {
 	// deltaMuxedResponses needs a buffer to release go-routines populating it
 	return watches{
-		deltaWatches:        make(map[string]watch, int(types.UnknownType)),
-		deltaMuxedResponses: make(chan cache.DeltaResponse, int(types.UnknownType)),
+		deltaWatches:        make(map[string]watch, types.UnknownType),
+		deltaMuxedResponses: make(chan cache.DeltaResponse, types.UnknownType),
 	}
 }
 
