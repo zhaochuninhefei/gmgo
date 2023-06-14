@@ -62,7 +62,7 @@ type server struct {
 	streamCount int64
 }
 
-// Generic RPC stream.
+// Stream Generic RPC stream.
 type Stream interface {
 	grpc.ServerStream
 
@@ -102,7 +102,7 @@ type watches struct {
 	nonces        map[string]string
 }
 
-// Initialize all watches
+// Init Initialize all watches
 func (values *watches) Init() {
 	// muxed channel needs a buffer to release go-routines populating it
 	values.responses = make(chan cache.Response, 5)
