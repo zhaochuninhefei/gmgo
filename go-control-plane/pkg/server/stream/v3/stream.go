@@ -6,7 +6,7 @@ import (
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 )
 
-// Generic RPC stream.
+// Stream Generic RPC stream.
 type Stream interface {
 	grpc.ServerStream
 
