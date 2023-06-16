@@ -282,8 +282,8 @@ func main() {
 			if err != nil {
 				log.Fatalf("could not create %s profile %s: %s", prof, filePath, err)
 			}
-			p.WriteTo(f, 1) // nolint:errcheck
-			f.Close()
+			_ = p.WriteTo(f, 1) // nolint:errcheck
+			_ = f.Close()
 		}
 	}
 
@@ -317,7 +317,7 @@ func callEcho() (int, int) {
 			}
 			body, err := ioutil.ReadAll(req.Body)
 			if err != nil {
-				req.Body.Close()
+				_ = req.Body.Close()
 				ch <- err
 				return
 			}
