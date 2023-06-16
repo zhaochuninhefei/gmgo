@@ -59,6 +59,7 @@ func (config *mockConfigWatcher) CreateWatch(req *discovery.DiscoveryRequest, ou
 	return nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (config *mockConfigWatcher) Fetch(ctx context.Context, req *discovery.DiscoveryRequest) (cache.Response, error) {
 	if len(config.responses[req.TypeUrl]) > 0 {
 		out := config.responses[req.TypeUrl][0]
