@@ -58,7 +58,7 @@ const (
 	// Delta mode for resources: individual delta xDS services
 	Delta = "delta"
 
-	// Delta Ads mode for resource: one aggregated delta xDS service
+	// DeltaAds Delta Ads mode for resource: one aggregated delta xDS service
 	DeltaAds = "delta-ads"
 )
 
