@@ -399,15 +399,15 @@ func (ts TestSnapshot) Generate() cache.Snapshot {
 		port := ts.BasePort + uint32(i)
 		// listener name must be same since ports are shared and previous listener is drained
 		name := fmt.Sprintf("listener-%d", port)
-		var listener *listener.Listener
+		var listenerTmp *listener.Listener
 		if i < ts.NumHTTPListeners {
-			listener = MakeHTTPListener(ts.Xds, name, port, cache.GetResourceName(routes[i]))
+			listenerTmp = MakeHTTPListener(ts.Xds, name, port, cache.GetResourceName(routes[i]))
 		} else {
-			listener = MakeTCPListener(name, port, cache.GetResourceName(clusters[i%ts.NumClusters]))
+			listenerTmp = MakeTCPListener(name, port, cache.GetResourceName(clusters[i%ts.NumClusters]))
 		}
 
 		if ts.TLS {
-			for i, chain := range listener.FilterChains {
+			for i, chain := range listenerTmp.FilterChains {
 				tlsc := &auth.DownstreamTlsContext{
 					CommonTlsContext: &auth.CommonTlsContext{
 						TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
@@ -431,11 +431,11 @@ func (ts TestSnapshot) Generate() cache.Snapshot {
 						TypedConfig: mt,
 					},
 				}
-				listener.FilterChains[i] = chain
+				listenerTmp.FilterChains[i] = chain
 			}
 		}
 
-		listeners[i] = listener
+		listeners[i] = listenerTmp
 	}
 
 	runtimes := make([]types.Resource, ts.NumRuntimes)
