@@ -23,8 +23,6 @@ import (
 
 	pstruct "github.com/golang/protobuf/ptypes/struct"
 
-	"github.com/golang/protobuf/ptypes"
-
 	alf "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/accesslog/v3"
 	cluster "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
 	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
@@ -424,7 +422,9 @@ func (ts TestSnapshot) Generate() cache.Snapshot {
 						},
 					},
 				}
-				mt, _ := ptypes.MarshalAny(tlsc)
+				// ptypes.MarshalAny is deprecated: Call the anypb.New function instead.
+				//mt, _ := ptypes.MarshalAny(tlsc)
+				mt, _ := anypb.New(tlsc)
 				chain.TransportSocket = &core.TransportSocket{
 					Name: "envoy.transport_sockets.tls",
 					ConfigType: &core.TransportSocket_TypedConfig{
