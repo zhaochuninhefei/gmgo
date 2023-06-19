@@ -17,6 +17,7 @@ package resource
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"time"
 
 	pstruct "github.com/golang/protobuf/ptypes/struct"
@@ -99,8 +100,10 @@ func MakeCluster(mode string, clusterName string) *cluster.Cluster {
 
 	connectTimeout := 5 * time.Second
 	return &cluster.Cluster{
-		Name:                 clusterName,
-		ConnectTimeout:       ptypes.DurationProto(connectTimeout),
+		Name: clusterName,
+		// ptypes.DurationProto is deprecated: Call the durationpb.New function instead.
+		//ConnectTimeout:       ptypes.DurationProto(connectTimeout),
+		ConnectTimeout:       durationpb.New(connectTimeout),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
 			EdsConfig: edsSource,
@@ -165,7 +168,9 @@ func configSource(mode string) *core.ConfigSource {
 				ApiType:             core.ApiConfigSource_REST,
 				TransportApiVersion: resource.DefaultAPIVersion,
 				ClusterNames:        []string{XdsCluster},
-				RefreshDelay:        ptypes.DurationProto(RefreshDelay),
+				// ptypes.DurationProto is deprecated: Call the durationpb.New function instead.
+				//RefreshDelay:        ptypes.DurationProto(RefreshDelay),
+				RefreshDelay: durationpb.New(RefreshDelay),
 			},
 		}
 	case Delta:
