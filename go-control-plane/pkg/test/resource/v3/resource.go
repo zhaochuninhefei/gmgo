@@ -17,6 +17,7 @@ package resource
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"time"
 
@@ -208,7 +209,9 @@ func MakeHTTPListener(mode string, listenerName string, port uint32, route strin
 			},
 		},
 	}
-	alsConfigPbst, err := ptypes.MarshalAny(alsConfig)
+	// ptypes.MarshalAny is deprecated: Call the anypb.New function instead.
+	//alsConfigPbst, err := ptypes.MarshalAny(alsConfig)
+	alsConfigPbst, err := anypb.New(alsConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -233,7 +236,9 @@ func MakeHTTPListener(mode string, listenerName string, port uint32, route strin
 			},
 		}},
 	}
-	pbst, err := ptypes.MarshalAny(manager)
+	// ptypes.MarshalAny is deprecated: Call the anypb.New function instead.
+	//pbst, err := ptypes.MarshalAny(manager)
+	pbst, err := anypb.New(manager)
 	if err != nil {
 		panic(err)
 	}
@@ -271,7 +276,9 @@ func MakeTCPListener(listenerName string, port uint32, clusterName string) *list
 			Cluster: clusterName,
 		},
 	}
-	pbst, err := ptypes.MarshalAny(config)
+	// ptypes.MarshalAny is deprecated: Call the anypb.New function instead.
+	//pbst, err := ptypes.MarshalAny(config)
+	pbst, err := anypb.New(config)
 	if err != nil {
 		panic(err)
 	}
@@ -334,7 +341,9 @@ func MakeExtensionConfig(mode string, extensionConfigName string, route string) 
 			Name: wellknown.Router,
 		}},
 	}
-	pbst, err := ptypes.MarshalAny(manager)
+	// ptypes.MarshalAny is deprecated: Call the anypb.New function instead.
+	//pbst, err := ptypes.MarshalAny(manager)
+	pbst, err := anypb.New(manager)
 	if err != nil {
 		panic(err)
 	}
