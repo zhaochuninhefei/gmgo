@@ -16,6 +16,7 @@
 package wellknown
 
 // HTTP filter names
+//goland:noinspection GoUnusedConst
 const (
 	// Buffer HTTP filter
 	Buffer = "envoy.filters.http.buffer"
@@ -54,6 +55,7 @@ const (
 )
 
 // Network filter names
+//goland:noinspection GoUnusedConst
 const (
 	// ClientSSLAuth network filter
 	ClientSSLAuth = "envoy.filters.network.client_ssl_auth"
@@ -80,6 +82,7 @@ const (
 )
 
 // Listener filter names
+//goland:noinspection GoUnusedConst
 const (
 	// OriginalDestination listener filter
 	OriginalDestination = "envoy.filters.listener.original_dst"
@@ -96,6 +99,7 @@ const (
 )
 
 // Tracing provider names
+//goland:noinspection GoUnusedConst
 const (
 	// Lightstep tracer name
 	Lightstep = "envoy.tracers.lightstep"
@@ -108,6 +112,7 @@ const (
 )
 
 // Stats sink names
+//goland:noinspection GoUnusedConst
 const (
 	// Statsd sink
 	Statsd = "envoy.stat_sinks.statsd"
@@ -118,6 +123,7 @@ const (
 )
 
 // Access log sink names
+//goland:noinspection GoUnusedConst
 const (
 	// FileAccessLog sink name
 	FileAccessLog = "envoy.access_loggers.file"
@@ -126,6 +132,7 @@ const (
 )
 
 // Transport socket names
+//goland:noinspection GoUnusedConst
 const (
 	// TransportSocket Alts
 	TransportSocketAlts = "envoy.transport_sockets.alts"
