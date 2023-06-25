@@ -40,7 +40,7 @@ const (
 	HTTPRateLimit = "envoy.filters.http.ratelimit"
 	// Router HTTP filter
 	Router = "envoy.filters.http.router"
-	// Health checking HTTP filter
+	// HealthCheck checking HTTP filter
 	HealthCheck = "envoy.filters.http.health_check"
 	// Lua HTTP filter
 	Lua = "envoy.filters.http.lua"
@@ -116,7 +116,7 @@ const (
 const (
 	// Statsd sink
 	Statsd = "envoy.stat_sinks.statsd"
-	// DogStatsD compatible stastsd sink
+	// DogStatsd compatible stastsd sink
 	DogStatsd = "envoy.stat_sinks.dog_statsd"
 	// MetricsService sink
 	MetricsService = "envoy.stat_sinks.metrics_service"
@@ -134,16 +134,16 @@ const (
 // Transport socket names
 //goland:noinspection GoUnusedConst
 const (
-	// TransportSocket Alts
+	// TransportSocketAlts TransportSocket Alts
 	TransportSocketAlts = "envoy.transport_sockets.alts"
-	// TransportSocket Tap
+	// TransportSocketTap TransportSocket Tap
 	TransportSocketTap = "envoy.transport_sockets.tap"
-	// TransportSocket RawBuffer
+	// TransportSocketRawBuffer TransportSocket RawBuffer
 	TransportSocketRawBuffer = "envoy.transport_sockets.raw_buffer"
-	// TransportSocket Tls
+	// TransportSocketTls TransportSocket Tls
 	TransportSocketTls = "envoy.transport_sockets.tls" // nolint:golint,revive
 	// TransportSocketTLS labels the "envoy.transport_sockets.tls" filter.
 	TransportSocketTLS = "envoy.transport_sockets.tls"
-	// TransportSocket Quic
+	// TransportSocketQuic TransportSocket Quic
 	TransportSocketQuic = "envoy.transport_sockets.quic"
 )
