@@ -4,7 +4,7 @@
 package grpc_auth
 
 import (
-	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
+	grpcmiddleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 )
@@ -60,7 +60,7 @@ func StreamServerInterceptor(authFunc AuthFunc) grpc.StreamServerInterceptor {
 		if err != nil {
 			return err
 		}
-		wrapped := grpc_middleware.WrapServerStream(stream)
+		wrapped := grpcmiddleware.WrapServerStream(stream)
 		wrapped.WrappedContext = newCtx
 		return handler(srv, wrapped)
 	}
