@@ -14,9 +14,9 @@ import (
 
 	"time"
 
-	grpc_auth "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/auth"
-	grpc_testing "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing"
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	grpcauth "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/auth"
+	grpctesting "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/util/metautils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/oauth"
@@ -32,14 +32,14 @@ var (
 	overrideAuthToken = "override_token"
 
 	authedMarker = "some_context_marker"
-	goodPing     = &pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999}
+	goodPing     = &pbtestproto.PingRequest{Value: "something", SleepTimeMs: 9999}
 )
 
 // TODO(mwitkow): Add auth from metadata client dialer, which requires TLS.
 
 func buildDummyAuthFunction(expectedScheme string, expectedToken string) func(ctx context.Context) (context.Context, error) {
 	return func(ctx context.Context) (context.Context, error) {
-		token, err := grpc_auth.AuthFromMD(ctx, expectedScheme)
+		token, err := grpcauth.AuthFromMD(ctx, expectedScheme)
 		if err != nil {
 			return nil, err
 		}
@@ -57,16 +57,16 @@ func assertAuthMarkerExists(t *testing.T, ctx context.Context) {
 }
 
 type assertingPingService struct {
-	pb_testproto.TestServiceServer
+	pbtestproto.TestServiceServer
 	T *testing.T
 }
 
-func (s *assertingPingService) PingError(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.Empty, error) {
+func (s *assertingPingService) PingError(ctx context.Context, ping *pbtestproto.PingRequest) (*pbtestproto.Empty, error) {
 	assertAuthMarkerExists(s.T, ctx)
 	return s.TestServiceServer.PingError(ctx, ping)
 }
 
-func (s *assertingPingService) PingList(ping *pb_testproto.PingRequest, stream pb_testproto.TestService_PingListServer) error {
+func (s *assertingPingService) PingList(ping *pbtestproto.PingRequest, stream pbtestproto.TestService_PingListServer) error {
 	assertAuthMarkerExists(s.T, stream.Context())
 	return s.TestServiceServer.PingList(ping, stream)
 }
@@ -80,11 +80,11 @@ func ctxWithToken(ctx context.Context, scheme string, token string) context.Cont
 func TestAuthTestSuite(t *testing.T) {
 	authFunc := buildDummyAuthFunction("bearer", commonAuthToken)
 	s := &AuthTestSuite{
-		InterceptorTestSuite: &grpc_testing.InterceptorTestSuite{
-			TestService: &assertingPingService{&grpc_testing.TestPingService{T: t}, t},
+		InterceptorTestSuite: &grpctesting.InterceptorTestSuite{
+			TestService: &assertingPingService{&grpctesting.TestPingService{T: t}, t},
 			ServerOpts: []grpc.ServerOption{
-				grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(authFunc)),
-				grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(authFunc)),
+				grpc.StreamInterceptor(grpcauth.StreamServerInterceptor(authFunc)),
+				grpc.UnaryInterceptor(grpcauth.UnaryServerInterceptor(authFunc)),
 			},
 		},
 	}
@@ -92,7 +92,7 @@ func TestAuthTestSuite(t *testing.T) {
 }
 
 type AuthTestSuite struct {
-	*grpc_testing.InterceptorTestSuite
+	*grpctesting.InterceptorTestSuite
 }
 
 func (s *AuthTestSuite) TestUnary_NoAuth() {
@@ -162,7 +162,7 @@ func (s *AuthTestSuite) TestStream_PassesWithPerRpcCredentials() {
 }
 
 type authOverrideTestService struct {
-	pb_testproto.TestServiceServer
+	pbtestproto.TestServiceServer
 	T *testing.T
 }
 
@@ -174,11 +174,11 @@ func (s *authOverrideTestService) AuthFuncOverride(ctx context.Context, fullMeth
 func TestAuthOverrideTestSuite(t *testing.T) {
 	authFunc := buildDummyAuthFunction("bearer", commonAuthToken)
 	s := &AuthOverrideTestSuite{
-		InterceptorTestSuite: &grpc_testing.InterceptorTestSuite{
-			TestService: &authOverrideTestService{&assertingPingService{&grpc_testing.TestPingService{T: t}, t}, t},
+		InterceptorTestSuite: &grpctesting.InterceptorTestSuite{
+			TestService: &authOverrideTestService{&assertingPingService{&grpctesting.TestPingService{T: t}, t}, t},
 			ServerOpts: []grpc.ServerOption{
-				grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(authFunc)),
-				grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(authFunc)),
+				grpc.StreamInterceptor(grpcauth.StreamServerInterceptor(authFunc)),
+				grpc.UnaryInterceptor(grpcauth.UnaryServerInterceptor(authFunc)),
 			},
 		},
 	}
@@ -186,7 +186,7 @@ func TestAuthOverrideTestSuite(t *testing.T) {
 }
 
 type AuthOverrideTestSuite struct {
-	*grpc_testing.InterceptorTestSuite
+	*grpctesting.InterceptorTestSuite
 }
 
 func (s *AuthOverrideTestSuite) TestUnary_PassesAuth() {
