@@ -4,6 +4,7 @@
 package grpc_auth_test
 
 import (
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
@@ -43,7 +44,9 @@ func buildDummyAuthFunction(expectedScheme string, expectedToken string) func(ct
 			return nil, err
 		}
 		if token != expectedToken {
-			return nil, grpc.Errorf(codes.PermissionDenied, "buildDummyAuthFunction bad token")
+			// `grpc.Errorf` is deprecated. use status.Errorf instead.
+			//return nil, grpc.Errorf(codes.PermissionDenied, "buildDummyAuthFunction bad token")
+			return nil, status.Errorf(codes.PermissionDenied, "buildDummyAuthFunction bad token")
 		}
 		return context.WithValue(ctx, authedMarker, "marker_exists"), nil
 	}
