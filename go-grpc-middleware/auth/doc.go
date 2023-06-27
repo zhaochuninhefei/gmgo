@@ -17,4 +17,5 @@ It also allows for per-service implementation overrides of `AuthFunc`. See `Serv
 
 Please see examples for simple examples of use.
 */
+
 package grpc_auth
