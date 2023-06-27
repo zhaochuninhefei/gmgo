@@ -98,13 +98,17 @@ type AuthTestSuite struct {
 func (s *AuthTestSuite) TestUnary_NoAuth() {
 	_, err := s.Client.Ping(s.SimpleCtx(), goodPing)
 	assert.Error(s.T(), err, "there must be an error")
-	assert.Equal(s.T(), codes.Unauthenticated, grpc.Code(err), "must error with unauthenticated")
+	// `grpc.Code` is deprecated. Use `status.Code` instead.
+	//assert.Equal(s.T(), codes.Unauthenticated, grpc.Code(err), "must error with unauthenticated")
+	assert.Equal(s.T(), codes.Unauthenticated, status.Code(err), "must error with unauthenticated")
 }
 
 func (s *AuthTestSuite) TestUnary_BadAuth() {
 	_, err := s.Client.Ping(ctxWithToken(s.SimpleCtx(), "bearer", "bad_token"), goodPing)
 	assert.Error(s.T(), err, "there must be an error")
-	assert.Equal(s.T(), codes.PermissionDenied, grpc.Code(err), "must error with permission denied")
+	// `grpc.Code` is deprecated. Use `status.Code` instead.
+	//assert.Equal(s.T(), codes.PermissionDenied, grpc.Code(err), "must error with permission denied")
+	assert.Equal(s.T(), codes.PermissionDenied, status.Code(err), "must error with permission denied")
 }
 
 func (s *AuthTestSuite) TestUnary_PassesAuth() {
@@ -124,7 +128,9 @@ func (s *AuthTestSuite) TestStream_NoAuth() {
 	require.NoError(s.T(), err, "should not fail on establishing the stream")
 	_, err = stream.Recv()
 	assert.Error(s.T(), err, "there must be an error")
-	assert.Equal(s.T(), codes.Unauthenticated, grpc.Code(err), "must error with unauthenticated")
+	// `grpc.Code` is deprecated. Use `status.Code` instead.
+	//assert.Equal(s.T(), codes.Unauthenticated, grpc.Code(err), "must error with unauthenticated")
+	assert.Equal(s.T(), codes.Unauthenticated, status.Code(err), "must error with unauthenticated")
 }
 
 func (s *AuthTestSuite) TestStream_BadAuth() {
@@ -132,7 +138,9 @@ func (s *AuthTestSuite) TestStream_BadAuth() {
 	require.NoError(s.T(), err, "should not fail on establishing the stream")
 	_, err = stream.Recv()
 	assert.Error(s.T(), err, "there must be an error")
-	assert.Equal(s.T(), codes.PermissionDenied, grpc.Code(err), "must error with permission denied")
+	// `grpc.Code` is deprecated. Use `status.Code` instead.
+	//assert.Equal(s.T(), codes.PermissionDenied, grpc.Code(err), "must error with permission denied")
+	assert.Equal(s.T(), codes.PermissionDenied, status.Code(err), "must error with permission denied")
 }
 
 func (s *AuthTestSuite) TestStream_PassesAuth() {
