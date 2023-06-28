@@ -1,8 +1,8 @@
 package grpc_auth_test
 
 import (
-	grpc_auth "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/auth"
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	grpcauth "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/auth"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
@@ -27,7 +27,7 @@ func userClaimFromToken(struct{}) string {
 // Simple example of server initialization code.
 func Example_serverConfig() {
 	exampleAuthFunc := func(ctx context.Context) (context.Context, error) {
-		token, err := grpc_auth.AuthFromMD(ctx, "bearer")
+		token, err := grpcauth.AuthFromMD(ctx, "bearer")
 		if err != nil {
 			return nil, err
 		}
@@ -37,13 +37,13 @@ func Example_serverConfig() {
 			//return nil, grpc.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
 			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
 		}
-		grpc_ctxtags.Extract(ctx).Set("auth.sub", userClaimFromToken(tokenInfo))
+		grpcctxtags.Extract(ctx).Set("auth.sub", userClaimFromToken(tokenInfo))
 		newCtx := context.WithValue(ctx, "tokenInfo", tokenInfo)
 		return newCtx, nil
 	}
 
 	_ = grpc.NewServer(
-		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(exampleAuthFunc)),
-		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(exampleAuthFunc)),
+		grpc.StreamInterceptor(grpcauth.StreamServerInterceptor(exampleAuthFunc)),
+		grpc.UnaryInterceptor(grpcauth.UnaryServerInterceptor(exampleAuthFunc)),
 	)
 }
