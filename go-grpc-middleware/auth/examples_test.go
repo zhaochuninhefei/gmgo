@@ -13,10 +13,12 @@ var (
 	cc *grpc.ClientConn
 )
 
+//goland:noinspection GoUnusedParameter
 func parseToken(token string) (struct{}, error) {
 	return struct{}{}, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func userClaimFromToken(struct{}) string {
 	return "foobar"
 }
