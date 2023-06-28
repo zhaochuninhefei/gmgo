@@ -5,6 +5,7 @@ import (
 	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 )
 
@@ -32,7 +33,9 @@ func Example_serverConfig() {
 		}
 		tokenInfo, err := parseToken(token)
 		if err != nil {
-			return nil, grpc.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
+			// grpc.Errorf is deprecated. Use status.Errorf instead.
+			//return nil, grpc.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
+			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
 		}
 		grpc_ctxtags.Extract(ctx).Set("auth.sub", userClaimFromToken(tokenInfo))
 		newCtx := context.WithValue(ctx, "tokenInfo", tokenInfo)
