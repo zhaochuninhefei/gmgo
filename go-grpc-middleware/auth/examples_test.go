@@ -8,6 +8,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	cc *grpc.ClientConn
 )
