@@ -27,7 +27,6 @@ func AuthFromMD(ctx context.Context, expectedScheme string) (string, error) {
 		// `grpc.Errorf` is deprecated. use status.Errorf instead.
 		//return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
 		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
-
 	}
 	splits := strings.SplitN(val, " ", 2)
 	if len(splits) < 2 {
