@@ -4,10 +4,10 @@
 package grpc_auth
 
 import (
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"strings"
 
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/util/metautils"
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 )
@@ -24,15 +24,21 @@ var (
 func AuthFromMD(ctx context.Context, expectedScheme string) (string, error) {
 	val := metautils.ExtractIncoming(ctx).Get(headerAuthorize)
 	if val == "" {
-		return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+		// `grpc.Errorf` is deprecated. use status.Errorf instead.
+		//return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
 
 	}
 	splits := strings.SplitN(val, " ", 2)
 	if len(splits) < 2 {
-		return "", grpc.Errorf(codes.Unauthenticated, "Bad authorization string")
+		// `grpc.Errorf` is deprecated. use status.Errorf instead.
+		//return "", grpc.Errorf(codes.Unauthenticated, "Bad authorization string")
+		return "", status.Errorf(codes.Unauthenticated, "Bad authorization string")
 	}
 	if strings.ToLower(splits[0]) != strings.ToLower(expectedScheme) {
-		return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+		// `grpc.Errorf` is deprecated. use status.Errorf instead.
+		//return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
 	}
 	return splits[1], nil
 }
