@@ -4,10 +4,10 @@
 package grpc_auth
 
 import (
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/util/metautils"
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
@@ -64,7 +64,9 @@ func TestAuthFromMD(t *testing.T) {
 		ctx := metautils.NiceMD(run.md).ToIncoming(context.TODO())
 		out, err := AuthFromMD(ctx, "bearer")
 		if run.errCode != codes.OK {
-			assert.Equal(t, run.errCode, grpc.Code(err), run.msg)
+			// `grpc.Code` is deprecated. Use `status.Code` instead.
+			//assert.Equal(t, run.errCode, grpc.Code(err), run.msg)
+			assert.Equal(t, run.errCode, status.Code(err), run.msg)
 		} else {
 			assert.NoError(t, err, run.msg)
 		}
