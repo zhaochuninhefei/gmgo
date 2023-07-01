@@ -11,4 +11,5 @@ extract once at the start of the function from the context and reuse it for the 
 
 Please see examples and tests for examples of use.
 */
+
 package ctxlogrus
