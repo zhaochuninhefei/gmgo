@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var logrusLogger *logrus.Logger
 
 // Simple unary handler that adds custom fields to the requests's context. These will be used for all log statements.
