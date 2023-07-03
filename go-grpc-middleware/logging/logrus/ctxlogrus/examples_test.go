@@ -2,7 +2,7 @@ package ctxlogrus_test
 
 import (
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"github.com/sirupsen/logrus"
 )
@@ -14,7 +14,7 @@ var logrusLogger *logrus.Logger
 func ExampleExtract_unary() {
 	ctx := context.Background()
 	// setting tags will be added to the logger as log fields
-	grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
+	grpcctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
 	// Extract a single request-scoped logrus.Logger and log messages.
 	l := ctxlogrus.Extract(ctx)
 	l.Info("some ping")
