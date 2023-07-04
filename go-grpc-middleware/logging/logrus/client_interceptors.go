@@ -53,6 +53,7 @@ func logFinalClientLine(o *options, entry *logrus.Entry, startTime time.Time, er
 		msg)
 }
 
+//goland:noinspection GoUnusedParameter
 func newClientLoggerFields(ctx context.Context, fullMethodString string) logrus.Fields {
 	service := path.Dir(fullMethodString)[1:]
 	method := path.Base(fullMethodString)
