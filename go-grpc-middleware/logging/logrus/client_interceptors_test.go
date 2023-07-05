@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	grpc_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
+	grpclogrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"github.com/sirupsen/logrus"
@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 )
 
 func customClientCodeToLevel(c codes.Code) logrus.Level {
@@ -22,7 +22,7 @@ func customClientCodeToLevel(c codes.Code) logrus.Level {
 		// Make this a special case for tests, and an error.
 		return logrus.ErrorLevel
 	}
-	level := grpc_logrus.DefaultClientCodeToLevel(c)
+	level := grpclogrus.DefaultClientCodeToLevel(c)
 	return level
 }
 
@@ -31,14 +31,14 @@ func TestLogrusClientSuite(t *testing.T) {
 		t.Skipf("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_logrus.Option{
-		grpc_logrus.WithLevels(customClientCodeToLevel),
+	opts := []grpclogrus.Option{
+		grpclogrus.WithLevels(customClientCodeToLevel),
 	}
 	b := newLogrusBaseSuite(t)
 	b.logger.Level = logrus.DebugLevel // a lot of our stuff is on debug level by default
 	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
-		grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(logrus.NewEntry(b.logger), opts...)),
-		grpc.WithStreamInterceptor(grpc_logrus.StreamClientInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpc.WithUnaryInterceptor(grpclogrus.UnaryClientInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpc.WithStreamInterceptor(grpclogrus.StreamClientInterceptor(logrus.NewEntry(b.logger), opts...)),
 	}
 	suite.Run(t, &logrusClientSuite{b})
 }
@@ -115,7 +115,7 @@ func (s *logrusClientSuite) TestPingError_WithCustomLevels() {
 		s.SetupTest()
 		_, err := s.Client.PingError(
 			s.SimpleCtx(),
-			&pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(tcase.code)})
+			&pbtestproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(tcase.code)})
 
 		assert.Error(s.T(), err, "each call here must return an error")
 
@@ -134,14 +134,14 @@ func TestLogrusClientOverrideSuite(t *testing.T) {
 		t.Skip("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_logrus.Option{
-		grpc_logrus.WithDurationField(grpc_logrus.DurationToDurationField),
+	opts := []grpclogrus.Option{
+		grpclogrus.WithDurationField(grpclogrus.DurationToDurationField),
 	}
 	b := newLogrusBaseSuite(t)
 	b.logger.Level = logrus.DebugLevel // a lot of our stuff is on debug level by default
 	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
-		grpc.WithUnaryInterceptor(grpc_logrus.UnaryClientInterceptor(logrus.NewEntry(b.logger), opts...)),
-		grpc.WithStreamInterceptor(grpc_logrus.StreamClientInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpc.WithUnaryInterceptor(grpclogrus.UnaryClientInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpc.WithStreamInterceptor(grpclogrus.StreamClientInterceptor(logrus.NewEntry(b.logger), opts...)),
 	}
 	suite.Run(t, &logrusClientOverrideSuite{b})
 }
