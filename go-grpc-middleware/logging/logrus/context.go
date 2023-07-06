@@ -8,6 +8,7 @@ import (
 
 // AddFields adds logrus fields to the logger.
 // Deprecated: should use the ctxlogrus.Extract instead
+//goland:noinspection GoUnusedExportedFunction
 func AddFields(ctx context.Context, fields logrus.Fields) {
 	ctxlogrus.AddFields(ctx, fields)
 }
