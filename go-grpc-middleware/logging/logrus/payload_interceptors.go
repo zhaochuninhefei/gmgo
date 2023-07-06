@@ -3,9 +3,9 @@ package grpc_logrus
 import (
 	"bytes"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
 
 	grpc_logging "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging"
-	ctx_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags/logrus"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"github.com/golang/protobuf/jsonpb"
@@ -28,7 +28,9 @@ func PayloadUnaryServerInterceptor(entry *logrus.Entry, decider grpc_logging.Ser
 			return handler(ctx, req)
 		}
 		// Use the provided logrus.Entry for logging but use the fields from context.
-		logEntry := entry.WithFields(ctx_logrus.Extract(ctx).Data)
+		// ctx_logrus.Extract is deprecated, use the ctxlogrus.Extract instead.
+		//logEntry := entry.WithFields(ctx_logrus.Extract(ctx).Data)
+		logEntry := entry.WithFields(ctxlogrus.Extract(ctx).Data)
 		logProtoMessageAsJson(logEntry, req, "grpc.request.content", "server request payload logged as grpc.request.content field")
 		resp, err := handler(ctx, req)
 		if err == nil {
@@ -48,7 +50,9 @@ func PayloadStreamServerInterceptor(entry *logrus.Entry, decider grpc_logging.Se
 			return handler(srv, stream)
 		}
 		// Use the provided logrus.Entry for logging but use the fields from context.
-		logEntry := entry.WithFields(Extract(stream.Context()).Data)
+		// ctx_logrus.Extract is deprecated, use the ctxlogrus.Extract instead.
+		//logEntry := entry.WithFields(Extract(stream.Context()).Data)
+		logEntry := entry.WithFields(ctxlogrus.Extract(stream.Context()).Data)
 		newStream := &loggingServerStream{ServerStream: stream, entry: logEntry}
 		return handler(srv, newStream)
 	}
