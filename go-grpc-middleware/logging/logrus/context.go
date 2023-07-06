@@ -15,6 +15,7 @@ func AddFields(ctx context.Context, fields logrus.Fields) {
 
 // Extract takes the call-scoped logrus.Entry from grpc_logrus middleware.
 // Deprecated: should use the ctxlogrus.Extract instead
+//goland:noinspection GoUnusedExportedFunction
 func Extract(ctx context.Context) *logrus.Entry {
 	return ctxlogrus.Extract(ctx)
 }
