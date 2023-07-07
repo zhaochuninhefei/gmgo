@@ -1,12 +1,12 @@
 package grpc_logrus_test
 
 import (
+	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
 	"time"
 
 	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
 	grpc_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
 	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	ctx_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags/logrus"
 	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
@@ -68,7 +68,9 @@ func ExampleExtract_unary() {
 		// Add fields the ctxtags of the request which will be added to all extracted loggers.
 		grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
 		// Extract a single request-scoped logrus.Logger and log messages.
-		l := ctx_logrus.Extract(ctx)
+		// ctx_logrus.Extract is deprecated, use the ctxlogrus.Extract instead.
+		//l := ctx_logrus.Extract(ctx)
+		l := ctxlogrus.Extract(ctx)
 		l.Info("some ping")
 		l.Info("another ping")
 		return &pb_testproto.PingResponse{Value: ping.Value}, nil
