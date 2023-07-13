@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
-	grpc_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	grpcmiddleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
+	grpclogrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"github.com/sirupsen/logrus"
@@ -37,18 +37,18 @@ func TestLogrusPayloadSuite(t *testing.T) {
 	alwaysLoggingDeciderClient := func(ctx context.Context, fullMethodName string) bool { return true }
 	b := newLogrusBaseSuite(t)
 	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
-		grpc.WithUnaryInterceptor(grpc_logrus.PayloadUnaryClientInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderClient)),
-		grpc.WithStreamInterceptor(grpc_logrus.PayloadStreamClientInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderClient)),
+		grpc.WithUnaryInterceptor(grpclogrus.PayloadUnaryClientInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderClient)),
+		grpc.WithStreamInterceptor(grpclogrus.PayloadStreamClientInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderClient)),
 	}
 	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_logrus.StreamServerInterceptor(logrus.NewEntry(nullLogger)),
-			grpc_logrus.PayloadStreamServerInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderServer)),
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(nullLogger)),
-			grpc_logrus.PayloadUnaryServerInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderServer)),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpclogrus.StreamServerInterceptor(logrus.NewEntry(nullLogger)),
+			grpclogrus.PayloadStreamServerInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderServer)),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpclogrus.UnaryServerInterceptor(logrus.NewEntry(nullLogger)),
+			grpclogrus.PayloadUnaryServerInterceptor(logrus.NewEntry(b.logger), alwaysLoggingDeciderServer)),
 	}
 	suite.Run(t, &logrusPayloadSuite{b})
 }
@@ -92,7 +92,7 @@ func (s *logrusPayloadSuite) TestPing_LogsBothRequestAndResponse() {
 }
 
 func (s *logrusPayloadSuite) TestPingError_LogsOnlyRequestsOnError() {
-	_, err := s.Client.PingError(s.SimpleCtx(), &pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(4)})
+	_, err := s.Client.PingError(s.SimpleCtx(), &pbtestproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(4)})
 	require.Error(s.T(), err, "there must be not be an error on a successful call")
 
 	serverMsgs, clientMsgs := s.getServerAndClientMessages(1, 1)
@@ -116,7 +116,7 @@ func (s *logrusPayloadSuite) TestPingStream_LogsAllRequestsAndResponses() {
 	require.NoError(s.T(), stream.CloseSend(), "no error on close of stream")
 
 	for {
-		pong := &pb_testproto.PingResponse{}
+		pong := &pbtestproto.PingResponse{}
 		err := stream.RecvMsg(pong)
 		if err == io.EOF {
 			break
