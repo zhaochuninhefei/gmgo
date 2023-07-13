@@ -6,7 +6,7 @@ package grpc_logrus
 import (
 	"time"
 
-	grpc_logging "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging"
+	grpclogging "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"github.com/sirupsen/logrus"
 )
@@ -14,16 +14,16 @@ import (
 var (
 	defaultOptions = &options{
 		levelFunc:    nil,
-		shouldLog:    grpc_logging.DefaultDeciderMethod,
-		codeFunc:     grpc_logging.DefaultErrorToCode,
+		shouldLog:    grpclogging.DefaultDeciderMethod,
+		codeFunc:     grpclogging.DefaultErrorToCode,
 		durationFunc: DefaultDurationToField,
 	}
 )
 
 type options struct {
 	levelFunc    CodeToLevel
-	shouldLog    grpc_logging.Decider
-	codeFunc     grpc_logging.ErrorToCode
+	shouldLog    grpclogging.Decider
+	codeFunc     grpclogging.ErrorToCode
 	durationFunc DurationToField
 }
 
@@ -56,7 +56,7 @@ type CodeToLevel func(code codes.Code) logrus.Level
 type DurationToField func(duration time.Duration) (key string, value interface{})
 
 // WithDecider customizes the function for deciding if the gRPC interceptor logs should log.
-func WithDecider(f grpc_logging.Decider) Option {
+func WithDecider(f grpclogging.Decider) Option {
 	return func(o *options) {
 		o.shouldLog = f
 	}
@@ -70,7 +70,8 @@ func WithLevels(f CodeToLevel) Option {
 }
 
 // WithCodes customizes the function for mapping errors to error codes.
-func WithCodes(f grpc_logging.ErrorToCode) Option {
+//goland:noinspection GoUnusedExportedFunction
+func WithCodes(f grpclogging.ErrorToCode) Option {
 	return func(o *options) {
 		o.codeFunc = f
 	}
