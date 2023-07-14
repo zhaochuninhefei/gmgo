@@ -8,7 +8,6 @@ import (
 
 	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
-	ctx_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags/logrus"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"github.com/sirupsen/logrus"
@@ -46,7 +45,10 @@ func UnaryServerInterceptor(entry *logrus.Entry, opts ...Option) grpc.UnaryServe
 		}
 
 		levelLogf(
-			ctx_logrus.Extract(newCtx).WithFields(fields), // re-extract logger from newCtx, as it may have extra fields that changed in the holder.
+			// re-extract logger from newCtx, as it may have extra fields that changed in the holder.
+			// ctx_logrus.Extract is deprecated, use ctxlogrus.Extract instead.
+			//ctx_logrus.Extract(newCtx).WithFields(fields),
+			ctxlogrus.Extract(newCtx).WithFields(fields),
 			level,
 			"finished unary call with code "+code.String())
 
@@ -80,7 +82,10 @@ func StreamServerInterceptor(entry *logrus.Entry, opts ...Option) grpc.StreamSer
 		}
 
 		levelLogf(
-			ctx_logrus.Extract(newCtx).WithFields(fields), // re-extract logger from newCtx, as it may have extra fields that changed in the holder.
+			// re-extract logger from newCtx, as it may have extra fields that changed in the holder.
+			// ctx_logrus.Extract is deprecated, use ctxlogrus.Extract instead.
+			//ctx_logrus.Extract(newCtx).WithFields(fields),
+			ctxlogrus.Extract(newCtx).WithFields(fields),
 			level,
 			"finished streaming call with code "+code.String())
 
@@ -124,6 +129,8 @@ func newLoggerForCall(ctx context.Context, entry *logrus.Entry, fullMethodString
 			})
 	}
 
-	callLog = callLog.WithFields(ctx_logrus.Extract(ctx).Data)
+	// ctx_logrus.Extract is deprecated, use ctxlogrus.Extract instead.
+	//callLog = callLog.WithFields(ctx_logrus.Extract(ctx).Data)
+	callLog = callLog.WithFields(ctxlogrus.Extract(ctx).Data)
 	return ctxlogrus.ToContext(ctx, callLog)
 }
