@@ -6,7 +6,7 @@ import (
 	"path"
 	"time"
 
-	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
+	grpcmiddleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
@@ -62,7 +62,7 @@ func StreamServerInterceptor(entry *logrus.Entry, opts ...Option) grpc.StreamSer
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		startTime := time.Now()
 		newCtx := newLoggerForCall(stream.Context(), entry, info.FullMethod, startTime)
-		wrapped := grpc_middleware.WrapServerStream(stream)
+		wrapped := grpcmiddleware.WrapServerStream(stream)
 		wrapped.WrappedContext = newCtx
 
 		err := handler(srv, wrapped)
