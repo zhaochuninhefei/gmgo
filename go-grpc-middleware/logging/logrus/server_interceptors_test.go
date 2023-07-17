@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
-	grpc_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	grpcmiddleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
+	grpclogrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"github.com/sirupsen/logrus"
@@ -24,17 +24,17 @@ func TestLogrusServerSuite(t *testing.T) {
 		t.Skipf("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_logrus.Option{
-		grpc_logrus.WithLevels(customCodeToLevel),
+	opts := []grpclogrus.Option{
+		grpclogrus.WithLevels(customCodeToLevel),
 	}
 	b := newLogrusBaseSuite(t)
 	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_logrus.StreamServerInterceptor(logrus.NewEntry(b.logger), opts...)),
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpclogrus.StreamServerInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpclogrus.UnaryServerInterceptor(logrus.NewEntry(b.logger), opts...)),
 	}
 	suite.Run(t, &logrusServerSuite{b})
 }
@@ -107,7 +107,7 @@ func (s *logrusServerSuite) TestPingError_WithCustomLevels() {
 		s.buffer.Reset()
 		_, err := s.Client.PingError(
 			s.SimpleCtx(),
-			&pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(tcase.code)})
+			&pbtestproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(tcase.code)})
 		require.Error(s.T(), err, "each call here must return an error")
 
 		msgs := s.getOutputJSONs()
@@ -171,17 +171,17 @@ func TestLogrusServerOverrideSuite(t *testing.T) {
 		t.Skip("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_logrus.Option{
-		grpc_logrus.WithDurationField(grpc_logrus.DurationToDurationField),
+	opts := []grpclogrus.Option{
+		grpclogrus.WithDurationField(grpclogrus.DurationToDurationField),
 	}
 	b := newLogrusBaseSuite(t)
 	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(),
-			grpc_logrus.StreamServerInterceptor(logrus.NewEntry(b.logger), opts...)),
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(),
-			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(),
+			grpclogrus.StreamServerInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(),
+			grpclogrus.UnaryServerInterceptor(logrus.NewEntry(b.logger), opts...)),
 	}
 	suite.Run(t, &logrusServerOverrideSuite{b})
 }
@@ -244,8 +244,8 @@ func TestLogrusServerOverrideDeciderSuite(t *testing.T) {
 		t.Skip("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_logrus.Option{
-		grpc_logrus.WithDecider(func(method string, err error) bool {
+	opts := []grpclogrus.Option{
+		grpclogrus.WithDecider(func(method string, err error) bool {
 			if err != nil && method == "/mwitkow.testproto.TestService/PingError" {
 				return true
 			}
@@ -255,12 +255,12 @@ func TestLogrusServerOverrideDeciderSuite(t *testing.T) {
 	}
 	b := newLogrusBaseSuite(t)
 	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(),
-			grpc_logrus.StreamServerInterceptor(logrus.NewEntry(b.logger), opts...)),
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(),
-			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(),
+			grpclogrus.StreamServerInterceptor(logrus.NewEntry(b.logger), opts...)),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(),
+			grpclogrus.UnaryServerInterceptor(logrus.NewEntry(b.logger), opts...)),
 	}
 	suite.Run(t, &logrusServerOverrideDeciderSuite{b})
 }
@@ -288,7 +288,7 @@ func (s *logrusServerOverrideDeciderSuite) TestPingError_HasOverriddenDecider() 
 	s.buffer.Reset()
 	_, err := s.Client.PingError(
 		s.SimpleCtx(),
-		&pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(code)})
+		&pbtestproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(code)})
 	require.Error(s.T(), err, "each call here must return an error")
 
 	msgs := s.getOutputJSONs()
