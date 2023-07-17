@@ -7,21 +7,21 @@ import (
 	"io"
 	"testing"
 
-	grpc_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	grpc_testing "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing"
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	grpclogrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	grpctesting "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	goodPing = &pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999}
+	goodPing = &pbtestproto.PingRequest{Value: "something", SleepTimeMs: 9999}
 )
 
 type loggingPingService struct {
-	pb_testproto.TestServiceServer
+	pbtestproto.TestServiceServer
 }
 
 func customCodeToLevel(c codes.Code) logrus.Level {
@@ -29,12 +29,12 @@ func customCodeToLevel(c codes.Code) logrus.Level {
 		// Make this a special case for tests, and an error.
 		return logrus.ErrorLevel
 	}
-	level := grpc_logrus.DefaultCodeToLevel(c)
+	level := grpclogrus.DefaultCodeToLevel(c)
 	return level
 }
 
-func (s *loggingPingService) Ping(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.PingResponse, error) {
-	grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
+func (s *loggingPingService) Ping(ctx context.Context, ping *pbtestproto.PingRequest) (*pbtestproto.PingResponse, error) {
+	grpcctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
 	// ctx_logrus.AddFields is deprecated, use the ctxlogrus.Extract instead.
 	//ctx_logrus.AddFields(ctx, logrus.Fields{"custom_field": "custom_value"})
 	ctxlogrus.AddFields(ctx, logrus.Fields{"custom_field": "custom_value"})
@@ -44,12 +44,12 @@ func (s *loggingPingService) Ping(ctx context.Context, ping *pb_testproto.PingRe
 	return s.TestServiceServer.Ping(ctx, ping)
 }
 
-func (s *loggingPingService) PingError(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.Empty, error) {
+func (s *loggingPingService) PingError(ctx context.Context, ping *pbtestproto.PingRequest) (*pbtestproto.Empty, error) {
 	return s.TestServiceServer.PingError(ctx, ping)
 }
 
-func (s *loggingPingService) PingList(ping *pb_testproto.PingRequest, stream pb_testproto.TestService_PingListServer) error {
-	grpc_ctxtags.Extract(stream.Context()).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
+func (s *loggingPingService) PingList(ping *pbtestproto.PingRequest, stream pbtestproto.TestService_PingListServer) error {
+	grpcctxtags.Extract(stream.Context()).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
 	// ctx_logrus.AddFields is deprecated, use the ctxlogrus.Extract instead.
 	//ctx_logrus.AddFields(stream.Context(), logrus.Fields{"custom_field": "custom_value"})
 	ctxlogrus.AddFields(stream.Context(), logrus.Fields{"custom_field": "custom_value"})
@@ -59,20 +59,20 @@ func (s *loggingPingService) PingList(ping *pb_testproto.PingRequest, stream pb_
 	return s.TestServiceServer.PingList(ping, stream)
 }
 
-func (s *loggingPingService) PingEmpty(ctx context.Context, empty *pb_testproto.Empty) (*pb_testproto.PingResponse, error) {
+func (s *loggingPingService) PingEmpty(ctx context.Context, empty *pbtestproto.Empty) (*pbtestproto.PingResponse, error) {
 	return s.TestServiceServer.PingEmpty(ctx, empty)
 }
 
 type logrusBaseSuite struct {
-	*grpc_testing.InterceptorTestSuite
-	mutexBuffer *grpc_testing.MutexReadWriter
+	*grpctesting.InterceptorTestSuite
+	mutexBuffer *grpctesting.MutexReadWriter
 	buffer      *bytes.Buffer
 	logger      *logrus.Logger
 }
 
 func newLogrusBaseSuite(t *testing.T) *logrusBaseSuite {
 	b := &bytes.Buffer{}
-	muB := grpc_testing.NewMutexReadWriter(b)
+	muB := grpctesting.NewMutexReadWriter(b)
 	logger := logrus.New()
 	logger.Out = muB
 	logger.Formatter = &logrus.JSONFormatter{DisableTimestamp: true}
@@ -80,8 +80,8 @@ func newLogrusBaseSuite(t *testing.T) *logrusBaseSuite {
 		logger:      logger,
 		buffer:      b,
 		mutexBuffer: muB,
-		InterceptorTestSuite: &grpc_testing.InterceptorTestSuite{
-			TestService: &loggingPingService{&grpc_testing.TestPingService{T: t}},
+		InterceptorTestSuite: &grpctesting.InterceptorTestSuite{
+			TestService: &loggingPingService{&grpctesting.TestPingService{T: t}},
 		},
 	}
 }
