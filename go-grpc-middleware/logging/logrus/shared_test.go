@@ -9,7 +9,6 @@ import (
 
 	grpc_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus"
 	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	ctx_logrus "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags/logrus"
 	grpc_testing "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing"
 	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
@@ -39,7 +38,9 @@ func (s *loggingPingService) Ping(ctx context.Context, ping *pb_testproto.PingRe
 	// ctx_logrus.AddFields is deprecated, use the ctxlogrus.Extract instead.
 	//ctx_logrus.AddFields(ctx, logrus.Fields{"custom_field": "custom_value"})
 	ctxlogrus.AddFields(ctx, logrus.Fields{"custom_field": "custom_value"})
-	ctx_logrus.Extract(ctx).Info("some ping")
+	// ctx_logrus.Extract is deprecated, use the ctxlogrus.Extract instead.
+	//ctx_logrus.Extract(ctx).Info("some ping")
+	ctxlogrus.Extract(ctx).Info("some ping")
 	return s.TestServiceServer.Ping(ctx, ping)
 }
 
@@ -52,7 +53,9 @@ func (s *loggingPingService) PingList(ping *pb_testproto.PingRequest, stream pb_
 	// ctx_logrus.AddFields is deprecated, use the ctxlogrus.Extract instead.
 	//ctx_logrus.AddFields(stream.Context(), logrus.Fields{"custom_field": "custom_value"})
 	ctxlogrus.AddFields(stream.Context(), logrus.Fields{"custom_field": "custom_value"})
-	ctx_logrus.Extract(stream.Context()).Info("some pinglist")
+	// ctx_logrus.Extract is deprecated, use the ctxlogrus.Extract instead.
+	//ctx_logrus.Extract(stream.Context()).Info("some pinglist")
+	ctxlogrus.Extract(stream.Context()).Info("some pinglist")
 	return s.TestServiceServer.PingList(ping, stream)
 }
 
