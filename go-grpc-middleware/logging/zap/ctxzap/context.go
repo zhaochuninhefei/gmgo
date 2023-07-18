@@ -1,7 +1,7 @@
 package ctxzap
 
 import (
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -46,8 +46,8 @@ func Extract(ctx context.Context) *zap.Logger {
 
 // TagsToFields transforms the Tags on the supplied context into zap fields.
 func TagsToFields(ctx context.Context) []zapcore.Field {
-	fields := []zapcore.Field{}
-	tags := grpc_ctxtags.Extract(ctx)
+	var fields []zapcore.Field
+	tags := grpcctxtags.Extract(ctx)
 	for k, v := range tags.Values() {
 		fields = append(fields, zap.Any(k, v))
 	}
