@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var zapLogger *zap.Logger
 
 // Simple unary handler that adds custom fields to the requests's context. These will be used for all log statements.
