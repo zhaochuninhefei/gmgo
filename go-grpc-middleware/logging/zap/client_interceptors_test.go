@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	grpc_zap "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap"
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	grpczap "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -22,7 +22,7 @@ func customClientCodeToLevel(c codes.Code) zapcore.Level {
 		// Make this a special case for tests, and an error.
 		return zapcore.ErrorLevel
 	}
-	level := grpc_zap.DefaultClientCodeToLevel(c)
+	level := grpczap.DefaultClientCodeToLevel(c)
 	return level
 }
 
@@ -31,13 +31,13 @@ func TestZapClientSuite(t *testing.T) {
 		t.Skipf("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_zap.Option{
-		grpc_zap.WithLevels(customClientCodeToLevel),
+	opts := []grpczap.Option{
+		grpczap.WithLevels(customClientCodeToLevel),
 	}
 	b := newBaseZapSuite(t)
 	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
-		grpc.WithUnaryInterceptor(grpc_zap.UnaryClientInterceptor(b.log, opts...)),
-		grpc.WithStreamInterceptor(grpc_zap.StreamClientInterceptor(b.log, opts...)),
+		grpc.WithUnaryInterceptor(grpczap.UnaryClientInterceptor(b.log, opts...)),
+		grpc.WithStreamInterceptor(grpczap.StreamClientInterceptor(b.log, opts...)),
 	}
 	suite.Run(t, &zapClientSuite{b})
 }
@@ -112,7 +112,7 @@ func (s *zapClientSuite) TestPingError_WithCustomLevels() {
 		s.SetupTest()
 		_, err := s.Client.PingError(
 			s.SimpleCtx(),
-			&pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(tcase.code)})
+			&pbtestproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(tcase.code)})
 		require.Error(s.T(), err, "each call here must return an error")
 
 		msgs := s.getOutputJSONs()
@@ -130,13 +130,13 @@ func TestZapClientOverrideSuite(t *testing.T) {
 		t.Skip("Skipping due to json.RawMessage incompatibility with go1.7")
 		return
 	}
-	opts := []grpc_zap.Option{
-		grpc_zap.WithDurationField(grpc_zap.DurationToDurationField),
+	opts := []grpczap.Option{
+		grpczap.WithDurationField(grpczap.DurationToDurationField),
 	}
 	b := newBaseZapSuite(t)
 	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
-		grpc.WithUnaryInterceptor(grpc_zap.UnaryClientInterceptor(b.log, opts...)),
-		grpc.WithStreamInterceptor(grpc_zap.StreamClientInterceptor(b.log, opts...)),
+		grpc.WithUnaryInterceptor(grpczap.UnaryClientInterceptor(b.log, opts...)),
+		grpc.WithStreamInterceptor(grpczap.StreamClientInterceptor(b.log, opts...)),
 	}
 	suite.Run(t, &zapClientOverrideSuite{b})
 }
