@@ -52,6 +52,7 @@ func logFinalClientLine(o *options, logger *zap.Logger, startTime time.Time, err
 	)
 }
 
+//goland:noinspection GoUnusedParameter
 func newClientLoggerFields(ctx context.Context, fullMethodString string) []zapcore.Field {
 	service := path.Dir(fullMethodString)[1:]
 	method := path.Base(fullMethodString)
