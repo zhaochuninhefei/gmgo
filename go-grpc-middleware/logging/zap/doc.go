@@ -71,4 +71,5 @@ Note - due to implementation ZAP differs from Logrus in the "grpc.request.conten
 
 Please see examples and tests for examples of use.
 */
+
 package grpc_zap
