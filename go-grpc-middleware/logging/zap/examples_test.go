@@ -2,12 +2,12 @@ package grpc_zap_test
 
 import (
 	"context"
+	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap/ctxzap"
 	"time"
 
 	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
 	grpc_zap "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap"
 	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	ctx_zap "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags/zap"
 	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"go.uber.org/zap"
@@ -67,7 +67,9 @@ func ExampleExtract_unary() {
 		grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
 
 		// Extract a single request-scoped zap.Logger and log messages. (containing the grpc.xxx tags)
-		l := ctx_zap.Extract(ctx)
+		// ctx_zap.Extract is deprecated, use ctxzap.Extract instead.
+		//l := ctx_zap.Extract(ctx)
+		l := ctxzap.Extract(ctx)
 		l.Info("some ping")
 		l.Info("another ping")
 		return &pb_testproto.PingResponse{Value: ping.Value}, nil
