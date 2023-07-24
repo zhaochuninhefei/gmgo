@@ -5,10 +5,10 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap/ctxzap"
 	"time"
 
-	grpc_middleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
-	grpc_zap "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap"
-	grpc_ctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
-	pb_testproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
+	grpcmiddleware "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware"
+	grpczap "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap"
+	grpcctxtags "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/tags"
+	pbtestproto "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/testing/testproto"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -16,55 +16,55 @@ import (
 
 var (
 	zapLogger  *zap.Logger
-	customFunc grpc_zap.CodeToLevel
+	customFunc grpczap.CodeToLevel
 )
 
 // Initialization shows a relatively complex initialization sequence.
 func Example_initialization() {
 	// Shared options for the logger, with a custom gRPC code to log level function.
-	opts := []grpc_zap.Option{
-		grpc_zap.WithLevels(customFunc),
+	opts := []grpczap.Option{
+		grpczap.WithLevels(customFunc),
 	}
 	// Make sure that log statements internal to gRPC library are logged using the zapLogger as well.
-	grpc_zap.ReplaceGrpcLogger(zapLogger)
+	grpczap.ReplaceGrpcLogger(zapLogger)
 	// Create a server, make sure we put the grpc_ctxtags context before everything else.
 	_ = grpc.NewServer(
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_zap.UnaryServerInterceptor(zapLogger, opts...),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpczap.UnaryServerInterceptor(zapLogger, opts...),
 		),
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_zap.StreamServerInterceptor(zapLogger, opts...),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpczap.StreamServerInterceptor(zapLogger, opts...),
 		),
 	)
 }
 
 // Initialization shows an initialization sequence with the duration field generation overridden.
 func Example_initializationWithDurationFieldOverride() {
-	opts := []grpc_zap.Option{
-		grpc_zap.WithDurationField(func(duration time.Duration) zapcore.Field {
+	opts := []grpczap.Option{
+		grpczap.WithDurationField(func(duration time.Duration) zapcore.Field {
 			return zap.Int64("grpc.time_ns", duration.Nanoseconds())
 		}),
 	}
 
 	_ = grpc.NewServer(
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(),
-			grpc_zap.UnaryServerInterceptor(zapLogger, opts...),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(),
+			grpczap.UnaryServerInterceptor(zapLogger, opts...),
 		),
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(),
-			grpc_zap.StreamServerInterceptor(zapLogger, opts...),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(),
+			grpczap.StreamServerInterceptor(zapLogger, opts...),
 		),
 	)
 }
 
 // Simple unary handler that adds custom fields to the requests's context. These will be used for all log statements.
 func ExampleExtract_unary() {
-	_ = func(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.PingResponse, error) {
+	_ = func(ctx context.Context, ping *pbtestproto.PingRequest) (*pbtestproto.PingResponse, error) {
 		// Add fields the ctxtags of the request which will be added to all extracted loggers.
-		grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
+		grpcctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
 
 		// Extract a single request-scoped zap.Logger and log messages. (containing the grpc.xxx tags)
 		// ctx_zap.Extract is deprecated, use ctxzap.Extract instead.
@@ -72,13 +72,13 @@ func ExampleExtract_unary() {
 		l := ctxzap.Extract(ctx)
 		l.Info("some ping")
 		l.Info("another ping")
-		return &pb_testproto.PingResponse{Value: ping.Value}, nil
+		return &pbtestproto.PingResponse{Value: ping.Value}, nil
 	}
 }
 
 func Example_initializationWithDecider() {
-	opts := []grpc_zap.Option{
-		grpc_zap.WithDecider(func(fullMethodName string, err error) bool {
+	opts := []grpczap.Option{
+		grpczap.WithDecider(func(fullMethodName string, err error) bool {
 			// will not log gRPC calls if it was a call to healthcheck and no error was raised
 			if err == nil && fullMethodName == "foo.bar.healthcheck" {
 				return false
@@ -90,11 +90,11 @@ func Example_initializationWithDecider() {
 	}
 
 	_ = []grpc.ServerOption{
-		grpc_middleware.WithStreamServerChain(
-			grpc_ctxtags.StreamServerInterceptor(),
-			grpc_zap.StreamServerInterceptor(zap.NewNop(), opts...)),
-		grpc_middleware.WithUnaryServerChain(
-			grpc_ctxtags.UnaryServerInterceptor(),
-			grpc_zap.UnaryServerInterceptor(zap.NewNop(), opts...)),
+		grpcmiddleware.WithStreamServerChain(
+			grpcctxtags.StreamServerInterceptor(),
+			grpczap.StreamServerInterceptor(zap.NewNop(), opts...)),
+		grpcmiddleware.WithUnaryServerChain(
+			grpcctxtags.UnaryServerInterceptor(),
+			grpczap.UnaryServerInterceptor(zap.NewNop(), opts...)),
 	}
 }
