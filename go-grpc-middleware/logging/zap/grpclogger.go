@@ -46,6 +46,7 @@ func (l *zapGrpcLogger) Println(args ...interface{}) {
 	l.logger.Info(fmt.Sprint(args...))
 }
 
+//goland:noinspection GoUnusedParameter
 func (l *zapGrpcLogger) V(le int) bool {
 	// V 接口是检查verbosity level 是否大于等于 请求的 verbose level。
 	// 但 *zap.Logger 没有verbosity level，这里直接返回true。
