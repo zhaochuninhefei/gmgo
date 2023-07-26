@@ -24,7 +24,7 @@ import (
 	"io"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 	healthpb "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
