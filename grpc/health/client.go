@@ -87,7 +87,7 @@ retryConnection:
 			// Stream should have been closed, so we can safely continue to create a new stream.
 			continue retryConnection
 		}
-		s.CloseSend()
+		_ = s.CloseSend()
 
 		resp := new(healthpb.HealthCheckResponse)
 		for {
