@@ -55,7 +55,7 @@ func (s) TestClientHealthCheckBackoff(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	clientHealthCheck(ctx, newStream, func(connectivity.State, error) {}, "test")
+	_ = clientHealthCheck(ctx, newStream, func(connectivity.State, error) {}, "test")
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Backoff durations for %v retries are %v. (expected: %v)", maxRetries, got, want)
