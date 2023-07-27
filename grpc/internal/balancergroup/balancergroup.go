@@ -97,7 +97,7 @@ func (sbc *subBalancerWrapper) startBalancer() {
 	sbc.group.logger.Infof("Created child policy %p of type %v", b, sbc.builder.Name())
 	sbc.balancer = b
 	if sbc.ccState != nil {
-		b.UpdateClientConnState(*sbc.ccState)
+		_ = b.UpdateClientConnState(*sbc.ccState)
 	}
 }
 
