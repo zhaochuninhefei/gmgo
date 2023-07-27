@@ -19,7 +19,7 @@
 // Package admin contains internal implementation for admin service.
 package admin
 
-import grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+import "gitee.com/zhaochuninhefei/gmgo/grpc"
 
 // services is a map from name to service register functions.
 var services []func(grpc.ServiceRegistrar) (func(), error)
