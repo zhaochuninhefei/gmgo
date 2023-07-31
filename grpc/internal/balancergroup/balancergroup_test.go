@@ -473,6 +473,7 @@ func (s) TestBalancerGroup_CloseStopsBalancerInCache(t *testing.T) {
 // TestBalancerGroupBuildOptions verifies that the balancer.BuildOptions passed
 // to the balancergroup at creation time is passed to child policies.
 func (s) TestBalancerGroupBuildOptions(t *testing.T) {
+	//goland:noinspection GoUnusedConst
 	const (
 		balancerName       = "stubBalancer-TestBalancerGroupBuildOptions"
 		parent             = int64(1234)
