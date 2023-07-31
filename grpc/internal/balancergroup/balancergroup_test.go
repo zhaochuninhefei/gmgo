@@ -85,10 +85,10 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 	// balancers.
 	gator.Add(testBalancerIDs[0], 2)
 	bg.Add(testBalancerIDs[0], rrBuilder)
-	bg.UpdateClientConnState(testBalancerIDs[0], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[0:2]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[0], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[0:2]}})
 	gator.Add(testBalancerIDs[1], 1)
 	bg.Add(testBalancerIDs[1], rrBuilder)
-	bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[2:4]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[2:4]}})
 
 	bg.Start()
 
@@ -121,7 +121,7 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 	// Add b3, weight 1, backends [1,2].
 	gator.Add(testBalancerIDs[2], 1)
 	bg.Add(testBalancerIDs[2], rrBuilder)
-	bg.UpdateClientConnState(testBalancerIDs[2], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[1:3]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[2], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[1:3]}})
 
 	// Remove b1.
 	gator.Remove(testBalancerIDs[0])
@@ -129,7 +129,7 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 
 	// Update b2 to weight 3, backends [0,3].
 	gator.UpdateWeight(testBalancerIDs[1], 3)
-	bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: append([]resolver.Address(nil), testBackendAddrs[0], testBackendAddrs[3])}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: append([]resolver.Address(nil), testBackendAddrs[0], testBackendAddrs[3])}})
 
 	gator.Start()
 	bg.Start()
@@ -179,10 +179,10 @@ func (s) TestBalancerGroup_start_close_deadlock(t *testing.T) {
 
 	gator.Add(testBalancerIDs[0], 2)
 	bg.Add(testBalancerIDs[0], builder)
-	bg.UpdateClientConnState(testBalancerIDs[0], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[0:2]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[0], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[0:2]}})
 	gator.Add(testBalancerIDs[1], 1)
 	bg.Add(testBalancerIDs[1], builder)
-	bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[2:4]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[2:4]}})
 
 	bg.Start()
 }
@@ -209,10 +209,10 @@ func initBalancerGroupForCachingTest(t *testing.T) (*weightedaggregator.Aggregat
 	// balancers.
 	gator.Add(testBalancerIDs[0], 2)
 	bg.Add(testBalancerIDs[0], rrBuilder)
-	bg.UpdateClientConnState(testBalancerIDs[0], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[0:2]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[0], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[0:2]}})
 	gator.Add(testBalancerIDs[1], 1)
 	bg.Add(testBalancerIDs[1], rrBuilder)
-	bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[2:4]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[2:4]}})
 
 	bg.Start()
 
@@ -404,7 +404,7 @@ func (s) TestBalancerGroup_locality_caching_readd_with_different_builder(t *test
 		}
 	}
 
-	bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[4:6]}})
+	_ = bg.UpdateClientConnState(testBalancerIDs[1], balancer.ClientConnState{ResolverState: resolver.State{Addresses: testBackendAddrs[4:6]}})
 
 	newSCTimeout := time.After(time.Millisecond * 500)
 	scToAdd := map[resolver.Address]int{
