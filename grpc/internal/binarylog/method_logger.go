@@ -19,6 +19,7 @@
 package binarylog
 
 import (
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -72,7 +73,9 @@ func newMethodLogger(h, m uint64) *MethodLogger {
 // Log creates a proto binary log entry, and logs it to the sink.
 func (ml *MethodLogger) Log(c LogEntryConfig) {
 	m := c.toProto()
-	timestamp, _ := ptypes.TimestampProto(time.Now())
+	// ptypes.TimestampProto is deprecated, call the timestamppb.New function instead.
+	//timestamp, _ := ptypes.TimestampProto(time.Now())
+	timestamp := timestamppb.New(time.Now())
 	m.Timestamp = timestamp
 	m.CallId = ml.callID
 	m.SequenceIdWithinCall = ml.idWithinCallGen.next()
