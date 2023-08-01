@@ -86,7 +86,7 @@ func (ml *MethodLogger) Log(c LogEntryConfig) {
 		m.PayloadTruncated = ml.truncateMessage(pay.Message)
 	}
 
-	ml.sink.Write(m)
+	_ = ml.sink.Write(m)
 }
 
 func (ml *MethodLogger) truncateMetadata(mdPb *pb.Metadata) (truncated bool) {
