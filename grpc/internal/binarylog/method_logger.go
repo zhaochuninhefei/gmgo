@@ -19,6 +19,7 @@
 package binarylog
 
 import (
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"net"
 	"strings"
@@ -29,7 +30,6 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 )
 
 type callIDGenerator struct {
@@ -158,7 +158,9 @@ func (c *ClientHeader) toProto() *pb.GrpcLogEntry {
 		Authority:  c.Authority,
 	}
 	if c.Timeout > 0 {
-		clientHeader.Timeout = ptypes.DurationProto(c.Timeout)
+		// ptypes.DurationProto is deprecated, call the durationpb.New function instead.
+		//clientHeader.Timeout = ptypes.DurationProto(c.Timeout)
+		clientHeader.Timeout = durationpb.New(c.Timeout)
 	}
 	ret := &pb.GrpcLogEntry{
 		Type: pb.GrpcLogEntry_EVENT_TYPE_CLIENT_HEADER,
