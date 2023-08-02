@@ -55,7 +55,7 @@ func init() {
 // that the reader gets all the value added to the buffer by the writer.
 func (s) TestSingleWriter(t *testing.T) {
 	ub := NewUnbounded()
-	reads := []int{}
+	var reads []int
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -89,7 +89,7 @@ func (s) TestSingleWriter(t *testing.T) {
 // makes sure that the reader gets all the data written by all writers.
 func (s) TestMultipleWriters(t *testing.T) {
 	ub := NewUnbounded()
-	reads := []int{}
+	var reads []int
 
 	var wg sync.WaitGroup
 	wg.Add(1)
