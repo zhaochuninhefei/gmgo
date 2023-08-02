@@ -50,12 +50,16 @@ func (s) TestGetSocketOpt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.Listen(%s,%s) failed with err: %v", network, addr, err)
 	}
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 	go func() {
-		ln.Accept()
+		_, _ = ln.Accept()
 	}()
 	conn, _ := net.Dial(network, ln.Addr().String())
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 	tcpc := conn.(*net.TCPConn)
 	raw, err := tcpc.SyscallConn()
 	if err != nil {
@@ -65,7 +69,7 @@ func (s) TestGetSocketOpt(t *testing.T) {
 	l := &unix.Linger{Onoff: 1, Linger: 5}
 	recvTimout := &unix.Timeval{Sec: 100}
 	sendTimeout := &unix.Timeval{Sec: 8888}
-	raw.Control(func(fd uintptr) {
+	_ = raw.Control(func(fd uintptr) {
 		err := unix.SetsockoptLinger(int(fd), syscall.SOL_SOCKET, syscall.SO_LINGER, l)
 		if err != nil {
 			t.Fatalf("failed to SetsockoptLinger(%v,%v,%v,%v) due to %v", int(fd), syscall.SOL_SOCKET, syscall.SO_LINGER, l, err)
