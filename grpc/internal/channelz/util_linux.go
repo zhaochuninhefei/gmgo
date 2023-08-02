@@ -30,7 +30,7 @@ func GetSocketOption(socket interface{}) *SocketOptionData {
 	}
 	data := &SocketOptionData{}
 	if rawConn, err := c.SyscallConn(); err == nil {
-		rawConn.Control(data.Getsockopt)
+		_ = rawConn.Control(data.Getsockopt)
 		return data
 	}
 	return nil
