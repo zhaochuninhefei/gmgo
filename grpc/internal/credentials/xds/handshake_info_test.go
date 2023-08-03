@@ -126,6 +126,7 @@ func TestDNSMatch(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestMatchingSANExists_FailureCases(t *testing.T) {
 	url1, err := url.Parse("http://golang.org")
 	if err != nil {
@@ -199,6 +200,7 @@ func TestMatchingSANExists_FailureCases(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestMatchingSANExists_Success(t *testing.T) {
 	url1, err := url.Parse("http://golang.org")
 	if err != nil {
