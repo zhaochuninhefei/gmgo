@@ -245,8 +245,8 @@ func (hi *HandshakeInfo) MatchingSANExists(cert *x509.Certificate) bool {
 
 // Caller must hold mu.
 func (hi *HandshakeInfo) matchSAN(san string, isDNS bool) bool {
-	for _, matcher := range hi.sanMatchers {
-		if em := matcher.ExactMatch(); em != "" && isDNS {
+	for _, sanMatcher := range hi.sanMatchers {
+		if em := sanMatcher.ExactMatch(); em != "" && isDNS {
 			// This is a special case which is documented in the xDS protos.
 			// If the DNS SAN is a wildcard entry, and the match criteria is
 			// `exact`, then we need to perform DNS wildcard matching
@@ -256,7 +256,7 @@ func (hi *HandshakeInfo) matchSAN(san string, isDNS bool) bool {
 			}
 			continue
 		}
-		if matcher.Match(san) {
+		if sanMatcher.Match(san) {
 			return true
 		}
 	}
