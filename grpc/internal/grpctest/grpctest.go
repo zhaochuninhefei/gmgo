@@ -16,7 +16,7 @@
  *
  */
 
-// package grpctest implements testing helpers.
+// Package grpctest implements testing helpers.
 package grpctest
 
 import (

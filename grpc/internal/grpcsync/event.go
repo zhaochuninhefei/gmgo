@@ -16,7 +16,7 @@
  *
  */
 
-// package grpcsync implements additional synchronization primitives built upon
+// Package grpcsync implements additional synchronization primitives built upon
 // the sync package.
 package grpcsync
 
