@@ -27,12 +27,17 @@ type tRunST struct {
 	setup, test, teardown bool
 }
 
+//goland:noinspection GoUnusedParameter
 func (t *tRunST) Setup(*testing.T) {
 	t.setup = true
 }
+
+//goland:noinspection GoUnusedParameter
 func (t *tRunST) TestSubTest(*testing.T) {
 	t.test = true
 }
+
+//goland:noinspection GoUnusedParameter
 func (t *tRunST) Teardown(*testing.T) {
 	t.teardown = true
 }
@@ -49,6 +54,7 @@ type tNoST struct {
 	test bool
 }
 
+//goland:noinspection GoUnusedParameter
 func (t *tNoST) TestSubTest(*testing.T) {
 	t.test = true
 }
