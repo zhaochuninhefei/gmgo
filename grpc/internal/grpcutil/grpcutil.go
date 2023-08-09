@@ -16,5 +16,5 @@
  *
  */
 
-// package grpcutil provides utility functions used across the gRPC codebase.
+// Package grpcutil provides utility functions used across the gRPC codebase.
 package grpcutil

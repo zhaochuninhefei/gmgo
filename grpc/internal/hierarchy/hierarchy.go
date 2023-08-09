@@ -55,7 +55,7 @@ func Get(addr resolver.Address) []string {
 		return nil
 	}
 	path, _ := attrs.Value(pathKey).(pathValue)
-	return ([]string)(path)
+	return path
 }
 
 // Set overrides the hierarchical path in addr with path.
