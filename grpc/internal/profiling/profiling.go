@@ -46,6 +46,7 @@ import (
 var profilingEnabled uint32
 
 // IsEnabled returns whether or not profiling is enabled.
+//goland:noinspection GoUnusedExportedFunction
 func IsEnabled() bool {
 	return atomic.LoadUint32(&profilingEnabled) > 0
 }
