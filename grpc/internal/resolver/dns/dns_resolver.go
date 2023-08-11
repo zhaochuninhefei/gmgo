@@ -126,7 +126,7 @@ func (b *dnsBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts 
 	// IP address.
 	if ipAddr, ok := formatIP(host); ok {
 		addr := []resolver.Address{{Addr: ipAddr + ":" + port}}
-		cc.UpdateState(resolver.State{Addresses: addr})
+		_ = cc.UpdateState(resolver.State{Addresses: addr})
 		return deadResolver{}, nil
 	}
 
