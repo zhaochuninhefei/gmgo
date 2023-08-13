@@ -901,6 +901,7 @@ func TestDNSResolverExponentialBackoff(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoDeferInLoop
 func testDNSResolverWithSRV(t *testing.T) {
 	EnableSRVLookups = true
 	defer func() {
@@ -1027,6 +1028,7 @@ func mutateTbl(target string) func() {
 	}
 }
 
+//goland:noinspection GoDeferInLoop
 func testDNSResolveNow(t *testing.T) {
 	defer leakcheck.Check(t)
 	defer func(nt func(d time.Duration) *time.Timer) {
@@ -1212,6 +1214,7 @@ func TestResolveFunc(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoDeferInLoop
 func TestDisableServiceConfig(t *testing.T) {
 	defer leakcheck.Check(t)
 	defer func(nt func(d time.Duration) *time.Timer) {
@@ -1267,6 +1270,7 @@ func TestDisableServiceConfig(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoDeferInLoop
 func TestTXTError(t *testing.T) {
 	defer leakcheck.Check(t)
 	defer func(nt func(d time.Duration) *time.Timer) {
