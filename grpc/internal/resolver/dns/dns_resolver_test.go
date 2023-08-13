@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -737,7 +738,9 @@ func testDNSResolver(t *testing.T) {
 	for _, a := range tests {
 		b := NewBuilder()
 		cc := &testClientConn{target: a.target}
-		r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: a.target}}, cc, resolver.BuildOptions{})
 		if err != nil {
 			t.Fatalf("%v\n", err)
 		}
@@ -809,7 +812,9 @@ func TestDNSResolverExponentialBackoff(t *testing.T) {
 			cc := &testClientConn{target: test.target}
 			// Cause ClientConn to return an error.
 			cc.updateStateErr = balancer.ErrBadResolverState
-			r, err := b.Build(resolver.Target{Endpoint: test.target}, cc, resolver.BuildOptions{})
+			// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+			//r, err := b.Build(resolver.Target{Endpoint: test.target}, cc, resolver.BuildOptions{})
+			r, err := b.Build(resolver.Target{URL: url.URL{Opaque: test.target}}, cc, resolver.BuildOptions{})
 			if err != nil {
 				t.Fatalf("Error building resolver for target %v: %v", test.target, err)
 			}
@@ -964,7 +969,9 @@ func testDNSResolverWithSRV(t *testing.T) {
 	for _, a := range tests {
 		b := NewBuilder()
 		cc := &testClientConn{target: a.target}
-		r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: a.target}}, cc, resolver.BuildOptions{})
 		if err != nil {
 			t.Fatalf("%v\n", err)
 		}
@@ -1048,7 +1055,9 @@ func testDNSResolveNow(t *testing.T) {
 	for _, a := range tests {
 		b := NewBuilder()
 		cc := &testClientConn{target: a.target}
-		r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: a.target}}, cc, resolver.BuildOptions{})
 		if err != nil {
 			t.Fatalf("%v\n", err)
 		}
@@ -1126,7 +1135,9 @@ func testIPResolver(t *testing.T) {
 	for _, v := range tests {
 		b := NewBuilder()
 		cc := &testClientConn{target: v.target}
-		r, err := b.Build(resolver.Target{Endpoint: v.target}, cc, resolver.BuildOptions{})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: v.target}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: v.target}}, cc, resolver.BuildOptions{})
 		if err != nil {
 			t.Fatalf("%v\n", err)
 		}
@@ -1189,7 +1200,9 @@ func TestResolveFunc(t *testing.T) {
 	b := NewBuilder()
 	for _, v := range tests {
 		cc := &testClientConn{target: v.addr, errChan: make(chan error, 1)}
-		r, err := b.Build(resolver.Target{Endpoint: v.addr}, cc, resolver.BuildOptions{})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: v.addr}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: v.addr}}, cc, resolver.BuildOptions{})
 		if err == nil {
 			r.Close()
 		}
@@ -1228,7 +1241,9 @@ func TestDisableServiceConfig(t *testing.T) {
 	for _, a := range tests {
 		b := NewBuilder()
 		cc := &testClientConn{target: a.target}
-		r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{DisableServiceConfig: a.disableServiceConfig})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOptions{DisableServiceConfig: a.disableServiceConfig})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: a.target}}, cc, resolver.BuildOptions{DisableServiceConfig: a.disableServiceConfig})
 		if err != nil {
 			t.Fatalf("%v\n", err)
 		}
@@ -1266,7 +1281,9 @@ func TestTXTError(t *testing.T) {
 		envconfig.TXTErrIgnore = ignore
 		b := NewBuilder()
 		cc := &testClientConn{target: "ipv4.single.fake"} // has A records but not TXT records.
-		r, err := b.Build(resolver.Target{Endpoint: "ipv4.single.fake"}, cc, resolver.BuildOptions{})
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: "ipv4.single.fake"}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: "ipv4.single.fake"}}, cc, resolver.BuildOptions{})
 		if err != nil {
 			t.Fatalf("%v\n", err)
 		}
@@ -1302,7 +1319,9 @@ func TestDNSResolverRetry(t *testing.T) {
 	b := NewBuilder()
 	target := "ipv4.single.fake"
 	cc := &testClientConn{target: target}
-	r, err := b.Build(resolver.Target{Endpoint: target}, cc, resolver.BuildOptions{})
+	// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+	//r, err := b.Build(resolver.Target{Endpoint: target}, cc, resolver.BuildOptions{})
+	r, err := b.Build(resolver.Target{URL: url.URL{Opaque: target}}, cc, resolver.BuildOptions{})
 	if err != nil {
 		t.Fatalf("%v\n", err)
 	}
@@ -1442,8 +1461,9 @@ func TestCustomAuthority(t *testing.T) {
 
 		b := NewBuilder()
 		cc := &testClientConn{target: "foo.bar.com", errChan: make(chan error, 1)}
-		r, err := b.Build(resolver.Target{Endpoint: "foo.bar.com", Authority: a.authority}, cc, resolver.BuildOptions{})
-
+		// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+		//r, err := b.Build(resolver.Target{Endpoint: "foo.bar.com", Authority: a.authority}, cc, resolver.BuildOptions{})
+		r, err := b.Build(resolver.Target{URL: url.URL{Opaque: "foo.bar.com"}}, cc, resolver.BuildOptions{})
 		if err == nil {
 			r.Close()
 
@@ -1498,7 +1518,9 @@ func TestRateLimitedResolve(t *testing.T) {
 	b := NewBuilder()
 	cc := &testClientConn{target: target}
 
-	r, err := b.Build(resolver.Target{Endpoint: target}, cc, resolver.BuildOptions{})
+	// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+	//r, err := b.Build(resolver.Target{Endpoint: target}, cc, resolver.BuildOptions{})
+	r, err := b.Build(resolver.Target{URL: url.URL{Opaque: target}}, cc, resolver.BuildOptions{})
 	if err != nil {
 		t.Fatalf("resolver.Build() returned error: %v\n", err)
 	}
@@ -1607,7 +1629,9 @@ func TestReportError(t *testing.T) {
 	cc := &testClientConn{target: target, errChan: make(chan error)}
 	totalTimesCalledError := 0
 	b := NewBuilder()
-	r, err := b.Build(resolver.Target{Endpoint: target}, cc, resolver.BuildOptions{})
+	// Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+	//r, err := b.Build(resolver.Target{Endpoint: target}, cc, resolver.BuildOptions{})
+	r, err := b.Build(resolver.Target{URL: url.URL{Opaque: target}}, cc, resolver.BuildOptions{})
 	if err != nil {
 		t.Fatalf("Error building resolver for target %v: %v", target, err)
 	}
