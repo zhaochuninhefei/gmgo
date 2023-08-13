@@ -112,6 +112,7 @@ type testResolver struct {
 	lookupHostCh *testutils.Channel
 }
 
+//goland:noinspection GoUnusedParameter
 func (tr *testResolver) LookupHost(ctx context.Context, host string) ([]string, error) {
 	if tr.lookupHostCh != nil {
 		tr.lookupHostCh.Send(nil)
@@ -119,10 +120,12 @@ func (tr *testResolver) LookupHost(ctx context.Context, host string) ([]string, 
 	return hostLookup(host)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*testResolver) LookupSRV(ctx context.Context, service, proto, name string) (string, []*net.SRV, error) {
 	return srvLookup(service, proto, name)
 }
 
+//goland:noinspection GoUnusedParameter
 func (*testResolver) LookupTXT(ctx context.Context, host string) ([]string, error) {
 	return txtLookup(host)
 }
