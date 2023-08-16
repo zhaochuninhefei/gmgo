@@ -46,7 +46,9 @@ type passthroughResolver struct {
 }
 
 func (r *passthroughResolver) start() {
-	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
+	// target.Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+	//_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
+	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.URL.Path}}})
 }
 
 func (*passthroughResolver) ResolveNow(o resolver.ResolveNowOptions) {}
