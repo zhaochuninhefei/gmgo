@@ -26,6 +26,7 @@ const scheme = "passthrough"
 
 type passthroughBuilder struct{}
 
+//goland:noinspection GoUnusedParameter
 func (*passthroughBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r := &passthroughResolver{
 		target: target,
@@ -45,7 +46,7 @@ type passthroughResolver struct {
 }
 
 func (r *passthroughResolver) start() {
-	r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
+	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
 }
 
 func (*passthroughResolver) ResolveNow(o resolver.ResolveNowOptions) {}
