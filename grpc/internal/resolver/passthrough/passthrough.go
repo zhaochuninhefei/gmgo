@@ -51,6 +51,7 @@ func (r *passthroughResolver) start() {
 	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.URL.Path}}})
 }
 
+//goland:noinspection GoUnusedParameter
 func (*passthroughResolver) ResolveNow(o resolver.ResolveNowOptions) {}
 
 func (*passthroughResolver) Close() {}
