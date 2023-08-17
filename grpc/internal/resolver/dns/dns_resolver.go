@@ -116,9 +116,9 @@ type dnsBuilder struct{}
 
 // Build creates and starts a DNS resolver that watches the name resolution of the target.
 func (b *dnsBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	// target.Endpoint is deprecated, use URL.Path or URL.Opaque instead.
+	// target.Endpoint is deprecated, use target.GetEndpoint() instead.
 	//host, port, err := parseTarget(target.Endpoint, defaultPort)
-	host, port, err := parseTarget(target.URL.Path, defaultPort)
+	host, port, err := parseTarget(target.GetEndpoint(), defaultPort)
 	if err != nil {
 		return nil, err
 	}
@@ -142,14 +142,14 @@ func (b *dnsBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts 
 		disableServiceConfig: opts.DisableServiceConfig,
 	}
 
-	// target.Authority is deprecated, use URL.Host instead.
+	// target.Authority is deprecated, use target.GetAuthority() instead.
 	//if target.Authority == "" {
-	if target.URL.Host == "" {
+	if target.GetAuthority() == "" {
 		d.resolver = defaultResolver
 	} else {
-		// target.Authority is deprecated, use URL.Host instead.
+		// target.Authority is deprecated, use target.GetAuthority() instead.
 		//d.resolver, err = customAuthorityResolver(target.Authority)
-		d.resolver, err = customAuthorityResolver(target.URL.Host)
+		d.resolver, err = customAuthorityResolver(target.GetAuthority())
 		if err != nil {
 			return nil, err
 		}
