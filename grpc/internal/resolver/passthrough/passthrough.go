@@ -46,9 +46,9 @@ type passthroughResolver struct {
 }
 
 func (r *passthroughResolver) start() {
-	// target.Endpoint is deprecated, use URL.Path or URL.Opaque instead.
-	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
-	//_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.URL.Path}}})
+	// Endpoint is deprecated, use GetEndpoint() instead.
+	//_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
+	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.GetEndpoint()}}})
 }
 
 //goland:noinspection GoUnusedParameter

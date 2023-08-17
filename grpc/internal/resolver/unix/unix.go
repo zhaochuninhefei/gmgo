@@ -34,8 +34,11 @@ type builder struct {
 }
 
 func (b *builder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
-	if target.Authority != "" {
-		return nil, fmt.Errorf("invalid (non-empty) authority: %v", target.Authority)
+	// target.Authority is deprecated, use target.GetAuthority() instead.
+	//if target.Authority != "" {
+	if target.GetAuthority() != "" {
+		//return nil, fmt.Errorf("invalid (non-empty) authority: %v", target.Authority)
+		return nil, fmt.Errorf("invalid (non-empty) authority: %v", target.GetAuthority())
 	}
 
 	// gRPC was parsing the dial target manually before PR #4817, and we

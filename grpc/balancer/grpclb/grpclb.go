@@ -134,9 +134,12 @@ func (b *lbBuilder) Build(cc balancer.ClientConn, opt balancer.BuildOptions) bal
 	r := &lbManualResolver{scheme: "grpclb-internal", ccb: cc}
 
 	lb := &lbBalancer{
-		cc:              newLBCacheClientConn(cc),
-		dialTarget:      opt.Target.Endpoint,
-		target:          opt.Target.Endpoint,
+		cc: newLBCacheClientConn(cc),
+		// Endpoint is deprecated, use GetEndpoint() instead.
+		//dialTarget:      opt.Target.Endpoint,
+		//target:          opt.Target.Endpoint,
+		dialTarget:      opt.Target.GetEndpoint(),
+		target:          opt.Target.GetEndpoint(),
 		opt:             opt,
 		fallbackTimeout: b.fallbackTimeout,
 		doneCh:          make(chan struct{}),

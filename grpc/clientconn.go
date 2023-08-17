@@ -255,7 +255,9 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	if err != nil {
 		return nil, err
 	}
-	cc.authority, err = determineAuthority(cc.parsedTarget.Endpoint, cc.target, cc.dopts)
+	// Endpoint is deprecated, use GetEndpoint() instead.
+	//cc.authority, err = determineAuthority(cc.parsedTarget.Endpoint, cc.target, cc.dopts)
+	cc.authority, err = determineAuthority(cc.parsedTarget.GetEndpoint(), cc.target, cc.dopts)
 	if err != nil {
 		return nil, err
 	}
