@@ -19,6 +19,7 @@ package clusterresolver
 
 import (
 	"context"
+	"net/url"
 	"testing"
 	"time"
 
@@ -744,8 +745,9 @@ func (s) TestFallbackToDNS(t *testing.T) {
 	defer ctxCancel()
 	select {
 	case target := <-dnsTargetCh:
-		//goland:noinspection GoDeprecation
-		if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+		//if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		if diff := cmp.Diff(target, resolver.Target{URL: url.URL{Scheme: "dns", Path: testDNSTarget}}); diff != "" {
 			t.Fatalf("got unexpected DNS target to watch, diff (-got, +want): %v", diff)
 		}
 	case <-ctx.Done():

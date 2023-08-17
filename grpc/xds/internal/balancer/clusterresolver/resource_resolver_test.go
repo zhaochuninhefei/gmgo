@@ -21,6 +21,7 @@ package clusterresolver
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
@@ -152,9 +153,11 @@ func (s) TestResourceResolverOneDNSResource(t *testing.T) {
 		want       []priorityConfig
 	}{
 		{
-			name:       "watch DNS",
-			target:     testDNSTarget,
-			wantTarget: resolver.Target{Scheme: "dns", Endpoint: testDNSTarget},
+			name:   "watch DNS",
+			target: testDNSTarget,
+			// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+			//wantTarget: resolver.Target{Scheme: "dns", Endpoint: testDNSTarget},
+			wantTarget: resolver.Target{URL: url.URL{Scheme: "dns", Path: testDNSTarget}},
 			addrs:      []resolver.Address{{Addr: "1.1.1.1"}, {Addr: "2.2.2.2"}},
 			want: []priorityConfig{{
 				mechanism: DiscoveryMechanism{
@@ -602,7 +605,9 @@ func (s) TestResourceResolverEDSAndDNS(t *testing.T) {
 	}
 	select {
 	case target := <-dnsTargetCh:
-		if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+		//if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		if diff := cmp.Diff(target, resolver.Target{URL: url.URL{Scheme: "dns", Path: testDNSTarget}}); diff != "" {
 			t.Fatalf("got unexpected DNS target to watch, diff (-got, +want): %v", diff)
 		}
 	case <-ctx.Done():
@@ -704,7 +709,9 @@ func (s) TestResourceResolverChangeFromEDSToDNS(t *testing.T) {
 	}})
 	select {
 	case target := <-dnsTargetCh:
-		if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+		//if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		if diff := cmp.Diff(target, resolver.Target{URL: url.URL{Scheme: "dns", Path: testDNSTarget}}); diff != "" {
 			t.Fatalf("got unexpected DNS target to watch, diff (-got, +want): %v", diff)
 		}
 	case <-ctx.Done():
@@ -770,7 +777,9 @@ func (s) TestResourceResolverError(t *testing.T) {
 	}
 	select {
 	case target := <-dnsTargetCh:
-		if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+		//if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		if diff := cmp.Diff(target, resolver.Target{URL: url.URL{Scheme: "dns", Path: testDNSTarget}}); diff != "" {
 			t.Fatalf("got unexpected DNS target to watch, diff (-got, +want): %v", diff)
 		}
 	case <-ctx.Done():
@@ -831,7 +840,9 @@ func (s) TestResourceResolverDNSResolveNow(t *testing.T) {
 	defer ctxCancel()
 	select {
 	case target := <-dnsTargetCh:
-		if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+		//if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
+		if diff := cmp.Diff(target, resolver.Target{URL: url.URL{Scheme: "dns", Path: testDNSTarget}}); diff != "" {
 			t.Fatalf("got unexpected DNS target to watch, diff (-got, +want): %v", diff)
 		}
 	case <-ctx.Done():
