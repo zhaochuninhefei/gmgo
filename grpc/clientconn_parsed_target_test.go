@@ -31,6 +31,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 )
 
+//goland:noinspection GoDeprecation
 func (s) TestParsedTarget_Success_WithoutCustomDialer(t *testing.T) {
 	defScheme := resolver.GetDefaultScheme()
 	tests := []struct {
@@ -114,6 +115,7 @@ func (s) TestParsedTarget_Failure_WithoutCustomDialer(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoDeprecation
 func (s) TestParsedTarget_WithCustomDialer(t *testing.T) {
 	defScheme := resolver.GetDefaultScheme()
 	tests := []struct {

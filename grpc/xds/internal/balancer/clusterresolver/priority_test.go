@@ -744,6 +744,7 @@ func (s) TestFallbackToDNS(t *testing.T) {
 	defer ctxCancel()
 	select {
 	case target := <-dnsTargetCh:
+		//goland:noinspection GoDeprecation
 		if diff := cmp.Diff(target, resolver.Target{Scheme: "dns", Endpoint: testDNSTarget}); diff != "" {
 			t.Fatalf("got unexpected DNS target to watch, diff (-got, +want): %v", diff)
 		}

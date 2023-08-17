@@ -83,7 +83,9 @@ type c2pResolverBuilder struct{}
 func (c2pResolverBuilder) Build(t resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	if !runDirectPath() {
 		// If not xDS, fallback to DNS.
-		t.Scheme = dnsName
+		// t.Scheme is deprecated, use URL.Scheme instead.
+		//t.Scheme = dnsName
+		t.URL.Scheme = dnsName
 		return resolver.Get(dnsName).Build(t, cc, opts)
 	}
 
@@ -119,7 +121,9 @@ func (c2pResolverBuilder) Build(t resolver.Target, cc resolver.ClientConn, opts 
 	}
 
 	// Create and return an xDS resolver.
-	t.Scheme = xdsName
+	// t.Scheme is deprecated, use URL.Scheme instead.
+	//t.Scheme = xdsName
+	t.URL.Scheme = xdsName
 	xdsR, err := resolver.Get(xdsName).Build(t, cc, opts)
 	if err != nil {
 		xdsC.Close()

@@ -20,6 +20,7 @@ package clusterresolver
 
 import (
 	"fmt"
+	"net/url"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/serviceconfig"
@@ -50,7 +51,9 @@ func newDNSResolver(target string, topLevelResolver *resourceResolver) *dnsDisco
 		target:           target,
 		topLevelResolver: topLevelResolver,
 	}
-	r, err := newDNS(resolver.Target{Scheme: "dns", Endpoint: target}, ret, resolver.BuildOptions{})
+	// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+	//r, err := newDNS(resolver.Target{Scheme: "dns", Endpoint: target}, ret, resolver.BuildOptions{})
+	r, err := newDNS(resolver.Target{URL: url.URL{Scheme: "dns", Path: target}}, ret, resolver.BuildOptions{})
 	if err != nil {
 		select {
 		case <-topLevelResolver.updateChannel:
