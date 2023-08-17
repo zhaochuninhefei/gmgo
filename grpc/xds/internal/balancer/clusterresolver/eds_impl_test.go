@@ -19,6 +19,7 @@ package clusterresolver
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 	"testing"
 	"time"
@@ -62,7 +63,9 @@ func setupTestEDS(t *testing.T, initChild *internalserviceconfig.BalancerConfig)
 	xdsC := fakeclient.NewClientWithName(testBalancerNameFooBar)
 	cc := testutils.NewTestClientConn(t)
 	builder := balancer.Get(Name)
-	edsb := builder.Build(cc, balancer.BuildOptions{Target: resolver.Target{Endpoint: testEDSServcie}})
+	// Endpoint is deprecated, use URL.Path instead.
+	//edsb := builder.Build(cc, balancer.BuildOptions{Target: resolver.Target{Endpoint: testEDSServcie}})
+	edsb := builder.Build(cc, balancer.BuildOptions{Target: resolver.Target{URL: url.URL{Path: "/" + testEDSServcie}}})
 	if edsb == nil {
 		t.Fatalf("builder.Build(%s) failed and returned nil", Name)
 	}

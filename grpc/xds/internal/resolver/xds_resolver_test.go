@@ -62,7 +62,9 @@ const (
 	defaultTestShortTimeout = 100 * time.Microsecond
 )
 
-var target = resolver.Target{Endpoint: targetStr, URL: url.URL{Scheme: "xds", Path: "/" + targetStr}}
+// Endpoint is deprecated, use URL.Path instead.
+//var target = resolver.Target{Endpoint: targetStr, URL: url.URL{Scheme: "xds", Path: "/" + targetStr}}
+var target = resolver.Target{URL: url.URL{Scheme: "xds", Path: "/" + targetStr}}
 
 var routerFilter = xdsresource.HTTPFilter{Name: "rtr", Filter: httpfilter.Get(router.TypeURL)}
 var routerFilterList = []xdsresource.HTTPFilter{routerFilter}
