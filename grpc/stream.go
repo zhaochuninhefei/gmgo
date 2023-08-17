@@ -398,7 +398,9 @@ func (cs *clientStream) newAttemptLocked(isTransparent bool) (retErr error) {
 		return toRPCErr(err)
 	}
 
-	if cs.cc.parsedTarget.Scheme == "xds" {
+	// Target.Scheme is deprecated, use Target.GetScheme() instead.
+	//if cs.cc.parsedTarget.Scheme == "xds" {
+	if cs.cc.parsedTarget.GetScheme() == "xds" {
 		// Add extra metadata (metadata that will be added by transport) to context
 		// so the balancer can see them.
 		ctx = grpcutil.WithExtraMetadata(ctx, metadata.Pairs(

@@ -24,6 +24,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"strings"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/attributes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
@@ -237,18 +238,58 @@ type ClientConn interface {
 // - "unknown_scheme://authority/endpoint"
 //   Target{Scheme: resolver.GetDefaultScheme(), Endpoint: "unknown_scheme://authority/endpoint"}
 type Target struct {
-	// Deprecated: use URL.Scheme instead.
+	// Deprecated: use URL.Scheme instead. 使用`target.GetScheme()`代替。
 	Scheme string
-	// Deprecated: use URL.Host instead.
+	// Deprecated: use URL.Host instead. 使用`target.GetAuthority()`代替。
 	Authority string
 	// Deprecated: use URL.Path or URL.Opaque instead. The latter is set when
 	// the former is empty.
+	// 使用`target.GetEndpoint()`代替。
 	Endpoint string
 	// URL contains the parsed dial target with an optional default scheme added
 	// to it if the original dial target contained no scheme or contained an
 	// unregistered scheme. Any query params specified in the original dial
 	// target can be accessed from here.
 	URL url.URL
+}
+
+// GetScheme 获取Target的scheme: t.URL.Scheme
+//  `t.Scheme`已弃用，使用该方法获取`t.URL.Scheme`代替。
+//  优先使用t.URL.Scheme,如果为空,则使用t.Scheme
+func (t Target) GetScheme() string {
+	if t.URL.Scheme != "" {
+		return t.URL.Scheme
+	}
+	//goland:noinspection GoDeprecation
+	return t.Scheme
+}
+
+// GetAuthority 获取Target的authority: t.URL.Host
+//  `t.Authority`已弃用，使用该方法获取`t.URL.Host`代替。
+//  优先使用t.URL.Host,如果为空,则使用t.Authority
+func (t Target) GetAuthority() string {
+	if t.URL.Host != "" {
+		return t.URL.Host
+	}
+	//goland:noinspection GoDeprecation
+	return t.Authority
+}
+
+// GetEndpoint 获取Target的endpoint: t.URL.Path or t.URL.Opaque
+//  `t.Endpoint`已弃用，使用该方法获取`t.URL.Path`或`t.URL.Opaque`代替。
+//  优先使用`t.URL.Path`,如果为空,则使用`t.URL.Opaque`,
+//  `t.URL.Opaque`也为空,则使用`t.Endpoint`
+func (t Target) GetEndpoint() string {
+	endpoint := t.URL.Path
+	if endpoint == "" {
+		endpoint = t.URL.Opaque
+	}
+	endpoint = strings.TrimPrefix(endpoint, "/")
+	if endpoint != "" {
+		return endpoint
+	}
+	//goland:noinspection GoDeprecation
+	return t.Endpoint
 }
 
 // Builder creates a resolver that will be used to watch name resolution updates.

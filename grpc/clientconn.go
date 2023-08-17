@@ -1628,7 +1628,9 @@ func (cc *ClientConn) parseTargetAndFindResolver() (resolver.Builder, error) {
 		channelz.Infof(logger, cc.channelzID, "dial target %q parse failed: %v", cc.target, err)
 	} else {
 		channelz.Infof(logger, cc.channelzID, "parsed dial target is: %+v", parsedTarget)
-		rb = cc.getResolver(parsedTarget.Scheme)
+		// Target.Scheme is deprecated, use Target.GetScheme() instead.
+		//rb = cc.getResolver(parsedTarget.Scheme)
+		rb = cc.getResolver(parsedTarget.GetScheme())
 		if rb != nil {
 			cc.parsedTarget = parsedTarget
 			return rb, nil
@@ -1649,9 +1651,13 @@ func (cc *ClientConn) parseTargetAndFindResolver() (resolver.Builder, error) {
 		return nil, err
 	}
 	channelz.Infof(logger, cc.channelzID, "parsed dial target is: %+v", parsedTarget)
-	rb = cc.getResolver(parsedTarget.Scheme)
+	// Target.Scheme is deprecated, use Target.GetScheme() instead.
+	//rb = cc.getResolver(parsedTarget.Scheme)
+	rb = cc.getResolver(parsedTarget.GetScheme())
 	if rb == nil {
-		return nil, fmt.Errorf("could not get resolver for default scheme: %q", parsedTarget.Scheme)
+		// Target.Scheme is deprecated, use Target.GetScheme() instead.
+		//return nil, fmt.Errorf("could not get resolver for default scheme: %q", parsedTarget.Scheme)
+		return nil, fmt.Errorf("could not get resolver for default scheme: %q", parsedTarget.GetScheme())
 	}
 	cc.parsedTarget = parsedTarget
 	return rb, nil
@@ -1673,16 +1679,19 @@ func parseTarget(target string) (resolver.Target, error) {
 	// incorrect parsing for something like "unix:///path/to/socket". Since we
 	// own the "unix" resolver, we can workaround in the unix resolver by using
 	// the `URL` field instead of the `Endpoint` field.
-	endpoint := u.Path
-	if endpoint == "" {
-		endpoint = u.Opaque
-	}
-	endpoint = strings.TrimPrefix(endpoint, "/")
+
+	// Target.Endpoint已弃用，这里无需事先计算，获取endpoint的逻辑已移动到Target.GetEndpoint()方法中
+	//endpoint := u.Path
+	//if endpoint == "" {
+	//	endpoint = u.Opaque
+	//}
+	//endpoint = strings.TrimPrefix(endpoint, "/")
 	return resolver.Target{
-		Scheme:    u.Scheme,
-		Authority: u.Host,
-		Endpoint:  endpoint,
-		URL:       *u,
+		// Target.Scheme、Target.Authority、Target.Endpoint are deprecated.
+		//Scheme:    u.Scheme,
+		//Authority: u.Host,
+		//Endpoint:  endpoint,
+		URL: *u,
 	}, nil
 }
 
