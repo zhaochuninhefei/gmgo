@@ -136,10 +136,14 @@ func (b *xdsResolverBuilder) Build(t resolver.Target, cc resolver.ClientConn, op
 
 	// Register a watch on the xdsClient for the user's dial target.
 	cancelWatch := watchService(r.client, resourceName, r.handleServiceUpdate, r.logger)
-	r.logger.Infof("Watch started on resource name %v with xds-client %p", r.target.Endpoint, r.client)
+	// Endpoint is deprecated, use GetEndpoint() instead.
+	//r.logger.Infof("Watch started on resource name %v with xds-client %p", r.target.Endpoint, r.client)
+	r.logger.Infof("Watch started on resource name %v with xds-client %p", r.target.GetEndpoint(), r.client)
 	r.cancelWatch = func() {
 		cancelWatch()
-		r.logger.Infof("Watch cancel on resource name %v with xds-client %p", r.target.Endpoint, r.client)
+		// Endpoint is deprecated, use GetEndpoint() instead.
+		//r.logger.Infof("Watch cancel on resource name %v with xds-client %p", r.target.Endpoint, r.client)
+		r.logger.Infof("Watch cancel on resource name %v with xds-client %p", r.target.GetEndpoint(), r.client)
 	}
 
 	go r.run()
@@ -212,7 +216,9 @@ func (r *xdsResolver) sendNewServiceConfig(cs *configSelector) bool {
 		r.cc.ReportError(err)
 		return false
 	}
-	r.logger.Infof("Received update on resource %v from xds-client %p, generated service config: %v", r.target.Endpoint, r.client, pretty.FormatJSON(sc))
+	// Endpoint is deprecated, use GetEndpoint() instead.
+	//r.logger.Infof("Received update on resource %v from xds-client %p, generated service config: %v", r.target.Endpoint, r.client, pretty.FormatJSON(sc))
+	r.logger.Infof("Received update on resource %v from xds-client %p, generated service config: %v", r.target.GetEndpoint(), r.client, pretty.FormatJSON(sc))
 
 	// Send the update to the ClientConn.
 	state := iresolver.SetConfigSelector(resolver.State{
@@ -231,7 +237,9 @@ func (r *xdsResolver) run() {
 			return
 		case update := <-r.updateCh:
 			if update.err != nil {
-				r.logger.Warningf("Watch error on resource %v from xds-client %p, %v", r.target.Endpoint, r.client, update.err)
+				// Endpoint is deprecated, use GetEndpoint() instead.
+				//r.logger.Warningf("Watch error on resource %v from xds-client %p, %v", r.target.Endpoint, r.client, update.err)
+				r.logger.Warningf("Watch error on resource %v from xds-client %p, %v", r.target.GetEndpoint(), r.client, update.err)
 				if xdsresource.ErrType(update.err) == xdsresource.ErrorTypeResourceNotFound {
 					// If error is resource-not-found, it means the LDS
 					// resource was removed. Ultimately send an empty service
@@ -259,7 +267,9 @@ func (r *xdsResolver) run() {
 			// Create the config selector for this update.
 			cs, err := r.newConfigSelector(update.su)
 			if err != nil {
-				r.logger.Warningf("Error parsing update on resource %v from xds-client %p: %v", r.target.Endpoint, r.client, err)
+				// Endpoint is deprecated, use GetEndpoint() instead.
+				//r.logger.Warningf("Error parsing update on resource %v from xds-client %p: %v", r.target.Endpoint, r.client, err)
+				r.logger.Warningf("Error parsing update on resource %v from xds-client %p: %v", r.target.GetEndpoint(), r.client, err)
 				r.cc.ReportError(err)
 				continue
 			}
