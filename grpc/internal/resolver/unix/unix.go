@@ -55,7 +55,7 @@ func (b *builder) Build(target resolver.Target, cc resolver.ClientConn, _ resolv
 		// prepend "\x00" to address for unix-abstract
 		addr.Addr = "\x00" + addr.Addr
 	}
-	cc.UpdateState(resolver.State{Addresses: []resolver.Address{networktype.Set(addr, "unix")}})
+	_ = cc.UpdateState(resolver.State{Addresses: []resolver.Address{networktype.Set(addr, "unix")}})
 	return &nopResolver{}, nil
 }
 
