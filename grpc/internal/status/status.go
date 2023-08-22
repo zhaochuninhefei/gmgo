@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -130,12 +129,19 @@ func (s *Status) Details() []interface{} {
 	}
 	details := make([]interface{}, 0, len(s.s.Details))
 	for _, any := range s.s.Details {
-		detail := &ptypes.DynamicAny{}
-		if err := ptypes.UnmarshalAny(any, detail); err != nil {
+		// ptypes.DynamicAny 与 ptypes.UnmarshalAny 已弃用，改为直接使用 any.UnmarshalNew()
+		//detail := &ptypes.DynamicAny{}
+		//if err := ptypes.UnmarshalAny(any, detail); err != nil {
+		//	details = append(details, err)
+		//	continue
+		//}
+		//details = append(details, detail.Message)
+		detail, err := any.UnmarshalNew()
+		if err != nil {
 			details = append(details, err)
 			continue
 		}
-		details = append(details, detail.Message)
+		details = append(details, detail)
 	}
 	return details
 }
