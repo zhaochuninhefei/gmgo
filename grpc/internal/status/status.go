@@ -30,11 +30,11 @@ package status
 import (
 	"errors"
 	"fmt"
-
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Status represents an RPC status code, message, and details.  It is immutable
@@ -111,7 +111,9 @@ func (s *Status) WithDetails(details ...proto.Message) (*Status, error) {
 	// s.Code() != OK implies that s.Proto() != nil.
 	p := s.Proto()
 	for _, detail := range details {
-		any, err := ptypes.MarshalAny(detail)
+		// ptypes.MarshalAny is deprecated, Call the anypb.New function instead.
+		//any, err := ptypes.MarshalAny(detail)
+		any, err := anypb.New(proto.MessageV2(detail))
 		if err != nil {
 			return nil, err
 		}
