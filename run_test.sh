@@ -9,7 +9,7 @@ cd ../
 
 # 等待控制台输入任意字符继续
 echo
-read -p "Press any key to continue..." -n 1
+read -p "sm2测试用例 结束，按下任意按键继续..." -n 1
 echo
 
 # sm3
@@ -20,7 +20,7 @@ cd ../
 
 # 等待控制台输入任意字符继续
 echo
-read -p "Press any key to continue..." -n 1
+read -p "sm3测试用例 结束，按下任意按键继续..." -n 1
 echo
 
 # sm4
@@ -31,7 +31,7 @@ cd ../
 
 # 等待控制台输入任意字符继续
 echo
-read -p "Press any key to continue..." -n 1
+read -p "sm4测试用例 结束，按下任意按键继续..." -n 1
 echo
 
 # x509
@@ -42,7 +42,7 @@ cd ../
 
 # 等待控制台输入任意字符继续
 echo
-read -p "Press any key to continue..." -n 1
+read -p "x509测试用例 结束，按下任意按键继续..." -n 1
 echo
 
 # gmtls
@@ -53,7 +53,7 @@ cd ../../
 
 # 等待控制台输入任意字符继续
 echo
-read -p "Press any key to continue..." -n 1
+read -p "gmtls测试用例 结束，按下任意按键继续..." -n 1
 echo
 
 # gmgrpc
@@ -61,3 +61,7 @@ echo "gmgrpc测试用例"
 cd grpc/grpc_test
 go test
 cd ../../
+echo "gmgrpc测试用例 结束"
+
+echo "全部测试用例 结束"
+echo
