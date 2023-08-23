@@ -103,11 +103,13 @@ func (ss *StubServer) StartServer(sopts ...grpc.ServerOption) error {
 		return fmt.Errorf("net.Listen(%q, %q) = %v", ss.Network, ss.Address, err)
 	}
 	ss.Address = lis.Addr().String()
-	ss.cleanups = append(ss.cleanups, func() { lis.Close() })
+	ss.cleanups = append(ss.cleanups, func() { _ = lis.Close() })
 
 	s := grpc.NewServer(sopts...)
 	testpb.RegisterTestServiceServer(s, ss)
-	go s.Serve(lis)
+	go func() {
+		_ = s.Serve(lis)
+	}()
 	ss.cleanups = append(ss.cleanups, s.Stop)
 	ss.S = s
 	return nil
@@ -134,7 +136,7 @@ func (ss *StubServer) StartClient(dopts ...grpc.DialOption) error {
 		return err
 	}
 
-	ss.cleanups = append(ss.cleanups, func() { cc.Close() })
+	ss.cleanups = append(ss.cleanups, func() { _ = cc.Close() })
 
 	ss.Client = testpb.NewTestServiceClient(cc)
 	return nil
