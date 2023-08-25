@@ -244,6 +244,7 @@ func IsRoundRobin(want []balancer.SubConn, f func() balancer.SubConn) error {
 }
 
 // ErrTestConstPicker is error returned by test const picker.
+//goland:noinspection GoUnusedGlobalVariable
 var ErrTestConstPicker = fmt.Errorf("const picker error")
 
 // TestConstPicker is a const picker for tests.
@@ -253,6 +254,7 @@ type TestConstPicker struct {
 }
 
 // Pick returns the const SubConn or the error.
+//goland:noinspection GoUnusedParameter
 func (tcp *TestConstPicker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	if tcp.Err != nil {
 		return balancer.PickResult{}, tcp.Err
