@@ -1223,8 +1223,6 @@ var (
 	oidExtensionAuthorityInfoAccess   = []int{1, 3, 6, 1, 5, 5, 7, 1, 1}
 	oidExtensionCRLNumber             = []int{2, 5, 29, 20}
 
-	// 扩展信息 Signed Certificate Timestamps 证书签名时间戳 : 1.3.6.1.4.1.11129.2.4.2
-	oidExtensionSCT = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 	// 扩展签名算法OID,`1.3.6.1.4.1`是ISO分配给私人企业的节点，`60387`是向IANA申请到的企业ID(zhaochuninhefei),`1`是该企业下的子节点，`1`是该子节点下的扩展签名算法OID
 	oidExtensionSignatureAlgorithm = []int{1, 3, 6, 1, 4, 1, 60387, 1, 1}
 )
