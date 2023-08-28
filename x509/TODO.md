@@ -51,7 +51,7 @@ for _, ext := range cert.Extensions {
 }
 
 // unmarshal the extension data into a struct variable
-var extInfo ExtensionInfo
+var extInfo SerializedSCT
 rest, err := asn1.Unmarshal(extData, &extInfo)
 if err != nil {
     // handle error

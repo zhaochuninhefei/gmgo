@@ -543,6 +543,17 @@ func CertificateText(cert *Certificate) (string, error) {
 				if signAlg > 0 {
 					buf.WriteString(fmt.Sprintf("%16s%s\n", "", signAlg.String()))
 				}
+			} else if ext.Id.Equal(oidExtensionSCT) {
+				// SCT反序列化操作
+				var sctInfos SerializedSCT
+				rest, err := asn1.Unmarshal(ext.Value, &sctInfos)
+				if err != nil || len(rest) > 0 {
+					return "", errors.New("certinfo: Error parsing SCT " + ext.Id.String())
+				}
+				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signed Certificate Timestamp:\n", ""))
+				if len(sctInfos.SCTs) > 0 {
+					// 缩进 16 个空格，打印 SCTs 中的每个 SCT TODO
+				}
 			} else {
 				// 输出未知扩展属性
 				buf.WriteString(fmt.Sprintf("%12sUnknown extension %s\n%16s%s\n", "", ext.Id.String(), "", string(ext.Value)))
