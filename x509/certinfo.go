@@ -563,8 +563,27 @@ func CertificateText(cert *Certificate) (string, error) {
 				//		buf.WriteString(fmt.Sprintf("%16s%s\n", "", sct.String()))
 				//	}
 				//}
-				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signed Certificate Timestamp:\n", ""))
+
+				var rawSCT []byte
+				rest, err := asn1.Unmarshal(ext.Value, &rawSCT)
+				if err != nil {
+					return "", fmt.Errorf("certinfo: Error parsing SCT %s, err: %s", ext.Id.String(), err.Error())
+				}
+				if len(rest) > 0 {
+					return "", errors.New("certinfo: Error parsing SCT " + ext.Id.String())
+				}
+				var sctList SignedCertificateTimestampList
+				rest, err = UnmarshalSCT(rawSCT, &sctList)
+				if err != nil {
+					return "", fmt.Errorf("certinfo: Error parsing SCT %s, err: %s", ext.Id.String(), err.Error())
+				}
+				if len(rest) > 0 {
+					return "", errors.New("certinfo: Error parsing SCT " + ext.Id.String())
+				}
+
+				buf.WriteString(fmt.Sprintf("%12sX509v3 Extension Signed Certificate Timestamp:\n", ""))
 				buf.WriteString(fmt.Sprintf("%16s%x\n", "", ext.Value))
+
 			} else {
 				// 输出未知扩展属性
 				buf.WriteString(fmt.Sprintf("%12sUnknown extension %s\n%16s%s\n", "", ext.Id.String(), "", string(ext.Value)))
