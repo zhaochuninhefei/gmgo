@@ -66,6 +66,9 @@ go test
 cd x509
 go test
 
+cd ../x509test
+go test
+
 ```
 
 注意，`x509_test`的`TestCreateCertFromCA`测试函数生成的sm2系列密钥文件与证书将会用于`gmtls`与`gmgrpc`的测试案例。
