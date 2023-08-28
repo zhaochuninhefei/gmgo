@@ -552,7 +552,10 @@ func CertificateText(cert *Certificate) (string, error) {
 				}
 				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signed Certificate Timestamp:\n", ""))
 				if len(sctInfos.SCTs) > 0 {
-					// 缩进 16 个空格，打印 SCTs 中的每个 SCT TODO
+					// 缩进 16 个空格，打印 SCTs 中的每个 SCT
+					for _, sct := range sctInfos.SCTs {
+						buf.WriteString(fmt.Sprintf("%16s%s\n", "", sct.String()))
+					}
 				}
 			} else {
 				// 输出未知扩展属性

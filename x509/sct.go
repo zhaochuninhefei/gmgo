@@ -1,5 +1,9 @@
 package x509
 
+import (
+	"fmt"
+)
+
 // sct.go 此处仅为`certinfo.go`的`CertificateText`函数提供对其他包含SCT扩展信息的x509证书解析对应的SCT情报，
 //  并不是为`x509`包提供完整的SCT扩展信息功能。
 //
@@ -35,4 +39,14 @@ type SCT struct {
 	Timestamp  uint64   // 64-bit unsigned integer
 	Extensions []byte   // byte slice
 	Signature  []byte   // byte slice
+}
+
+// String returns a string representation of the SCT.
+func (s SCT) String() string {
+	return fmt.Sprintf("Version: %d\nLogID: %x\nTimestamp: %d\nExtensions: %x\nSignature: %x\n",
+		s.Version,
+		s.LogID,
+		s.Timestamp,
+		s.Extensions,
+		s.Signature)
 }
