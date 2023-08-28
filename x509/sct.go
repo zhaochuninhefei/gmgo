@@ -1,11 +1,13 @@
 package x509
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // sct.go 此处仅为`certinfo.go`的`CertificateText`函数提供对其他包含SCT扩展信息的x509证书解析对应的SCT情报，
@@ -30,6 +32,63 @@ import (
 
 // 扩展信息 Signed Certificate Timestamps 证书签名时间戳 : 1.3.6.1.4.1.11129.2.4.2
 var oidExtensionSCT = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
+
+// SignedCertificateTimestamp represents the structure returned by the
+// add-chain and add-pre-chain methods after base64 decoding; see sections
+// 3.2, 4.1 and 4.2.
+type SignedCertificateTimestamp struct {
+	SCTVersion Version `tls:"maxval:255"`
+	LogID      LogID
+	Timestamp  uint64
+	//Extensions CTExtensions `tls:"minlen:0,maxlen:65535"`
+	//Signature  []byte       // Signature over TLS-encoded CertificateTimestamp
+}
+
+// String returns a string representation of the SCT.
+func (sct *SignedCertificateTimestamp) String() string {
+	// 返回字符串: "Version: xxx, LogID: xxx, Timestamp: xxx"
+	//  其中 Timestamp 转为 年月日时分秒格式
+	// 将 sct.Timestamp 从 uint64 转为 年月日时分秒格式的字符串
+	t := time.Unix(int64(sct.Timestamp/1000), 0)
+	//fmt.Printf("时间戳: %d, 日期: %s", sct.Timestamp, t.Format("2006-01-02 15:04:05"))
+	return fmt.Sprintf("Version: %v, LogID: %x, Timestamp: %s", sct.SCTVersion, sct.LogID, t.Format("2006-01-02 15:04:05"))
+}
+
+// Version represents the Version enum from section 3.2:
+//   enum { v1(0), (255) } Version;
+type Version Enum // tls:"maxval:255"
+
+// LogID holds the hash of the Log's public key (section 3.2).
+// TODO(pphaneuf): Users should be migrated to the one in the logid package.
+type LogID struct {
+	KeyID [sha256.Size]byte
+}
+
+// CTExtensions is a representation of the raw bytes of any CtExtension
+// structure (see section 3.2).
+// nolint: golint
+type CTExtensions []byte // tls:"minlen:0,maxlen:65535"`
+
+//// DigitallySigned is a local alias for tls.DigitallySigned so that we can
+//// attach a MarshalJSON method.
+//type DigitallySigned DigitallySigned
+
+// DigitallySigned gives information about a signature, including the algorithm used
+// and the signature value.  Defined in RFC 5246 s4.7.
+type DigitallySigned struct {
+	Algorithm SignatureAndHashAlgorithm
+	Signature []byte `tls:"minlen:0,maxlen:65535"`
+}
+
+// SignatureAndHashAlgorithm gives information about the algorithms used for a
+// signature.  Defined in RFC 5246 s7.4.1.4.1.
+type SignatureAndHashAlgorithm struct {
+	Hash      HashAlgorithm      `tls:"maxval:255"`
+	Signature SignatureAlgorithm `tls:"maxval:255"`
+}
+
+// HashAlgorithm enum from RFC 5246 s7.4.1.4.1.
+type HashAlgorithm Enum
 
 // SerializedSCT represents a single TLS-encoded signed certificate timestamp, from RFC6962 s3.3.
 type SerializedSCT struct {
