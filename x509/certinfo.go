@@ -544,19 +544,27 @@ func CertificateText(cert *Certificate) (string, error) {
 					buf.WriteString(fmt.Sprintf("%16s%s\n", "", signAlg.String()))
 				}
 			} else if ext.Id.Equal(oidExtensionSCT) {
-				// SCT反序列化操作
-				var sctInfos SerializedSCT
-				rest, err := asn1.Unmarshal(ext.Value, &sctInfos)
-				if err != nil || len(rest) > 0 {
-					return "", errors.New("certinfo: Error parsing SCT " + ext.Id.String())
-				}
+				//// 打印 ext.Value
+				//fmt.Printf("%12sCustom Extension Signed Certificate Timestamp: %x\n", "", ext.Value)
+				//
+				//// SCT反序列化操作
+				//var sctInfos []SCT
+				//rest, err := asn1.Unmarshal(ext.Value, &sctInfos)
+				//if err != nil {
+				//	return "", fmt.Errorf("certinfo: Error parsing SCT %s, err: %s", ext.Id.String(), err.Error())
+				//}
+				//if len(rest) > 0 {
+				//	return "", errors.New("certinfo: Error parsing SCT " + ext.Id.String())
+				//}
+				//buf.WriteString(fmt.Sprintf("%12sCustom Extension Signed Certificate Timestamp:\n", ""))
+				//if len(sctInfos) > 0 {
+				//	// 缩进 16 个空格，打印 SCTs 中的每个 SCT
+				//	for _, sct := range sctInfos {
+				//		buf.WriteString(fmt.Sprintf("%16s%s\n", "", sct.String()))
+				//	}
+				//}
 				buf.WriteString(fmt.Sprintf("%12sCustom Extension Signed Certificate Timestamp:\n", ""))
-				if len(sctInfos.SCTs) > 0 {
-					// 缩进 16 个空格，打印 SCTs 中的每个 SCT
-					for _, sct := range sctInfos.SCTs {
-						buf.WriteString(fmt.Sprintf("%16s%s\n", "", sct.String()))
-					}
-				}
+				buf.WriteString(fmt.Sprintf("%16s%x\n", "", ext.Value))
 			} else {
 				// 输出未知扩展属性
 				buf.WriteString(fmt.Sprintf("%12sUnknown extension %s\n%16s%s\n", "", ext.Id.String(), "", string(ext.Value)))

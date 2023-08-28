@@ -1,6 +1,7 @@
 package x509
 
 import (
+	"encoding/asn1"
 	"fmt"
 )
 
@@ -29,16 +30,16 @@ var oidExtensionSCT = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 
 // SerializedSCT is a struct type for storing the SCT list in the extension info
 type SerializedSCT struct {
-	SCTs []SCT // SCT slice
+	SCTs []SCT `asn1:"tag:4"` // SCT slice
 }
 
 // SCT is a struct type for storing a single SCT
 type SCT struct {
-	Version    byte     // one byte
-	LogID      [32]byte // 32-byte array
-	Timestamp  uint64   // 64-bit unsigned integer
-	Extensions []byte   // byte slice
-	Signature  []byte   // byte slice
+	Version    int
+	LogID      []byte
+	Timestamp  int64
+	Extensions []byte
+	Signature  asn1.BitString
 }
 
 // String returns a string representation of the SCT.
