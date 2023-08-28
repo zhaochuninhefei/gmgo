@@ -50,6 +50,12 @@ func TestCertificateText(t *testing.T) {
 				certPath: "certinfo_test/sni.cloudflaressl.com",
 			},
 		},
+		{
+			name: "zhihu.com",
+			args: args{
+				certPath: "certinfo_test/zhihu.com",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
