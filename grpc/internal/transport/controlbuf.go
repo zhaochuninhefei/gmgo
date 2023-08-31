@@ -571,7 +571,7 @@ func (l *loopyWriter) run() (err error) {
 					continue hasdata
 				}
 			}
-			l.framer.writer.Flush()
+			_ = l.framer.writer.Flush()
 			break hasdata
 
 		}
