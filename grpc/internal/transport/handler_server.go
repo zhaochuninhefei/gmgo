@@ -294,8 +294,8 @@ func (ht *serverHandlerTransport) Write(s *Stream, hdr []byte, data []byte, opts
 		if !headersWritten {
 			ht.writePendingHeaders(s)
 		}
-		ht.rw.Write(hdr)
-		ht.rw.Write(data)
+		_, _ = ht.rw.Write(hdr)
+		_, _ = ht.rw.Write(data)
 		ht.rw.(http.Flusher).Flush()
 	})
 }
@@ -419,7 +419,7 @@ func (ht *serverHandlerTransport) HandleStreams(startStream func(*Stream), trace
 	close(requestOver)
 
 	// Wait for reading goroutine to finish.
-	req.Body.Close()
+	_ = req.Body.Close()
 	<-readerDone
 }
 
