@@ -289,8 +289,8 @@ func (s) TestHandlerTransport_HandleStreams(t *testing.T) {
 			t.Error("expected second SendHeader call to fail")
 		}
 
-		st.bodyw.Close() // no body
-		st.ht.WriteStatus(s, status.New(codes.OK, ""))
+		_ = st.bodyw.Close() // no body
+		_ = st.ht.WriteStatus(s, status.New(codes.OK, ""))
 	}
 	st.ht.HandleStreams(
 		func(s *Stream) { go handleStream(s) },
@@ -323,7 +323,7 @@ func handleStreamCloseBodyTest(t *testing.T, statusCode codes.Code, msg string) 
 	st := newHandleStreamTest(t)
 
 	handleStream := func(s *Stream) {
-		st.ht.WriteStatus(s, status.New(statusCode, msg))
+		_ = st.ht.WriteStatus(s, status.New(statusCode, msg))
 	}
 	st.ht.HandleStreams(
 		func(s *Stream) { go handleStream(s) },
@@ -361,7 +361,9 @@ func (s) TestHandlerTransport_HandleStreams_Timeout(t *testing.T) {
 		t.Fatal(err)
 	}
 	runStream := func(s *Stream) {
-		defer bodyw.Close()
+		defer func(bodyw *io.PipeWriter) {
+			_ = bodyw.Close()
+		}(bodyw)
 		select {
 		case <-s.ctx.Done():
 		case <-time.After(5 * time.Second):
@@ -373,7 +375,7 @@ func (s) TestHandlerTransport_HandleStreams_Timeout(t *testing.T) {
 			t.Errorf("ctx.Err = %v; want %v", err, context.DeadlineExceeded)
 			return
 		}
-		ht.WriteStatus(s, status.New(codes.DeadlineExceeded, "too slow"))
+		_ = ht.WriteStatus(s, status.New(codes.DeadlineExceeded, "too slow"))
 	}
 	ht.HandleStreams(
 		func(s *Stream) { go runStream(s) },
@@ -398,14 +400,14 @@ func (s) TestHandlerTransport_HandleStreams_MultiWriteStatus(t *testing.T) {
 		if want := "/service/foo.bar"; s.method != want {
 			t.Errorf("stream method = %q; want %q", s.method, want)
 		}
-		st.bodyw.Close() // no body
+		_ = st.bodyw.Close() // no body
 
 		var wg sync.WaitGroup
 		wg.Add(5)
 		for i := 0; i < 5; i++ {
 			go func() {
 				defer wg.Done()
-				st.ht.WriteStatus(s, status.New(codes.OK, ""))
+				_ = st.ht.WriteStatus(s, status.New(codes.OK, ""))
 			}()
 		}
 		wg.Wait()
@@ -419,10 +421,10 @@ func (s) TestHandlerTransport_HandleStreams_WriteStatusWrite(t *testing.T) {
 		if want := "/service/foo.bar"; s.method != want {
 			t.Errorf("stream method = %q; want %q", s.method, want)
 		}
-		st.bodyw.Close() // no body
+		_ = st.bodyw.Close() // no body
 
-		st.ht.WriteStatus(s, status.New(codes.OK, ""))
-		st.ht.Write(s, []byte("hdr"), []byte("data"), &Options{})
+		_ = st.ht.WriteStatus(s, status.New(codes.OK, ""))
+		_ = st.ht.Write(s, []byte("hdr"), []byte("data"), &Options{})
 	})
 }
 
@@ -460,7 +462,7 @@ func (s) TestHandlerTransport_HandleStreams_ErrDetails(t *testing.T) {
 
 	hst := newHandleStreamTest(t)
 	handleStream := func(s *Stream) {
-		hst.ht.WriteStatus(s, st)
+		_ = hst.ht.WriteStatus(s, st)
 	}
 	hst.ht.HandleStreams(
 		func(s *Stream) { go handleStream(s) },
