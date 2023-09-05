@@ -34,6 +34,23 @@ func Sm4EncryptCbc(plainData, key []byte) (iv, encryptData []byte, err error) {
 	return
 }
 
+// Sm4EncryptCbcWithIV sm4加密，CBC模式，指定IV
+//goland:noinspection GoNameStartsWithPackageName
+func Sm4EncryptCbcWithIV(plainData, key, iv []byte) (encryptData []byte, err error) {
+	if len(iv) != BlockSize {
+		return nil, fmt.Errorf("sm4.Sm4EncryptCbcWithIV: iv长度不正确,不是Block字节数的长度. Block字节数: [%d]", BlockSize)
+	}
+	block, err := NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	paddedData := utils.PKCS7Padding(plainData, BlockSize)
+	encryptData = make([]byte, len(paddedData))
+	mode := cipher.NewCBCEncrypter(block, iv)
+	mode.CryptBlocks(encryptData, paddedData)
+	return
+}
+
 // Sm4DecryptCbc sm4解密，CBC模式
 //goland:noinspection GoNameStartsWithPackageName
 func Sm4DecryptCbc(encryptData, key, iv []byte) (plainData []byte, err error) {

@@ -116,12 +116,19 @@ func testCBC(key, data []byte) error {
 	}
 	fmt.Printf("CBC iv 16进制 : %x\n", iv)
 	fmt.Printf("CBC encryptData 16进制 : %x\n", encryptData)
+	fmt.Printf("CBC encryptData 长度 : %d\n", len(encryptData))
 
 	plainData, err := Sm4DecryptCbc(encryptData, key, iv)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("CBC plainData : %s\n", plainData)
+
+	encryptDataWithIV, err := Sm4EncryptCbcWithIV(data, key, iv)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("CBC encryptDataWithIV 16进制 : %x\n", encryptDataWithIV)
 	return nil
 }
 
