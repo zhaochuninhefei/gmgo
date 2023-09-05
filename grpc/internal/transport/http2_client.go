@@ -985,7 +985,7 @@ func (t *http2Client) getStream(f http2.Frame) *Stream {
 // the window.
 func (t *http2Client) adjustWindow(s *Stream, n uint32) {
 	if w := s.fc.maybeAdjust(n); w > 0 {
-		t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id, increment: w})
+		_ = t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id, increment: w})
 	}
 }
 
@@ -994,7 +994,7 @@ func (t *http2Client) adjustWindow(s *Stream, n uint32) {
 // exceeds the corresponding threshold.
 func (t *http2Client) updateWindow(s *Stream, n uint32) {
 	if w := s.fc.onRead(n); w > 0 {
-		t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id, increment: w})
+		_ = t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id, increment: w})
 	}
 }
 
