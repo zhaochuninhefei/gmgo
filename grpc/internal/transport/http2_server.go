@@ -329,7 +329,7 @@ func NewServerTransport(conn net.Conn, config *ServerConfig) (_ ServerTransport,
 				logger.Errorf("transport: loopyWriter.run returning. Err: %v", err)
 			}
 		}
-		t.conn.Close()
+		_ = t.conn.Close()
 		t.controlBuf.finish()
 		close(t.writerDone)
 	}()
