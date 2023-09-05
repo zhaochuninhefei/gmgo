@@ -1173,7 +1173,7 @@ func (t *http2Client) handlePing(f *http2.PingFrame) {
 	}
 	pingAck := &ping{ack: true}
 	copy(pingAck.data[:], f.Data[:])
-	t.controlBuf.put(pingAck)
+	_ = t.controlBuf.put(pingAck)
 }
 
 func (t *http2Client) handleGoAway(f *http2.GoAwayFrame) {
@@ -1214,7 +1214,7 @@ func (t *http2Client) handleGoAway(f *http2.GoAwayFrame) {
 	default:
 		t.setGoAwayReason(f)
 		close(t.goAway)
-		t.controlBuf.put(&incomingGoAway{})
+		_ = t.controlBuf.put(&incomingGoAway{})
 		// Notify the clientconn about the GOAWAY before we set the state to
 		// draining, to allow the client to stop attempting to create streams
 		// before disallowing new streams on this connection.
@@ -1268,7 +1268,7 @@ func (t *http2Client) GetGoAwayReason() (GoAwayReason, string) {
 }
 
 func (t *http2Client) handleWindowUpdate(f *http2.WindowUpdateFrame) {
-	t.controlBuf.put(&incomingWindowUpdate{
+	_ = t.controlBuf.put(&incomingWindowUpdate{
 		streamID:  f.Header().StreamID,
 		increment: f.Increment,
 	})
