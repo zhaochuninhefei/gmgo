@@ -681,7 +681,7 @@ func (t *http2Server) getStream(f http2.Frame) (*Stream, bool) {
 // the window.
 func (t *http2Server) adjustWindow(s *Stream, n uint32) {
 	if w := s.fc.maybeAdjust(n); w > 0 {
-		t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id, increment: w})
+		_ = t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id, increment: w})
 	}
 
 }
