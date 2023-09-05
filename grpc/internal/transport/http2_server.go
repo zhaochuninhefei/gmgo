@@ -282,7 +282,7 @@ func NewServerTransport(conn net.Conn, config *ServerConfig) (_ ServerTransport,
 
 	t.connectionID = atomic.AddUint64(&serverConnectionCounter, 1)
 
-	t.framer.writer.Flush()
+	_ = t.framer.writer.Flush()
 
 	defer func() {
 		if err != nil {
