@@ -1038,7 +1038,7 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 	// inactive streams.
 	//
 	if w := t.fc.onData(size); w > 0 {
-		t.controlBuf.put(&outgoingWindowUpdate{
+		_ = t.controlBuf.put(&outgoingWindowUpdate{
 			streamID:  0,
 			increment: w,
 		})
@@ -1048,13 +1048,13 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 		// by sending a window update prior to the BDP ping.
 
 		if w := t.fc.reset(); w > 0 {
-			t.controlBuf.put(&outgoingWindowUpdate{
+			_ = t.controlBuf.put(&outgoingWindowUpdate{
 				streamID:  0,
 				increment: w,
 			})
 		}
 
-		t.controlBuf.put(bdpPing)
+		_ = t.controlBuf.put(bdpPing)
 	}
 	// Select the right stream to dispatch.
 	s := t.getStream(f)
@@ -1068,7 +1068,7 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 		}
 		if f.Header().Flags.Has(http2.FlagDataPadded) {
 			if w := s.fc.onRead(size - uint32(len(f.Data()))); w > 0 {
-				t.controlBuf.put(&outgoingWindowUpdate{s.id, w})
+				_ = t.controlBuf.put(&outgoingWindowUpdate{s.id, w})
 			}
 		}
 		// TODO(bradfitz, zhaoq): A copy is required here because there is no
