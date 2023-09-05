@@ -218,7 +218,7 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 	// Any further errors will close the underlying connection
 	defer func(conn net.Conn) {
 		if err != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 	}(conn)
 	kp := opts.KeepaliveParams
@@ -258,9 +258,9 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		// boolean as the deadline will return the zero value, which will make
 		// the conn not timeout on I/O operations.
 		deadline, _ := connectCtx.Deadline()
-		rawConn.SetDeadline(deadline)
+		_ = rawConn.SetDeadline(deadline)
 		conn, authInfo, err = transportCreds.ClientHandshake(connectCtx, addr.ServerName, rawConn)
-		rawConn.SetDeadline(time.Time{})
+		_ = rawConn.SetDeadline(time.Time{})
 		if err != nil {
 			return nil, connectionErrorf(isTemporary(err), err, "transport: authentication handshake failed: %v", err)
 		}
@@ -420,7 +420,7 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		}
 		// Do not close the transport.  Let reader goroutine handle it since
 		// there might be data in the buffers.
-		t.conn.Close()
+		_ = t.conn.Close()
 		t.controlBuf.finish()
 		close(t.writerDone)
 	}()
@@ -862,7 +862,7 @@ func (t *http2Client) closeStream(s *Stream, err error, rst bool, rstCode http2.
 		}
 		return true
 	}
-	t.controlBuf.executeAndPut(addBackStreamQuota, cleanup)
+	_, _ = t.controlBuf.executeAndPut(addBackStreamQuota, cleanup)
 	// This will unblock write.
 	close(s.done)
 	if s.doneFunc != nil {
@@ -898,7 +898,7 @@ func (t *http2Client) Close(err error) {
 	t.mu.Unlock()
 	t.controlBuf.finish()
 	t.cancel()
-	t.conn.Close()
+	_ = t.conn.Close()
 	if channelz.IsOn() {
 		channelz.RemoveEntry(t.channelzID)
 	}
@@ -945,7 +945,7 @@ func (t *http2Client) GracefulClose() {
 		t.Close(ErrConnClosing)
 		return
 	}
-	t.controlBuf.put(&incomingGoAway{})
+	_ = t.controlBuf.put(&incomingGoAway{})
 }
 
 // Write formats the data into HTTP2 data frame(s) and sends it out. The caller
