@@ -616,7 +616,7 @@ func (t *http2Server) HandleStreams(handle func(*Stream), traceCtx func(context.
 				if s != nil {
 					t.closeStream(s, true, se.Code, false)
 				} else {
-					t.controlBuf.put(&cleanupStream{
+					_ = t.controlBuf.put(&cleanupStream{
 						streamID: se.StreamID,
 						rst:      true,
 						rstCode:  se.Code,
