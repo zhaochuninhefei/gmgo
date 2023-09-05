@@ -707,11 +707,11 @@ func (t *http2Server) updateFlowControl(n uint32) {
 	}
 	t.initialWindowSize = int32(n)
 	t.mu.Unlock()
-	t.controlBuf.put(&outgoingWindowUpdate{
+	_ = t.controlBuf.put(&outgoingWindowUpdate{
 		streamID:  0,
 		increment: t.fc.newLimit(n),
 	})
-	t.controlBuf.put(&outgoingSettings{
+	_ = t.controlBuf.put(&outgoingSettings{
 		ss: []http2.Setting{
 			{
 				ID:  http2.SettingInitialWindowSize,
