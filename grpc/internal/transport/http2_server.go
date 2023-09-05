@@ -691,7 +691,7 @@ func (t *http2Server) adjustWindow(s *Stream, n uint32) {
 // the cumulative quota exceeds the corresponding threshold.
 func (t *http2Server) updateWindow(s *Stream, n uint32) {
 	if w := s.fc.onRead(n); w > 0 {
-		t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id,
+		_ = t.controlBuf.put(&outgoingWindowUpdate{streamID: s.id,
 			increment: w,
 		})
 	}
