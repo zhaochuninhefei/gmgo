@@ -326,6 +326,9 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		bufferPool:            newBufferPool(),
 	}
 
+	// 虽然 Metadata 已被废弃，推荐使用 Attributes 代替，
+	// 但这里无法直接修改，因为赋值的目标变量t的类型 http2Client 中依然存在 metadata.MD 类型的字段。
+	//goland:noinspection GoDeprecation
 	if md, ok := addr.Metadata.(*metadata.MD); ok {
 		t.md = *md
 	} else if md := imetadata.Get(addr); md != nil {
