@@ -1481,7 +1481,7 @@ func (t *http2Client) reader() {
 		t.Close(err) // this kicks off resetTransport, so must be last before return
 		return
 	}
-	t.conn.SetReadDeadline(time.Time{}) // reset deadline once we get the settings frame (we didn't time out, yay!)
+	_ = t.conn.SetReadDeadline(time.Time{}) // reset deadline once we get the settings frame (we didn't time out, yay!)
 	if t.keepaliveEnabled {
 		atomic.StoreInt64(&t.lastRead, time.Now().UnixNano())
 	}
@@ -1617,7 +1617,7 @@ func (t *http2Client) keepalive() {
 				if channelz.IsOn() {
 					atomic.AddInt64(&t.czData.kpCount, 1)
 				}
-				t.controlBuf.put(p)
+				_ = t.controlBuf.put(p)
 				timeoutLeft = t.kp.Timeout
 				outstandingPing = true
 			}
@@ -1685,7 +1685,7 @@ func (t *http2Client) getOutFlowWindow() int64 {
 	resp := make(chan uint32, 1)
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
-	t.controlBuf.put(&outFlowControlSizeRequest{resp})
+	_ = t.controlBuf.put(&outFlowControlSizeRequest{resp})
 	select {
 	case sz := <-resp:
 		return int64(sz)
