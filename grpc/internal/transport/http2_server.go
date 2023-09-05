@@ -737,7 +737,7 @@ func (t *http2Server) handleData(f *http2.DataFrame) {
 	// active(fast) streams from starving in presence of slow or
 	// inactive streams.
 	if w := t.fc.onData(size); w > 0 {
-		t.controlBuf.put(&outgoingWindowUpdate{
+		_ = t.controlBuf.put(&outgoingWindowUpdate{
 			streamID:  0,
 			increment: w,
 		})
@@ -746,7 +746,7 @@ func (t *http2Server) handleData(f *http2.DataFrame) {
 		// Avoid excessive ping detection (e.g. in an L7 proxy)
 		// by sending a window update prior to the BDP ping.
 		if w := t.fc.reset(); w > 0 {
-			t.controlBuf.put(&outgoingWindowUpdate{
+			_ = t.controlBuf.put(&outgoingWindowUpdate{
 				streamID:  0,
 				increment: w,
 			})
@@ -769,7 +769,7 @@ func (t *http2Server) handleData(f *http2.DataFrame) {
 		}
 		if f.Header().Flags.Has(http2.FlagDataPadded) {
 			if w := s.fc.onRead(size - uint32(len(f.Data()))); w > 0 {
-				t.controlBuf.put(&outgoingWindowUpdate{s.id, w})
+				_ = t.controlBuf.put(&outgoingWindowUpdate{s.id, w})
 			}
 		}
 		// TODO(bradfitz, zhaoq): A copy is required here because there is no
