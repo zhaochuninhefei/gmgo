@@ -1121,7 +1121,7 @@ func (t *http2Client) handleSettings(f *http2.SettingsFrame, isFirst bool) {
 	var maxStreams *uint32
 	var ss []http2.Setting
 	var updateFuncs []func()
-	f.ForeachSetting(func(s http2.Setting) error {
+	_ = f.ForeachSetting(func(s http2.Setting) error {
 		switch s.ID {
 		case http2.SettingMaxConcurrentStreams:
 			maxStreams = new(uint32)
@@ -1155,7 +1155,7 @@ func (t *http2Client) handleSettings(f *http2.SettingsFrame, isFirst bool) {
 		}
 		updateFuncs = append(updateFuncs, updateStreamQuota)
 	}
-	t.controlBuf.executeAndPut(func(interface{}) bool {
+	_, _ = t.controlBuf.executeAndPut(func(interface{}) bool {
 		for _, f := range updateFuncs {
 			f()
 		}
