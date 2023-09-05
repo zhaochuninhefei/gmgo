@@ -179,7 +179,7 @@ func BenchmarkHash8K_SH256(b *testing.B) {
 }
 
 func TestSm3(t *testing.T) {
-	msg := []byte("天行健君子以自强不息")
+	msg := []byte("先天下之忧而忧，后天下之乐而乐！")
 	// 生成msg文件
 	err := ioutil.WriteFile("testdata/msg", msg, os.FileMode(0644))
 	if err != nil {
