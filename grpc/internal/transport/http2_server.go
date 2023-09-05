@@ -348,7 +348,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	// frame.Truncated is set to true when framer detects that the current header
 	// list size hits MaxHeaderListSize limit.
 	if frame.Truncated {
-		t.controlBuf.put(&cleanupStream{
+		_ = t.controlBuf.put(&cleanupStream{
 			streamID: streamID,
 			rst:      true,
 			rstCode:  http2.ErrCodeFrameSize,
@@ -439,7 +439,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 		if logger.V(logLevel) {
 			logger.Errorf("transport: %v", errMsg)
 		}
-		t.controlBuf.put(&earlyAbortStream{
+		_ = t.controlBuf.put(&earlyAbortStream{
 			httpStatus:     400,
 			streamID:       streamID,
 			contentSubtype: s.contentSubtype,
@@ -449,7 +449,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	}
 
 	if !isGRPC || headerError {
-		t.controlBuf.put(&cleanupStream{
+		_ = t.controlBuf.put(&cleanupStream{
 			streamID: streamID,
 			rst:      true,
 			rstCode:  http2.ErrCodeProtocol,
@@ -506,7 +506,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 	}
 	if uint32(len(t.activeStreams)) >= t.maxStreams {
 		t.mu.Unlock()
-		t.controlBuf.put(&cleanupStream{
+		_ = t.controlBuf.put(&cleanupStream{
 			streamID: streamID,
 			rst:      true,
 			rstCode:  http2.ErrCodeRefusedStream,
@@ -520,7 +520,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 		if logger.V(logLevel) {
 			logger.Infof("transport: http2Server.operateHeaders parsed a :method field: %v which should be POST", httpMethod)
 		}
-		t.controlBuf.put(&cleanupStream{
+		_ = t.controlBuf.put(&cleanupStream{
 			streamID: streamID,
 			rst:      true,
 			rstCode:  http2.ErrCodeProtocol,
@@ -540,7 +540,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 			if !ok {
 				stat = status.New(codes.PermissionDenied, err.Error())
 			}
-			t.controlBuf.put(&earlyAbortStream{
+			_ = t.controlBuf.put(&earlyAbortStream{
 				httpStatus:     200,
 				streamID:       s.id,
 				contentSubtype: s.contentSubtype,
@@ -588,7 +588,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 		},
 	}
 	// Register the stream with loopy.
-	t.controlBuf.put(&registerStream{
+	_ = t.controlBuf.put(&registerStream{
 		streamID: s.id,
 		wq:       s.wq,
 	})
