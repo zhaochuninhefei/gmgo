@@ -682,7 +682,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 			if state := t.state; state != reachable {
 				t.mu.Unlock()
 				// Do a quick cleanup.
-				err := error(errStreamDrain)
+				err := errStreamDrain
 				if state == closing {
 					err = ErrConnClosing
 				}
