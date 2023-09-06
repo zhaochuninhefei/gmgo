@@ -796,7 +796,7 @@ func (t *http2Server) handleRSTStream(f *http2.RSTStreamFrame) {
 		return
 	}
 	// If the stream is already deleted from the active streams map, then put a cleanupStream item into controlbuf to delete the stream from loopy writer's established streams map.
-	t.controlBuf.put(&cleanupStream{
+	_ = t.controlBuf.put(&cleanupStream{
 		streamID: f.Header().StreamID,
 		rst:      false,
 		rstCode:  0,
