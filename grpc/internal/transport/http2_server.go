@@ -1323,7 +1323,7 @@ func (t *http2Server) outgoingGoAwayHandler(g *goAway) (bool, error) {
 		if g.closeConn {
 			// Abruptly close the connection following the GoAway (via
 			// loopywriter).  But flush out what's inside the buffer first.
-			t.framer.writer.Flush()
+			_ = t.framer.writer.Flush()
 			return false, fmt.Errorf("transport: Connection closing")
 		}
 		return true, nil
@@ -1351,7 +1351,7 @@ func (t *http2Server) outgoingGoAwayHandler(g *goAway) (bool, error) {
 		case <-t.done:
 			return
 		}
-		t.controlBuf.put(&goAway{code: g.code, debugData: g.debugData})
+		_ = t.controlBuf.put(&goAway{code: g.code, debugData: g.debugData})
 	}()
 	return false, nil
 }
