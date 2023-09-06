@@ -751,7 +751,7 @@ func (t *http2Server) handleData(f *http2.DataFrame) {
 				increment: w,
 			})
 		}
-		t.controlBuf.put(bdpPing)
+		_ = t.controlBuf.put(bdpPing)
 	}
 	// Select the right stream to dispatch.
 	s, ok := t.getStream(f)
