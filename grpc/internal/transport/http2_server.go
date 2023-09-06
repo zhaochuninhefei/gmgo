@@ -810,7 +810,7 @@ func (t *http2Server) handleSettings(f *http2.SettingsFrame) {
 	}
 	var ss []http2.Setting
 	var updateFuncs []func()
-	f.ForeachSetting(func(s http2.Setting) error {
+	_ = f.ForeachSetting(func(s http2.Setting) error {
 		switch s.ID {
 		case http2.SettingMaxHeaderListSize:
 			updateFuncs = append(updateFuncs, func() {
@@ -822,7 +822,7 @@ func (t *http2Server) handleSettings(f *http2.SettingsFrame) {
 		}
 		return nil
 	})
-	t.controlBuf.executeAndPut(func(interface{}) bool {
+	_, _ = t.controlBuf.executeAndPut(func(interface{}) bool {
 		for _, f := range updateFuncs {
 			f()
 		}
