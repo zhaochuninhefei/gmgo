@@ -1265,7 +1265,7 @@ func (t *http2Server) finishStream(s *Stream, rst bool, rstCode http2.ErrCode, h
 			t.deleteStream(s, eosReceived)
 		},
 	}
-	t.controlBuf.put(hdr)
+	_ = t.controlBuf.put(hdr)
 }
 
 // closeStream clears the footprint of a stream when the stream is not needed any more.
