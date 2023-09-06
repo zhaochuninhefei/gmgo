@@ -1176,7 +1176,7 @@ func (t *http2Server) keepalive() {
 				if channelz.IsOn() {
 					atomic.AddInt64(&t.czData.kpCount, 1)
 				}
-				t.controlBuf.put(p)
+				_ = t.controlBuf.put(p)
 				kpTimeoutLeft = t.kp.Timeout
 				outstandingPing = true
 			}
