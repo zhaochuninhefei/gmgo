@@ -851,7 +851,7 @@ func (t *http2Server) handlePing(f *http2.PingFrame) {
 	}
 	pingAck := &ping{ack: true}
 	copy(pingAck.data[:], f.Data[:])
-	t.controlBuf.put(pingAck)
+	_ = t.controlBuf.put(pingAck)
 
 	now := time.Now()
 	defer func() {
@@ -885,7 +885,7 @@ func (t *http2Server) handlePing(f *http2.PingFrame) {
 		if logger.V(logLevel) {
 			logger.Errorf("transport: Got too many pings from the client, closing the connection.")
 		}
-		t.controlBuf.put(&goAway{code: http2.ErrCodeEnhanceYourCalm, debugData: []byte("too_many_pings"), closeConn: true})
+		_ = t.controlBuf.put(&goAway{code: http2.ErrCodeEnhanceYourCalm, debugData: []byte("too_many_pings"), closeConn: true})
 	}
 }
 
