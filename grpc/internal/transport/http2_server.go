@@ -1394,7 +1394,7 @@ func (t *http2Server) getOutFlowWindow() int64 {
 	resp := make(chan uint32, 1)
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
-	t.controlBuf.put(&outFlowControlSizeRequest{resp})
+	_ = t.controlBuf.put(&outFlowControlSizeRequest{resp})
 	select {
 	case sz := <-resp:
 		return int64(sz)
