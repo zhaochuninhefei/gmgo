@@ -1273,7 +1273,7 @@ func (t *http2Server) closeStream(s *Stream, rst bool, rstCode http2.ErrCode, eo
 	s.swapState(streamDone)
 	t.deleteStream(s, eosReceived)
 
-	t.controlBuf.put(&cleanupStream{
+	_ = t.controlBuf.put(&cleanupStream{
 		streamID: s.id,
 		rst:      rst,
 		rstCode:  rstCode,
