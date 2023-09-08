@@ -673,6 +673,7 @@ func (s) TestTCPUserTimeout(t *testing.T) {
 				},
 			},
 		)
+		//goland:noinspection GoDeferInLoop
 		defer func() {
 			client.Close(fmt.Errorf("closed manually by test"))
 			server.stop()
@@ -680,6 +681,7 @@ func (s) TestTCPUserTimeout(t *testing.T) {
 		}()
 
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 		stream, err := client.NewStream(ctx, &CallHdr{})
 		if err != nil {
