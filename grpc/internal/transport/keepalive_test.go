@@ -266,7 +266,9 @@ func (s) TestKeepaliveClientClosesUnresponsiveServer(t *testing.T) {
 	if !ok {
 		t.Fatalf("Server didn't return connection object")
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	// Sleep for keepalive to close the connection.
 	time.Sleep(4 * time.Second)
