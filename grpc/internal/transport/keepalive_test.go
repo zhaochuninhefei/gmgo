@@ -330,7 +330,9 @@ func (s) TestKeepaliveClientClosesWithActiveStreams(t *testing.T) {
 	if !ok {
 		t.Fatalf("Server didn't return connection object")
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
