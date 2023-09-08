@@ -180,7 +180,9 @@ func (s) TestKeepaliveServerClosesUnresponsiveClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.Dial(tcp, %v) failed: %v", addr, err)
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	if n, err := conn.Write(clientPreface); err != nil || n != len(clientPreface) {
 		t.Fatalf("conn.Write(clientPreface) failed: n=%v, err=%v", n, err)
@@ -189,7 +191,7 @@ func (s) TestKeepaliveServerClosesUnresponsiveClient(t *testing.T) {
 	if err := framer.fr.WriteSettings(http2.Setting{}); err != nil {
 		t.Fatal("framer.WriteSettings(http2.Setting{}) failed:", err)
 	}
-	framer.writer.Flush()
+	_ = framer.writer.Flush()
 
 	// We read from the net.Conn till we get an error, which is expected when
 	// the server closes the connection as part of the keepalive logic.
