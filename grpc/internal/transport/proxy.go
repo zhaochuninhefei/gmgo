@@ -46,11 +46,11 @@ func mapAddress(address string) (*url.URL, error) {
 			Host:   address,
 		},
 	}
-	url, err := httpProxyFromEnvironment(req)
+	proxyUrl, err := httpProxyFromEnvironment(req)
 	if err != nil {
 		return nil, err
 	}
-	return url, nil
+	return proxyUrl, nil
 }
 
 // To read a response from a net.Conn, http.ReadResponse() takes a bufio.Reader.
