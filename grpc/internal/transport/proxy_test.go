@@ -73,8 +73,8 @@ func (p *proxyServer) run() {
 	}
 	if err := p.requestCheck(req); err != nil {
 		resp := http.Response{StatusCode: http.StatusMethodNotAllowed}
-		resp.Write(p.in)
-		p.in.Close()
+		_ = resp.Write(p.in)
+		_ = p.in.Close()
 		p.t.Errorf("get wrong CONNECT req: %+v, error: %v", req, err)
 		return
 	}
@@ -85,10 +85,14 @@ func (p *proxyServer) run() {
 		return
 	}
 	resp := http.Response{StatusCode: http.StatusOK, Proto: "HTTP/1.0"}
-	resp.Write(p.in)
+	_ = resp.Write(p.in)
 	p.out = out
-	go io.Copy(p.in, p.out)
-	go io.Copy(p.out, p.in)
+	go func() {
+		_, _ = io.Copy(p.in, p.out)
+	}()
+	go func() {
+		_, _ = io.Copy(p.out, p.in)
+	}()
 }
 
 func (p *proxyServer) stop() {
