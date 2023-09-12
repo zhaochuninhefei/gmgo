@@ -96,12 +96,12 @@ func (p *proxyServer) run() {
 }
 
 func (p *proxyServer) stop() {
-	p.lis.Close()
+	_ = p.lis.Close()
 	if p.in != nil {
-		p.in.Close()
+		_ = p.in.Close()
 	}
 	if p.out != nil {
-		p.out.Close()
+		_ = p.out.Close()
 	}
 }
 
