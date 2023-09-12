@@ -132,8 +132,10 @@ func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxy
 			done <- err
 			return
 		}
-		defer in.Close()
-		in.Read(recvBuf)
+		defer func(in net.Conn) {
+			_ = in.Close()
+		}(in)
+		_, _ = in.Read(recvBuf)
 		done <- nil
 	}()
 
@@ -150,10 +152,12 @@ func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxy
 	if err != nil {
 		t.Fatalf("http connect Dial failed: %v", err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 
 	// Send msg on the connection.
-	c.Write(msg)
+	_, _ = c.Write(msg)
 	if err := <-done; err != nil {
 		t.Fatalf("failed to accept: %v", err)
 	}
