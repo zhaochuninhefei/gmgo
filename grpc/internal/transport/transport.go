@@ -759,6 +759,7 @@ var (
 // GoAwayReason contains the reason for the GoAway frame received.
 type GoAwayReason uint8
 
+//goland:noinspection GoUnusedConst
 const (
 	// GoAwayInvalid indicates that no GoAway frame is received.
 	GoAwayInvalid GoAwayReason = 0
