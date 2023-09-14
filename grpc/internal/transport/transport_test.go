@@ -452,7 +452,9 @@ func setUpWithNoPingServer(t *testing.T, copts ConnectOptions, connCh chan net.C
 	}
 	// Launch a non responsive server.
 	go func() {
-		defer lis.Close()
+		defer func(lis net.Listener) {
+			_ = lis.Close()
+		}(lis)
 		conn, err := lis.Accept()
 		if err != nil {
 			t.Errorf("Error at server-side while accepting: %v", err)
@@ -466,9 +468,9 @@ func setUpWithNoPingServer(t *testing.T, copts ConnectOptions, connCh chan net.C
 	if err != nil {
 		cancel() // Do not cancel in success path.
 		// Server clean-up.
-		lis.Close()
+		_ = lis.Close()
 		if conn, ok := <-connCh; ok {
-			conn.Close()
+			_ = conn.Close()
 		}
 		t.Fatalf("Failed to dial: %v", err)
 	}
