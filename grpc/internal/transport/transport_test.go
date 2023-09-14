@@ -167,7 +167,7 @@ func (h *testStreamHandler) handleStreamMisbehave(t *testing.T, s *Stream) {
 	conn, ok := s.st.(*http2Server)
 	if !ok {
 		t.Errorf("Failed to convert %v to *http2Server", s.st)
-		h.t.WriteStatus(s, status.New(codes.Internal, ""))
+		_ = h.t.WriteStatus(s, status.New(codes.Internal, ""))
 		return
 	}
 	var sent int
@@ -185,7 +185,7 @@ func (h *testStreamHandler) handleStreamMisbehave(t *testing.T, s *Stream) {
 				p = make([]byte, n+1)
 			}
 		}
-		conn.controlBuf.put(&dataFrame{
+		_ = conn.controlBuf.put(&dataFrame{
 			streamID:    s.id,
 			h:           nil,
 			d:           p,
