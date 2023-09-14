@@ -1169,8 +1169,8 @@ func (s) TestServerWithMisbehavedClient(t *testing.T) {
 				framer.WritePing(true, frame.Data)
 				mu.Unlock()
 			case *http2.RSTStreamFrame:
-				if frame.Header().StreamID != 1 || http2.ErrCode(frame.ErrCode) != http2.ErrCodeFlowControl {
-					t.Errorf("RST stream received with streamID: %d and code: %v, want streamID: 1 and code: http2.ErrCodeFlowControl", frame.Header().StreamID, http2.ErrCode(frame.ErrCode))
+				if frame.Header().StreamID != 1 || frame.ErrCode != http2.ErrCodeFlowControl {
+					t.Errorf("RST stream received with streamID: %d and code: %v, want streamID: 1 and code: http2.ErrCodeFlowControl", frame.Header().StreamID, frame.ErrCode)
 				}
 				close(success)
 				return
@@ -1285,8 +1285,8 @@ func (s) TestClientWithMisbehavedServer(t *testing.T) {
 					}
 				}()
 			case *http2.RSTStreamFrame:
-				if frame.Header().StreamID != 1 || http2.ErrCode(frame.ErrCode) != http2.ErrCodeFlowControl {
-					t.Errorf("RST stream received with streamID: %d and code: %v, want streamID: 1 and code: http2.ErrCodeFlowControl", frame.Header().StreamID, http2.ErrCode(frame.ErrCode))
+				if frame.Header().StreamID != 1 || frame.ErrCode != http2.ErrCodeFlowControl {
+					t.Errorf("RST stream received with streamID: %d and code: %v, want streamID: 1 and code: http2.ErrCodeFlowControl", frame.Header().StreamID, frame.ErrCode)
 				}
 				close(success)
 				return
@@ -1764,9 +1764,9 @@ func (s) TestHeadersCausingStreamError(t *testing.T) {
 					case *http2.SettingsFrame:
 						// Do nothing. A settings frame is expected from server preface.
 					case *http2.RSTStreamFrame:
-						if frame.Header().StreamID != 1 || http2.ErrCode(frame.ErrCode) != http2.ErrCodeProtocol {
+						if frame.Header().StreamID != 1 || frame.ErrCode != http2.ErrCodeProtocol {
 							// Client only created a single stream, so RST Stream should be for that single stream.
-							result.Send(fmt.Errorf("RST stream received with streamID: %d and code %v, want streamID: 1 and code: http.ErrCodeFlowControl", frame.Header().StreamID, http2.ErrCode(frame.ErrCode)))
+							result.Send(fmt.Errorf("RST stream received with streamID: %d and code %v, want streamID: 1 and code: http.ErrCodeFlowControl", frame.Header().StreamID, frame.ErrCode))
 						}
 						// Records that client successfully received RST Stream frame.
 						result.Send(nil)
