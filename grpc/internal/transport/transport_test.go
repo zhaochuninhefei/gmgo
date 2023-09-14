@@ -585,9 +585,9 @@ func performOneRPC(ct ClientTransport) {
 		//
 		// Read response
 		p := make([]byte, len(expectedResponse))
-		s.Read(p)
+		_, _ = s.Read(p)
 		// Read io.EOF
-		s.Read(p)
+		_, _ = s.Read(p)
 	}
 }
 
