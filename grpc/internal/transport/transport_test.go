@@ -1566,7 +1566,7 @@ func testFlowControlAccountCheck(t *testing.T, msgSize int, wc windowSizeConfig)
 	st.mu.Unlock()
 	// Close all streams
 	for _, stream := range clientStreams {
-		client.Write(stream, nil, nil, &Options{Last: true})
+		_ = client.Write(stream, nil, nil, &Options{Last: true})
 		if _, err := stream.Read(make([]byte, 5)); err != io.EOF {
 			t.Fatalf("Client expected an EOF from the server. Got: %v", err)
 		}
