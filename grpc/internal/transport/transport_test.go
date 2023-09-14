@@ -99,6 +99,7 @@ const (
 	pingpong
 )
 
+//goland:noinspection GoUnusedParameter
 func (h *testStreamHandler) handleStreamAndNotify(s *Stream) {
 	if h.notify == nil {
 		return
