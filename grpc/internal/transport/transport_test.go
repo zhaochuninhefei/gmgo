@@ -157,7 +157,7 @@ func (h *testStreamHandler) handleStreamPingPong(t *testing.T, s *Stream) {
 		}
 		buf := make([]byte, sz+5)
 		buf[0] = byte(0)
-		binary.BigEndian.PutUint32(buf[1:], uint32(sz))
+		binary.BigEndian.PutUint32(buf[1:], sz)
 		copy(buf[5:], msg)
 		h.t.Write(s, nil, buf, &Options{})
 	}
