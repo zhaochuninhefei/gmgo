@@ -201,7 +201,7 @@ func (h *testStreamHandler) handleStreamEncodingRequiredStatus(s *Stream) {
 }
 
 func (h *testStreamHandler) handleStreamInvalidHeaderField(s *Stream) {
-	headerFields := []hpack.HeaderField{}
+	var headerFields []hpack.HeaderField
 	headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: expectedInvalidHeaderField})
 	h.t.controlBuf.put(&headerFrame{
 		streamID:  s.id,
@@ -856,7 +856,7 @@ func (s) TestMaxStreams(t *testing.T) {
 	}
 	// Keep creating streams until one fails with deadline exceeded, marking the application
 	// of server settings on client.
-	slist := []*Stream{}
+	var slist []*Stream
 	pctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	timer := time.NewTimer(time.Second * 10)
