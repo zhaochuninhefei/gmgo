@@ -2019,7 +2019,7 @@ func runPingPongTest(t *testing.T, msgSize int) {
 	for {
 		select {
 		case <-done:
-			client.Write(stream, nil, nil, &Options{Last: true})
+			_ = client.Write(stream, nil, nil, &Options{Last: true})
 			if _, err := stream.Read(incomingHeader); err != io.EOF {
 				t.Fatalf("Client expected EOF from the server. Got: %v", err)
 			}
