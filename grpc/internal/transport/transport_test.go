@@ -141,25 +141,25 @@ func (h *testStreamHandler) handleStreamPingPong(t *testing.T, s *Stream) {
 	for {
 		if _, err := s.Read(header); err != nil {
 			if err == io.EOF {
-				h.t.WriteStatus(s, status.New(codes.OK, ""))
+				_ = h.t.WriteStatus(s, status.New(codes.OK, ""))
 				return
 			}
 			t.Errorf("Error on server while reading data header: %v", err)
-			h.t.WriteStatus(s, status.New(codes.Internal, "panic"))
+			_ = h.t.WriteStatus(s, status.New(codes.Internal, "panic"))
 			return
 		}
 		sz := binary.BigEndian.Uint32(header[1:])
 		msg := make([]byte, int(sz))
 		if _, err := s.Read(msg); err != nil {
 			t.Errorf("Error on server while reading message: %v", err)
-			h.t.WriteStatus(s, status.New(codes.Internal, "panic"))
+			_ = h.t.WriteStatus(s, status.New(codes.Internal, "panic"))
 			return
 		}
 		buf := make([]byte, sz+5)
 		buf[0] = byte(0)
 		binary.BigEndian.PutUint32(buf[1:], sz)
 		copy(buf[5:], msg)
-		h.t.Write(s, nil, buf, &Options{})
+		_ = h.t.Write(s, nil, buf, &Options{})
 	}
 }
 
