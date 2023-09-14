@@ -406,7 +406,7 @@ func (s *server) wait(t *testing.T, timeout time.Duration) {
 }
 
 func (s *server) stop() {
-	s.lis.Close()
+	_ = s.lis.Close()
 	s.mu.Lock()
 	for c := range s.conns {
 		c.Close()
