@@ -746,7 +746,7 @@ func (s) TestGracefulClose(t *testing.T) {
 	defer func() {
 		// Stop the server's listener to make the server's goroutines terminate
 		// (after the last active stream is done).
-		server.lis.Close()
+		_ = server.lis.Close()
 		// Check for goroutine leaks (i.e. GracefulClose with an active stream
 		// doesn't eventually close the connection when that stream completes).
 		leakcheck.Check(t)
@@ -789,13 +789,13 @@ func (s) TestGracefulClose(t *testing.T) {
 				t.Errorf("_.NewStream(_, _) = _, %v, want _, %v", err, ErrConnClosing)
 				return
 			}
-			ct.Write(str, nil, nil, &Options{Last: true})
+			_ = ct.Write(str, nil, nil, &Options{Last: true})
 			if _, err := str.Read(make([]byte, 8)); err != errStreamDrain && err != ErrConnClosing {
 				t.Errorf("_.Read(_) = _, %v, want _, %v or %v", err, errStreamDrain, ErrConnClosing)
 			}
 		}()
 	}
-	ct.Write(s, nil, nil, &Options{Last: true})
+	_ = ct.Write(s, nil, nil, &Options{Last: true})
 	if _, err := s.Read(incomingHeader); err != io.EOF {
 		t.Fatalf("Client expected EOF from the server. Got: %v", err)
 	}
