@@ -1144,7 +1144,9 @@ func (s) TestServerWithMisbehavedClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Clent failed to dial:%v", err)
 	}
-	defer mconn.Close()
+	defer func(mconn net.Conn) {
+		_ = mconn.Close()
+	}(mconn)
 	if err := mconn.SetWriteDeadline(time.Now().Add(time.Second * 10)); err != nil {
 		t.Fatalf("Failed to set write deadline: %v", err)
 	}
@@ -1168,7 +1170,7 @@ func (s) TestServerWithMisbehavedClient(t *testing.T) {
 			case *http2.PingFrame:
 				// Write ping ack back so that server's BDP estimation works right.
 				mu.Lock()
-				framer.WritePing(true, frame.Data)
+				_ = framer.WritePing(true, frame.Data)
 				mu.Unlock()
 			case *http2.RSTStreamFrame:
 				if frame.Header().StreamID != 1 || frame.ErrCode != http2.ErrCodeFlowControl {
