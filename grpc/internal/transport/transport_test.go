@@ -1244,7 +1244,9 @@ func (s) TestClientWithMisbehavedServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error while listening: %v", err)
 	}
-	defer lis.Close()
+	defer func(lis net.Listener) {
+		_ = lis.Close()
+	}(lis)
 	// success chan indicates that the server received
 	// RSTStream from the client.
 	success := make(chan struct{})
@@ -1254,7 +1256,9 @@ func (s) TestClientWithMisbehavedServer(t *testing.T) {
 			t.Errorf("Error while accepting: %v", err)
 			return
 		}
-		defer sconn.Close()
+		defer func(sconn net.Conn) {
+			_ = sconn.Close()
+		}(sconn)
 		if _, err := io.ReadFull(sconn, make([]byte, len(clientPreface))); err != nil {
 			t.Errorf("Error while reading clieng preface: %v", err)
 			return
@@ -1296,7 +1300,7 @@ func (s) TestClientWithMisbehavedServer(t *testing.T) {
 				return
 			case *http2.PingFrame:
 				mu.Lock()
-				sfr.WritePing(true, frame.Data)
+				_ = sfr.WritePing(true, frame.Data)
 				mu.Unlock()
 			default:
 			}
