@@ -870,6 +870,7 @@ func (s) TestMaxStreams(t *testing.T) {
 		ctx, cancel := context.WithDeadline(pctx, time.Now().Add(time.Second))
 		// This is only to get rid of govet. All these context are based on a base
 		// context which is canceled at the end of the test.
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 		if str, err := ct.NewStream(ctx, callHdr); err == nil {
 			slist = append(slist, str)
