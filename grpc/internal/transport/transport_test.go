@@ -2145,6 +2145,7 @@ type attrTransportCreds struct {
 	attr *attributes.Attributes
 }
 
+//goland:noinspection GoUnusedParameter
 func (ac *attrTransportCreds) ClientHandshake(ctx context.Context, addr string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	ai := credentials.ClientHandshakeInfoFromContext(ctx)
 	ac.attr = ai.Attributes
