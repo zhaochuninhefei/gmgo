@@ -127,13 +127,13 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *Stream) {
 	}
 	if !bytes.Equal(p, req) {
 		t.Errorf("handleStream got %v, want %v", p, req)
-		h.t.WriteStatus(s, status.New(codes.Internal, "panic"))
+		_ = h.t.WriteStatus(s, status.New(codes.Internal, "panic"))
 		return
 	}
 	// send a response back to the client.
-	h.t.Write(s, nil, resp, &Options{})
+	_ = h.t.Write(s, nil, resp, &Options{})
 	// send the trailer to end the stream.
-	h.t.WriteStatus(s, status.New(codes.OK, ""))
+	_ = h.t.WriteStatus(s, status.New(codes.OK, ""))
 }
 
 func (h *testStreamHandler) handleStreamPingPong(t *testing.T, s *Stream) {
