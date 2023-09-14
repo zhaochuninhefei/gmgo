@@ -1888,10 +1888,10 @@ func (s) TestHeadersMultipleHosts(t *testing.T) {
 				case *http2.SettingsFrame:
 					// Do nothing. A settings frame is expected from server preface.
 				case *http2.MetaHeadersFrame:
-					var status, grpcStatus, grpcMessage string
+					var resStatus, grpcStatus, grpcMessage string
 					for _, header := range frame.Fields {
 						if header.Name == ":status" {
-							status = header.Value
+							resStatus = header.Value
 						}
 						if header.Name == "grpc-status" {
 							grpcStatus = header.Value
@@ -1900,8 +1900,8 @@ func (s) TestHeadersMultipleHosts(t *testing.T) {
 							grpcMessage = header.Value
 						}
 					}
-					if status != "400" {
-						result.Send(fmt.Errorf("incorrect HTTP Status got %v, want 200", status))
+					if resStatus != "400" {
+						result.Send(fmt.Errorf("incorrect HTTP Status got %v, want 200", resStatus))
 						return
 					}
 					if grpcStatus != "13" { // grpc status code internal
