@@ -203,7 +203,7 @@ func (h *testStreamHandler) handleStreamEncodingRequiredStatus(s *Stream) {
 func (h *testStreamHandler) handleStreamInvalidHeaderField(s *Stream) {
 	var headerFields []hpack.HeaderField
 	headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: expectedInvalidHeaderField})
-	h.t.controlBuf.put(&headerFrame{
+	_ = h.t.controlBuf.put(&headerFrame{
 		streamID:  s.id,
 		hf:        headerFields,
 		endStream: false,
