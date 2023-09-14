@@ -1854,6 +1854,7 @@ func (s) TestHeadersMultipleHosts(t *testing.T) {
 	}
 	for _, test := range tests {
 		server := setUpServerOnly(t, 0, &ServerConfig{}, suspended)
+		//goland:noinspection GoDeferInLoop
 		defer server.stop()
 		// Create a client directly to not tie what you can send to API of
 		// http2_client.go (i.e. control headers being sent).
@@ -1861,6 +1862,7 @@ func (s) TestHeadersMultipleHosts(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Client failed to dial: %v", err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer mconn.Close()
 
 		if n, err := mconn.Write(clientPreface); err != nil || n != len(clientPreface) {
@@ -1942,6 +1944,7 @@ func (s) TestHeadersMultipleHosts(t *testing.T) {
 			t.Fatalf("Error while writing headers: %v", err)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 		r, err := result.Receive(ctx)
 		if err != nil {
