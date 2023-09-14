@@ -2106,7 +2106,7 @@ func (s) TestHeaderTblSize(t *testing.T) {
 		svrTransport = st
 		break
 	}
-	svrTransport.(*http2Server).controlBuf.put(&outgoingSettings{
+	_ = svrTransport.(*http2Server).controlBuf.put(&outgoingSettings{
 		ss: []http2.Setting{
 			{
 				ID:  http2.SettingHeaderTableSize,
@@ -2129,7 +2129,7 @@ func (s) TestHeaderTblSize(t *testing.T) {
 		t.Fatalf("expected len(limits) = 1 within 10s, got != 1")
 	}
 
-	ct.controlBuf.put(&outgoingSettings{
+	_ = ct.controlBuf.put(&outgoingSettings{
 		ss: []http2.Setting{
 			{
 				ID:  http2.SettingHeaderTableSize,
