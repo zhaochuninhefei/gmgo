@@ -1873,7 +1873,9 @@ func (s) TestHeadersMultipleHosts(t *testing.T) {
 			t.Fatalf("Client failed to dial: %v", err)
 		}
 		//goland:noinspection GoDeferInLoop
-		defer mconn.Close()
+		defer func(mconn net.Conn) {
+			_ = mconn.Close()
+		}(mconn)
 
 		if n, err := mconn.Write(clientPreface); err != nil || n != len(clientPreface) {
 			t.Fatalf("mconn.Write(clientPreface) = %d, %v, want %d, <nil>", n, err, len(clientPreface))
