@@ -197,7 +197,7 @@ func (h *testStreamHandler) handleStreamMisbehave(t *testing.T, s *Stream) {
 
 func (h *testStreamHandler) handleStreamEncodingRequiredStatus(s *Stream) {
 	// raw newline is not accepted by http2 framer so it must be encoded.
-	h.t.WriteStatus(s, encodingTestStatus)
+	_ = h.t.WriteStatus(s, encodingTestStatus)
 }
 
 func (h *testStreamHandler) handleStreamInvalidHeaderField(s *Stream) {
