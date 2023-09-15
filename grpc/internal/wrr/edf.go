@@ -49,11 +49,15 @@ type edfEntry struct {
 // edfPriorityQueue is a heap.Interface implementation for edfEntry elements.
 type edfPriorityQueue []*edfEntry
 
-func (pq edfPriorityQueue) Len() int { return len(pq) }
-func (pq edfPriorityQueue) Less(i, j int) bool {
-	return pq[i].deadline < pq[j].deadline || pq[i].deadline == pq[j].deadline && pq[i].orderOffset < pq[j].orderOffset
+func (pq *edfPriorityQueue) Len() int { return len(*pq) }
+func (pq *edfPriorityQueue) Less(i, j int) bool {
+	edf := *pq
+	return edf[i].deadline < edf[j].deadline || edf[i].deadline == edf[j].deadline && edf[i].orderOffset < edf[j].orderOffset
 }
-func (pq edfPriorityQueue) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
+func (pq *edfPriorityQueue) Swap(i, j int) {
+	edf := *pq
+	edf[i], edf[j] = edf[j], edf[i]
+}
 
 func (pq *edfPriorityQueue) Push(x interface{}) {
 	*pq = append(*pq, x.(*edfEntry))
