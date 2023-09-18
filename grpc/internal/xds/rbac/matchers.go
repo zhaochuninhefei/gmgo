@@ -262,27 +262,59 @@ type headerMatcher struct {
 	matcher internalmatcher.HeaderMatcher
 }
 
+//func newHeaderMatcher(headerMatcherConfig *v3route_componentspb.HeaderMatcher) (*headerMatcher, error) {
+//	var m internalmatcher.HeaderMatcher
+//	switch headerMatcherConfig.HeaderMatchSpecifier.(type) {
+//	case *v3route_componentspb.HeaderMatcher_ExactMatch:
+//		m = internalmatcher.NewHeaderExactMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetExactMatch(), headerMatcherConfig.InvertMatch)
+//	case *v3route_componentspb.HeaderMatcher_SafeRegexMatch:
+//		regex, err := regexp.Compile(headerMatcherConfig.GetSafeRegexMatch().Regex)
+//		if err != nil {
+//			return nil, err
+//		}
+//		m = internalmatcher.NewHeaderRegexMatcher(headerMatcherConfig.Name, regex, headerMatcherConfig.InvertMatch)
+//	case *v3route_componentspb.HeaderMatcher_RangeMatch:
+//		m = internalmatcher.NewHeaderRangeMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetRangeMatch().Start, headerMatcherConfig.GetRangeMatch().End, headerMatcherConfig.InvertMatch)
+//	case *v3route_componentspb.HeaderMatcher_PresentMatch:
+//		m = internalmatcher.NewHeaderPresentMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetPresentMatch(), headerMatcherConfig.InvertMatch)
+//	case *v3route_componentspb.HeaderMatcher_PrefixMatch:
+//		m = internalmatcher.NewHeaderPrefixMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetPrefixMatch(), headerMatcherConfig.InvertMatch)
+//	case *v3route_componentspb.HeaderMatcher_SuffixMatch:
+//		m = internalmatcher.NewHeaderSuffixMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetSuffixMatch(), headerMatcherConfig.InvertMatch)
+//	case *v3route_componentspb.HeaderMatcher_ContainsMatch:
+//		m = internalmatcher.NewHeaderContainsMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetContainsMatch(), headerMatcherConfig.InvertMatch)
+//	default:
+//		return nil, errors.New("unknown header matcher type")
+//	}
+//	return &headerMatcher{matcher: m}, nil
+//}
 func newHeaderMatcher(headerMatcherConfig *v3route_componentspb.HeaderMatcher) (*headerMatcher, error) {
 	var m internalmatcher.HeaderMatcher
 	switch headerMatcherConfig.HeaderMatchSpecifier.(type) {
-	case *v3route_componentspb.HeaderMatcher_ExactMatch:
-		m = internalmatcher.NewHeaderExactMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetExactMatch(), headerMatcherConfig.InvertMatch)
-	case *v3route_componentspb.HeaderMatcher_SafeRegexMatch:
-		regex, err := regexp.Compile(headerMatcherConfig.GetSafeRegexMatch().Regex)
-		if err != nil {
-			return nil, err
+	case *v3route_componentspb.HeaderMatcher_StringMatch:
+		stringMatch := headerMatcherConfig.GetStringMatch()
+		switch stringMatch.MatchPattern.(type) {
+		case *v3matcherpb.StringMatcher_Exact:
+			m = internalmatcher.NewHeaderExactMatcher(headerMatcherConfig.Name, stringMatch.GetExact(), headerMatcherConfig.InvertMatch)
+		case *v3matcherpb.StringMatcher_SafeRegex:
+			regex, err := regexp.Compile(stringMatch.GetSafeRegex().Regex)
+			if err != nil {
+				return nil, err
+			}
+			m = internalmatcher.NewHeaderRegexMatcher(headerMatcherConfig.Name, regex, headerMatcherConfig.InvertMatch)
+		case *v3matcherpb.StringMatcher_Prefix:
+			m = internalmatcher.NewHeaderPrefixMatcher(headerMatcherConfig.Name, stringMatch.GetPrefix(), headerMatcherConfig.InvertMatch)
+		case *v3matcherpb.StringMatcher_Suffix:
+			m = internalmatcher.NewHeaderSuffixMatcher(headerMatcherConfig.Name, stringMatch.GetSuffix(), headerMatcherConfig.InvertMatch)
+		case *v3matcherpb.StringMatcher_Contains:
+			m = internalmatcher.NewHeaderContainsMatcher(headerMatcherConfig.Name, stringMatch.GetContains(), headerMatcherConfig.InvertMatch)
+		default:
+			return nil, errors.New("unknown string match pattern type")
 		}
-		m = internalmatcher.NewHeaderRegexMatcher(headerMatcherConfig.Name, regex, headerMatcherConfig.InvertMatch)
 	case *v3route_componentspb.HeaderMatcher_RangeMatch:
 		m = internalmatcher.NewHeaderRangeMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetRangeMatch().Start, headerMatcherConfig.GetRangeMatch().End, headerMatcherConfig.InvertMatch)
 	case *v3route_componentspb.HeaderMatcher_PresentMatch:
 		m = internalmatcher.NewHeaderPresentMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetPresentMatch(), headerMatcherConfig.InvertMatch)
-	case *v3route_componentspb.HeaderMatcher_PrefixMatch:
-		m = internalmatcher.NewHeaderPrefixMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetPrefixMatch(), headerMatcherConfig.InvertMatch)
-	case *v3route_componentspb.HeaderMatcher_SuffixMatch:
-		m = internalmatcher.NewHeaderSuffixMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetSuffixMatch(), headerMatcherConfig.InvertMatch)
-	case *v3route_componentspb.HeaderMatcher_ContainsMatch:
-		m = internalmatcher.NewHeaderContainsMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetContainsMatch(), headerMatcherConfig.InvertMatch)
 	default:
 		return nil, errors.New("unknown header matcher type")
 	}
