@@ -375,7 +375,7 @@ func newRemoteIPMatcher(cidrRange *v3corepb.CidrRange) (*remoteIPMatcher, error)
 }
 
 func (sim *remoteIPMatcher) match(data *rpcData) bool {
-	return sim.ipNet.Contains(net.IP(net.ParseIP(data.peerInfo.Addr.String())))
+	return sim.ipNet.Contains(net.ParseIP(data.peerInfo.Addr.String()))
 }
 
 type localIPMatcher struct {
@@ -392,7 +392,7 @@ func newLocalIPMatcher(cidrRange *v3corepb.CidrRange) (*localIPMatcher, error) {
 }
 
 func (dim *localIPMatcher) match(data *rpcData) bool {
-	return dim.ipNet.Contains(net.IP(net.ParseIP(data.localAddr.String())))
+	return dim.ipNet.Contains(net.ParseIP(data.localAddr.String()))
 }
 
 // portMatcher matches on whether the destination port of the RPC matches the
