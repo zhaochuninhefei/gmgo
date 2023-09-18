@@ -24,7 +24,7 @@ import (
 
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3rbacpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v3"
-	v3route_componentspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
+	v3routecomponentspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
 	internalmatcher "gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds/matcher"
 )
@@ -295,10 +295,10 @@ type headerMatcher struct {
 //	}
 //	return &headerMatcher{matcher: m}, nil
 //}
-func newHeaderMatcher(headerMatcherConfig *v3route_componentspb.HeaderMatcher) (*headerMatcher, error) {
+func newHeaderMatcher(headerMatcherConfig *v3routecomponentspb.HeaderMatcher) (*headerMatcher, error) {
 	var m internalmatcher.HeaderMatcher
 	switch headerMatcherConfig.HeaderMatchSpecifier.(type) {
-	case *v3route_componentspb.HeaderMatcher_StringMatch:
+	case *v3routecomponentspb.HeaderMatcher_StringMatch:
 		stringMatch := headerMatcherConfig.GetStringMatch()
 		switch stringMatch.MatchPattern.(type) {
 		case *v3matcherpb.StringMatcher_Exact:
@@ -318,9 +318,9 @@ func newHeaderMatcher(headerMatcherConfig *v3route_componentspb.HeaderMatcher) (
 		default:
 			return nil, errors.New("unknown string match pattern type")
 		}
-	case *v3route_componentspb.HeaderMatcher_RangeMatch:
+	case *v3routecomponentspb.HeaderMatcher_RangeMatch:
 		m = internalmatcher.NewHeaderRangeMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetRangeMatch().Start, headerMatcherConfig.GetRangeMatch().End, headerMatcherConfig.InvertMatch)
-	case *v3route_componentspb.HeaderMatcher_PresentMatch:
+	case *v3routecomponentspb.HeaderMatcher_PresentMatch:
 		m = internalmatcher.NewHeaderPresentMatcher(headerMatcherConfig.Name, headerMatcherConfig.GetPresentMatch(), headerMatcherConfig.InvertMatch)
 	default:
 		return nil, errors.New("unknown header matcher type")
