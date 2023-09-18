@@ -241,6 +241,7 @@ func (am *andMatcher) match(data *rpcData) bool {
 type alwaysMatcher struct {
 }
 
+//goland:noinspection GoUnusedParameter
 func (am *alwaysMatcher) match(data *rpcData) bool {
 	return true
 }
