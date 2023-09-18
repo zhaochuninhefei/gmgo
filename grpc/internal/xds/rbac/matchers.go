@@ -262,6 +262,13 @@ type headerMatcher struct {
 	matcher internalmatcher.HeaderMatcher
 }
 
+// 以下几种匹配用的结构体及其绑定的方法已经被废弃:
+//  HeaderMatcher_ExactMatch(GetExactMatch)
+//  HeaderMatcher_SafeRegexMatch(GetSafeRegexMatch)
+//  HeaderMatcher_PrefixMatch(GetPrefixMatch)
+//  HeaderMatcher_SuffixMatch(GetSuffixMatch)
+//  HeaderMatcher_ContainsMatch(GetContainsMatch)
+// 修改 newHeaderMatcher 函数，不再使用上述case及其对应方法，改为使用`string_match <envoy_v3_api_field_config.route.v3.HeaderMatcher.string_match>`代替。
 //func newHeaderMatcher(headerMatcherConfig *v3route_componentspb.HeaderMatcher) (*headerMatcher, error) {
 //	var m internalmatcher.HeaderMatcher
 //	switch headerMatcherConfig.HeaderMatchSpecifier.(type) {
