@@ -30,7 +30,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 
 	v3rbacpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v3"
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
