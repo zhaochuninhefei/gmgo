@@ -983,7 +983,9 @@ func (s) TestChainEngine(t *testing.T) {
 					if err != nil {
 						t.Fatalf("Error listening: %v", err)
 					}
-					defer lis.Close()
+					defer func(lis net.Listener) {
+						_ = lis.Close()
+					}(lis)
 					connCh := make(chan net.Conn, 1)
 					go func() {
 						conn, err := lis.Accept()
@@ -998,7 +1000,9 @@ func (s) TestChainEngine(t *testing.T) {
 						t.Fatalf("Error dialing: %v", err)
 					}
 					conn := <-connCh
-					defer conn.Close()
+					defer func(conn net.Conn) {
+						_ = conn.Close()
+					}(conn)
 					getConnection = func(context.Context) net.Conn {
 						return conn
 					}
