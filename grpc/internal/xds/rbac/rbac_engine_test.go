@@ -1030,14 +1030,17 @@ func (sts *ServerTransportStreamWithMethod) Method() string {
 	return sts.method
 }
 
+//goland:noinspection GoUnusedParameter
 func (sts *ServerTransportStreamWithMethod) SetHeader(md metadata.MD) error {
 	return nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (sts *ServerTransportStreamWithMethod) SendHeader(md metadata.MD) error {
 	return nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (sts *ServerTransportStreamWithMethod) SetTrailer(md metadata.MD) error {
 	return nil
 }
