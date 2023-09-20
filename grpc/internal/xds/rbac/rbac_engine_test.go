@@ -32,7 +32,7 @@ import (
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
 	v3typepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
