@@ -54,7 +54,7 @@ type addr struct {
 	ipAddress string
 }
 
-func (addr) Network() string   { return "" }
+func (*addr) Network() string  { return "" }
 func (a *addr) String() string { return a.ipAddress }
 
 // TestNewChainEngine tests the construction of the ChainEngine. Due to some
