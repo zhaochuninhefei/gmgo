@@ -90,7 +90,7 @@ func SetupBootstrapFile(opts BootstrapOptions) (func(), error) {
 	origBootstrapFileName := envconfig.XDSBootstrapFileName
 	envconfig.XDSBootstrapFileName = f.Name()
 	return func() {
-		os.Remove(f.Name())
+		_ = os.Remove(f.Name())
 		envconfig.XDSBootstrapFileName = origBootstrapFileName
 	}, nil
 }
