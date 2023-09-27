@@ -211,7 +211,9 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Fail to dial: %v", err)
 	}
-	defer conn.Close()
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
 	tc := testgrpc.NewTestServiceClient(conn)
 	switch *testCase {
 	case "empty_unary":
