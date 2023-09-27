@@ -21,6 +21,7 @@ package main
 
 import (
 	"flag"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"io/ioutil"
 	"net"
 	"strconv"
@@ -178,7 +179,9 @@ func main() {
 	case credsComputeEngineCreds:
 		opts = append(opts, grpc.WithCredentialsBundle(google.NewComputeEngineCredentials()))
 	case credsNone:
-		opts = append(opts, grpc.WithInsecure())
+		// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+		//opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	default:
 		logger.Fatal("Invalid creds")
 	}
