@@ -168,5 +168,5 @@ func main() {
 	lbpb.RegisterLoadBalancerServer(server, &loadBalancerServer{
 		serverListResponse: serverListResponse,
 	})
-	server.Serve(lis)
+	_ = server.Serve(lis)
 }
