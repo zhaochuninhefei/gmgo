@@ -29,7 +29,7 @@ import (
 	"syscall"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/grpclb"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/alts"
