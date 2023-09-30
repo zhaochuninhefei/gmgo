@@ -32,7 +32,7 @@ import (
 	"sync"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/interop"
