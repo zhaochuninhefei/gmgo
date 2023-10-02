@@ -78,5 +78,5 @@ func main() {
 	}
 	server := grpc.NewServer(opts...)
 	testgrpc.RegisterTestServiceServer(server, interop.NewTestServer())
-	server.Serve(lis)
+	_ = server.Serve(lis)
 }
