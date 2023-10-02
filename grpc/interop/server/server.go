@@ -24,7 +24,7 @@ import (
 	"net"
 	"strconv"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/alts"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
