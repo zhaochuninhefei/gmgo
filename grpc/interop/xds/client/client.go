@@ -385,7 +385,9 @@ func main() {
 		logger.Fatalf("Failed to register admin: %v", err)
 	}
 	defer cleanup()
-	go s.Serve(lis)
+	go func() {
+		_ = s.Serve(lis)
+	}()
 
 	creds := insecure.NewCredentials()
 	if *secureMode {
@@ -402,7 +404,9 @@ func main() {
 		if err != nil {
 			logger.Fatalf("Fail to dial: %v", err)
 		}
-		defer conn.Close()
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
 		clients[i] = testgrpc.NewTestServiceClient(conn)
 	}
 	ticker := time.NewTicker(time.Second / time.Duration(*qps**numChannels))
