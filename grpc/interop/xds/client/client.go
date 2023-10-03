@@ -212,7 +212,7 @@ func setRPCSucceeded() {
 	atomic.StoreUint32(&rpcSucceeded, 1)
 }
 
-// Wait for the next LoadBalancerStatsRequest.GetNumRpcs to start and complete,
+// GetClientStats Wait for the next LoadBalancerStatsRequest.GetNumRpcs to start and complete,
 // and return the distribution of remote peers. This is essentially a clientside
 // LB reporting mechanism that is designed to be queried by an external test
 // driver when verifying that the client is distributing RPCs as expected.
