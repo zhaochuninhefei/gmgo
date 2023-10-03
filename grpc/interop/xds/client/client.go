@@ -359,7 +359,7 @@ func parseRPCMetadata(rpcMetadataStr string, rpcs []string) []*rpcConfig {
 		rpcC := &rpcConfig{
 			typ: rpcT,
 		}
-		if md := rpcsToMD[string(rpcT)]; len(md) > 0 {
+		if md := rpcsToMD[rpcT]; len(md) > 0 {
 			rpcC.md = metadata.Pairs(md...)
 		}
 		ret = append(ret, rpcC)
