@@ -404,6 +404,7 @@ func main() {
 		if err != nil {
 			logger.Fatalf("Fail to dial: %v", err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(conn *grpc.ClientConn) {
 			_ = conn.Close()
 		}(conn)
