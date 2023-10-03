@@ -466,7 +466,7 @@ func sendRPCs(clients []testgrpc.TestServiceClient, ticker *time.Ticker) {
 		mu.Lock()
 		savedRequestID := currentRequestID
 		currentRequestID++
-		savedWatchers := []*statsWatcher{}
+		var savedWatchers []*statsWatcher
 		for key, value := range watchers {
 			if key.startID <= savedRequestID && savedRequestID < key.endID {
 				savedWatchers = append(savedWatchers, value)
