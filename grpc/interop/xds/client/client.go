@@ -138,6 +138,7 @@ func (as *accumulatedStats) makeStatsMap() map[string]*testpb.LoadBalancerAccumu
 func (as *accumulatedStats) buildResp() *testpb.LoadBalancerAccumulatedStatsResponse {
 	as.mu.Lock()
 	defer as.mu.Unlock()
+	//goland:noinspection GoDeprecation
 	return &testpb.LoadBalancerAccumulatedStatsResponse{
 		NumRpcsStartedByMethod:   copyStatsMap(as.numRPCsStartedByMethod),
 		NumRpcsSucceededByMethod: copyStatsMap(as.numRPCsSucceededByMethod),
