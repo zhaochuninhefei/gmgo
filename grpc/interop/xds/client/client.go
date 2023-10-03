@@ -268,6 +268,7 @@ func (s *statsService) GetClientStats(ctx context.Context, in *testpb.LoadBalanc
 	}
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *statsService) GetClientAccumulatedStats(ctx context.Context, in *testpb.LoadBalancerAccumulatedStatsRequest) (*testpb.LoadBalancerAccumulatedStatsResponse, error) {
 	return accStats.buildResp(), nil
 }
@@ -276,6 +277,7 @@ type configureService struct {
 	testgrpc.UnimplementedXdsUpdateClientConfigureServiceServer
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *configureService) Configure(ctx context.Context, in *testpb.ClientConfigureRequest) (*testpb.ClientConfigureResponse, error) {
 	rpcsToMD := make(map[testpb.ClientConfigureRequest_RpcType][]string)
 	for _, typ := range in.GetTypes() {
