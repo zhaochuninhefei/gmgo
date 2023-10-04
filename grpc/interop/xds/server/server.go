@@ -76,6 +76,7 @@ func (s *testServiceImpl) EmptyCall(ctx context.Context, _ *testpb.Empty) (*test
 	return &testpb.Empty{}, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *testServiceImpl) UnaryCall(ctx context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
 	_ = grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
 	return &testpb.SimpleResponse{ServerId: s.serverID, Hostname: s.hostname}, nil
