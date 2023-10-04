@@ -72,12 +72,12 @@ type testServiceImpl struct {
 }
 
 func (s *testServiceImpl) EmptyCall(ctx context.Context, _ *testpb.Empty) (*testpb.Empty, error) {
-	grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
+	_ = grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
 	return &testpb.Empty{}, nil
 }
 
 func (s *testServiceImpl) UnaryCall(ctx context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
-	grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
+	_ = grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
 	return &testpb.SimpleResponse{ServerId: s.serverID, Hostname: s.hostname}, nil
 }
 
