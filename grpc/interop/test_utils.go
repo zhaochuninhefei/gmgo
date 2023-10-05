@@ -797,11 +797,11 @@ func (s *testServer) UnaryCall(ctx context.Context, in *testpb.SimpleRequest) (*
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if initialMetadata, ok := md[initialMetadataKey]; ok {
 			header := metadata.Pairs(initialMetadataKey, initialMetadata[0])
-			grpc.SendHeader(ctx, header)
+			_ = grpc.SendHeader(ctx, header)
 		}
 		if trailingMetadata, ok := md[trailingMetadataKey]; ok {
 			trailer := metadata.Pairs(trailingMetadataKey, trailingMetadata[0])
-			grpc.SetTrailer(ctx, trailer)
+			_ = grpc.SetTrailer(ctx, trailer)
 		}
 	}
 	if st != nil && st.Code != 0 {
