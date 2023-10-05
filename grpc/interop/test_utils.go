@@ -685,7 +685,9 @@ func doOneSoakIteration(ctx context.Context, tc testgrpc.TestServiceClient, rese
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
 		client = testgrpc.NewTestServiceClient(conn)
 	}
 	// per test spec, don't include channel shutdown in latency measurement
@@ -735,24 +737,24 @@ func DoSoakTest(tc testgrpc.TestServiceClient, serverAddr string, dopts []grpc.D
 		iterationsDone++
 		latency, err := doOneSoakIteration(ctx, tc, resetChannel, serverAddr, dopts)
 		latencyMs := int64(latency / time.Millisecond)
-		h.Add(latencyMs)
+		_ = h.Add(latencyMs)
 		if err != nil {
 			totalFailures++
-			fmt.Fprintf(os.Stderr, "soak iteration: %d elapsed_ms: %d failed: %s\n", i, latencyMs, err)
+			_, _ = fmt.Fprintf(os.Stderr, "soak iteration: %d elapsed_ms: %d failed: %s\n", i, latencyMs, err)
 			continue
 		}
 		if latency > perIterationMaxAcceptableLatency {
 			totalFailures++
-			fmt.Fprintf(os.Stderr, "soak iteration: %d elapsed_ms: %d exceeds max acceptable latency: %d\n", i, latencyMs, perIterationMaxAcceptableLatency.Milliseconds())
+			_, _ = fmt.Fprintf(os.Stderr, "soak iteration: %d elapsed_ms: %d exceeds max acceptable latency: %d\n", i, latencyMs, perIterationMaxAcceptableLatency.Milliseconds())
 			continue
 		}
-		fmt.Fprintf(os.Stderr, "soak iteration: %d elapsed_ms: %d succeeded\n", i, latencyMs)
+		_, _ = fmt.Fprintf(os.Stderr, "soak iteration: %d elapsed_ms: %d succeeded\n", i, latencyMs)
 	}
 	var b bytes.Buffer
 	h.Print(&b)
-	fmt.Fprintln(os.Stderr, "Histogram of per-iteration latencies in milliseconds:")
-	fmt.Fprintln(os.Stderr, b.String())
-	fmt.Fprintf(os.Stderr, "soak test ran: %d / %d iterations. total failures: %d. max failures threshold: %d. See breakdown above for which iterations succeeded, failed, and why for more info.\n", iterationsDone, soakIterations, totalFailures, maxFailures)
+	_, _ = fmt.Fprintln(os.Stderr, "Histogram of per-iteration latencies in milliseconds:")
+	_, _ = fmt.Fprintln(os.Stderr, b.String())
+	_, _ = fmt.Fprintf(os.Stderr, "soak test ran: %d / %d iterations. total failures: %d. max failures threshold: %d. See breakdown above for which iterations succeeded, failed, and why for more info.\n", iterationsDone, soakIterations, totalFailures, maxFailures)
 	if iterationsDone < soakIterations {
 		logger.Fatalf("soak test consumed all %f seconds of time and quit early, only having ran %d out of desired %d iterations.", overallDeadline.Sub(start).Seconds(), iterationsDone, soakIterations)
 	}
