@@ -857,7 +857,7 @@ func (s *testServer) FullDuplexCall(stream testgrpc.TestService_FullDuplexCallSe
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
 		if initialMetadata, ok := md[initialMetadataKey]; ok {
 			header := metadata.Pairs(initialMetadataKey, initialMetadata[0])
-			stream.SendHeader(header)
+			_ = stream.SendHeader(header)
 		}
 		if trailingMetadata, ok := md[trailingMetadataKey]; ok {
 			trailer := metadata.Pairs(trailingMetadataKey, trailingMetadata[0])
