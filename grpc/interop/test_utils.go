@@ -772,6 +772,7 @@ func NewTestServer() testgrpc.TestServiceServer {
 	return &testServer{}
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *testServer) EmptyCall(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
 	return new(testpb.Empty), nil
 }
