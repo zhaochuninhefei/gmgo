@@ -30,6 +30,7 @@ import (
 // DecodeKeyValue returns k, v, nil.
 //
 // Deprecated: use k and v directly instead.
+//goland:noinspection GoUnusedExportedFunction
 func DecodeKeyValue(k, v string) (string, string, error) {
 	return k, v, nil
 }
