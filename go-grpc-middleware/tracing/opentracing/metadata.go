@@ -52,7 +52,7 @@ func encodeKeyValue(k, v string) (string, string) {
 	k = strings.ToLower(k)
 	if strings.HasSuffix(k, binHdrSuffix) {
 		val := base64.StdEncoding.EncodeToString([]byte(v))
-		v = string(val)
+		v = val
 	}
 	return k, v
 }
