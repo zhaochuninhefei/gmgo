@@ -268,6 +268,7 @@ func Benchmark_AddingMetadata_ContextManipulationApproach(b *testing.B) {
 	const num = 10
 	for n := 0; n < b.N; n++ {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 		for i := 0; i < num; i++ {
 			md, _ := FromOutgoingContext(ctx)
