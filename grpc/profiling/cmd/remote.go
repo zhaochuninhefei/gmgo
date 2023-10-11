@@ -55,7 +55,9 @@ func retrieveSnapshot(ctx context.Context, c ppb.ProfilingClient, f string) erro
 		logger.Errorf("cannot create %s: %v", f, err)
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	logger.Infof("encoding data and writing to snapshot file %s", f)
 	encoder := gob.NewEncoder(file)
@@ -83,7 +85,9 @@ func remoteCommand() error {
 		logger.Errorf("cannot dial %s: %v", *flagAddress, err)
 		return err
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 
 	c := ppb.NewProfilingClient(cc)
 
