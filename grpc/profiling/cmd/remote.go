@@ -26,7 +26,7 @@ import (
 	"os"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	ppb "gitee.com/zhaochuninhefei/gmgo/grpc/profiling/proto"
 )
 
@@ -99,6 +99,7 @@ func remoteCommand() error {
 	} else if *flagRetrieveSnapshot {
 		return retrieveSnapshot(ctx, c, *flagSnapshot)
 	} else {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("what should I do with the remote target?")
 	}
 }
