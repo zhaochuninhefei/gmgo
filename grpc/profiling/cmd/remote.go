@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"os"
 	"time"
 
@@ -80,7 +81,9 @@ func remoteCommand() error {
 	}
 
 	logger.Infof("dialing %s", *flagAddress)
-	cc, err := grpc.Dial(*flagAddress, grpc.WithInsecure())
+	// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.Dial(*flagAddress, grpc.WithInsecure())
+	cc, err := grpc.Dial(*flagAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Errorf("cannot dial %s: %v", *flagAddress, err)
 		return err
