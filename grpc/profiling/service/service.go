@@ -100,6 +100,7 @@ func getProfilingServerInstance() *profilingServer {
 	return profilingServerInstance
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *profilingServer) Enable(ctx context.Context, req *ppb.EnableRequest) (*ppb.EnableResponse, error) {
 	if req.Enabled {
 		logger.Infof("profilingServer: Enable: enabling profiling")
@@ -134,6 +135,7 @@ func statToProtoStat(stat *profiling.Stat) *ppb.Stat {
 	return protoStat
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *profilingServer) GetStreamStats(ctx context.Context, req *ppb.GetStreamStatsRequest) (*ppb.GetStreamStatsResponse, error) {
 	// Since the drain operation is destructive, only one client request should
 	// be served at a time.
