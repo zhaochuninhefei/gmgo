@@ -32,7 +32,7 @@ import (
 	"errors"
 	"sync"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/profiling"
 	ppb "gitee.com/zhaochuninhefei/gmgo/grpc/profiling/proto"
