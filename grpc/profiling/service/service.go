@@ -63,6 +63,7 @@ var errorNilServer = errors.New("profiling: no grpc.Server provided")
 // Init takes a *ProfilingConfig to initialize profiling (turned on/off
 // depending on the value set in pc.Enabled) and register the profiling service
 // in the server provided in pc.Server.
+//goland:noinspection GoUnusedExportedFunction
 func Init(pc *ProfilingConfig) error {
 	if pc.Server == nil {
 		return errorNilServer
