@@ -46,7 +46,7 @@ import (
 	"sort"
 	"sync"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	rpb "gitee.com/zhaochuninhefei/gmgo/grpc/reflection/grpc_reflection_v1alpha"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
