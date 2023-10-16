@@ -288,7 +288,7 @@ func (s *serverReflectionServer) allExtensionNumbersForType(st reflect.Type) ([]
 // wire format ([]byte). The fileDescriptors will include fd and all the
 // transitive dependencies of fd with names not in sentFileDescriptors.
 func fileDescWithDependencies(fd *dpb.FileDescriptorProto, sentFileDescriptors map[string]bool) ([][]byte, error) {
-	r := [][]byte{}
+	var r [][]byte
 	queue := []*dpb.FileDescriptorProto{fd}
 	for len(queue) > 0 {
 		currentfd := queue[0]
