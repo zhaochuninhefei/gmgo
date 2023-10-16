@@ -141,6 +141,7 @@ func (s *serverReflectionServer) processFile(fd *dpb.FileDescriptorProto, proces
 	}
 
 	for _, dep := range fd.Dependency {
+		//goland:noinspection GoDeprecation
 		fdenc := proto.FileDescriptor(dep)
 		fdDep, err := decodeFileDesc(fdenc)
 		if err != nil {
@@ -235,6 +236,7 @@ func decompress(b []byte) ([]byte, error) {
 }
 
 func typeForName(name string) (reflect.Type, error) {
+	//goland:noinspection GoDeprecation
 	pt := proto.MessageType(name)
 	if pt == nil {
 		return nil, fmt.Errorf("unknown type: %q", name)
@@ -251,6 +253,7 @@ func fileDescContainingExtension(st reflect.Type, ext int32) (*dpb.FileDescripto
 	}
 
 	var extDesc *proto.ExtensionDesc
+	//goland:noinspection GoDeprecation
 	for id, desc := range proto.RegisteredExtensions(m) {
 		if id == ext {
 			extDesc = desc
@@ -262,6 +265,7 @@ func fileDescContainingExtension(st reflect.Type, ext int32) (*dpb.FileDescripto
 		return nil, fmt.Errorf("failed to find registered extension for extension number %v", ext)
 	}
 
+	//goland:noinspection GoDeprecation
 	return decodeFileDesc(proto.FileDescriptor(extDesc.Filename))
 }
 
@@ -271,6 +275,7 @@ func (s *serverReflectionServer) allExtensionNumbersForType(st reflect.Type) ([]
 		return nil, fmt.Errorf("failed to create message from type: %v", st)
 	}
 
+	//goland:noinspection GoDeprecation
 	exts := proto.RegisteredExtensions(m)
 	out := make([]int32, 0, len(exts))
 	for id := range exts {
@@ -297,6 +302,7 @@ func fileDescWithDependencies(fd *dpb.FileDescriptorProto, sentFileDescriptors m
 			r = append(r, currentfdEncoded)
 		}
 		for _, dep := range currentfd.Dependency {
+			//goland:noinspection GoDeprecation
 			fdenc := proto.FileDescriptor(dep)
 			fdDep, err := decodeFileDesc(fdenc)
 			if err != nil {
@@ -312,6 +318,7 @@ func fileDescWithDependencies(fd *dpb.FileDescriptorProto, sentFileDescriptors m
 // finds all of its previously unsent transitive dependencies, does marshalling
 // on them, and returns the marshalled result.
 func (s *serverReflectionServer) fileDescEncodingByFilename(name string, sentFileDescriptors map[string]bool) ([][]byte, error) {
+	//goland:noinspection GoDeprecation
 	enc := proto.FileDescriptor(name)
 	if enc == nil {
 		return nil, fmt.Errorf("unknown file: %v", name)
@@ -330,6 +337,7 @@ func (s *serverReflectionServer) fileDescEncodingByFilename(name string, sentFil
 func parseMetadata(meta interface{}) ([]byte, bool) {
 	// Check if meta is the file name.
 	if fileNameForMeta, ok := meta.(string); ok {
+		//goland:noinspection GoDeprecation
 		return proto.FileDescriptor(fileNameForMeta), true
 	}
 
