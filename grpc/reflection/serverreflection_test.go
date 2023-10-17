@@ -207,14 +207,18 @@ func (x) TestReflectionEnd2end(t *testing.T) {
 	pbv3.RegisterSearchServiceV3Server(s, &serverV3{})
 	// Register reflection service on s.
 	Register(s)
-	go s.Serve(lis)
+	go func() {
+		_ = s.Serve(lis)
+	}()
 
 	// Create client.
 	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("cannot connect to server: %v", err)
 	}
-	defer conn.Close()
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
 
 	c := rpb.NewServerReflectionClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
