@@ -174,20 +174,24 @@ type server struct {
 	pb.UnimplementedSearchServiceServer
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchResponse, error) {
 	return &pb.SearchResponse{}, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *server) StreamingSearch(stream pb.SearchService_StreamingSearchServer) error {
 	return nil
 }
 
 type serverV3 struct{}
 
+//goland:noinspection GoUnusedParameter
 func (s *serverV3) Search(ctx context.Context, in *pbv3.SearchRequestV3) (*pbv3.SearchResponseV3, error) {
 	return &pbv3.SearchResponseV3{}, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *serverV3) StreamingSearch(stream pbv3.SearchServiceV3_StreamingSearchServer) error {
 	return nil
 }
