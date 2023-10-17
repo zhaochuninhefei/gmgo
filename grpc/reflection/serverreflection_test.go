@@ -36,6 +36,7 @@ import (
 	dpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	s = &serverReflectionServer{}
 	// fileDescriptor of each test proto file.
