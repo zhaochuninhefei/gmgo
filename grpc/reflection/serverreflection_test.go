@@ -21,6 +21,7 @@ package reflection
 import (
 	"context"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"net"
 	"reflect"
 	"sort"
@@ -212,7 +213,9 @@ func (x) TestReflectionEnd2end(t *testing.T) {
 	}()
 
 	// Create client.
-	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("cannot connect to server: %v", err)
 	}
