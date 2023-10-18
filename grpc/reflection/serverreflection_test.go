@@ -65,6 +65,7 @@ func Test(t *testing.T) {
 }
 
 func loadFileDesc(filename string) (*dpb.FileDescriptorProto, []byte) {
+	//goland:noinspection GoDeprecation
 	enc := proto.FileDescriptor(filename)
 	if enc == nil {
 		panic(fmt.Sprintf("failed to find fd for file: %v", filename))
