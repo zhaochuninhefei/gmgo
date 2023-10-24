@@ -116,6 +116,7 @@ func (s) TestBlockingPickNoSubAvailable(t *testing.T) {
 
 func (s) TestBlockingPickTransientWaitforready(t *testing.T) {
 	bp := newPickerWrapper()
+	//goland:noinspection GoDeprecation
 	bp.updatePicker(&testingPicker{err: balancer.ErrTransientFailure, maxCalled: goroutineCount})
 	var finishedCount uint64
 	// All goroutines should block because picker returns transientFailure and
