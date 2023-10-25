@@ -35,6 +35,7 @@ func newPickfirstBuilder() balancer.Builder {
 
 type pickfirstBuilder struct{}
 
+//goland:noinspection GoUnusedParameter
 func (*pickfirstBuilder) Build(cc balancer.ClientConn, opt balancer.BuildOptions) balancer.Balancer {
 	return &pickfirstBalancer{cc: cc}
 }
@@ -135,6 +136,7 @@ type picker struct {
 	err    error
 }
 
+//goland:noinspection GoUnusedParameter
 func (p *picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	return p.result, p.err
 }
@@ -145,6 +147,7 @@ type idlePicker struct {
 	sc balancer.SubConn
 }
 
+//goland:noinspection GoUnusedParameter
 func (i *idlePicker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	i.sc.Connect()
 	return balancer.PickResult{}, balancer.ErrNoSubConnAvailable
