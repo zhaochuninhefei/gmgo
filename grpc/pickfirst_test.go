@@ -87,7 +87,10 @@ func (s) TestBackendsPickfirst(t *testing.T) {
 	servers, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+	//cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r), WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -119,7 +122,9 @@ func (s) TestNewAddressWhileBlockingPickfirst(t *testing.T) {
 	servers, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r), WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -154,7 +159,9 @@ func (s) TestCloseWithPendingRPCPickfirst(t *testing.T) {
 	_, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r), WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -189,7 +196,9 @@ func (s) TestOneServerDownPickfirst(t *testing.T) {
 	servers, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r), WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -229,7 +238,9 @@ func (s) TestAllServersDownPickfirst(t *testing.T) {
 	servers, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r), WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -271,7 +282,9 @@ func (s) TestAddressesRemovedPickfirst(t *testing.T) {
 	servers, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r), WithCodec(testCodec{}))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r), WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
