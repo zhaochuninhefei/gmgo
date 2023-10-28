@@ -61,6 +61,10 @@ func (testCodec) String() string {
 	return "test"
 }
 
+func (testCodec) Name() string {
+	return "test"
+}
+
 type testStreamHandler struct {
 	port string
 	t    transport.ServerTransport

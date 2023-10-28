@@ -20,6 +20,7 @@ package grpc
 
 import (
 	"context"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"math"
 	"sync"
 	"testing"
@@ -46,9 +47,13 @@ func (s) TestOneBackendPickfirst(t *testing.T) {
 	defer scleanup()
 
 	cc, err := Dial(r.Scheme()+":///test.server",
-		WithInsecure(),
+		// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+		//WithInsecure(),
+		WithTransportCredentials(insecure.NewCredentials()),
 		WithResolvers(r),
-		WithCodec(testCodec{}))
+		// WithCodec() is deprecated, use WithDefaultCallOptions(ForceCodec(_)) instead.
+		//WithCodec(testCodec{}))
+		WithDefaultCallOptions(ForceCodec(testCodec{})))
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
