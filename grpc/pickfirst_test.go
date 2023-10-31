@@ -130,7 +130,9 @@ func (s) TestNewAddressWhileBlockingPickfirst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	// The first RPC should fail because there's no address.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
