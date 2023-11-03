@@ -191,7 +191,7 @@ func (s) TestCloseWithPendingRPCPickfirst(t *testing.T) {
 		}()
 	}
 	time.Sleep(50 * time.Millisecond)
-	cc.Close()
+	_ = cc.Close()
 	wg.Wait()
 }
 
