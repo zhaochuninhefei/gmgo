@@ -130,7 +130,7 @@ func (ccr *ccResolverWrapper) NewAddress(addrs []resolver.Address) {
 		ccr.addChannelzTraceEvent(resolver.State{Addresses: addrs, ServiceConfig: ccr.curState.ServiceConfig})
 	}
 	ccr.curState.Addresses = addrs
-	ccr.cc.updateResolverState(ccr.curState, nil)
+	_ = ccr.cc.updateResolverState(ccr.curState, nil)
 }
 
 // NewServiceConfig is called by the resolver implementation to send service
