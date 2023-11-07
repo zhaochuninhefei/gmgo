@@ -115,7 +115,7 @@ func (ccr *ccResolverWrapper) ReportError(err error) {
 		return
 	}
 	channelz.Warningf(logger, ccr.cc.channelzID, "ccResolverWrapper: reporting error to cc: %v", err)
-	ccr.cc.updateResolverState(resolver.State{}, err)
+	_ = ccr.cc.updateResolverState(resolver.State{}, err)
 }
 
 // NewAddress is called by the resolver implementation to send addresses to gRPC.
