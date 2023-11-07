@@ -155,7 +155,7 @@ func (ccr *ccResolverWrapper) NewServiceConfig(sc string) {
 		ccr.addChannelzTraceEvent(resolver.State{Addresses: ccr.curState.Addresses, ServiceConfig: scpr})
 	}
 	ccr.curState.ServiceConfig = scpr
-	ccr.cc.updateResolverState(ccr.curState, nil)
+	_ = ccr.cc.updateResolverState(ccr.curState, nil)
 }
 
 func (ccr *ccResolverWrapper) ParseServiceConfig(scJSON string) *serviceconfig.ParseResult {
