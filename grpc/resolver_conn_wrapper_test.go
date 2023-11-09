@@ -79,7 +79,9 @@ func (s) TestResolverErrorInBuild(t *testing.T) {
 func (s) TestServiceConfigErrorRPC(t *testing.T) {
 	r := manual.NewBuilderWithScheme("whatever")
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r))
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r))
 	if err != nil {
 		t.Fatalf("Dial(_, _) = _, %v; want _, nil", err)
 	}
