@@ -80,7 +80,9 @@ func (s) TestServiceConfigErrorRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial(_, _) = _, %v; want _, nil", err)
 	}
-	defer cc.Close()
+	defer func(cc *ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	badsc := r.CC.ParseServiceConfig("bad config")
 	r.UpdateState(resolver.State{ServiceConfig: badsc})
 
