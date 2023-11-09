@@ -21,6 +21,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"strings"
 	"testing"
 	"time"
@@ -55,7 +56,9 @@ func (s) TestResolverErrorInBuild(t *testing.T) {
 	r := manual.NewBuilderWithScheme("whatever")
 	r.InitialState(resolver.State{ServiceConfig: &serviceconfig.ParseResult{Err: errors.New("resolver build err")}})
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r))
+	// WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithResolvers(r))
+	cc, err := Dial(r.Scheme()+":///test.server", WithTransportCredentials(insecure.NewCredentials()), WithResolvers(r))
 	if err != nil {
 		t.Fatalf("Dial(_, _) = _, %v; want _, nil", err)
 	}
