@@ -59,7 +59,9 @@ func (s) TestResolverErrorInBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial(_, _) = _, %v; want _, nil", err)
 	}
-	defer cc.Close()
+	defer func(cc *ClientConn) {
+		_ = cc.Close()
+	}(cc)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
