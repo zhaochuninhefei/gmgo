@@ -206,7 +206,10 @@ type HeaderCallOption struct {
 	HeaderAddr *metadata.MD
 }
 
+//goland:noinspection GoUnusedParameter
 func (o HeaderCallOption) before(c *callInfo) error { return nil }
+
+//goland:noinspection GoUnusedParameter
 func (o HeaderCallOption) after(c *callInfo, attempt *csAttempt) {
 	*o.HeaderAddr, _ = attempt.s.Header()
 }
@@ -228,7 +231,10 @@ type TrailerCallOption struct {
 	TrailerAddr *metadata.MD
 }
 
+//goland:noinspection GoUnusedParameter
 func (o TrailerCallOption) before(c *callInfo) error { return nil }
+
+//goland:noinspection GoUnusedParameter
 func (o TrailerCallOption) after(c *callInfo, attempt *csAttempt) {
 	*o.TrailerAddr = attempt.s.Trailer()
 }
@@ -250,7 +256,10 @@ type PeerCallOption struct {
 	PeerAddr *peer.Peer
 }
 
+//goland:noinspection GoUnusedParameter
 func (o PeerCallOption) before(c *callInfo) error { return nil }
+
+//goland:noinspection GoUnusedParameter
 func (o PeerCallOption) after(c *callInfo, attempt *csAttempt) {
 	if x, ok := peer.FromContext(attempt.s.Context()); ok {
 		*o.PeerAddr = *x
@@ -294,6 +303,8 @@ func (o FailFastCallOption) before(c *callInfo) error {
 	c.failFast = o.FailFast
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o FailFastCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // MaxCallRecvMsgSize returns a CallOption which sets the maximum message size
