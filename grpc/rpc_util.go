@@ -328,6 +328,8 @@ func (o MaxRecvMsgSizeCallOption) before(c *callInfo) error {
 	c.maxReceiveMessageSize = &o.MaxRecvMsgSize
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o MaxRecvMsgSizeCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // MaxCallSendMsgSize returns a CallOption which sets the maximum message size
@@ -351,6 +353,8 @@ func (o MaxSendMsgSizeCallOption) before(c *callInfo) error {
 	c.maxSendMessageSize = &o.MaxSendMsgSize
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o MaxSendMsgSizeCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // PerRPCCredentials returns a CallOption that sets credentials.PerRPCCredentials
