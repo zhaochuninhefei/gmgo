@@ -283,7 +283,7 @@ func WaitForReady(waitForReady bool) CallOption {
 
 // FailFast is the opposite of WaitForReady.
 //
-// Deprecated: use WaitForReady.
+// To Deprecated: use WaitForReady.
 func FailFast(failFast bool) CallOption {
 	return FailFastCallOption{FailFast: failFast}
 }
