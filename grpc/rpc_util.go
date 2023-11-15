@@ -44,7 +44,7 @@ import (
 
 // Compressor defines the interface gRPC uses to compress a message.
 //
-// Deprecated: use package encoding.
+// To Deprecated: use package encoding.
 type Compressor interface {
 	// Do compresses p into w.
 	Do(w io.Writer, p []byte) error
