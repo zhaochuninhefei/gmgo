@@ -117,7 +117,7 @@ type gzipDecompressor struct {
 
 // NewGZIPDecompressor creates a Decompressor based on GZIP.
 //
-// Deprecated: use package encoding/gzip.
+// To Deprecated: use package encoding/gzip.
 func NewGZIPDecompressor() Decompressor {
 	return &gzipDecompressor{}
 }
