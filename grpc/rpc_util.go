@@ -378,6 +378,8 @@ func (o PerRPCCredsCallOption) before(c *callInfo) error {
 	c.creds = o.Creds
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o PerRPCCredsCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // UseCompressor returns a CallOption which sets the compressor used when
