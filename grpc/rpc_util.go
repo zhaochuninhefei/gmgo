@@ -829,7 +829,7 @@ func Code(err error) codes.Code {
 // ErrorDesc returns the error description of err if it was produced by the rpc system.
 // Otherwise, it returns err.Error() or empty string when err is nil.
 //
-// Deprecated: use status.Convert and Message method instead.
+// To Deprecated: use status.Convert and Message method instead.
 func ErrorDesc(err error) string {
 	return status.Convert(err).Message()
 }
