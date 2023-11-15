@@ -489,7 +489,7 @@ func (o ForceCodecCallOption) after(c *callInfo, attempt *csAttempt) {}
 // CallCustomCodec behaves like ForceCodec, but accepts a grpc.Codec instead of
 // an encoding.Codec.
 //
-// Deprecated: use ForceCodec instead.
+// To Deprecated: use ForceCodec instead.
 func CallCustomCodec(codec Codec) CallOption {
 	return CustomCodecCallOption{Codec: codec}
 }
