@@ -103,7 +103,7 @@ func (c *gzipCompressor) Type() string {
 
 // Decompressor defines the interface gRPC uses to decompress a message.
 //
-// Deprecated: use package encoding.
+// To Deprecated: use package encoding.
 type Decompressor interface {
 	// Do reads the data from r and uncompress them.
 	Do(r io.Reader) ([]byte, error)
