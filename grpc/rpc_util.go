@@ -408,6 +408,8 @@ func (o CompressorCallOption) before(c *callInfo) error {
 	c.compressorType = o.CompressorType
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o CompressorCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // CallContentSubtype returns a CallOption that will set the content-subtype
@@ -445,6 +447,8 @@ func (o ContentSubtypeCallOption) before(c *callInfo) error {
 	c.contentSubtype = o.ContentSubtype
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o ContentSubtypeCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // ForceCodec returns a CallOption that will set codec to be used for all
