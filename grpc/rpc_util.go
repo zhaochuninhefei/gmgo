@@ -488,6 +488,8 @@ func (o ForceCodecCallOption) before(c *callInfo) error {
 	c.codec = o.Codec
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o ForceCodecCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // CallCustomCodec behaves like ForceCodec, but accepts a grpc.Codec instead of
