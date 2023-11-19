@@ -21,6 +21,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/encoding"
 	"net"
 	"time"
 
@@ -164,7 +165,7 @@ func WithDefaultCallOptions(cos ...CallOption) DialOption {
 //
 // Deprecated: use WithDefaultCallOptions(ForceCodec(_)) instead.  Will be
 // supported throughout 1.x.
-func WithCodec(c Codec) DialOption {
+func WithCodec(c encoding.Codec) DialOption {
 	return WithDefaultCallOptions(CallCustomCodec(c))
 }
 
