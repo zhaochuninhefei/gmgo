@@ -930,6 +930,7 @@ type channelzData struct {
 // Older versions are kept for compatibility.
 //
 // These constants should not be referenced from any other code.
+//goland:noinspection GoUnusedConst
 const (
 	SupportPackageIsVersion3 = true
 	SupportPackageIsVersion4 = true
