@@ -496,7 +496,7 @@ func (o ForceCodecCallOption) after(c *callInfo, attempt *csAttempt) {}
 // an encoding.Codec.
 //
 // To Deprecated: use ForceCodec instead.
-func CallCustomCodec(codec Codec) CallOption {
+func CallCustomCodec(codec encoding.Codec) CallOption {
 	return CustomCodecCallOption{Codec: codec}
 }
 
@@ -508,7 +508,7 @@ func CallCustomCodec(codec Codec) CallOption {
 // Notice: This type is EXPERIMENTAL and may be changed or removed in a
 // later release.
 type CustomCodecCallOption struct {
-	Codec Codec
+	Codec encoding.Codec
 }
 
 func (o CustomCodecCallOption) before(c *callInfo) error {
