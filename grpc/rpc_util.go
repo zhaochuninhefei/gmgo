@@ -545,6 +545,8 @@ func (o MaxRetryRPCBufferSizeCallOption) before(c *callInfo) error {
 	c.maxRetryRPCBufferSize = o.MaxRetryRPCBufferSize
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o MaxRetryRPCBufferSizeCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // The format of the payload: compressed or not?
