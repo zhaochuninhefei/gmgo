@@ -515,6 +515,8 @@ func (o CustomCodecCallOption) before(c *callInfo) error {
 	c.codec = o.Codec
 	return nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (o CustomCodecCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // MaxRetryRPCBufferSize returns a CallOption that limits the amount of memory
