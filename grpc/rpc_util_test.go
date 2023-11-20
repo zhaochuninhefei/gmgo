@@ -238,7 +238,7 @@ func bmCompressor(b *testing.B, mSize int, cp Compressor) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cp.Do(cBuf, payload)
+		_ = cp.Do(cBuf, payload)
 		cBuf.Reset()
 	}
 }
