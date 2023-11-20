@@ -201,7 +201,7 @@ func bmEncode(b *testing.B, mSize int) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		encode(cdc, msg)
+		_, _ = encode(cdc, msg)
 	}
 	b.SetBytes(encodedSz)
 }
