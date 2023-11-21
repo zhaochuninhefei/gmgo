@@ -467,6 +467,7 @@ func UnknownServiceHandler(streamHandler StreamHandler) ServerOption {
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
+//goland:noinspection GoUnusedExportedFunction
 func ConnectionTimeout(d time.Duration) ServerOption {
 	return newFuncServerOption(func(o *serverOptions) {
 		o.connectionTimeout = d
