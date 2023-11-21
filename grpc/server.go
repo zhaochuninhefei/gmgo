@@ -745,7 +745,7 @@ func (s *Server) Serve(lis net.Listener) error {
 	if s.lis == nil {
 		// Serve called after Stop or GracefulStop.
 		s.mu.Unlock()
-		lis.Close()
+		_ = lis.Close()
 		return ErrServerStopped
 	}
 
@@ -769,7 +769,7 @@ func (s *Server) Serve(lis net.Listener) error {
 	defer func() {
 		s.mu.Lock()
 		if s.lis != nil && s.lis[ls] {
-			ls.Close()
+			_ = ls.Close()
 			delete(s.lis, ls)
 		}
 		s.mu.Unlock()
