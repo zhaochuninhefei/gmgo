@@ -489,6 +489,7 @@ func MaxHeaderListSize(s uint32) ServerOption {
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
+//goland:noinspection GoUnusedExportedFunction
 func HeaderTableSize(s uint32) ServerOption {
 	return newFuncServerOption(func(o *serverOptions) {
 		o.headerTableSize = &s
