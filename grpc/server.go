@@ -505,6 +505,7 @@ func HeaderTableSize(s uint32) ServerOption {
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
+//goland:noinspection GoUnusedExportedFunction
 func NumStreamWorkers(numServerWorkers uint32) ServerOption {
 	// TODO: If/when this API gets stabilized (i.e. stream workers become the
 	// only way streams are processed), change the behavior of the zero value to
