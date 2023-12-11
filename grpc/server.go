@@ -832,14 +832,14 @@ func (s *Server) Serve(lis net.Listener) error {
 // has not had any I/O performed on it yet.
 func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) {
 	if s.quit.HasFired() {
-		rawConn.Close()
+		_ = rawConn.Close()
 		return
 	}
-	rawConn.SetDeadline(time.Now().Add(s.opts.connectionTimeout))
+	_ = rawConn.SetDeadline(time.Now().Add(s.opts.connectionTimeout))
 
 	// Finish handshaking (HTTP2)
 	st := s.newHTTP2Transport(rawConn)
-	rawConn.SetDeadline(time.Time{})
+	_ = rawConn.SetDeadline(time.Time{})
 	if st == nil {
 		return
 	}
