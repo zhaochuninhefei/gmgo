@@ -893,7 +893,7 @@ func (s *Server) newHTTP2Transport(c net.Conn) transport.ServerTransport {
 			if err != io.EOF {
 				channelz.Warning(logger, s.channelzID, "grpc: Server.Serve failed to create ServerTransport: ", err)
 			}
-			c.Close()
+			_ = c.Close()
 		}
 		return nil
 	}
