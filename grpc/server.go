@@ -1203,8 +1203,8 @@ func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.
 		if a := md[":authority"]; len(a) > 0 {
 			logEntry.Authority = a[0]
 		}
-		if peer, ok := peer.FromContext(ctx); ok {
-			logEntry.PeerAddr = peer.Addr
+		if pr, ok := peer.FromContext(ctx); ok {
+			logEntry.PeerAddr = pr.Addr
 		}
 		binlog.Log(logEntry)
 	}
@@ -1496,8 +1496,8 @@ func (s *Server) processStreamingRPC(t transport.ServerTransport, stream *transp
 		if a := md[":authority"]; len(a) > 0 {
 			logEntry.Authority = a[0]
 		}
-		if peer, ok := peer.FromContext(ss.Context()); ok {
-			logEntry.PeerAddr = peer.Addr
+		if pr, ok := peer.FromContext(ss.Context()); ok {
+			logEntry.PeerAddr = pr.Addr
 		}
 		ss.binlog.Log(logEntry)
 	}
