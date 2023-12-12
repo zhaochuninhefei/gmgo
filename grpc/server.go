@@ -1225,7 +1225,7 @@ func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.
 		decomp = encoding.GetCompressor(rc)
 		if decomp == nil {
 			st := status.Newf(codes.Unimplemented, "grpc: Decompressor is not installed for grpc-encoding %q", rc)
-			t.WriteStatus(stream, st)
+			_ = t.WriteStatus(stream, st)
 			return st.Err()
 		}
 	}
