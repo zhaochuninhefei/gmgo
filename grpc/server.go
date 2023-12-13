@@ -1510,7 +1510,7 @@ func (s *Server) processStreamingRPC(t transport.ServerTransport, stream *transp
 		ss.decomp = encoding.GetCompressor(rc)
 		if ss.decomp == nil {
 			st := status.Newf(codes.Unimplemented, "grpc: Decompressor is not installed for grpc-encoding %q", rc)
-			t.WriteStatus(ss.s, st)
+			_ = t.WriteStatus(ss.s, st)
 			return st.Err()
 		}
 	}
