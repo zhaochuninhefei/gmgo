@@ -1562,7 +1562,7 @@ func (s *Server) processStreamingRPC(t transport.ServerTransport, stream *transp
 			ss.trInfo.tr.SetError()
 			ss.mu.Unlock()
 		}
-		t.WriteStatus(ss.s, appStatus)
+		_ = t.WriteStatus(ss.s, appStatus)
 		if ss.binlog != nil {
 			ss.binlog.Log(&binarylog.ServerTrailer{
 				Trailer: ss.s.Trailer(),
