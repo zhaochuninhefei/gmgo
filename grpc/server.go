@@ -1726,7 +1726,7 @@ func (s *Server) Stop() {
 	s.mu.Unlock()
 
 	for lis := range listeners {
-		lis.Close()
+		_ = lis.Close()
 	}
 	for _, cs := range conns {
 		for st := range cs {
