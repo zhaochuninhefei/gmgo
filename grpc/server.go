@@ -1764,7 +1764,7 @@ func (s *Server) GracefulStop() {
 	}
 
 	for lis := range s.lis {
-		lis.Close()
+		_ = lis.Close()
 	}
 	s.lis = nil
 	if !s.drain {
