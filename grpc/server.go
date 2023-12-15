@@ -1617,17 +1617,17 @@ func (s *Server) handleStream(t transport.ServerTransport, stream *transport.Str
 	srv, knownService := s.services[service]
 	if knownService {
 		if md, ok := srv.methods[method]; ok {
-			s.processUnaryRPC(t, stream, srv, md, trInfo)
+			_ = s.processUnaryRPC(t, stream, srv, md, trInfo)
 			return
 		}
 		if sd, ok := srv.streams[method]; ok {
-			s.processStreamingRPC(t, stream, srv, sd, trInfo)
+			_ = s.processStreamingRPC(t, stream, srv, sd, trInfo)
 			return
 		}
 	}
 	// Unknown service, or known server unknown method.
 	if unknownDesc := s.opts.unknownStreamDesc; unknownDesc != nil {
-		s.processStreamingRPC(t, stream, nil, unknownDesc, trInfo)
+		_ = s.processStreamingRPC(t, stream, nil, unknownDesc, trInfo)
 		return
 	}
 	var errDesc string
