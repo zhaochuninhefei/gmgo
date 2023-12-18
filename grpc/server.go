@@ -269,7 +269,7 @@ func KeepaliveEnforcementPolicy(kep keepalive.EnforcementPolicy) ServerOption {
 //
 // This will override any lookups by content-subtype for Codecs registered with RegisterCodec.
 //
-// Deprecated: register codecs using encoding.RegisterCodec. The server will
+// ToDeprecated: register codecs using encoding.RegisterCodec. The server will
 // automatically use registered codecs based on the incoming requests' headers.
 // See also
 // https://github.com/grpc/grpc-go/blob/master/Documentation/encoding.md#using-a-codec.
