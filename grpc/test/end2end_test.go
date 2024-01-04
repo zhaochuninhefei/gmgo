@@ -782,7 +782,9 @@ func (te *test) configDial(opts ...grpc.DialOption) ([]grpc.DialOption, string) 
 		opts = append(opts, grpc.WithStreamInterceptor(te.streamClientInt))
 	}
 	if te.maxClientMsgSize != nil {
-		opts = append(opts, grpc.WithMaxMsgSize(*te.maxClientMsgSize))
+		// grpc.WithMaxMsgSize is deprecated, use WithDefaultCallOptions(MaxCallRecvMsgSize(s)) instead.
+		//opts = append(opts, grpc.WithMaxMsgSize(*te.maxClientMsgSize))
+		opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*te.maxClientMsgSize)))
 	}
 	if te.maxClientReceiveMsgSize != nil {
 		opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*te.maxClientReceiveMsgSize)))

@@ -148,6 +148,7 @@ func WithInitialConnWindowSize(s int32) DialOption {
 //
 // Deprecated: use WithDefaultCallOptions(MaxCallRecvMsgSize(s)) instead.  Will
 // be supported throughout 1.x.
+//goland:noinspection GoUnusedExportedFunction
 func WithMaxMsgSize(s int) DialOption {
 	return WithDefaultCallOptions(MaxCallRecvMsgSize(s))
 }
