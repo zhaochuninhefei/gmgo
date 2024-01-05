@@ -142,6 +142,7 @@ type testServer struct {
 	unaryCallSleepTime time.Duration
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *testServer) EmptyCall(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		// For testing purpose, returns an error if user-agent is failAppUA.
