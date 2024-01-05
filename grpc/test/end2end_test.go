@@ -4154,7 +4154,7 @@ type concurrentSendServer struct {
 
 func (s concurrentSendServer) StreamingOutputCall(args *testpb.StreamingOutputCallRequest, stream testpb.TestService_StreamingOutputCallServer) error {
 	for i := 0; i < 10; i++ {
-		stream.Send(&testpb.StreamingOutputCallResponse{
+		_ = stream.Send(&testpb.StreamingOutputCallResponse{
 			Payload: &testpb.Payload{
 				Body: []byte{'0' + uint8(i)},
 			},
@@ -4541,7 +4541,7 @@ func testCompressOK(t *testing.T, e env) {
 	if err := stream.Send(sreq); err != nil {
 		t.Fatalf("%v.Send(%v) = %v, want <nil>", stream, sreq, err)
 	}
-	stream.CloseSend()
+	_ = stream.CloseSend()
 	if _, err := stream.Recv(); err != nil {
 		t.Fatalf("%v.Recv() = %v, want <nil>", stream, err)
 	}
@@ -4595,7 +4595,7 @@ func testIdentityEncoding(t *testing.T, e env) {
 	if err := stream.Send(sreq); err != nil {
 		t.Fatalf("%v.Send(%v) = %v, want <nil>", stream, sreq, err)
 	}
-	stream.CloseSend()
+	_ = stream.CloseSend()
 	if _, err := stream.Recv(); err != nil {
 		t.Fatalf("%v.Recv() = %v, want <nil>", stream, err)
 	}
