@@ -3733,7 +3733,9 @@ func (s) TestTransparentRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to listen. Err: %v", err)
 	}
-	defer lis.Close()
+	defer func(lis net.Listener) {
+		_ = lis.Close()
+	}(lis)
 	server := &httpServer{
 		responses: []httpServerResponse{{
 			trailers: [][]string{{
@@ -3755,7 +3757,9 @@ func (s) TestTransparentRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to dial due to err: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -4027,7 +4031,7 @@ func testMetadataStreamingRPC(t *testing.T, e env) {
 			return nil
 		}()
 		// Tell the server we're done sending args.
-		stream.CloseSend()
+		_ = stream.CloseSend()
 		if err != nil {
 			t.Error(err)
 		}
