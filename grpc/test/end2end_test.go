@@ -154,7 +154,7 @@ func (s *testServer) EmptyCall(ctx context.Context, in *testpb.Empty) (*testpb.E
 		for _, entry := range md["user-agent"] {
 			str = append(str, "ua", entry)
 		}
-		grpc.SendHeader(ctx, metadata.Pairs(str...))
+		_ = grpc.SendHeader(ctx, metadata.Pairs(str...))
 	}
 	return new(testpb.Empty), nil
 }
@@ -539,7 +539,7 @@ func (te *test) tearDown() {
 	}
 
 	if te.cc != nil {
-		te.cc.Close()
+		_ = te.cc.Close()
 		te.cc = nil
 	}
 
@@ -613,7 +613,7 @@ func (te *test) listenAndServe(ts testpb.TestServiceServer, listen func(network,
 	switch te.e.network {
 	case "unix":
 		la = "/tmp/testsock" + fmt.Sprintf("%d", time.Now().UnixNano())
-		syscall.Unlink(la)
+		_ = syscall.Unlink(la)
 	}
 	lis, err := listen(te.e.network, la)
 	if err != nil {
@@ -674,11 +674,15 @@ func (te *test) listenAndServe(ts testpb.TestServiceServer, listen func(network,
 		}
 		te.srv = wrapHS{hs}
 		tlsListener := tls.NewListener(lis, hs.TLSConfig)
-		go hs.Serve(tlsListener)
+		go func() {
+			_ = hs.Serve(tlsListener)
+		}()
 		return lis
 	}
 
-	go s.Serve(lis)
+	go func() {
+		_ = s.Serve(lis)
+	}()
 	return lis
 }
 
@@ -687,11 +691,11 @@ type wrapHS struct {
 }
 
 func (w wrapHS) GracefulStop() {
-	w.s.Shutdown(context.Background())
+	_ = w.s.Shutdown(context.Background())
 }
 
 func (w wrapHS) Stop() {
-	w.s.Close()
+	_ = w.s.Close()
 }
 
 func (te *test) startServerWithConnControl(ts testpb.TestServiceServer) *listenerWrapper {
