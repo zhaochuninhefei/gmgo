@@ -880,7 +880,9 @@ func (te *test) withServerTester(fn func(st *serverTester)) {
 	if err != nil {
 		te.t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 	if te.e.security == "tls" {
 		c = tls.Client(c, &tls.Config{
 			InsecureSkipVerify: true,
@@ -1247,7 +1249,7 @@ func testConcurrentClientConnCloseAndServerGoAway(t *testing.T, e env) {
 		close(ch)
 	}()
 	go func() {
-		cc.Close()
+		_ = cc.Close()
 	}()
 	<-ch
 }
@@ -1489,7 +1491,7 @@ func testClientConnCloseAfterGoAwayWithActiveStream(t *testing.T, e env) {
 		close(done)
 	}()
 	time.Sleep(50 * time.Millisecond)
-	cc.Close()
+	_ = cc.Close()
 	timeout := time.NewTimer(time.Second)
 	select {
 	case <-done:
@@ -2157,7 +2159,7 @@ func (s) TestStreamingRPCWithTimeoutInServiceConfigRecv(t *testing.T) {
 	if err := stream.Send(req); err != nil {
 		t.Fatalf("stream.Send(%v) = %v, want <nil>", req, err)
 	}
-	stream.CloseSend()
+	_ = stream.CloseSend()
 	time.Sleep(time.Second)
 	// Sleep 1 second before recv to make sure the final status is received
 	// before the recv.
@@ -2259,7 +2261,7 @@ func (s) TestPreloaderSenderSend(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				stream.SendMsg(preparedMsg)
+				_ = stream.SendMsg(preparedMsg)
 			}
 			return nil
 		},
@@ -3158,10 +3160,10 @@ func testPeerNegative(t *testing.T, e env) {
 
 	cc := te.clientConn()
 	tc := testpb.NewTestServiceClient(cc)
-	peer := new(peer.Peer)
+	pr := new(peer.Peer)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	tc.EmptyCall(ctx, &testpb.Empty{}, grpc.Peer(peer))
+	_, _ = tc.EmptyCall(ctx, &testpb.Empty{}, grpc.Peer(pr))
 }
 
 func (s) TestPeerFailedRPC(t *testing.T) {
