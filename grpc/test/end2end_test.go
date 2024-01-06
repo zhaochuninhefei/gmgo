@@ -4152,6 +4152,7 @@ type concurrentSendServer struct {
 	testpb.TestServiceServer
 }
 
+//goland:noinspection GoUnusedParameter
 func (s concurrentSendServer) StreamingOutputCall(args *testpb.StreamingOutputCallRequest, stream testpb.TestService_StreamingOutputCallServer) error {
 	for i := 0; i < 10; i++ {
 		_ = stream.Send(&testpb.StreamingOutputCallResponse{
@@ -4681,6 +4682,7 @@ func (s) TestUnaryServerInterceptor(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedParameter
 func errInjector(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	return nil, status.Error(codes.PermissionDenied, "")
 }
@@ -5076,6 +5078,8 @@ type clientFailCreds struct{}
 func (c *clientFailCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	return rawConn, nil, nil
 }
+
+//goland:noinspection GoUnusedParameter
 func (c *clientFailCreds) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	return nil, nil, fmt.Errorf("client handshake fails with fatal error")
 }
@@ -5085,6 +5089,8 @@ func (c *clientFailCreds) Info() credentials.ProtocolInfo {
 func (c *clientFailCreds) Clone() credentials.TransportCredentials {
 	return c
 }
+
+//goland:noinspection GoUnusedParameter
 func (c *clientFailCreds) OverrideServerName(s string) error {
 	return nil
 }
