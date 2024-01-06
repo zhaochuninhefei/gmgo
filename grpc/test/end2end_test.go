@@ -3118,29 +3118,29 @@ func testPeerClientSide(t *testing.T, e env) {
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
 	tc := testpb.NewTestServiceClient(te.clientConn())
-	peer := new(peer.Peer)
+	pr := new(peer.Peer)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.Peer(peer), grpc.WaitForReady(true)); err != nil {
+	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.Peer(pr), grpc.WaitForReady(true)); err != nil {
 		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want _, <nil>", err)
 	}
-	pa := peer.Addr.String()
+	pa := pr.Addr.String()
 	if e.network == "unix" {
 		if pa != te.srvAddr {
-			t.Fatalf("peer.Addr = %v, want %v", pa, te.srvAddr)
+			t.Fatalf("pr.Addr = %v, want %v", pa, te.srvAddr)
 		}
 		return
 	}
 	_, pp, err := net.SplitHostPort(pa)
 	if err != nil {
-		t.Fatalf("Failed to parse address from peer.")
+		t.Fatalf("Failed to parse address from pr.")
 	}
 	_, sp, err := net.SplitHostPort(te.srvAddr)
 	if err != nil {
 		t.Fatalf("Failed to parse address of test server.")
 	}
 	if pp != sp {
-		t.Fatalf("peer.Addr = localhost:%v, want localhost:%v", pp, sp)
+		t.Fatalf("pr.Addr = localhost:%v, want localhost:%v", pp, sp)
 	}
 }
 
@@ -3198,27 +3198,27 @@ func testPeerFailedRPC(t *testing.T, e env) {
 		Payload:      largePayload,
 	}
 
-	peer := new(peer.Peer)
-	if _, err := tc.UnaryCall(ctx, req, grpc.Peer(peer)); err == nil || status.Code(err) != codes.ResourceExhausted {
+	pr := new(peer.Peer)
+	if _, err := tc.UnaryCall(ctx, req, grpc.Peer(pr)); err == nil || status.Code(err) != codes.ResourceExhausted {
 		t.Fatalf("TestService/UnaryCall(_, _) = _, %v, want _, error code: %s", err, codes.ResourceExhausted)
 	} else {
-		pa := peer.Addr.String()
+		pa := pr.Addr.String()
 		if e.network == "unix" {
 			if pa != te.srvAddr {
-				t.Fatalf("peer.Addr = %v, want %v", pa, te.srvAddr)
+				t.Fatalf("pr.Addr = %v, want %v", pa, te.srvAddr)
 			}
 			return
 		}
 		_, pp, err := net.SplitHostPort(pa)
 		if err != nil {
-			t.Fatalf("Failed to parse address from peer.")
+			t.Fatalf("Failed to parse address from pr.")
 		}
 		_, sp, err := net.SplitHostPort(te.srvAddr)
 		if err != nil {
 			t.Fatalf("Failed to parse address of test server.")
 		}
 		if pp != sp {
-			t.Fatalf("peer.Addr = localhost:%v, want localhost:%v", pp, sp)
+			t.Fatalf("pr.Addr = localhost:%v, want localhost:%v", pp, sp)
 		}
 	}
 }
