@@ -759,9 +759,18 @@ func (d *nopDecompressor) Type() string {
 }
 
 func (te *test) configDial(opts ...grpc.DialOption) ([]grpc.DialOption, string) {
-	opts = append(opts, grpc.WithDialer(te.e.dialer), grpc.WithUserAgent(te.userAgent))
+	// grpc.WithDialer is deprecated, use WithContextDialer instead.
+	//opts = append(opts, grpc.WithDialer(te.e.dialer), grpc.WithUserAgent(te.userAgent))
+	opts = append(opts, grpc.WithContextDialer(
+		func(ctx context.Context, addr string) (net.Conn, error) {
+			if deadline, ok := ctx.Deadline(); ok {
+				return te.e.dialer(addr, time.Until(deadline))
+			}
+			return te.e.dialer(addr, 0)
+		}))
 
 	if te.sc != nil {
+		//goland:noinspection GoDeprecation
 		opts = append(opts, grpc.WithServiceConfig(te.sc))
 	}
 

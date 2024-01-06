@@ -164,7 +164,7 @@ func WithDefaultCallOptions(cos ...CallOption) DialOption {
 // WithCodec returns a DialOption which sets a codec for message marshaling and
 // unmarshaling.
 //
-// Deprecated: use WithDefaultCallOptions(ForceCodec(_)) instead.  Will be
+// ToDeprecated: use WithDefaultCallOptions(ForceCodec(_)) instead.  Will be
 // supported throughout 1.x.
 func WithCodec(c encoding.Codec) DialOption {
 	return WithDefaultCallOptions(CallCustomCodec(c))
@@ -174,7 +174,7 @@ func WithCodec(c encoding.Codec) DialOption {
 // message compression. It has lower priority than the compressor set by the
 // UseCompressor CallOption.
 //
-// Deprecated: use UseCompressor instead.  Will be supported throughout 1.x.
+// ToDeprecated: use UseCompressor instead.  Will be supported throughout 1.x.
 func WithCompressor(cp Compressor) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
 		o.cp = cp
@@ -189,7 +189,7 @@ func WithCompressor(cp Compressor) DialOption {
 // message.  If no compressor is registered for the encoding, an Unimplemented
 // status error will be returned.
 //
-// Deprecated: use encoding.RegisterCompressor instead.  Will be supported
+// ToDeprecated: use encoding.RegisterCompressor instead.  Will be supported
 // throughout 1.x.
 func WithDecompressor(dc Decompressor) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
@@ -204,7 +204,7 @@ func WithDecompressor(dc Decompressor) DialOption {
 // The balancer cannot be overridden by balancer option specified by service
 // config.
 //
-// Deprecated: use WithDefaultServiceConfig and WithDisableServiceConfig
+// ToDeprecated: use WithDefaultServiceConfig and WithDisableServiceConfig
 // instead.  Will be removed in a future 1.x release.
 func WithBalancerName(balancerName string) DialOption {
 	builder := balancer.Get(balancerName)
@@ -219,7 +219,7 @@ func WithBalancerName(balancerName string) DialOption {
 // WithServiceConfig returns a DialOption which has a channel to read the
 // service configuration.
 //
-// Deprecated: service config should be received through name resolver or via
+// ToDeprecated: service config should be received through name resolver or via
 // WithDefaultServiceConfig, as specified at
 // https://github.com/grpc/grpc/blob/master/doc/service_config.md.  Will be
 // removed in a future 1.x release.
@@ -249,7 +249,7 @@ func WithConnectParams(p ConnectParams) DialOption {
 // WithBackoffMaxDelay configures the dialer to use the provided maximum delay
 // when backing off after failed connection attempts.
 //
-// Deprecated: use WithConnectParams instead. Will be supported throughout 1.x.
+// ToDeprecated: use WithConnectParams instead. Will be supported throughout 1.x.
 func WithBackoffMaxDelay(md time.Duration) DialOption {
 	return WithBackoffConfig(BackoffConfig{MaxDelay: md})
 }
@@ -257,7 +257,7 @@ func WithBackoffMaxDelay(md time.Duration) DialOption {
 // WithBackoffConfig configures the dialer to use the provided backoff
 // parameters after connection failures.
 //
-// Deprecated: use WithConnectParams instead. Will be supported throughout 1.x.
+// ToDeprecated: use WithConnectParams instead. Will be supported throughout 1.x.
 func WithBackoffConfig(b BackoffConfig) DialOption {
 	bc := backoff.DefaultConfig
 	bc.MaxDelay = b.MaxDelay
