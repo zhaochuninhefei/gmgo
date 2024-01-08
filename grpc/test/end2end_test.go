@@ -26,6 +26,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"io"
 	"math"
 	"net"
@@ -819,7 +820,9 @@ func (te *test) configDial(opts ...grpc.DialOption) ([]grpc.DialOption, string) 
 	case "empty":
 		// Don't add any transport creds option.
 	default:
-		opts = append(opts, grpc.WithInsecure())
+		// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+		//opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 	// TODO(bar) switch balancer case "pick_first".
 	var scheme string
@@ -3762,7 +3765,9 @@ func (s) TestTransparentRetry(t *testing.T) {
 		},
 	}
 	server.start(t, lis)
-	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("failed to dial due to err: %v", err)
 	}
