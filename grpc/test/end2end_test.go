@@ -860,7 +860,11 @@ func (te *test) clientConnWithConnControl() (*grpc.ClientConn, *dialerWrapper) {
 	opts, scheme := te.configDial()
 	dw := &dialerWrapper{}
 	// overwrite the dialer before
-	opts = append(opts, grpc.WithDialer(dw.dialer))
+	// grpc.WithDialer is deprecated, use WithContextDialer instead.
+	//opts = append(opts, grpc.WithDialer(dw.dialer))
+	opts = append(opts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+		return dw.dialer(addr, 0)
+	}))
 	var err error
 	te.cc, err = grpc.Dial(scheme+te.srvAddr, opts...)
 	if err != nil {
@@ -4841,7 +4845,7 @@ func testClientRequestBodyErrorCloseAfterLength(t *testing.T, e env) {
 		st.writeHeadersGRPC(1, "/grpc.testing.TestService/UnaryCall", false)
 		// say we're sending 5 bytes, but then close the connection instead.
 		st.writeData(1, false, []byte{0, 0, 0, 0, 5})
-		st.cc.Close()
+		_ = st.cc.Close()
 	})
 }
 
@@ -5166,7 +5170,9 @@ func (s) TestFlowControlLogicalRace(t *testing.T) {
 
 	go s.Serve(lis)
 
-	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("grpc.Dial(%q) = %v", lis.Addr().String(), err)
 	}
@@ -6596,7 +6602,9 @@ func (s) TestServeExitsWhenListenerClosed(t *testing.T) {
 		close(done)
 	}()
 
-	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -6815,7 +6823,9 @@ func (s) TestDisabledIOBuffers(t *testing.T) {
 	defer s.Stop()
 	dctx, dcancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer dcancel()
-	cc, err := grpc.DialContext(dctx, lis.Addr().String(), grpc.WithInsecure(), grpc.WithWriteBufferSize(0), grpc.WithReadBufferSize(0))
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.DialContext(dctx, lis.Addr().String(), grpc.WithInsecure(), grpc.WithWriteBufferSize(0), grpc.WithReadBufferSize(0))
+	cc, err := grpc.DialContext(dctx, lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithWriteBufferSize(0), grpc.WithReadBufferSize(0))
 	if err != nil {
 		t.Fatalf("Failed to dial server")
 	}
@@ -7017,7 +7027,12 @@ func (s) TestNetPipeConn(t *testing.T) {
 	go s.Serve(pl)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cc, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithDialer(pl.Dialer()))
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	// grpc.WithDialer is deprecated, use WithContextDialer instead.
+	//cc, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithDialer(pl.Dialer()))
+	cc, err := grpc.DialContext(ctx, "", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+		return pl.Dialer()(addr, 0)
+	}))
 	if err != nil {
 		t.Fatalf("Error creating client: %v", err)
 	}
@@ -7117,7 +7132,9 @@ func (s) TestGoAwayThenClose(t *testing.T) {
 		{Addr: lis1.Addr().String()},
 		{Addr: lis2.Addr().String()},
 	}})
-	cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithResolvers(r), grpc.WithInsecure())
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithResolvers(r), grpc.WithInsecure())
+	cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithResolvers(r), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Error creating client: %v", err)
 	}
@@ -7518,7 +7535,9 @@ func doHTTPHeaderTest(t *testing.T, errCode codes.Code, headerFields ...[]string
 		responses: []httpServerResponse{{trailers: headerFields}},
 	}
 	server.start(t, lis)
-	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("failed to dial due to err: %v", err)
 	}
