@@ -5899,7 +5899,7 @@ func testEncodeDoesntPanic(t *testing.T, e env) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	// Failure case, should not panic.
-	tc.EmptyCall(ctx, &testpb.Empty{})
+	_, _ = tc.EmptyCall(ctx, &testpb.Empty{})
 	erc.noError = true
 	// Passing case.
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -6493,7 +6493,7 @@ func (s) TestInterceptorCanAccessCallOptions(t *testing.T) {
 	var pr peer.Peer
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	tc.UnaryCall(ctx, &testpb.SimpleRequest{},
+	_, _ = tc.UnaryCall(ctx, &testpb.SimpleRequest{},
 		grpc.MaxCallRecvMsgSize(100),
 		grpc.MaxCallSendMsgSize(200),
 		grpc.PerRPCCredentials(testPerRPCCredentials{}),
@@ -6516,7 +6516,7 @@ func (s) TestInterceptorCanAccessCallOptions(t *testing.T) {
 
 	observedOpts = observedOptions{} // reset
 
-	tc.StreamingInputCall(ctx,
+	_, _ = tc.StreamingInputCall(ctx,
 		grpc.WaitForReady(false),
 		grpc.MaxCallSendMsgSize(2020),
 		grpc.UseCompressor("comp-type"),
@@ -6613,7 +6613,7 @@ func (s) TestServeExitsWhenListenerClosed(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		s.Serve(lis)
+		_ = s.Serve(lis)
 		close(done)
 	}()
 
@@ -6623,7 +6623,9 @@ func (s) TestServeExitsWhenListenerClosed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	c := testpb.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
