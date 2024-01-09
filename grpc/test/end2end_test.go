@@ -5227,6 +5227,7 @@ type flowControlLogicalRaceServer struct {
 	itemCount int
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *flowControlLogicalRaceServer) StreamingOutputCall(req *testpb.StreamingOutputCallRequest, srv testpb.TestService_StreamingOutputCallServer) error {
 	for i := 0; i < s.itemCount; i++ {
 		err := srv.Send(&testpb.StreamingOutputCallResponse{
@@ -5827,6 +5828,7 @@ type errCodec struct {
 	noError bool
 }
 
+//goland:noinspection GoUnusedParameter
 func (c *errCodec) Marshal(v interface{}) ([]byte, error) {
 	if c.noError {
 		return []byte{}, nil
@@ -5834,6 +5836,7 @@ func (c *errCodec) Marshal(v interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("3987^12 + 4365^12 = 4472^12")
 }
 
+//goland:noinspection GoUnusedParameter
 func (c *errCodec) Unmarshal(data []byte, v interface{}) error {
 	return nil
 }
@@ -7855,6 +7858,7 @@ func (cvd *credentialsVerifyDeadline) ServerHandshake(rawConn net.Conn) (net.Con
 	return rawConn, nil, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (cvd *credentialsVerifyDeadline) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	cvd.deadlineCh.Send(rawConn.(*infoConn).deadline)
 	return rawConn, nil, nil
@@ -7866,10 +7870,13 @@ func (cvd *credentialsVerifyDeadline) Info() credentials.ProtocolInfo {
 func (cvd *credentialsVerifyDeadline) Clone() credentials.TransportCredentials {
 	return cvd
 }
+
+//goland:noinspection GoUnusedParameter
 func (cvd *credentialsVerifyDeadline) OverrideServerName(s string) error {
 	return nil
 }
 
+//goland:noinspection GoUnusedParameter
 func unaryInterceptorVerifyConn(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	conn := transport.GetConnection(ctx)
 	if conn == nil {
@@ -7895,6 +7902,7 @@ func (s) TestUnaryServerInterceptorGetsConnection(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedParameter
 func streamingInterceptorVerifyConn(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	conn := transport.GetConnection(ss.Context())
 	if conn == nil {
@@ -7927,6 +7935,7 @@ func (s) TestStreamingServerInterceptorGetsConnection(t *testing.T) {
 // unaryInterceptorVerifyAuthority verifies there is an unambiguous :authority
 // once the request gets to an interceptor. An unambiguous :authority is defined
 // as at most a single :authority header, and no host header according to A41.
+//goland:noinspection GoUnusedParameter
 func unaryInterceptorVerifyAuthority(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
