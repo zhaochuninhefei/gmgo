@@ -7488,7 +7488,7 @@ func (s *httpServer) start(t *testing.T, lis net.Listener) {
 			t.Errorf("Error at server-side while sending Settings ack. Err: %v", err)
 			return
 		}
-		writer.Flush() // necessary since client is expecting preface before declaring connection fully setup.
+		_ = writer.Flush() // necessary since client is expecting preface before declaring connection fully setup.
 
 		var sid uint32
 		// Loop until conn is closed and framer returns io.EOF
@@ -7524,8 +7524,8 @@ func (s *httpServer) start(t *testing.T, lis net.Listener) {
 					if s.refuseStream == nil || !s.refuseStream(sid) {
 						break
 					}
-					framer.WriteRSTStream(sid, http2.ErrCodeRefusedStream)
-					writer.Flush()
+					_ = framer.WriteRSTStream(sid, http2.ErrCodeRefusedStream)
+					_ = writer.Flush()
 				}
 			}
 
@@ -7535,21 +7535,21 @@ func (s *httpServer) start(t *testing.T, lis net.Listener) {
 					t.Errorf("Error at server-side while writing headers. Err: %v", err)
 					return
 				}
-				writer.Flush()
+				_ = writer.Flush()
 			}
 			if response.payload != nil {
 				if err = s.writePayload(framer, sid, response.payload); err != nil {
 					t.Errorf("Error at server-side while writing payload. Err: %v", err)
 					return
 				}
-				writer.Flush()
+				_ = writer.Flush()
 			}
 			for i, trailer := range response.trailers {
 				if err = s.writeHeader(framer, sid, trailer, i == len(response.trailers)-1); err != nil {
 					t.Errorf("Error at server-side while writing trailers. Err: %v", err)
 					return
 				}
-				writer.Flush()
+				_ = writer.Flush()
 			}
 		}
 	}()
@@ -7561,7 +7561,9 @@ func doHTTPHeaderTest(t *testing.T, errCode codes.Code, headerFields ...[]string
 	if err != nil {
 		t.Fatalf("Failed to listen. Err: %v", err)
 	}
-	defer lis.Close()
+	defer func(lis net.Listener) {
+		_ = lis.Close()
+	}(lis)
 	server := &httpServer{
 		responses: []httpServerResponse{{trailers: headerFields}},
 	}
@@ -7572,7 +7574,9 @@ func doHTTPHeaderTest(t *testing.T, errCode codes.Code, headerFields ...[]string
 	if err != nil {
 		t.Fatalf("failed to dial due to err: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client := testpb.NewTestServiceClient(cc)
