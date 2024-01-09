@@ -7450,7 +7450,7 @@ func (s *httpServer) writeHeader(framer *http2.Framer, sid uint32, headerFields 
 	for len(headerFields) > 0 {
 		k, v := headerFields[0], headerFields[1]
 		headerFields = headerFields[2:]
-		henc.WriteField(hpack.HeaderField{Name: k, Value: v})
+		_ = henc.WriteField(hpack.HeaderField{Name: k, Value: v})
 	}
 
 	return framer.WriteHeaders(http2.HeadersFrameParam{
@@ -7473,7 +7473,9 @@ func (s *httpServer) start(t *testing.T, lis net.Listener) {
 			t.Errorf("Error accepting connection: %v", err)
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 		// Read preface sent by client.
 		if _, err = io.ReadFull(conn, make([]byte, len(http2.ClientPreface))); err != nil {
 			t.Errorf("Error at server-side while reading preface from client. Err: %v", err)
