@@ -4913,7 +4913,9 @@ func testClientRequestBodyErrorCancelStreamingInput(t *testing.T, e env) {
 		case <-time.After(3 * time.Second):
 			t.Fatal("timeout waiting for error")
 		}
-		if grpc.Code(got) != codes.Canceled {
+		// grpc.Code is deprecated, use status.Code instead.
+		//if grpc.Code(got) != codes.Canceled {
+		if status.Code(got) != codes.Canceled {
 			t.Errorf("error = %#v; want error code %s", got, codes.Canceled)
 		}
 	})
