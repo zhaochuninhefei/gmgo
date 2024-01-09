@@ -6835,7 +6835,7 @@ func (s) TestDisabledIOBuffers(t *testing.T) {
 	}
 
 	go func() {
-		s.Serve(lis)
+		_ = s.Serve(lis)
 	}()
 	defer s.Stop()
 	dctx, dcancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -6846,7 +6846,9 @@ func (s) TestDisabledIOBuffers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial server")
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	c := testpb.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -6866,7 +6868,7 @@ func (s) TestDisabledIOBuffers(t *testing.T) {
 			t.Fatalf("Received message(len: %v) on client not what was expected(len: %v).", len(in.Payload.Body), len(payload.Body))
 		}
 	}
-	stream.CloseSend()
+	_ = stream.CloseSend()
 	if _, err := stream.Recv(); err != io.EOF {
 		t.Fatalf("stream.Recv() = _, %v, want _, io.EOF", err)
 	}
@@ -6966,7 +6968,7 @@ func testServerMaxHeaderListSizeClientIntentionalViolation(t *testing.T, e env) 
 	}
 	// allow for client to send the initial header
 	time.Sleep(100 * time.Millisecond)
-	rcw.writeHeaders(http2.HeadersFrameParam{
+	_ = rcw.writeHeaders(http2.HeadersFrameParam{
 		StreamID:      tc.getCurrentStreamID(),
 		BlockFragment: rcw.encodeHeader("oversize", strings.Join(val, "")),
 		EndStream:     false,
@@ -7020,7 +7022,7 @@ func testClientMaxHeaderListSizeServerIntentionalViolation(t *testing.T, e env) 
 	}
 	// allow for client to send the initial header.
 	time.Sleep(100 * time.Millisecond)
-	rcw.writeHeaders(http2.HeadersFrameParam{
+	_ = rcw.writeHeaders(http2.HeadersFrameParam{
 		StreamID:      tc.getCurrentStreamID(),
 		BlockFragment: rcw.encodeRawHeader("oversize", strings.Join(val, "")),
 		EndStream:     false,
@@ -7041,7 +7043,9 @@ func (s) TestNetPipeConn(t *testing.T) {
 		return &testpb.SimpleResponse{}, nil
 	}}
 	testpb.RegisterTestServiceServer(s, ts)
-	go s.Serve(pl)
+	go func() {
+		_ = s.Serve(pl)
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
@@ -7053,7 +7057,9 @@ func (s) TestNetPipeConn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating client: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	client := testpb.NewTestServiceClient(cc)
 	if _, err := client.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil {
 		t.Fatalf("UnaryCall(_) = _, %v; want _, nil", err)
