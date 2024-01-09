@@ -7139,7 +7139,9 @@ func (s) TestGoAwayThenClose(t *testing.T) {
 		},
 	}
 	testpb.RegisterTestServiceServer(s1, ts)
-	go s1.Serve(lis1)
+	go func() {
+		_ = s1.Serve(lis1)
+	}()
 
 	conn2Established := grpcsync.NewEvent()
 	lis2, err := listenWithNotifyingListener("tcp", "localhost:0", conn2Established)
@@ -7161,7 +7163,9 @@ func (s) TestGoAwayThenClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating client: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 
 	client := testpb.NewTestServiceClient(cc)
 
@@ -7179,7 +7183,9 @@ func (s) TestGoAwayThenClose(t *testing.T) {
 		t.Fatalf("unexpected error from first recv: %v", err)
 	}
 
-	go s2.Serve(lis2)
+	go func() {
+		_ = s2.Serve(lis2)
+	}()
 
 	// Send GO_AWAY to connection 1.
 	go s1.GracefulStop()
@@ -7201,7 +7207,7 @@ func (s) TestGoAwayThenClose(t *testing.T) {
 	<-conn2Established.Done()
 
 	// Close the listener for server2 to prevent it from allowing new connections.
-	lis2.Close()
+	_ = lis2.Close()
 
 	// Close connection 1.
 	s1.Stop()
