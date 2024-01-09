@@ -5122,13 +5122,17 @@ func (s) TestFailfastRPCFailOnFatalHandshakeError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
-	defer lis.Close()
+	defer func(lis net.Listener) {
+		_ = lis.Close()
+	}(lis)
 
 	cc, err := grpc.Dial("passthrough:///"+lis.Addr().String(), grpc.WithTransportCredentials(&clientFailCreds{}))
 	if err != nil {
 		t.Fatalf("grpc.Dial(_) = %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 
 	tc := testpb.NewTestServiceClient(cc)
 	// This unary call should fail, but not timeout.
@@ -5161,7 +5165,9 @@ func (s) TestFlowControlLogicalRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
-	defer lis.Close()
+	defer func(lis net.Listener) {
+		_ = lis.Close()
+	}(lis)
 
 	s := grpc.NewServer()
 	testpb.RegisterTestServiceServer(s, &flowControlLogicalRaceServer{
@@ -5170,7 +5176,9 @@ func (s) TestFlowControlLogicalRace(t *testing.T) {
 	})
 	defer s.Stop()
 
-	go s.Serve(lis)
+	go func() {
+		_ = s.Serve(lis)
+	}()
 
 	// grpc.WithInsecure is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
 	//cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
@@ -5178,7 +5186,9 @@ func (s) TestFlowControlLogicalRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpc.Dial(%q) = %v", lis.Addr().String(), err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 	cl := testpb.NewTestServiceClient(cc)
 
 	failures := 0
