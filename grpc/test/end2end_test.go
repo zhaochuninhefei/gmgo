@@ -7654,7 +7654,7 @@ func (badGzipCompressor) Do(w io.Writer, p []byte) error {
 	if len(bs) >= 6 {
 		bs[len(bs)-6] ^= 1 // modify checksum at end by 1 byte
 	}
-	w.Write(bs)
+	_, _ = w.Write(bs)
 	return err
 }
 
@@ -7753,7 +7753,9 @@ func (s) TestClientSettingsFloodCloseConn(t *testing.T) {
 	// Minimize buffer sizes to stimulate failure condition more quickly.
 	s := grpc.NewServer(grpc.WriteBufferSize(20))
 	l := bufconn.Listen(20)
-	go s.Serve(l)
+	go func() {
+		_ = s.Serve(l)
+	}()
 
 	// Dial our server and handshake.
 	conn, err := l.Dial()
@@ -7793,7 +7795,7 @@ func (s) TestClientSettingsFloodCloseConn(t *testing.T) {
 	// Flood settings frames until a timeout occurs, indiciating the server has
 	// stopped reading from the connection, then close the conn.
 	for {
-		conn.SetWriteDeadline(time.Now().Add(50 * time.Millisecond))
+		_ = conn.SetWriteDeadline(time.Now().Add(50 * time.Millisecond))
 		if err := fr.WriteSettings(); err != nil {
 			if to, ok := err.(interface{ Timeout() bool }); !ok || !to.Timeout() {
 				t.Fatalf("Received unexpected write error: %v", err)
@@ -7801,7 +7803,7 @@ func (s) TestClientSettingsFloodCloseConn(t *testing.T) {
 			break
 		}
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	// If the server does not handle this situation correctly, it will never
 	// close the transport.  This is because its loopyWriter.run() will have
@@ -7837,7 +7839,7 @@ func (s) TestDeadlineSetOnConnectionOnClientCredentialHandshake(t *testing.T) {
 	defer func() {
 		conn := <-connCh
 		if conn != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 	}()
 	deadlineCh := testutils.NewChannel()
@@ -7855,7 +7857,9 @@ func (s) TestDeadlineSetOnConnectionOnClientCredentialHandshake(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial: %v", err)
 	}
-	defer cc.Close()
+	defer func(cc *grpc.ClientConn) {
+		_ = cc.Close()
+	}(cc)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
@@ -8122,7 +8126,9 @@ func (s) TestServerClosesConn(t *testing.T) {
 	wrapLis := &wrapCloseListener{Listener: lis}
 
 	s := grpc.NewServer()
-	go s.Serve(wrapLis)
+	go func() {
+		_ = s.Serve(wrapLis)
+	}()
 	defer s.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -8133,7 +8139,7 @@ func (s) TestServerClosesConn(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Dial = _, %v; want _, nil", err)
 		}
-		conn.Close()
+		_ = conn.Close()
 	}
 	for ctx.Err() == nil {
 		if atomic.LoadInt32(&wrapLis.connsOpen) == 0 {
