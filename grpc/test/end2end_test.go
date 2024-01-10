@@ -2249,7 +2249,7 @@ func testPreloaderClientSend(t *testing.T, e env) {
 			t.Fatalf("Got the reply of type %d, want %d", pt, testpb.PayloadType_COMPRESSABLE)
 		}
 		size := len(reply.GetPayload().GetBody())
-		if size != int(respSizes[index]) {
+		if size != respSizes[index] {
 			t.Fatalf("Got reply body of length %d, want %d", size, respSizes[index])
 		}
 		index++
@@ -3973,7 +3973,7 @@ func testPingPong(t *testing.T, e env) {
 			t.Fatalf("Got the reply of type %d, want %d", pt, testpb.PayloadType_COMPRESSABLE)
 		}
 		size := len(reply.GetPayload().GetBody())
-		if size != int(respSizes[index]) {
+		if size != respSizes[index] {
 			t.Fatalf("Got reply body of length %d, want %d", size, respSizes[index])
 		}
 		index++
@@ -4106,7 +4106,7 @@ func testServerStreaming(t *testing.T, e env) {
 			t.Fatalf("Got the reply of type %d, want %d", pt, testpb.PayloadType_COMPRESSABLE)
 		}
 		size := len(reply.GetPayload().GetBody())
-		if size != int(respSizes[index]) {
+		if size != respSizes[index] {
 			t.Fatalf("Got reply body of length %d, want %d", size, respSizes[index])
 		}
 		index++
@@ -7295,7 +7295,7 @@ func (s) TestRPCWaitsForResolver(t *testing.T) {
 func (s) TestHTTPHeaderFrameErrorHandlingHTTPMode(t *testing.T) {
 	// Non-gRPC content-type fallback path.
 	for httpCode := range transport.HTTPStatusConvTab {
-		doHTTPHeaderTest(t, transport.HTTPStatusConvTab[int(httpCode)], []string{
+		doHTTPHeaderTest(t, transport.HTTPStatusConvTab[httpCode], []string{
 			":status", fmt.Sprintf("%d", httpCode),
 			"content-type", "text/html", // non-gRPC content type to switch to HTTP mode.
 			"grpc-status", "1", // Make up a gRPC status error
@@ -7305,7 +7305,7 @@ func (s) TestHTTPHeaderFrameErrorHandlingHTTPMode(t *testing.T) {
 
 	// Missing content-type fallback path.
 	for httpCode := range transport.HTTPStatusConvTab {
-		doHTTPHeaderTest(t, transport.HTTPStatusConvTab[int(httpCode)], []string{
+		doHTTPHeaderTest(t, transport.HTTPStatusConvTab[httpCode], []string{
 			":status", fmt.Sprintf("%d", httpCode),
 			// Omitting content type to switch to HTTP mode.
 			"grpc-status", "1", // Make up a gRPC status error
