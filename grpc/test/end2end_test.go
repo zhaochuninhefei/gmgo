@@ -41,10 +41,8 @@ import (
 	"time"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
-
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
