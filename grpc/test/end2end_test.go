@@ -6741,6 +6741,7 @@ func testClientDoesntDeadlockWhileWritingErrornousLargeMessages(t *testing.T, e 
 			defer wg.Done()
 			for j := 0; j < 100; j++ {
 				ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
+				//goland:noinspection GoDeferInLoop
 				defer cancel()
 				if _, err := tc.UnaryCall(ctx, req); status.Code(err) != codes.ResourceExhausted {
 					t.Errorf("TestService/UnaryCall(_,_) = _. %v, want code: %s", err, codes.ResourceExhausted)
@@ -7098,6 +7099,7 @@ func testLargeTimeout(t *testing.T, e env) {
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), maxTimeout)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 
 		if _, err := tc.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil {
