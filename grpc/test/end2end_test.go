@@ -4376,6 +4376,7 @@ func testExceedMaxStreamsLimit(t *testing.T, e env) {
 	// Loop until receiving the new max stream setting from the server.
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		//goland:noinspection GoDeferInLoop
 		defer cancel()
 		_, err := tc.StreamingInputCall(ctx)
 		if err == nil {
