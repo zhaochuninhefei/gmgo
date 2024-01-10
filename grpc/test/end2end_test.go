@@ -4248,14 +4248,14 @@ func generatePayloadSizes() [][]int {
 	num8KPayloads := 1024
 	var eightKPayloads []int
 	for i := 0; i < num8KPayloads; i++ {
-		eightKPayloads = append(eightKPayloads, (1 << 13))
+		eightKPayloads = append(eightKPayloads, 1<<13)
 	}
 	reqSizes = append(reqSizes, eightKPayloads)
 
 	num2MPayloads := 8
 	var twoMPayloads []int
 	for i := 0; i < num2MPayloads; i++ {
-		twoMPayloads = append(twoMPayloads, (1 << 21))
+		twoMPayloads = append(twoMPayloads, 1<<21)
 	}
 	reqSizes = append(reqSizes, twoMPayloads)
 
