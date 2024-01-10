@@ -4246,14 +4246,14 @@ func generatePayloadSizes() [][]int {
 	}
 
 	num8KPayloads := 1024
-	eightKPayloads := []int{}
+	var eightKPayloads []int
 	for i := 0; i < num8KPayloads; i++ {
 		eightKPayloads = append(eightKPayloads, (1 << 13))
 	}
 	reqSizes = append(reqSizes, eightKPayloads)
 
 	num2MPayloads := 8
-	twoMPayloads := []int{}
+	var twoMPayloads []int
 	for i := 0; i < num2MPayloads; i++ {
 		twoMPayloads = append(twoMPayloads, (1 << 21))
 	}
@@ -5691,7 +5691,7 @@ func (s) TestClientWriteFailsAfterServerClosesStream(t *testing.T) {
 			return status.Errorf(codes.Internal, "")
 		},
 	}
-	sopts := []grpc.ServerOption{}
+	var sopts []grpc.ServerOption
 	if err := ss.Start(sopts); err != nil {
 		t.Fatalf("Error starting endpoint server: %v", err)
 	}
