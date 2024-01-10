@@ -4155,7 +4155,7 @@ func testFailedServerStreaming(t *testing.T, e env) {
 }
 
 func equalError(x, y error) bool {
-	return x == y || (x != nil && y != nil && x.Error() == y.Error())
+	return errors.Is(x, y) || (x != nil && y != nil && x.Error() == y.Error())
 }
 
 // concurrentSendServer is a TestServiceServer whose
@@ -7603,7 +7603,7 @@ func (s) TestClientCancellationPropagatesUnary(t *testing.T) {
 			close(called)
 			<-ctx.Done()
 			err := ctx.Err()
-			if err != context.Canceled {
+			if !errors.Is(err, context.Canceled) {
 				t.Errorf("ctx.Err() = %v; want context.Canceled", err)
 			}
 			close(done)
