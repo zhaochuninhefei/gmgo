@@ -888,7 +888,7 @@ func (s *Server) newHTTP2Transport(c net.Conn) transport.ServerTransport {
 		s.mu.Unlock()
 		// ErrConnDispatched means that the connection was dispatched away from
 		// gRPC; those connections should be left open.
-		if err != credentials.ErrConnDispatched {
+		if !errors.Is(err, credentials.ErrConnDispatched) {
 			// Don't log on ErrConnDispatched and io.EOF to prevent log spam.
 			if err != io.EOF {
 				channelz.Warning(logger, s.channelzID, "grpc: Server.Serve failed to create ServerTransport: ", err)
@@ -1328,8 +1328,9 @@ func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.
 				channelz.Warningf(logger, s.channelzID, "grpc: Server.processUnaryRPC failed to write status: %v", e)
 			}
 		} else {
-			switch st := err.(type) {
-			case transport.ConnectionError:
+			var st transport.ConnectionError
+			switch {
+			case errors.As(err, &st):
 				// Nothing to do here.
 			default:
 				panic(fmt.Sprintf("grpc: Unexpected error (%T) from sendResponse: %v", st, st))
