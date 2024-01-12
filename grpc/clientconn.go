@@ -62,7 +62,7 @@ var (
 	// ErrClientConnClosing indicates that the operation is illegal because
 	// the ClientConn is closing.
 	//
-	// Deprecated: this error should not be relied upon by users; use the status
+	// ToDeprecated: this error should not be relied upon by users; use the status
 	// code of Canceled instead.
 	ErrClientConnClosing = status.Error(codes.Canceled, "grpc: the client connection is closing")
 	// errConnDrain indicates that the connection starts to be drained and does not accept any new RPCs.
