@@ -71,6 +71,7 @@ type StreamDesc struct {
 // Stream defines the common interface a client or server stream has to satisfy.
 //
 // ToDeprecated: See ClientStream and ServerStream documentation instead.
+//goland:noinspection GoCommentStart
 type Stream interface {
 	// ToDeprecated: See ClientStream and ServerStream documentation instead.
 	Context() context.Context
