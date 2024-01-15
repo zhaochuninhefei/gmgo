@@ -155,7 +155,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 
 	defer func() {
 		if err != nil {
-			cc.Close()
+			_ = cc.Close()
 		}
 	}()
 
@@ -544,7 +544,10 @@ func (cc *ClientConn) Connect() {
 		return
 	}
 	for ac := range cc.conns {
-		go ac.connect()
+		acNew := ac
+		go func() {
+			_ = acNew.connect()
+		}()
 	}
 }
 
@@ -1596,8 +1599,9 @@ func (c *channelzChannel) ChannelzMetric() *channelz.ChannelInternalMetric {
 // ErrClientConnTimeout indicates that the ClientConn cannot establish the
 // underlying connections within the specified timeout.
 //
-// Deprecated: This error is never returned by grpc and should not be
+// ToDeprecated: This error is never returned by grpc and should not be
 // referenced by users.
+//goland:noinspection GoUnusedGlobalVariable
 var ErrClientConnTimeout = errors.New("grpc: timed out when dialing")
 
 func (cc *ClientConn) getResolver(scheme string) resolver.Builder {
