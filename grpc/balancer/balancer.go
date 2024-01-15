@@ -117,7 +117,7 @@ type NewSubConnOptions struct {
 	// SubConn. If it's nil, the original creds from grpc DialOptions will be
 	// used.
 	//
-	// Deprecated: Use the Attributes field in resolver.Address to pass
+	// ToDeprecated: Use the Attributes field in resolver.Address to pass
 	// arbitrary data to the credential handshaker.
 	CredsBundle credentials.Bundle
 	// HealthCheckEnabled indicates whether health check service should be
@@ -254,7 +254,7 @@ var (
 	// ErrTransientFailure indicates all SubConns are in TransientFailure.
 	// WaitForReady RPCs will block, non-WaitForReady RPCs will fail.
 	//
-	// Deprecated: return an appropriate error based on the last resolution or
+	// ToDeprecated: return an appropriate error based on the last resolution or
 	// connection attempt instead.  The behavior is the same for any non-gRPC
 	// status error.
 	ErrTransientFailure = errors.New("all SubConns are in TransientFailure")
