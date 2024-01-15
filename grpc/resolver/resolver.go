@@ -77,17 +77,17 @@ func GetDefaultScheme() string {
 
 // AddressType indicates the address type returned by name resolution.
 //
-// Deprecated: use Attributes in Address instead.
+// ToDeprecated: use Attributes in Address instead.
 type AddressType uint8
 
 const (
 	// Backend indicates the address is for a backend server.
 	//
-	// Deprecated: use Attributes in Address instead.
+	// ToDeprecated: use Attributes in Address instead.
 	Backend AddressType = iota
 	// GRPCLB indicates the address is for a grpclb load balancer.
 	//
-	// Deprecated: to select the GRPCLB load balancing policy, use a service
+	// ToDeprecated: to select the GRPCLB load balancing policy, use a service
 	// config with a corresponding loadBalancingConfig.  To supply balancer
 	// addresses to the GRPCLB load balancing policy, set State.Attributes
 	// using balancer/grpclb/state.Set.
@@ -128,13 +128,13 @@ type Address struct {
 
 	// Type is the type of this address.
 	//
-	// Deprecated: use Attributes instead.
+	// ToDeprecated: use Attributes instead.
 	Type AddressType
 
 	// Metadata is the information associated with Addr, which may be used
 	// to make load balancing decision.
 	//
-	// Deprecated: use Attributes instead.
+	// ToDeprecated: use Attributes instead.
 	Metadata interface{}
 }
 
