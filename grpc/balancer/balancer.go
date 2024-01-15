@@ -278,8 +278,9 @@ type PickResult struct {
 // TransientFailureError returns e.  It exists for backward compatibility and
 // will be deleted soon.
 //
-// Deprecated: no longer necessary, picker errors are treated this way by
+// ToDeprecated: no longer necessary, picker errors are treated this way by
 // default.
+//goland:noinspection GoUnusedExportedFunction
 func TransientFailureError(e error) error { return e }
 
 // Picker is used by gRPC to pick a SubConn to send an RPC.
@@ -405,6 +406,8 @@ func (cse *ConnectivityStateEvaluator) RecordTransition(oldState, newState conne
 			cse.numTransientFailure += updateVal
 		case connectivity.Idle:
 			cse.numIdle += updateVal
+		default:
+			panic("unhandled default case")
 		}
 	}
 
