@@ -222,7 +222,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 		select {
 		case <-ctx.Done():
 			switch {
-			case ctx.Err() == err:
+			case errors.Is(ctx.Err(), err):
 				conn = nil
 			case err == nil || !cc.dopts.returnLastError:
 				conn, err = nil, ctx.Err()
@@ -1335,7 +1335,7 @@ func (ac *addrConn) createTransport(addr resolver.Address, copts transport.Conne
 		// streams at this point, so no trailers with error details will be sent
 		// out. We just need to pass a non-nil error.
 		newTr.Close(transport.ErrConnClosing)
-		if connectCtx.Err() == context.DeadlineExceeded {
+		if errors.Is(connectCtx.Err(), context.DeadlineExceeded) {
 			err := errors.New("failed to receive server preface within timeout")
 			channelz.Warningf(logger, ac.channelzID, "grpc: addrConn.createTransport failed to connect to %v: %v", addr, err)
 			return err
@@ -1492,7 +1492,7 @@ func (ac *addrConn) tearDown(err error) {
 	ac.updateConnectivityState(connectivity.Shutdown, nil)
 	ac.cancel()
 	ac.curAddr = resolver.Address{}
-	if err == errConnDrain && curTr != nil {
+	if errors.Is(err, errConnDrain) && curTr != nil {
 		// GracefulClose(...) may be executed multiple times when
 		// i) receiving multiple GoAway frames from the server; or
 		// ii) there are concurrent name resolver/Balancer triggered
