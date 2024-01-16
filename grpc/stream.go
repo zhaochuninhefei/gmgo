@@ -723,8 +723,8 @@ func (cs *clientStream) Header() (metadata.MD, error) {
 			Header:       m,
 			PeerAddr:     nil,
 		}
-		if peer, ok := peer.FromContext(cs.Context()); ok {
-			logEntry.PeerAddr = peer.Addr
+		if p, ok := peer.FromContext(cs.Context()); ok {
+			logEntry.PeerAddr = p.Addr
 		}
 		cs.binlog.Log(logEntry)
 		cs.serverHeaderBinlogged = true
@@ -848,8 +848,8 @@ func (cs *clientStream) RecvMsg(m interface{}) error {
 			if logEntry.Err == io.EOF {
 				logEntry.Err = nil
 			}
-			if peer, ok := peer.FromContext(cs.Context()); ok {
-				logEntry.PeerAddr = peer.Addr
+			if p, ok := peer.FromContext(cs.Context()); ok {
+				logEntry.PeerAddr = p.Addr
 			}
 			cs.binlog.Log(logEntry)
 		}
