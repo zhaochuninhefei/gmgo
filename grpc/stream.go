@@ -531,7 +531,8 @@ func (cs *clientStream) commitAttempt() {
 func (cs *clientStream) shouldRetry(err error) (bool, error) {
 	if cs.attempt.s == nil {
 		// Error from NewClientStream.
-		nse, ok := err.(*transport.NewStreamError)
+		var nse *transport.NewStreamError
+		ok := errors.As(err, &nse)
 		if !ok {
 			// Unexpected, but assume no I/O was performed and the RPC is not
 			// fatal, so retry indefinitely.
@@ -1570,7 +1571,7 @@ func (ss *serverStream) RecvMsg(m interface{}) (err error) {
 			}
 			return err
 		}
-		if err == io.ErrUnexpectedEOF {
+		if errors.Is(err, io.ErrUnexpectedEOF) {
 			err = status.Errorf(codes.Internal, io.ErrUnexpectedEOF.Error())
 		}
 		return toRPCErr(err)
