@@ -819,7 +819,7 @@ func (cs *clientStream) SendMsg(m interface{}) (err error) {
 func (cs *clientStream) RecvMsg(m interface{}) error {
 	if cs.binlog != nil && !cs.serverHeaderBinlogged {
 		// Call Header() to binary log header if it's not already logged.
-		cs.Header()
+		_, _ = cs.Header()
 	}
 	var recvInfo *payloadInfo
 	if cs.binlog != nil {
@@ -864,14 +864,14 @@ func (cs *clientStream) CloseSend() error {
 	}
 	cs.sentLast = true
 	op := func(a *csAttempt) error {
-		a.t.Write(a.s, nil, nil, &transport.Options{Last: true})
+		_ = a.t.Write(a.s, nil, nil, &transport.Options{Last: true})
 		// Always return nil; io.EOF is the only error that might make sense
 		// instead, but there is no need to signal the client to call RecvMsg
 		// as the only use left for the stream after CloseSend is to call
 		// RecvMsg.  This also matches historical behavior.
 		return nil
 	}
-	cs.withRetry(op, func() { cs.bufferForRetryLocked(0, op) })
+	_ = cs.withRetry(op, func() { cs.bufferForRetryLocked(0, op) })
 	if cs.binlog != nil {
 		cs.binlog.Log(&binarylog.ClientHalfClose{
 			OnClientSide: true,
@@ -1227,7 +1227,7 @@ func (as *addrConnStream) CloseSend() error {
 	}
 	as.sentLast = true
 
-	as.t.Write(as.s, nil, nil, &transport.Options{Last: true})
+	_ = as.t.Write(as.s, nil, nil, &transport.Options{Last: true})
 	// Always return nil; io.EOF is the only error that might make sense
 	// instead, but there is no need to signal the client to call RecvMsg
 	// as the only use left for the stream after CloseSend is to call
@@ -1468,7 +1468,7 @@ func (ss *serverStream) SetTrailer(md metadata.MD) {
 	if md.Len() == 0 {
 		return
 	}
-	ss.s.SetTrailer(md)
+	_ = ss.s.SetTrailer(md)
 }
 
 func (ss *serverStream) SendMsg(m interface{}) (err error) {
@@ -1487,7 +1487,7 @@ func (ss *serverStream) SendMsg(m interface{}) (err error) {
 		}
 		if err != nil && err != io.EOF {
 			st, _ := status.FromError(toRPCErr(err))
-			ss.t.WriteStatus(ss.s, st)
+			_ = ss.t.WriteStatus(ss.s, st)
 			// Non-user specified status was sent out. This should be an error
 			// case (as a server side Cancel maybe).
 			//
@@ -1547,7 +1547,7 @@ func (ss *serverStream) RecvMsg(m interface{}) (err error) {
 		}
 		if err != nil && err != io.EOF {
 			st, _ := status.FromError(toRPCErr(err))
-			ss.t.WriteStatus(ss.s, st)
+			_ = ss.t.WriteStatus(ss.s, st)
 			// Non-user specified status was sent out. This should be an error
 			// case (as a server side Cancel maybe).
 			//
