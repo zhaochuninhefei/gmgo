@@ -20,6 +20,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 
@@ -108,10 +109,10 @@ func (pw *pickerWrapper) pick(ctx context.Context, failfast bool, info balancer.
 				} else {
 					errStr = ctx.Err().Error()
 				}
-				switch ctx.Err() {
-				case context.DeadlineExceeded:
+				switch err := ctx.Err(); {
+				case errors.Is(err, context.DeadlineExceeded):
 					return nil, nil, status.Error(codes.DeadlineExceeded, errStr)
-				case context.Canceled:
+				case errors.Is(err, context.Canceled):
 					return nil, nil, status.Error(codes.Canceled, errStr)
 				}
 			case <-ch:
