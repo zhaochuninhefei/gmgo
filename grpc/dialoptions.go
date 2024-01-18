@@ -389,7 +389,7 @@ func init() {
 // is returned by f, gRPC checks the error's Temporary() method to decide if it
 // should try to reconnect to the network address.
 //
-// Deprecated: use WithContextDialer instead.  Will be supported throughout
+// ToDeprecated: use WithContextDialer instead.  Will be supported throughout
 // 1.x.
 func WithDialer(f func(string, time.Duration) (net.Conn, error)) DialOption {
 	return WithContextDialer(
