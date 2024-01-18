@@ -545,6 +545,7 @@ func WithDefaultServiceConfig(s string) DialOption {
 //
 // Retry support is currently enabled by default, but may be disabled by
 // setting the environment variable "GRPC_GO_RETRY" to "off".
+//goland:noinspection GoUnusedExportedFunction
 func WithDisableRetry() DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
 		o.disableRetry = true
