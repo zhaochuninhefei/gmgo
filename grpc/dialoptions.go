@@ -321,6 +321,7 @@ func WithInsecure() DialOption {
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
+//goland:noinspection GoUnusedExportedFunction
 func WithNoProxy() DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
 		o.copts.UseProxy = false
