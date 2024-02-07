@@ -19,6 +19,7 @@
 package grpc
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -102,7 +103,7 @@ func (ccr *ccResolverWrapper) UpdateState(s resolver.State) error {
 		ccr.addChannelzTraceEvent(s)
 	}
 	ccr.curState = s
-	if err := ccr.cc.updateResolverState(ccr.curState, nil); err == balancer.ErrBadResolverState {
+	if err := ccr.cc.updateResolverState(ccr.curState, nil); errors.Is(err, balancer.ErrBadResolverState) {
 		return balancer.ErrBadResolverState
 	}
 	return nil
