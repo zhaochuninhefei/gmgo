@@ -21,6 +21,7 @@ package grpc
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"io"
 	"math"
 	"reflect"
@@ -67,7 +68,7 @@ func (s) TestSimpleParsing(t *testing.T) {
 		buf := fullReader{bytes.NewReader(test.p)}
 		parser := &parser{r: buf}
 		pt, b, err := parser.recvMsg(math.MaxInt32)
-		if err != test.err || !bytes.Equal(b, test.b) || pt != test.pt {
+		if !errors.Is(err, test.err) || !bytes.Equal(b, test.b) || pt != test.pt {
 			t.Fatalf("parser{%v}.recvMsg(_) = %v, %v, %v\nwant %v, %v, %v", test.p, pt, b, err, test.pt, test.b, test.err)
 		}
 	}
@@ -114,7 +115,7 @@ func (s) TestEncode(t *testing.T) {
 		{nil, []byte{0, 0, 0, 0, 0}, []byte{}, nil},
 	} {
 		data, err := encode(encoding.GetCodec(protoenc.Name), test.msg)
-		if err != test.err || !bytes.Equal(data, test.data) {
+		if !errors.Is(err, test.err) || !bytes.Equal(data, test.data) {
 			t.Errorf("encode(_, %v) = %v, %v; want %v, %v", test.msg, data, err, test.data, test.err)
 			continue
 		}
@@ -159,7 +160,7 @@ func (s) TestCompress(t *testing.T) {
 		{make([]byte, 1024), level5, NewGZIPDecompressor(), nil},
 	} {
 		b := new(bytes.Buffer)
-		if err := test.cp.Do(b, test.data); err != test.err {
+		if err := test.cp.Do(b, test.data); !errors.Is(err, test.err) {
 			t.Fatalf("Compressor.Do(_, %v) = %v, want %v", test.data, err, test.err)
 		}
 		if b.Len() >= len(test.data) {
