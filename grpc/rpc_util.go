@@ -853,6 +853,7 @@ func Errorf(c codes.Code, format string, a ...interface{}) error {
 }
 
 // toRPCErr converts an error into an error from the status package.
+//goland:noinspection GoDirectComparisonOfErrors,GoTypeAssertionOnErrors
 func toRPCErr(err error) error {
 	switch err {
 	case nil, io.EOF:
