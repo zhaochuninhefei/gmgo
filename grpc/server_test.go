@@ -20,6 +20,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"net"
 	"reflect"
 	"strconv"
@@ -43,7 +44,7 @@ func (s) TestStopBeforeServe(t *testing.T) {
 	server := NewServer()
 	server.Stop()
 	err = server.Serve(lis)
-	if err != ErrServerStopped {
+	if !errors.Is(err, ErrServerStopped) {
 		t.Fatalf("server.Serve() error = %v, want %v", err, ErrServerStopped)
 	}
 
