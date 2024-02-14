@@ -71,6 +71,7 @@ func (parseBalancerBuilder) ParseConfig(c json.RawMessage) (serviceconfig.LoadBa
 	return d, nil
 }
 
+//goland:noinspection GoUnusedParameter
 func (parseBalancerBuilder) Build(cc balancer.ClientConn, opts balancer.BuildOptions) balancer.Balancer {
 	panic("unimplemented")
 }
