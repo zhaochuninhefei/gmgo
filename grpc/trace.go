@@ -71,17 +71,17 @@ func (f *firstLine) String() string {
 	defer f.mu.Unlock()
 
 	var line bytes.Buffer
-	io.WriteString(&line, "RPC: ")
+	_, _ = io.WriteString(&line, "RPC: ")
 	if f.client {
-		io.WriteString(&line, "to")
+		_, _ = io.WriteString(&line, "to")
 	} else {
-		io.WriteString(&line, "from")
+		_, _ = io.WriteString(&line, "from")
 	}
-	fmt.Fprintf(&line, " %v deadline:", f.remoteAddr)
+	_, _ = fmt.Fprintf(&line, " %v deadline:", f.remoteAddr)
 	if f.deadline != 0 {
-		fmt.Fprint(&line, f.deadline)
+		_, _ = fmt.Fprint(&line, f.deadline)
 	} else {
-		io.WriteString(&line, "none")
+		_, _ = io.WriteString(&line, "none")
 	}
 	return line.String()
 }
