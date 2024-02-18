@@ -30,9 +30,11 @@ func TestCleanHost(t *testing.T) {
 }
 
 func TestCanonicalHost(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	gorilla := "http://www.gorillatoolkit.org"
 
 	rr := httptest.NewRecorder()
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
@@ -55,6 +57,7 @@ func TestKeepsQueryString(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	querystring := url.Values{"q": {"golang"}, "format": {"json"}}.Encode()
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/search?"+querystring)
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
@@ -68,6 +71,7 @@ func TestKeepsQueryString(t *testing.T) {
 
 func TestBadDomain(t *testing.T) {
 	rr := httptest.NewRecorder()
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
@@ -82,6 +86,7 @@ func TestBadDomain(t *testing.T) {
 
 func TestEmptyHost(t *testing.T) {
 	rr := httptest.NewRecorder()
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
@@ -95,6 +100,7 @@ func TestEmptyHost(t *testing.T) {
 }
 
 func TestHeaderWrites(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	gorilla := "http://www.gorillatoolkit.org"
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
