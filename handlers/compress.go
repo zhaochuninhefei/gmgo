@@ -47,7 +47,7 @@ type flusher interface {
 func (w *compressResponseWriter) Flush() {
 	// Flush compressed data if compressor supports it.
 	if f, ok := w.compressor.(flusher); ok {
-		f.Flush()
+		_ = f.Flush()
 	}
 	// Flush HTTP response.
 	if f, ok := w.w.(http.Flusher); ok {
@@ -113,7 +113,9 @@ func CompressHandlerLevel(h http.Handler, level int) http.Handler {
 		} else if encoding == flateEncoding {
 			encWriter, _ = flate.NewWriter(w, level)
 		}
-		defer encWriter.Close()
+		defer func(encWriter io.WriteCloser) {
+			_ = encWriter.Close()
+		}(encWriter)
 
 		w.Header().Set("Content-Encoding", encoding)
 		r.Header.Del(acceptEncoding)
