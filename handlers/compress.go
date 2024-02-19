@@ -21,11 +21,13 @@ type compressResponseWriter struct {
 	w          http.ResponseWriter
 }
 
+//goland:noinspection GoReceiverNames
 func (cw *compressResponseWriter) WriteHeader(c int) {
 	cw.w.Header().Del("Content-Length")
 	cw.w.WriteHeader(c)
 }
 
+//goland:noinspection GoReceiverNames
 func (cw *compressResponseWriter) Write(b []byte) (int, error) {
 	h := cw.w.Header()
 	if h.Get("Content-Type") == "" {
@@ -36,6 +38,7 @@ func (cw *compressResponseWriter) Write(b []byte) (int, error) {
 	return cw.compressor.Write(b)
 }
 
+//goland:noinspection GoReceiverNames
 func (cw *compressResponseWriter) ReadFrom(r io.Reader) (int64, error) {
 	return io.Copy(cw.compressor, r)
 }
@@ -44,6 +47,7 @@ type flusher interface {
 	Flush() error
 }
 
+//goland:noinspection GoReceiverNames
 func (w *compressResponseWriter) Flush() {
 	// Flush compressed data if compressor supports it.
 	if f, ok := w.compressor.(flusher); ok {
