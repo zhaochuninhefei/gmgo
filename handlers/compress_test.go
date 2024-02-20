@@ -27,7 +27,7 @@ func compressedRequest(w *httptest.ResponseRecorder, compression string) {
 		w.Header().Set("Content-Length", strconv.Itoa(9*1024))
 		w.Header().Set("Content-Type", contentType)
 		for i := 0; i < 1024; i++ {
-			io.WriteString(w, "Gorilla!\n")
+			_, _ = io.WriteString(w, "Gorilla!\n")
 		}
 	})).ServeHTTP(w, &http.Request{
 		Method: "GET",
@@ -172,7 +172,9 @@ func TestCompressFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(dir)
 
 	err = ioutil.WriteFile(filepath.Join(dir, "hello.txt"), []byte("hello"), 0644)
 	if err != nil {
