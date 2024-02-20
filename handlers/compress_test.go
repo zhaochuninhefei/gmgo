@@ -184,8 +184,8 @@ func TestCompressFile(t *testing.T) {
 	s := httptest.NewServer(CompressHandler(http.FileServer(http.Dir(dir))))
 	defer s.Close()
 
-	url := &url.URL{Scheme: "http", Host: s.Listener.Addr().String(), Path: "/hello.txt"}
-	req, err := http.NewRequest("GET", url.String(), nil)
+	urlTest := &url.URL{Scheme: "http", Host: s.Listener.Addr().String(), Path: "/hello.txt"}
+	req, err := http.NewRequest("GET", urlTest.String(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
