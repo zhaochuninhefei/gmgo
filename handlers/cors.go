@@ -175,7 +175,7 @@ func parseCORSOptions(opts ...CORSOption) *cors {
 	}
 
 	for _, option := range opts {
-		option(ch)
+		_ = option(ch)
 	}
 
 	return ch
