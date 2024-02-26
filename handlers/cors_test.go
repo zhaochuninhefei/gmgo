@@ -8,6 +8,7 @@ import (
 )
 
 func TestDefaultCORSHandlerReturnsOk(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 	rr := httptest.NewRecorder()
 
@@ -21,6 +22,7 @@ func TestDefaultCORSHandlerReturnsOk(t *testing.T) {
 }
 
 func TestDefaultCORSHandlerReturnsOkWithOrigin(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 
@@ -36,6 +38,7 @@ func TestDefaultCORSHandlerReturnsOkWithOrigin(t *testing.T) {
 }
 
 func TestCORSHandlerIgnoreOptionsFallsThrough(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 
@@ -54,6 +57,7 @@ func TestCORSHandlerIgnoreOptionsFallsThrough(t *testing.T) {
 
 func TestCORSHandlerSetsExposedHeaders(t *testing.T) {
 	// Test default configuration.
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 
@@ -74,6 +78,7 @@ func TestCORSHandlerSetsExposedHeaders(t *testing.T) {
 }
 
 func TestCORSHandlerUnsetRequestMethodForPreflightBadRequest(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 
@@ -89,6 +94,7 @@ func TestCORSHandlerUnsetRequestMethodForPreflightBadRequest(t *testing.T) {
 }
 
 func TestCORSHandlerInvalidRequestMethodForPreflightMethodNotAllowed(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "DELETE")
@@ -105,6 +111,7 @@ func TestCORSHandlerInvalidRequestMethodForPreflightMethodNotAllowed(t *testing.
 }
 
 func TestCORSHandlerOptionsRequestMustNotBePassedToNextHandler(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "GET")
@@ -124,6 +131,7 @@ func TestCORSHandlerOptionsRequestMustNotBePassedToNextHandler(t *testing.T) {
 
 func TestCORSHandlerOptionsRequestMustNotBePassedToNextHandlerWithCustomStatusCode(t *testing.T) {
 	statusCode := http.StatusNoContent
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "GET")
@@ -142,6 +150,7 @@ func TestCORSHandlerOptionsRequestMustNotBePassedToNextHandlerWithCustomStatusCo
 }
 
 func TestCORSHandlerOptionsRequestMustNotBePassedToNextHandlerWhenOriginNotAllowed(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "GET")
@@ -160,6 +169,7 @@ func TestCORSHandlerOptionsRequestMustNotBePassedToNextHandlerWhenOriginNotAllow
 }
 
 func TestCORSHandlerAllowedMethodForPreflight(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "DELETE")
@@ -182,6 +192,7 @@ func TestCORSHandlerAllowedMethodForPreflight(t *testing.T) {
 
 func TestCORSHandlerAllowMethodsNotSetForSimpleRequestPreflight(t *testing.T) {
 	for _, method := range defaultCorsMethods {
+		//goland:noinspection HttpUrlsUsage
 		r := newRequest("OPTIONS", "http://www.example.com/")
 		r.Header.Set("Origin", r.URL.String())
 		r.Header.Set(corsRequestMethodHeader, method)
@@ -205,6 +216,7 @@ func TestCORSHandlerAllowMethodsNotSetForSimpleRequestPreflight(t *testing.T) {
 
 func TestCORSHandlerAllowedHeaderNotSetForSimpleRequestPreflight(t *testing.T) {
 	for _, simpleHeader := range defaultCorsHeaders {
+		//goland:noinspection HttpUrlsUsage
 		r := newRequest("OPTIONS", "http://www.example.com/")
 		r.Header.Set("Origin", r.URL.String())
 		r.Header.Set(corsRequestMethodHeader, "GET")
@@ -228,6 +240,7 @@ func TestCORSHandlerAllowedHeaderNotSetForSimpleRequestPreflight(t *testing.T) {
 }
 
 func TestCORSHandlerAllowedHeaderForPreflight(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "POST")
@@ -250,6 +263,7 @@ func TestCORSHandlerAllowedHeaderForPreflight(t *testing.T) {
 }
 
 func TestCORSHandlerInvalidHeaderForPreflightForbidden(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "POST")
@@ -267,6 +281,7 @@ func TestCORSHandlerInvalidHeaderForPreflightForbidden(t *testing.T) {
 }
 
 func TestCORSHandlerMaxAgeForPreflight(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("OPTIONS", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 	r.Header.Set(corsRequestMethodHeader, "POST")
@@ -288,6 +303,7 @@ func TestCORSHandlerMaxAgeForPreflight(t *testing.T) {
 }
 
 func TestCORSHandlerAllowedCredentials(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 
@@ -308,6 +324,7 @@ func TestCORSHandlerAllowedCredentials(t *testing.T) {
 }
 
 func TestCORSHandlerMultipleAllowOriginsSetsVaryHeader(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://www.example.com/")
 	r.Header.Set("Origin", r.URL.String())
 
@@ -315,6 +332,7 @@ func TestCORSHandlerMultipleAllowOriginsSetsVaryHeader(t *testing.T) {
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
+	//goland:noinspection HttpUrlsUsage
 	CORS(AllowedOrigins([]string{r.URL.String(), "http://google.com"}))(testHandler).ServeHTTP(rr, r)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -338,6 +356,7 @@ func TestCORSWithMultipleHandlers(t *testing.T) {
 		lastHandledBy = "testHandler2"
 	})
 
+	//goland:noinspection HttpUrlsUsage
 	r1 := newRequest("GET", "http://www.example.com/")
 	rr1 := httptest.NewRecorder()
 	handler1 := corsMiddleware(testHandler1)
@@ -351,6 +370,7 @@ func TestCORSWithMultipleHandlers(t *testing.T) {
 }
 
 func TestCORSOriginValidatorWithImplicitStar(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://a.example.com")
 	r.Header.Set("Origin", r.URL.String())
 	rr := httptest.NewRecorder()
@@ -372,6 +392,7 @@ func TestCORSOriginValidatorWithImplicitStar(t *testing.T) {
 }
 
 func TestCORSOriginValidatorWithExplicitStar(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://a.example.com")
 	r.Header.Set("Origin", r.URL.String())
 	rr := httptest.NewRecorder()
@@ -396,6 +417,7 @@ func TestCORSOriginValidatorWithExplicitStar(t *testing.T) {
 }
 
 func TestCORSAllowStar(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	r := newRequest("GET", "http://a.example.com")
 	r.Header.Set("Origin", r.URL.String())
 	rr := httptest.NewRecorder()
