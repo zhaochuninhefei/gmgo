@@ -30,7 +30,7 @@ func (h MethodHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if handler, ok := h[req.Method]; ok {
 		handler.ServeHTTP(w, req)
 	} else {
-		allow := []string{}
+		var allow []string
 		for k := range h {
 			allow = append(allow, k)
 		}
