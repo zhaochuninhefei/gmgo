@@ -15,6 +15,7 @@ type pushRecorder struct {
 	*httptest.ResponseRecorder
 }
 
+//goland:noinspection GoUnusedParameter
 func (pr pushRecorder) Push(target string, opts *http.PushOptions) error {
 	return nil
 }
