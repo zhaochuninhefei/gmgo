@@ -89,7 +89,7 @@ func appendQuoted(buf []byte, s string) []byte {
 			buf = append(buf, lowerhex[s[0]&0xF])
 			continue
 		}
-		if r == rune('"') || r == '\\' { // always backslashed
+		if r == '"' || r == '\\' { // always backslashed
 			buf = append(buf, '\\')
 			buf = append(buf, byte(r))
 			continue
