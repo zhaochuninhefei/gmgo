@@ -43,7 +43,7 @@ type loggingHandler struct {
 func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	t := time.Now()
 	logger, w := makeLogger(w)
-	url := *req.URL
+	reqUrl := *req.URL
 
 	h.handler.ServeHTTP(w, req)
 	if req.MultipartForm != nil {
@@ -52,7 +52,7 @@ func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	params := LogFormatterParams{
 		Request:    req,
-		URL:        url,
+		URL:        reqUrl,
 		TimeStamp:  t,
 		StatusCode: logger.Status(),
 		Size:       logger.Size(),
