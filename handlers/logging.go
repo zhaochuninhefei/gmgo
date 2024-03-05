@@ -47,7 +47,7 @@ func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	h.handler.ServeHTTP(w, req)
 	if req.MultipartForm != nil {
-		req.MultipartForm.RemoveAll()
+		_ = req.MultipartForm.RemoveAll()
 	}
 
 	params := LogFormatterParams{
@@ -192,7 +192,7 @@ func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int
 func writeLog(writer io.Writer, params LogFormatterParams) {
 	buf := buildCommonLogLine(params.Request, params.URL, params.TimeStamp, params.StatusCode, params.Size)
 	buf = append(buf, '\n')
-	writer.Write(buf)
+	_, _ = writer.Write(buf)
 }
 
 // writeCombinedLog writes a log entry for req to w in Apache Combined Log Format.
@@ -205,7 +205,7 @@ func writeCombinedLog(writer io.Writer, params LogFormatterParams) {
 	buf = append(buf, `" "`...)
 	buf = appendQuoted(buf, params.Request.UserAgent())
 	buf = append(buf, '"', '\n')
-	writer.Write(buf)
+	_, _ = writer.Write(buf)
 }
 
 // CombinedLoggingHandler return a http.Handler that wraps h and logs requests to out in
