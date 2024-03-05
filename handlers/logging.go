@@ -240,6 +240,7 @@ func LoggingHandler(out io.Writer, h http.Handler) http.Handler {
 
 // CustomLoggingHandler provides a way to supply a custom log formatter
 // while taking advantage of the mechanisms in this package
+//goland:noinspection GoUnusedExportedFunction
 func CustomLoggingHandler(out io.Writer, h http.Handler, f LogFormatter) http.Handler {
 	return loggingHandler{out, h, f}
 }
