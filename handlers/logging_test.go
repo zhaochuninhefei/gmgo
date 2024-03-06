@@ -135,6 +135,7 @@ func BenchmarkWriteLog(b *testing.B) {
 	}
 	ts := time.Date(1983, 05, 26, 3, 30, 45, 0, loc)
 
+	//goland:noinspection HttpUrlsUsage
 	req := newRequest("GET", "http://example.com")
 	req.RemoteAddr = "192.168.100.5"
 
@@ -164,6 +165,7 @@ func TestLogFormatterWriteLog_Scenario1(t *testing.T) {
 
 func TestLogFormatterCombinedLog_Scenario1(t *testing.T) {
 	formatter := writeCombinedLog
+	//goland:noinspection HttpUrlsUsage
 	expected := "192.168.100.5 - - [26/May/1983:03:30:45 +0200] \"GET / HTTP/1.1\" 200 100 \"http://example.com\" " +
 		"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) " +
 		"AppleWebKit/537.33 (KHTML, like Gecko) Chrome/27.0.1430.0 Safari/537.33\"\n"
@@ -178,6 +180,7 @@ func TestLogFormatterWriteLog_Scenario2(t *testing.T) {
 
 func TestLogFormatterCombinedLog_Scenario2(t *testing.T) {
 	formatter := writeCombinedLog
+	//goland:noinspection HttpUrlsUsage
 	expected := "192.168.100.5 - - [26/May/1983:03:30:45 +0200] \"CONNECT www.example.com:443 HTTP/2.0\" 200 100 \"http://example.com\" " +
 		"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) " +
 		"AppleWebKit/537.33 (KHTML, like Gecko) Chrome/27.0.1430.0 Safari/537.33\"\n"
@@ -192,6 +195,7 @@ func TestLogFormatterWriteLog_Scenario3(t *testing.T) {
 
 func TestLogFormatterCombinedLog_Scenario3(t *testing.T) {
 	formatter := writeCombinedLog
+	//goland:noinspection HttpUrlsUsage
 	expected := "192.168.100.5 - kamil [26/May/1983:03:30:45 +0200] \"GET / HTTP/1.1\" 401 500 \"http://example.com\" " +
 		"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) " +
 		"AppleWebKit/537.33 (KHTML, like Gecko) Chrome/27.0.1430.0 Safari/537.33\"\n"
@@ -206,6 +210,7 @@ func TestLogFormatterWriteLog_Scenario4(t *testing.T) {
 
 func TestLogFormatterCombinedLog_Scenario5(t *testing.T) {
 	formatter := writeCombinedLog
+	//goland:noinspection HttpUrlsUsage
 	expected := "::1 - kamil [26/May/1983:03:30:45 +0200] \"GET / HTTP/1.1\" 200 100 \"http://example.com\" " +
 		"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) " +
 		"AppleWebKit/537.33 (KHTML, like Gecko) Chrome/27.0.1430.0 Safari/537.33\"\n"
@@ -347,8 +352,10 @@ func LoggingScenario5(t *testing.T, formatter LogFormatter, expected string) {
 
 // A typical request with an OK response
 func constructTypicalRequestOk() *http.Request {
+	//goland:noinspection HttpUrlsUsage
 	req := newRequest("GET", "http://example.com")
 	req.RemoteAddr = "192.168.100.5"
+	//goland:noinspection HttpUrlsUsage
 	req.Header.Set("Referer", "http://example.com")
 	req.Header.Set(
 		"User-Agent",
@@ -370,6 +377,7 @@ func constructConnectRequest() *http.Request {
 		Header:     http.Header{},
 		URL:        &url.URL{Host: "www.example.com:443"},
 	}
+	//goland:noinspection HttpUrlsUsage
 	req.Header.Set("Referer", "http://example.com")
 	req.Header.Set(
 		"User-Agent",
@@ -381,6 +389,7 @@ func constructConnectRequest() *http.Request {
 
 func constructEncodedRequest() *http.Request {
 	req := constructTypicalRequestOk()
+	//goland:noinspection HttpUrlsUsage
 	req.URL, _ = url.Parse("http://example.com/test?abc=hello%20world&a=b%3F")
 	return req
 }
