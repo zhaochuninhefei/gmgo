@@ -16,6 +16,7 @@ var (
 	xRealIP          = http.CanonicalHeaderKey("X-Real-IP")
 )
 
+//goland:noinspection RegExpUnnecessaryNonCapturingGroup,RegExpDuplicateCharacterInClass
 var (
 	// RFC7239 defines a new "Forwarded: " header designed to replace the
 	// existing use of X-Forwarded-* headers.
