@@ -109,7 +109,7 @@ type Hooks struct {
 			conditions[j] += fmt.Sprintf("i%d", j)
 		}
 		values := make([]string, len(fields))
-		for i, _ := range fields {
+		for i := range fields {
 			values[i] = "rw"
 		}
 		g.Printf("// combination %d/%d\n", i+1, combinations)
