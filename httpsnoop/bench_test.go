@@ -39,9 +39,9 @@ func benchmark(b *testing.B, captureMetrics bool) {
 	dummyH := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 	h := dummyH
 	if captureMetrics {
-		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h = func(w http.ResponseWriter, r *http.Request) {
 			CaptureMetrics(dummyH, w, r)
-		})
+		}
 	}
 	s := httptest.NewServer(h)
 	defer s.Close()
