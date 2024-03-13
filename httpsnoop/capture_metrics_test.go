@@ -35,8 +35,8 @@ func TestCaptureMetrics(t *testing.T) {
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte("foo"))
-				w.Write([]byte("bar"))
+				_, _ = w.Write([]byte("foo"))
+				_, _ = w.Write([]byte("bar"))
 				time.Sleep(25 * time.Millisecond)
 			}),
 			WantCode:     http.StatusBadRequest,
@@ -45,7 +45,7 @@ func TestCaptureMetrics(t *testing.T) {
 		},
 		{
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("foo"))
+				_, _ = w.Write([]byte("foo"))
 				w.WriteHeader(http.StatusNotFound)
 			}),
 			WantCode: http.StatusOK,
@@ -53,7 +53,7 @@ func TestCaptureMetrics(t *testing.T) {
 		{
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				rrf := w.(io.ReaderFrom)
-				rrf.ReadFrom(strings.NewReader("reader from is ok"))
+				_, _ = rrf.ReadFrom(strings.NewReader("reader from is ok"))
 			}),
 			WantWritten: 17,
 			WantCode:    http.StatusOK,
@@ -81,7 +81,9 @@ func TestCaptureMetrics(t *testing.T) {
 			if err != nil {
 				return
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 			m := <-ch
 			if m.Code != test.WantCode {
 				t.Errorf("test %d: got=%d want=%d", i, m.Code, test.WantCode)
