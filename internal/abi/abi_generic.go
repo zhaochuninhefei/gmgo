@@ -7,6 +7,7 @@
 
 package abi
 
+//goland:noinspection GoUnusedConst
 const (
 	// ABI-related constants.
 	//
