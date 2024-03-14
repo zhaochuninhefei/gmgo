@@ -12,6 +12,7 @@ func Fn1() {}
 
 var FnExpr func()
 
+//goland:noinspection GoUnusedFunction
 func test() {
 	_ = abi.FuncPCABI0(Fn0)           // line 16, no error
 	_ = abi.FuncPCABIInternal(Fn0)    // line 17, error
