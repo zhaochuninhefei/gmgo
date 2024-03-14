@@ -47,7 +47,7 @@ func TestWrap_integration(t *testing.T) {
 		{
 			Name: "Write (no hook)",
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("foo"))
+				_, _ = w.Write([]byte("foo"))
 			}),
 			WantCode: http.StatusOK,
 			WantBody: []byte("foo"),
@@ -109,7 +109,9 @@ func TestWrap_integration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 			gotBody, err := ioutil.ReadAll(res.Body)
 			if res.StatusCode != test.WantCode {
 				t.Errorf("got=%d want=%d", res.StatusCode, test.WantCode)
