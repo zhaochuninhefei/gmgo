@@ -65,6 +65,7 @@ func (b *IntArgRegBitmap) Get(i int) bool {
 // compile-time error.
 //
 // Implemented as a compile intrinsic.
+//goland:noinspection GoUnusedParameter
 func FuncPCABI0(f interface{}) uintptr
 
 // FuncPCABIInternal returns the entry PC of the function f. If f is a
@@ -74,4 +75,5 @@ func FuncPCABI0(f interface{}) uintptr
 // the behavior is undefined.
 //
 // Implemented as a compile intrinsic.
+//goland:noinspection GoUnusedParameter
 func FuncPCABIInternal(f interface{}) uintptr
