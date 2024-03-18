@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-//goland:noinspection GoUnusedGlobalVariable
+//goland:noinspection GoUnusedGlobalVariable,GoSnakeCaseUsage
 var (
 	defaultGOROOT string // set by linker
 
