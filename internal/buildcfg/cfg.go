@@ -41,7 +41,7 @@ var Error error
 // Check exits the program with a fatal error if Error is non-nil.
 func Check() {
 	if Error != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", filepath.Base(os.Args[0]), Error)
+		_, _ = fmt.Fprintf(os.Stderr, "%s: %v\n", filepath.Base(os.Args[0]), Error)
 		os.Exit(2)
 	}
 }
