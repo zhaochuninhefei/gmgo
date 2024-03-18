@@ -39,6 +39,7 @@ var (
 var Error error
 
 // Check exits the program with a fatal error if Error is non-nil.
+//goland:noinspection GoUnusedExportedFunction
 func Check() {
 	if Error != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%s: %v\n", filepath.Base(os.Args[0]), Error)
@@ -132,6 +133,7 @@ func gowasm() (f gowasmFeatures) {
 	return
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func Getgoextlinkenabled() string {
 	return envOr("GO_EXTLINK_ENABLED", defaultGO_EXTLINK_ENABLED)
 }
