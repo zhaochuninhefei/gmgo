@@ -163,18 +163,21 @@ func expList(exp, base *goexperiment.Flags, all bool) []string {
 // experiments that differ from the baseline experiment configuration.
 // GOEXPERIMENT is exactly what a user would set on the command line
 // to get the set of enabled experiments.
+//goland:noinspection GoUnusedExportedFunction
 func GOEXPERIMENT() string {
 	return strings.Join(expList(&Experiment, &experimentBaseline, false), ",")
 }
 
 // EnabledExperiments returns a list of enabled experiments, as
 // lower-cased experiment names.
+//goland:noinspection GoUnusedExportedFunction
 func EnabledExperiments() []string {
 	return expList(&Experiment, nil, false)
 }
 
 // AllExperiments returns a list of all experiment settings.
 // Disabled experiments appear in the list prefixed by "no".
+//goland:noinspection GoUnusedExportedFunction
 func AllExperiments() []string {
 	return expList(&Experiment, nil, true)
 }
@@ -182,6 +185,7 @@ func AllExperiments() []string {
 // UpdateExperiments updates the Experiment global based on a new GOARCH value.
 // This is only required for cmd/go, which can change GOARCH after
 // program startup due to use of "go env -w".
+//goland:noinspection GoUnusedExportedFunction
 func UpdateExperiments(goos, goarch, goexperiment string) {
 	var err error
 	Experiment, experimentBaseline, err = ParseGOEXPERIMENT(goos, goarch, goexperiment)
