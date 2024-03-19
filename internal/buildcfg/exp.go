@@ -29,6 +29,7 @@ var Experiment, experimentBaseline = func() (goexperiment.Flags, goexperiment.Fl
 	return flags, baseline
 }()
 
+//goland:noinspection GoUnusedConst
 const DefaultGOEXPERIMENT = defaultGOEXPERIMENT
 
 // FramePointerEnabled enables the use of platform conventions for
@@ -38,6 +39,7 @@ const DefaultGOEXPERIMENT = defaultGOEXPERIMENT
 // platforms that support it.
 //
 // Note: must agree with runtime.framepointer_enabled.
+//goland:noinspection GoUnusedGlobalVariable
 var FramePointerEnabled = GOARCH == "amd64" || GOARCH == "arm64"
 
 // ParseGOEXPERIMENT parses a (GOOS, GOARCH, GOEXPERIMENT)
