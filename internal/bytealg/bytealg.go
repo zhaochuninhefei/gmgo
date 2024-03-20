@@ -71,6 +71,7 @@ func HashStr(sep string) (uint32, uint32) {
 
 // HashStrRevBytes returns the hash of the reverse of sep and the
 // appropriate multiplicative factor for use in Rabin-Karp algorithm.
+//goland:noinspection GoUnusedExportedFunction
 func HashStrRevBytes(sep []byte) (uint32, uint32) {
 	hash := uint32(0)
 	for i := len(sep) - 1; i >= 0; i-- {
@@ -88,6 +89,7 @@ func HashStrRevBytes(sep []byte) (uint32, uint32) {
 
 // HashStrRev returns the hash of the reverse of sep and the
 // appropriate multiplicative factor for use in Rabin-Karp algorithm.
+//goland:noinspection GoUnusedExportedFunction
 func HashStrRev(sep string) (uint32, uint32) {
 	hash := uint32(0)
 	for i := len(sep) - 1; i >= 0; i-- {
@@ -105,6 +107,7 @@ func HashStrRev(sep string) (uint32, uint32) {
 
 // IndexRabinKarpBytes uses the Rabin-Karp search algorithm to return the index of the
 // first occurrence of substr in s, or -1 if not present.
+//goland:noinspection GoUnusedExportedFunction
 func IndexRabinKarpBytes(s, sep []byte) int {
 	// Rabin-Karp search
 	hashsep, pow := HashStrBytes(sep)
@@ -130,6 +133,7 @@ func IndexRabinKarpBytes(s, sep []byte) int {
 
 // IndexRabinKarp uses the Rabin-Karp search algorithm to return the index of the
 // first occurrence of substr in s, or -1 if not present.
+//goland:noinspection GoUnusedExportedFunction
 func IndexRabinKarp(s, substr string) int {
 	// Rabin-Karp search
 	hashss, pow := HashStr(substr)
