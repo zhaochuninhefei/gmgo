@@ -11,6 +11,7 @@ import (
 )
 
 // Offsets into internal/cpu records for use in assembly.
+//goland:noinspection GoUnusedConst
 const (
 	offsetX86HasSSE2   = unsafe.Offsetof(cpu.X86.HasSSE2)
 	offsetX86HasSSE42  = unsafe.Offsetof(cpu.X86.HasSSE42)
