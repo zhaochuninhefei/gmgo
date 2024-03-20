@@ -25,6 +25,7 @@ const (
 
 // MaxLen is the maximum length of the string to be searched for (argument b) in Index.
 // If MaxLen is not 0, make sure MaxLen >= 4.
+//goland:noinspection GoUnusedGlobalVariable
 var MaxLen int
 
 // FIXME: the logic of HashStrBytes, HashStrRevBytes, IndexRabinKarpBytes and HashStr, HashStrRev,
