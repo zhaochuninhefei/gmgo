@@ -18,5 +18,5 @@ func Compare(a, b []byte) int
 // package.
 
 //go:linkname abigen_runtime_cmpstring runtime.cmpstring
-//goland:noinspection GoUnusedFunction,GoUnusedParameter
+//goland:noinspection GoUnusedFunction,GoUnusedParameter,GoSnakeCaseUsage
 func abigen_runtime_cmpstring(a, b string) int
