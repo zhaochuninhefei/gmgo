@@ -10,7 +10,7 @@ package bytealg
 import _ "unsafe" // For go:linkname
 
 //go:noescape
-//goland:noinspection GoUnusedExportedFunction
+//goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func Compare(a, b []byte) int
 
 // The declaration below generates ABI wrappers for functions
@@ -18,5 +18,5 @@ func Compare(a, b []byte) int
 // package.
 
 //go:linkname abigen_runtime_cmpstring runtime.cmpstring
-//goland:noinspection GoUnusedFunction
+//goland:noinspection GoUnusedFunction,GoUnusedParameter
 func abigen_runtime_cmpstring(a, b string) int
