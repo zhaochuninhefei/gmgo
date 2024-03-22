@@ -8,11 +8,11 @@
 package bytealg
 
 //go:noescape
-//goland:noinspection GoUnusedExportedFunction
+//goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func Count(b []byte, c byte) int
 
 //go:noescape
-//goland:noinspection GoUnusedExportedFunction
+//goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func CountString(s string, c byte) int
 
 // A backup implementation to use by assembly.
