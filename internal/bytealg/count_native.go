@@ -8,12 +8,15 @@
 package bytealg
 
 //go:noescape
+//goland:noinspection GoUnusedExportedFunction
 func Count(b []byte, c byte) int
 
 //go:noescape
+//goland:noinspection GoUnusedExportedFunction
 func CountString(s string, c byte) int
 
 // A backup implementation to use by assembly.
+//goland:noinspection GoUnusedFunction
 func countGeneric(b []byte, c byte) int {
 	n := 0
 	for _, x := range b {
@@ -23,6 +26,8 @@ func countGeneric(b []byte, c byte) int {
 	}
 	return n
 }
+
+//goland:noinspection GoUnusedFunction
 func countGenericString(s string, c byte) int {
 	n := 0
 	for i := 0; i < len(s); i++ {
