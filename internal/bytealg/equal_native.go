@@ -15,7 +15,9 @@ import "unsafe"
 // Those functions are implemented in this package.
 
 //go:linkname abigen_runtime_memequal runtime.memequal
+//goland:noinspection GoUnusedFunction
 func abigen_runtime_memequal(a, b unsafe.Pointer, size uintptr) bool
 
 //go:linkname abigen_runtime_memequal_varlen runtime.memequal_varlen
+//goland:noinspection GoUnusedFunction
 func abigen_runtime_memequal_varlen(a, b unsafe.Pointer) bool
