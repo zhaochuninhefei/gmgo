@@ -6,6 +6,7 @@ package bytealg
 
 import "gitee.com/zhaochuninhefei/gmgo/internal/cpu"
 
+//goland:noinspection GoUnusedConst
 const MaxBruteForce = 64
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 // before switching over to Index.
 // n is the number of bytes processed so far.
 // See the bytes.Index implementation for details.
+//goland:noinspection GoUnusedExportedFunction
 func Cutover(n int) int {
 	// 1 error per 8 characters, plus a few slop to start.
 	return (n + 16) / 8
