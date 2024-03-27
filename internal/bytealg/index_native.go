@@ -11,12 +11,12 @@ package bytealg
 
 // Index returns the index of the first instance of b in a, or -1 if b is not present in a.
 // Requires 2 <= len(b) <= MaxLen.
-//goland:noinspection GoUnusedExportedFunction
+//goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func Index(a, b []byte) int
 
 //go:noescape
 
 // IndexString returns the index of the first instance of b in a, or -1 if b is not present in a.
 // Requires 2 <= len(b) <= MaxLen.
-//goland:noinspection GoUnusedExportedFunction
+//goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func IndexString(a, b string) int
