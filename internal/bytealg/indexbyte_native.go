@@ -8,7 +8,9 @@
 package bytealg
 
 //go:noescape
+//goland:noinspection GoUnusedExportedFunction
 func IndexByte(b []byte, c byte) int
 
 //go:noescape
+//goland:noinspection GoUnusedExportedFunction
 func IndexByteString(s string, c byte) int
