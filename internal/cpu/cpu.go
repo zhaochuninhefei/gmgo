@@ -20,7 +20,7 @@ type CacheLinePad struct{ _ [CacheLinePadSize]byte }
 //goland:noinspection GoUnusedGlobalVariable
 var CacheLineSize uintptr = CacheLinePadSize
 
-// The booleans in X86 contain the correspondingly named cpuid feature bit.
+// X86 The booleans in X86 contain the correspondingly named cpuid feature bit.
 // HasAVX and HasAVX2 are only set if the OS does support XMM and YMM registers
 // in addition to the cpuid feature bit being set.
 // The struct is padded to avoid false sharing.
@@ -45,7 +45,7 @@ var X86 struct {
 	_            CacheLinePad
 }
 
-// The booleans in ARM contain the correspondingly named cpu feature bit.
+// ARM The booleans in ARM contain the correspondingly named cpu feature bit.
 // The struct is padded to avoid false sharing.
 var ARM struct {
 	_        CacheLinePad
@@ -54,7 +54,7 @@ var ARM struct {
 	_        CacheLinePad
 }
 
-// The booleans in ARM64 contain the correspondingly named cpu feature bit.
+// ARM64 The booleans in ARM64 contain the correspondingly named cpu feature bit.
 // The struct is padded to avoid false sharing.
 var ARM64 struct {
 	_            CacheLinePad
@@ -76,7 +76,7 @@ var MIPS64X struct {
 	_      CacheLinePad
 }
 
-// For ppc64(le), it is safe to check only for ISA level starting on ISA v3.00,
+// PPC64 For ppc64(le), it is safe to check only for ISA level starting on ISA v3.00,
 // since there are no optional categories. There are some exceptions that also
 // require kernel support to work (darn, scv), so there are feature bits for
 // those as well. The minimum processor requirement is POWER8 (ISA 2.07).
