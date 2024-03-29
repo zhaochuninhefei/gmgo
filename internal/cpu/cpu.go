@@ -120,6 +120,7 @@ var S390X struct {
 // This is called by the runtime package early in program initialization,
 // before normal init functions are run. env is set by runtime if the OS supports
 // cpu feature options in GODEBUG.
+//goland:noinspection GoUnusedExportedFunction
 func Initialize(env string) {
 	doinit()
 	processOptions(env)
