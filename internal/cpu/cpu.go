@@ -17,6 +17,7 @@ type CacheLinePad struct{ _ [CacheLinePadSize]byte }
 // CacheLineSize is the CPU's assumed cache line size.
 // There is currently no runtime detection of the real cache line size
 // so we use the constant per GOARCH CacheLinePadSize as an approximation.
+//goland:noinspection GoUnusedGlobalVariable
 var CacheLineSize uintptr = CacheLinePadSize
 
 // The booleans in X86 contain the correspondingly named cpuid feature bit.
