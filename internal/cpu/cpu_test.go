@@ -38,6 +38,7 @@ func MustHaveDebugOptionsSupport(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedParameter
 func MustSupportFeatureDectection(t *testing.T) {
 	// TODO: add platforms that do not have CPU feature detection support.
 }
