@@ -157,6 +157,7 @@ func Name() string {
 
 func appendBytes(b []byte, args ...uint32) []byte {
 	for _, arg := range args {
+		//goland:noinspection GoRedundantParens
 		b = append(b,
 			byte((arg >> 0)),
 			byte((arg >> 8)),
