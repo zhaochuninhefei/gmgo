@@ -10,6 +10,7 @@ package cpu
 const CacheLinePadSize = 64
 
 // cpuid is implemented in cpu_x86.s.
+//goland:noinspection GoUnusedParameter
 func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 
 // xgetbv with ecx = 0 is implemented in cpu_x86.s.
