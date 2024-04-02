@@ -16,6 +16,7 @@ func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 // xgetbv with ecx = 0 is implemented in cpu_x86.s.
 func xgetbv() (eax, edx uint32)
 
+//goland:noinspection GoSnakeCaseUsage
 const (
 	// edx bits
 	cpuid_SSE2 = 1 << 26
