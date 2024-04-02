@@ -43,6 +43,7 @@ const (
 var maxExtendedFunctionInformation uint32
 
 func doinit() {
+	//goland:noinspection GoBoolExpressions
 	options = []option{
 		{Name: "adx", Feature: &X86.HasADX},
 		{Name: "aes", Feature: &X86.HasAES},
