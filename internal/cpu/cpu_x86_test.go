@@ -50,6 +50,7 @@ func TestSSE3DebugOption(t *testing.T) {
 	}
 
 	want := false
+	//goland:noinspection GoBoolExpressions
 	if got := X86.HasSSE3; got != want {
 		t.Errorf("X86.HasSSE3 expected %v, got %v", want, got)
 	}
