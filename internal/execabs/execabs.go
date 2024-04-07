@@ -19,6 +19,7 @@ import (
 	"unsafe"
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var ErrNotFound = exec.ErrNotFound
 
 type (
