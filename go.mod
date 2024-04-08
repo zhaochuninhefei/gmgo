@@ -1,6 +1,6 @@
 module gitee.com/zhaochuninhefei/gmgo
 
-go 1.17
+go 1.22
 
 require (
 	gitee.com/zhaochuninhefei/zcgolog v0.0.22
