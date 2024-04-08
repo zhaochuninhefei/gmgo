@@ -49,7 +49,9 @@ func TestCommand(t *testing.T) {
 		if err != nil {
 			t.Fatalf("os.Getwd failed: %s", err)
 		}
-		defer os.Chdir(cwd)
+		defer func(dir string) {
+			_ = os.Chdir(dir)
+		}(cwd)
 		if err = os.Chdir(tmpDir); err != nil {
 			t.Fatalf("os.Chdir failed: %s", err)
 		}
@@ -57,8 +59,10 @@ func TestCommand(t *testing.T) {
 			// add "." to PATH so that exec.LookPath looks in the current directory on
 			// non-windows platforms as well
 			origPath := os.Getenv("PATH")
-			defer os.Setenv("PATH", origPath)
-			os.Setenv("PATH", fmt.Sprintf(".:%s", origPath))
+			defer func(key, value string) {
+				_ = os.Setenv(key, value)
+			}("PATH", origPath)
+			_ = os.Setenv("PATH", fmt.Sprintf(".:%s", origPath))
 		}
 		expectedErr := fmt.Sprintf("execabs-test resolves to executable relative to current directory (.%c%s)", filepath.Separator, executable)
 		if err = cmd("execabs-test").Run(); err == nil {
@@ -84,7 +88,9 @@ func TestLookPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.Getwd failed: %s", err)
 	}
-	defer os.Chdir(cwd)
+	defer func(dir string) {
+		_ = os.Chdir(dir)
+	}(cwd)
 	if err = os.Chdir(tmpDir); err != nil {
 		t.Fatalf("os.Chdir failed: %s", err)
 	}
@@ -92,8 +98,10 @@ func TestLookPath(t *testing.T) {
 		// add "." to PATH so that exec.LookPath looks in the current directory on
 		// non-windows platforms as well
 		origPath := os.Getenv("PATH")
-		defer os.Setenv("PATH", origPath)
-		os.Setenv("PATH", fmt.Sprintf(".:%s", origPath))
+		defer func(key, value string) {
+			_ = os.Setenv(key, value)
+		}("PATH", origPath)
+		_ = os.Setenv("PATH", fmt.Sprintf(".:%s", origPath))
 	}
 	expectedErr := fmt.Sprintf("execabs-test resolves to executable relative to current directory (.%c%s)", filepath.Separator, executable)
 	if _, err := LookPath("execabs-test"); err == nil {
