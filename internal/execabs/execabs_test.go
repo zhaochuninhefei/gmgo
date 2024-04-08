@@ -49,6 +49,7 @@ func TestCommand(t *testing.T) {
 		if err != nil {
 			t.Fatalf("os.Getwd failed: %s", err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(dir string) {
 			_ = os.Chdir(dir)
 		}(cwd)
@@ -59,6 +60,7 @@ func TestCommand(t *testing.T) {
 			// add "." to PATH so that exec.LookPath looks in the current directory on
 			// non-windows platforms as well
 			origPath := os.Getenv("PATH")
+			//goland:noinspection GoDeferInLoop
 			defer func(key, value string) {
 				_ = os.Setenv(key, value)
 			}("PATH", origPath)
