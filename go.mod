@@ -6,7 +6,6 @@ require (
 	gitee.com/zhaochuninhefei/zcgolog v0.0.23
 	github.com/census-instrumentation/opencensus-proto v0.2.1
 	github.com/cespare/xxhash/v2 v2.1.2
-	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4
 	github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1
 	github.com/envoyproxy/protoc-gen-validate v0.1.0
 	github.com/gogo/protobuf v1.3.2

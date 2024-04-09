@@ -29,7 +29,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
-	v1udpatypepb "github.com/cncf/udpa/go/udpa/type/v1"
+	//v1udpatypepb "github.com/cncf/udpa/go/udpa/type/v1"
 	v3cncftypepb "github.com/cncf/xds/go/xds/type/v3"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -147,13 +147,13 @@ func unwrapHTTPFilterConfig(config *anypb.Any) (proto.Message, string, error) {
 			return nil, "", fmt.Errorf("error unmarshalling TypedStruct filter config: %v", err)
 		}
 		return s, s.GetTypeUrl(), nil
-	case ptypes.Is(config, &v1udpatypepb.TypedStruct{}):
-		// The real type name is inside the old TypedStruct message.
-		s := new(v1udpatypepb.TypedStruct)
-		if err := ptypes.UnmarshalAny(config, s); err != nil {
-			return nil, "", fmt.Errorf("error unmarshalling TypedStruct filter config: %v", err)
-		}
-		return s, s.GetTypeUrl(), nil
+	//case ptypes.Is(config, &v1udpatypepb.TypedStruct{}):
+	//	// The real type name is inside the old TypedStruct message.
+	//	s := new(v1udpatypepb.TypedStruct)
+	//	if err := ptypes.UnmarshalAny(config, s); err != nil {
+	//		return nil, "", fmt.Errorf("error unmarshalling TypedStruct filter config: %v", err)
+	//	}
+	//	return s, s.GetTypeUrl(), nil
 	default:
 		return config, config.GetTypeUrl(), nil
 	}

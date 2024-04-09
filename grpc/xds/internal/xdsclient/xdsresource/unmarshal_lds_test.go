@@ -47,7 +47,7 @@ import (
 	v3httppb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	v3tlspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
-	v1udpatypepb "github.com/cncf/udpa/go/udpa/type/v1"
+	//v1udpatypepb "github.com/cncf/udpa/go/udpa/type/v1"
 	v3cncftypepb "github.com/cncf/xds/go/xds/type/v3"
 	anypb "github.com/golang/protobuf/ptypes/any"
 	spb "github.com/golang/protobuf/ptypes/struct"
@@ -84,10 +84,10 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 			Name:       "customFilter",
 			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: customFilterConfig},
 		}
-		oldTypedStructFilter = &v3httppb.HttpFilter{
-			Name:       "customFilter",
-			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: wrappedCustomFilterOldTypedStructConfig},
-		}
+		//oldTypedStructFilter = &v3httppb.HttpFilter{
+		//	Name:       "customFilter",
+		//	ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: wrappedCustomFilterOldTypedStructConfig},
+		//}
 		newTypedStructFilter = &v3httppb.HttpFilter{
 			Name:       "customFilter",
 			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: wrappedCustomFilterNewTypedStructConfig},
@@ -381,28 +381,28 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 				Version: testVersion,
 			},
 		},
-		{
-			name:      "v3 with custom filter in old typed struct",
-			resources: []*anypb.Any{v3LisWithFilters(oldTypedStructFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-					HTTPFilters: []HTTPFilter{
-						{
-							Name:   "customFilter",
-							Filter: httpFilter{},
-							Config: filterConfig{Cfg: customFilterOldTypedStructConfig},
-						},
-						routerFilter,
-					},
-					Raw: v3LisWithFilters(oldTypedStructFilter),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
+		//{
+		//	name:      "v3 with custom filter in old typed struct",
+		//	resources: []*anypb.Any{v3LisWithFilters(oldTypedStructFilter)},
+		//	wantUpdate: map[string]ListenerUpdateErrTuple{
+		//		v3LDSTarget: {Update: ListenerUpdate{
+		//			RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+		//			HTTPFilters: []HTTPFilter{
+		//				{
+		//					Name:   "customFilter",
+		//					Filter: httpFilter{},
+		//					Config: filterConfig{Cfg: customFilterOldTypedStructConfig},
+		//				},
+		//				routerFilter,
+		//			},
+		//			Raw: v3LisWithFilters(oldTypedStructFilter),
+		//		}},
+		//	},
+		//	wantMD: UpdateMetadata{
+		//		Status:  ServiceStatusACKed,
+		//		Version: testVersion,
+		//	},
+		//},
 		{
 			name:      "v3 with custom filter in new typed struct",
 			resources: []*anypb.Any{v3LisWithFilters(newTypedStructFilter)},
@@ -2012,14 +2012,15 @@ var clientOnlyCustomFilterConfig = &anypb.Any{
 }
 
 // This custom filter uses the old TypedStruct message from the cncf/udpa repo.
-var customFilterOldTypedStructConfig = &v1udpatypepb.TypedStruct{
-	TypeUrl: "custom.filter",
-	Value: &spb.Struct{
-		Fields: map[string]*spb.Value{
-			"foo": {Kind: &spb.Value_StringValue{StringValue: "bar"}},
-		},
-	},
-}
+//
+//	var customFilterOldTypedStructConfig = &v1udpatypepb.TypedStruct{
+//		TypeUrl: "custom.filter",
+//		Value: &spb.Struct{
+//			Fields: map[string]*spb.Value{
+//				"foo": {Kind: &spb.Value_StringValue{StringValue: "bar"}},
+//			},
+//		},
+//	}
 var wrappedCustomFilterOldTypedStructConfig *anypb.Any
 
 // This custom filter uses the new TypedStruct message from the cncf/xds repo.
@@ -2034,7 +2035,7 @@ var customFilterNewTypedStructConfig = &v3cncftypepb.TypedStruct{
 var wrappedCustomFilterNewTypedStructConfig *anypb.Any
 
 func init() {
-	wrappedCustomFilterOldTypedStructConfig = testutils.MarshalAny(customFilterOldTypedStructConfig)
+	//wrappedCustomFilterOldTypedStructConfig = testutils.MarshalAny(customFilterOldTypedStructConfig)
 	wrappedCustomFilterNewTypedStructConfig = testutils.MarshalAny(customFilterNewTypedStructConfig)
 }
 

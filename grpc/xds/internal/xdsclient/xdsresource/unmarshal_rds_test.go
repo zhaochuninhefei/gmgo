@@ -551,11 +551,11 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": customFilterConfig}),
 			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
-		{
-			name:       "good-route-config-with-http-filter-config-in-old-typed-struct",
-			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterOldTypedStructConfig}),
-			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
-		},
+		//{
+		//	name:       "good-route-config-with-http-filter-config-in-old-typed-struct",
+		//	rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterOldTypedStructConfig}),
+		//	wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
+		//},
 		{
 			name:       "good-route-config-with-http-filter-config-in-new-typed-struct",
 			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterNewTypedStructConfig}),
@@ -1593,11 +1593,11 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": customFilterConfig}),
 			wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
-		{
-			name:       "with custom HTTP filter config in typed struct",
-			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterOldTypedStructConfig}),
-			wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
-		},
+		//{
+		//	name:       "with custom HTTP filter config in typed struct",
+		//	routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterOldTypedStructConfig}),
+		//	wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
+		//},
 		{
 			name:       "with optional custom HTTP filter config",
 			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("custom.filter")}),
