@@ -1,21 +1,24 @@
 package grpc_logrus
 
 import (
-	"bytes"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
 
 	grpclogging "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging"
+	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/logrus/ctxlogrus"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	//"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
-	// JsonPbMarshaller is the marshaller used for serializing protobuf messages.
-	JsonPbMarshaller = &jsonpb.Marshaler{}
+	//// JsonPbMarshaller is the marshaller used for serializing protobuf messages.
+	//JsonPbMarshaller = &jsonpb.Marshaler{}
+
+	// ProtojsonOpts protojson.MarshalOptions
+	ProtojsonOpts = protojson.MarshalOptions{}
 )
 
 // PayloadUnaryServerInterceptor returns a new unary server interceptors that logs the payloads of requests.
@@ -140,9 +143,13 @@ type jsonpbMarshalleble struct {
 }
 
 func (j *jsonpbMarshalleble) MarshalJSON() ([]byte, error) {
-	b := &bytes.Buffer{}
-	if err := JsonPbMarshaller.Marshal(b, j.Message); err != nil {
+	//b := &bytes.Buffer{}
+	//if err := JsonPbMarshaller.Marshal(b, j.Message); err != nil {
+	//	return nil, fmt.Errorf("jsonpb serializer failed: %v", err)
+	//}
+	b, err := ProtojsonOpts.Marshal(j.Message)
+	if err != nil {
 		return nil, fmt.Errorf("jsonpb serializer failed: %v", err)
 	}
-	return b.Bytes(), nil
+	return b, nil
 }
