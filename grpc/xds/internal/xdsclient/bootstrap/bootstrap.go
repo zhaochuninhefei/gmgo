@@ -21,13 +21,14 @@
 package bootstrap
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	v2corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/google"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/tls/certprovider"
@@ -35,11 +36,9 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 
-	v2corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
-	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -58,7 +57,7 @@ const (
 var gRPCVersion = fmt.Sprintf("%s %s", gRPCUserAgentName, grpc.Version)
 
 // For overriding in unit tests.
-var bootstrapFileReadFunc = ioutil.ReadFile
+var bootstrapFileReadFunc = os.ReadFile
 
 // ServerConfig contains the configuration to connect to a server, including
 // URI, creds, and transport API version (e.g. v2 or v3).
@@ -309,7 +308,8 @@ func NewConfigFromContents(data []byte) (*Config, error) {
 	}
 
 	var node *v3corepb.Node
-	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	//m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	opts := protojson.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true}
 	for k, v := range jsonData {
 		switch k {
 		case "node":
@@ -320,7 +320,8 @@ func NewConfigFromContents(data []byte) (*Config, error) {
 			// because we have set the `AllowUnknownFields` option on the
 			// unmarshaler.
 			node = &v3corepb.Node{}
-			if err := m.Unmarshal(bytes.NewReader(v), node); err != nil {
+			//if err := m.Unmarshal(bytes.NewReader(v), node); err != nil {
+			if err := opts.Unmarshal(v, node); err != nil {
 				return nil, fmt.Errorf("xds: jsonpb.Unmarshal(%v) for field %q failed during bootstrap: %v", string(v), k, err)
 			}
 		case "xds_servers":
