@@ -15,13 +15,12 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
@@ -66,14 +65,15 @@ func (h *HTTPGateway) ServeHTTP(req *http.Request) ([]byte, int, error) {
 		return nil, http.StatusBadRequest, fmt.Errorf("empty body")
 	}
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("cannot read body")
 	}
 
 	// parse as JSON
 	out := &discovery.DiscoveryRequest{}
-	err = jsonpb.UnmarshalString(string(body), out)
+	//err = jsonpb.UnmarshalString(string(body), out)
+	err = protojson.Unmarshal(body, out)
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("cannot parse JSON body: " + err.Error())
 	}
@@ -90,10 +90,17 @@ func (h *HTTPGateway) ServeHTTP(req *http.Request) ([]byte, int, error) {
 		return nil, http.StatusInternalServerError, fmt.Errorf("fetch error: " + err.Error())
 	}
 
-	buf := &bytes.Buffer{}
-	if err := (&jsonpb.Marshaler{OrigName: true}).Marshal(buf, res); err != nil {
+	//buf := &bytes.Buffer{}
+	//if err := (&jsonpb.Marshaler{OrigName: true}).Marshal(buf, res); err != nil {
+	//	return nil, http.StatusInternalServerError, fmt.Errorf("marshal error: " + err.Error())
+	//}
+	opts := protojson.MarshalOptions{
+		UseProtoNames: true, //保留proto字段名称
+	}
+	buf, err := opts.Marshal(res)
+	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("marshal error: " + err.Error())
 	}
 
-	return buf.Bytes(), http.StatusOK, nil
+	return buf, http.StatusOK, nil
 }
