@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/keepalive"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
+	server "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/v3"
 
 	gcplogger "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/log"
@@ -94,31 +94,31 @@ func RunManagementServer(ctx context.Context, srv server.Server, port uint) {
 }
 
 // RunManagementGateway starts an HTTP gateway to an xDS server.
-func RunManagementGateway(ctx context.Context, srv server.Server, port uint, lg gcplogger.Logger) {
+func RunManagementGateway(ctx context.Context, srv server.Server, port uint) {
 	log.Printf("gateway listening HTTP/1.1 on %d\n", port)
-	hs := &http.Server{
+	// Ignore: G114: Use of net/http serve function that has no support for setting timeouts
+	// nolint:gosec
+	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", port),
 		Handler: &HTTPGateway{
-			Gateway: server.HTTPGateway{Log: lg, Server: srv},
-			Log:     lg,
+			Gateway: server.HTTPGateway{Server: srv},
 		},
 	}
 	go func() {
-		if err := hs.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			log.Printf("failed to start listening: %s", err)
 		}
 	}()
 	<-ctx.Done()
 
 	// Cleanup our gateway if we receive a shutdown
-	if err := hs.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("failed to shut down: %s", err)
 	}
 }
 
 func (h *HTTPGateway) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	bytes, code, err := h.Gateway.ServeHTTP(req)
-
 	if err != nil {
 		http.Error(resp, err.Error(), code)
 		return

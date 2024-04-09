@@ -21,19 +21,16 @@ import (
 	"net/http"
 	"path"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/log"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // HTTPGateway is a custom implementation of [gRPC gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 // specialized to Envoy xDS API.
 type HTTPGateway struct {
-	// Log is an optional log for errors in response write
-	Log log.Logger
-
 	// Server is the underlying gRPC server
 	Server Server
 }
@@ -51,6 +48,8 @@ func (h *HTTPGateway) ServeHTTP(req *http.Request) ([]byte, int, error) {
 		typeURL = resource.ListenerType
 	case resource.FetchRoutes:
 		typeURL = resource.RouteType
+	case resource.FetchScopedRoutes:
+		typeURL = resource.ScopedRouteType
 	case resource.FetchSecrets:
 		typeURL = resource.SecretType
 	case resource.FetchRuntimes:
@@ -72,7 +71,6 @@ func (h *HTTPGateway) ServeHTTP(req *http.Request) ([]byte, int, error) {
 
 	// parse as JSON
 	out := &discovery.DiscoveryRequest{}
-	//err = jsonpb.UnmarshalString(string(body), out)
 	err = protojson.Unmarshal(body, out)
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("cannot parse JSON body: " + err.Error())
@@ -84,24 +82,17 @@ func (h *HTTPGateway) ServeHTTP(req *http.Request) ([]byte, int, error) {
 	if err != nil {
 		// SkipFetchErrors will return a 304 which will signify to the envoy client that
 		// it is already at the latest version; all other errors will 500 with a message.
-		var skipFetchError *types.SkipFetchError
-		if errors.As(err, &skipFetchError) {
+		var skip *types.SkipFetchError
+		if ok := errors.As(err, &skip); ok {
 			return nil, http.StatusNotModified, nil
 		}
 		return nil, http.StatusInternalServerError, fmt.Errorf("fetch error: " + err.Error())
 	}
 
-	//buf := &bytes.Buffer{}
-	//if err := (&jsonpb.Marshaler{OrigName: true}).Marshal(buf, res); err != nil {
-	//	return nil, http.StatusInternalServerError, fmt.Errorf("marshal error: " + err.Error())
-	//}
-	opts := protojson.MarshalOptions{
-		UseProtoNames: true, //保留proto字段名称
-	}
-	buf, err := opts.Marshal(res)
+	b, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(res)
 	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("marshal error: " + err.Error())
 	}
 
-	return buf, http.StatusOK, nil
+	return b, http.StatusOK, nil
 }

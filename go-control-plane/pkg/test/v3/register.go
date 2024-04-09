@@ -16,7 +16,7 @@
 package test
 
 import (
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	"google.golang.org/grpc"
 
 	accessloggrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/accesslog/v3"
 	clusterservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/cluster/v3"
@@ -41,6 +41,8 @@ func RegisterServer(grpcServer *grpc.Server, server server.Server) {
 	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
 	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	routeservice.RegisterScopedRoutesDiscoveryServiceServer(grpcServer, server)
+	routeservice.RegisterVirtualHostDiscoveryServiceServer(grpcServer, server)
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)

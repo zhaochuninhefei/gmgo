@@ -11,6 +11,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+
 package log
 
 import (
@@ -21,13 +22,11 @@ import (
 )
 
 func ExampleLoggerFuncs() {
-	logger := log.Logger{}
-
 	xdsLogger := LoggerFuncs{
-		DebugFunc: logger.Printf,
-		InfoFunc:  logger.Printf,
-		WarnFunc:  logger.Printf,
-		ErrorFunc: logger.Printf,
+		DebugFunc: log.Printf,
+		InfoFunc:  log.Printf,
+		WarnFunc:  log.Printf,
+		ErrorFunc: log.Printf,
 	}
 
 	xdsLogger.Debugf("debug")
@@ -52,15 +51,15 @@ func TestLoggerFuncs(t *testing.T) {
 	xdsLogger.Debugf("debug")
 	xdsLogger.Infof("info")
 	xdsLogger.Warnf("warn")
-	xdsLogger.Errorf("error")
+	xdsLogger.Errorf("err")
 
-	assert.Equal(t, debug, 1)
-	assert.Equal(t, info, 1)
-	assert.Equal(t, warn, 1)
-	assert.Equal(t, err, 1)
+	assert.Equal(t, 1, debug)
+	assert.Equal(t, 1, info)
+	assert.Equal(t, 1, warn)
+	assert.Equal(t, 1, err)
 }
 
-func TestNilLoggerFuncs(t *testing.T) {
+func TestNilLoggerFuncs(_ *testing.T) {
 	xdsLogger := LoggerFuncs{}
 
 	// Just verifying that nothing panics.
@@ -68,4 +67,9 @@ func TestNilLoggerFuncs(t *testing.T) {
 	xdsLogger.Infof("info")
 	xdsLogger.Warnf("warn")
 	xdsLogger.Errorf("error")
+}
+
+func TestDefaultLogger(t *testing.T) {
+	logger := NewDefaultLogger()
+	assert.NotNil(t, logger)
 }

@@ -13,10 +13,14 @@
 //   limitations under the License.
 
 // Package wellknown contains common names for filters, listeners, etc.
+//
+// Deprecated. Envoy no longer requires specific names when configuring
+// filters or other properties, since it inspects the Protobuf type URL
+// to decide how to the decode a message. Because of this, no new names
+// are being added to this package.
 package wellknown
 
 // HTTP filter names
-//goland:noinspection GoUnusedConst
 const (
 	// Buffer HTTP filter
 	Buffer = "envoy.filters.http.buffer"
@@ -40,7 +44,7 @@ const (
 	HTTPRateLimit = "envoy.filters.http.ratelimit"
 	// Router HTTP filter
 	Router = "envoy.filters.http.router"
-	// HealthCheck checking HTTP filter
+	// Health checking HTTP filter
 	HealthCheck = "envoy.filters.http.health_check"
 	// Lua HTTP filter
 	Lua = "envoy.filters.http.lua"
@@ -52,10 +56,11 @@ const (
 	HTTPRoleBasedAccessControl = "envoy.filters.http.rbac"
 	// HTTPGRPCStats HTTP filter
 	HTTPGRPCStats = "envoy.filters.http.grpc_stats"
+	// HTTP WASM filter
+	HTTPWasm = "envoy.extensions.filters.http.wasm.v3.Wasm"
 )
 
 // Network filter names
-//goland:noinspection GoUnusedConst
 const (
 	// ClientSSLAuth network filter
 	ClientSSLAuth = "envoy.filters.network.client_ssl_auth"
@@ -82,7 +87,6 @@ const (
 )
 
 // Listener filter names
-//goland:noinspection GoUnusedConst
 const (
 	// OriginalDestination listener filter
 	OriginalDestination = "envoy.filters.listener.original_dst"
@@ -96,10 +100,11 @@ const (
 	HttpInspector = "envoy.filters.listener.http_inspector" // nolint:golint,revive
 	// HTTPInspector listener filter
 	HTTPInspector = "envoy.filters.listener.http_inspector"
+	// OriginalSource listener filter
+	OriginalSource = "envoy.filters.listener.original_src"
 )
 
 // Tracing provider names
-//goland:noinspection GoUnusedConst
 const (
 	// Lightstep tracer name
 	Lightstep = "envoy.tracers.lightstep"
@@ -112,18 +117,16 @@ const (
 )
 
 // Stats sink names
-//goland:noinspection GoUnusedConst
 const (
 	// Statsd sink
 	Statsd = "envoy.stat_sinks.statsd"
-	// DogStatsd compatible stastsd sink
+	// DogStatsD compatible stastsd sink
 	DogStatsd = "envoy.stat_sinks.dog_statsd"
 	// MetricsService sink
 	MetricsService = "envoy.stat_sinks.metrics_service"
 )
 
 // Access log sink names
-//goland:noinspection GoUnusedConst
 const (
 	// FileAccessLog sink name
 	FileAccessLog = "envoy.access_loggers.file"
@@ -132,18 +135,17 @@ const (
 )
 
 // Transport socket names
-//goland:noinspection GoUnusedConst
 const (
-	// TransportSocketAlts TransportSocket Alts
+	// TransportSocket Alts
 	TransportSocketAlts = "envoy.transport_sockets.alts"
-	// TransportSocketTap TransportSocket Tap
+	// TransportSocket Tap
 	TransportSocketTap = "envoy.transport_sockets.tap"
-	// TransportSocketRawBuffer TransportSocket RawBuffer
+	// TransportSocket RawBuffer
 	TransportSocketRawBuffer = "envoy.transport_sockets.raw_buffer"
-	// TransportSocketTls TransportSocket Tls
+	// TransportSocket Tls
 	TransportSocketTls = "envoy.transport_sockets.tls" // nolint:golint,revive
 	// TransportSocketTLS labels the "envoy.transport_sockets.tls" filter.
 	TransportSocketTLS = "envoy.transport_sockets.tls"
-	// TransportSocketQuic TransportSocket Quic
+	// TransportSocket Quic
 	TransportSocketQuic = "envoy.transport_sockets.quic"
 )

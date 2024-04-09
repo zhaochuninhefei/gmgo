@@ -18,17 +18,25 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	cluster "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
 	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	rsrc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/resource/v3"
 )
 
 const (
 	clusterName         = "cluster0"
 	routeName           = "route0"
+	embeddedRouteName   = "embeddedRoute0"
+	scopedRouteName     = "scopedRoute0"
 	listenerName        = "listener0"
+	scopedListenerName  = "scopedListener0"
+	virtualHostName     = "virtualHost0"
 	runtimeName         = "runtime0"
 	tlsName             = "secret0"
 	rootName            = "root0"
@@ -38,29 +46,27 @@ const (
 var (
 	testEndpoint        = resource.MakeEndpoint(clusterName, 8080)
 	testCluster         = resource.MakeCluster(resource.Ads, clusterName)
-	testRoute           = resource.MakeRoute(routeName, clusterName)
-	testListener        = resource.MakeHTTPListener(resource.Ads, listenerName, 80, routeName)
+	testRoute           = resource.MakeRouteConfig(routeName, clusterName)
+	testEmbeddedRoute   = resource.MakeRouteConfig(embeddedRouteName, clusterName)
+	testScopedRoute     = resource.MakeScopedRouteConfig(scopedRouteName, routeName, []string{"1.2.3.4"})
+	testVirtualHost     = resource.MakeVirtualHost(virtualHostName, clusterName)
+	testListener        = resource.MakeRouteHTTPListener(resource.Ads, listenerName, 80, routeName)
+	testScopedListener  = resource.MakeScopedRouteHTTPListenerForRoute(resource.Ads, scopedListenerName, 80, embeddedRouteName)
 	testRuntime         = resource.MakeRuntime(runtimeName)
 	testSecret          = resource.MakeSecrets(tlsName, rootName)
 	testExtensionConfig = resource.MakeExtensionConfig(resource.Ads, extensionConfigName, routeName)
 )
 
 func TestValidate(t *testing.T) {
-	if err := testEndpoint.Validate(); err != nil {
-		t.Error(err)
-	}
-	if err := testCluster.Validate(); err != nil {
-		t.Error(err)
-	}
-	if err := testRoute.Validate(); err != nil {
-		t.Error(err)
-	}
-	if err := testListener.Validate(); err != nil {
-		t.Error(err)
-	}
-	if err := testRuntime.Validate(); err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, testEndpoint.Validate())
+	require.NoError(t, testCluster.Validate())
+	require.NoError(t, testRoute.Validate())
+	require.NoError(t, testScopedRoute.Validate())
+	require.NoError(t, testVirtualHost.Validate())
+	require.NoError(t, testListener.Validate())
+	require.NoError(t, testScopedListener.Validate())
+	require.NoError(t, testRuntime.Validate())
+	require.NoError(t, testExtensionConfig.Validate())
 
 	invalidRoute := &route.RouteConfiguration{
 		Name: "test",
@@ -73,10 +79,20 @@ func TestValidate(t *testing.T) {
 	if err := invalidRoute.Validate(); err == nil {
 		t.Error("expected an error")
 	}
-	if err := invalidRoute.VirtualHosts[0].Validate(); err == nil {
+	if err := invalidRoute.GetVirtualHosts()[0].Validate(); err == nil {
 		t.Error("expected an error")
 	}
 }
+
+type customResource struct {
+	cluster.Filter // Any proto would work here.
+}
+
+const customName = "test-name"
+
+func (cs *customResource) GetName() string { return customName }
+
+var _ types.ResourceWithName = &customResource{}
 
 func TestGetResourceName(t *testing.T) {
 	if name := cache.GetResourceName(testEndpoint); name != clusterName {
@@ -88,54 +104,111 @@ func TestGetResourceName(t *testing.T) {
 	if name := cache.GetResourceName(testRoute); name != routeName {
 		t.Errorf("GetResourceName(%v) => got %q, want %q", testRoute, name, routeName)
 	}
+	if name := cache.GetResourceName(testScopedRoute); name != scopedRouteName {
+		t.Errorf("GetResourceName(%v) => got %q, want %q", testScopedRoute, name, scopedRouteName)
+	}
+	if name := cache.GetResourceName(testVirtualHost); name != virtualHostName {
+		t.Errorf("GetResourceName(%v) => got %q, want %q", testVirtualHost, name, virtualHostName)
+	}
 	if name := cache.GetResourceName(testListener); name != listenerName {
 		t.Errorf("GetResourceName(%v) => got %q, want %q", testListener, name, listenerName)
 	}
 	if name := cache.GetResourceName(testRuntime); name != runtimeName {
 		t.Errorf("GetResourceName(%v) => got %q, want %q", testRuntime, name, runtimeName)
 	}
+	if name := cache.GetResourceName(&customResource{}); name != customName {
+		t.Errorf("GetResourceName(nil) => got %q, want %q", name, customName)
+	}
 	if name := cache.GetResourceName(nil); name != "" {
 		t.Errorf("GetResourceName(nil) => got %q, want none", name)
+	}
+}
+
+func TestGetResourceNames(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []types.Resource
+		want  []string
+	}{
+		{
+			name:  "empty",
+			input: []types.Resource{},
+			want:  []string{},
+		},
+		{
+			name:  "many",
+			input: []types.Resource{testRuntime, testListener, testVirtualHost},
+			want:  []string{runtimeName, listenerName, virtualHostName},
+		},
+	}
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			got := cache.GetResourceNames(test.input)
+			assert.ElementsMatch(t, test.want, got)
+		})
 	}
 }
 
 func TestGetResourceReferences(t *testing.T) {
 	cases := []struct {
 		in  types.Resource
-		out map[string]bool
+		out map[rsrc.Type]map[string]bool
 	}{
 		{
 			in:  nil,
-			out: map[string]bool{},
+			out: map[rsrc.Type]map[string]bool{},
 		},
 		{
 			in:  testCluster,
-			out: map[string]bool{clusterName: true},
+			out: map[rsrc.Type]map[string]bool{rsrc.EndpointType: {clusterName: true}},
 		},
 		{
-			in: &cluster.Cluster{Name: clusterName, ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
-				EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{ServiceName: "test"}},
-			out: map[string]bool{"test": true},
+			in: &cluster.Cluster{
+				Name: clusterName, ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
+				EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{ServiceName: "test"},
+			},
+			out: map[rsrc.Type]map[string]bool{rsrc.EndpointType: {"test": true}},
 		},
 		{
-			in:  resource.MakeHTTPListener(resource.Ads, listenerName, 80, routeName),
-			out: map[string]bool{routeName: true},
+			in:  resource.MakeScopedRouteHTTPListener(resource.Xds, listenerName, 80),
+			out: map[rsrc.Type]map[string]bool{},
+		},
+		{
+			in:  resource.MakeScopedRouteHTTPListenerForRoute(resource.Xds, listenerName, 80, routeName),
+			out: map[rsrc.Type]map[string]bool{rsrc.RouteType: {routeName: true}},
+		},
+		{
+			in:  resource.MakeRouteHTTPListener(resource.Ads, listenerName, 80, routeName),
+			out: map[rsrc.Type]map[string]bool{rsrc.RouteType: {routeName: true}},
 		},
 		{
 			in:  resource.MakeTCPListener(listenerName, 80, clusterName),
-			out: map[string]bool{},
+			out: map[rsrc.Type]map[string]bool{},
 		},
 		{
 			in:  testRoute,
-			out: map[string]bool{},
+			out: map[rsrc.Type]map[string]bool{},
+		},
+		{
+			in:  resource.MakeVHDSRouteConfig(resource.Ads, routeName),
+			out: map[rsrc.Type]map[string]bool{},
+		},
+		{
+			in:  testScopedRoute,
+			out: map[rsrc.Type]map[string]bool{rsrc.RouteType: {routeName: true}},
+		},
+		{
+			in:  testVirtualHost,
+			out: map[rsrc.Type]map[string]bool{},
 		},
 		{
 			in:  testEndpoint,
-			out: map[string]bool{},
+			out: map[rsrc.Type]map[string]bool{},
 		},
 		{
 			in:  testRuntime,
-			out: map[string]bool{},
+			out: map[rsrc.Type]map[string]bool{},
 		},
 	}
 	for _, cs := range cases {
@@ -143,5 +216,24 @@ func TestGetResourceReferences(t *testing.T) {
 		if !reflect.DeepEqual(names, cs.out) {
 			t.Errorf("GetResourceReferences(%v) => got %v, want %v", cs.in, names, cs.out)
 		}
+	}
+}
+
+func TestGetAllResourceReferencesReturnsExpectedRefs(t *testing.T) {
+	expected := map[rsrc.Type]map[string]bool{
+		rsrc.RouteType:    {routeName: true, embeddedRouteName: true},
+		rsrc.EndpointType: {clusterName: true},
+	}
+
+	resources := [types.UnknownType]cache.Resources{}
+	resources[types.Endpoint] = cache.NewResources("1", []types.Resource{testEndpoint})
+	resources[types.Cluster] = cache.NewResources("1", []types.Resource{testCluster})
+	resources[types.Route] = cache.NewResources("1", []types.Resource{testRoute})
+	resources[types.Listener] = cache.NewResources("1", []types.Resource{testListener, testScopedListener})
+	resources[types.ScopedRoute] = cache.NewResources("1", []types.Resource{testScopedRoute})
+	actual := cache.GetAllResourceReferences(resources)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("GetAllResourceReferences(%v) => got %v, want %v", resources, actual, expected)
 	}
 }
