@@ -1,29 +1,31 @@
 package grpc_zap
 
 import (
-	"bytes"
 	"fmt"
 
-	grpc_logging "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging"
+	grpclogging "gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging"
 	"gitee.com/zhaochuninhefei/gmgo/go-grpc-middleware/logging/zap/ctxzap"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/net/context"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
-	// JsonPbMarshaller is the marshaller used for serializing protobuf messages.
-	JsonPbMarshaller = &jsonpb.Marshaler{}
+	//// JsonPbMarshaller is the marshaller used for serializing protobuf messages.
+	//JsonPbMarshaller = &jsonpb.Marshaler{}
+
+	// ProtojsonOpts protojson.MarshalOptions
+	ProtojsonOpts = protojson.MarshalOptions{}
 )
 
 // PayloadUnaryServerInterceptor returns a new unary server interceptors that logs the payloads of requests.
 //
 // This *only* works when placed *after* the `grpc_zap.UnaryServerInterceptor`. However, the logging can be done to a
 // separate instance of the logger.
-func PayloadUnaryServerInterceptor(logger *zap.Logger, decider grpc_logging.ServerPayloadLoggingDecider) grpc.UnaryServerInterceptor {
+func PayloadUnaryServerInterceptor(logger *zap.Logger, decider grpclogging.ServerPayloadLoggingDecider) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !decider(ctx, info.FullMethod, info.Server) {
 			return handler(ctx, req)
@@ -43,7 +45,7 @@ func PayloadUnaryServerInterceptor(logger *zap.Logger, decider grpc_logging.Serv
 //
 // This *only* works when placed *after* the `grpc_zap.StreamServerInterceptor`. However, the logging can be done to a
 // separate instance of the logger.
-func PayloadStreamServerInterceptor(logger *zap.Logger, decider grpc_logging.ServerPayloadLoggingDecider) grpc.StreamServerInterceptor {
+func PayloadStreamServerInterceptor(logger *zap.Logger, decider grpclogging.ServerPayloadLoggingDecider) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if !decider(stream.Context(), info.FullMethod, srv) {
 			return handler(srv, stream)
@@ -55,7 +57,7 @@ func PayloadStreamServerInterceptor(logger *zap.Logger, decider grpc_logging.Ser
 }
 
 // PayloadUnaryClientInterceptor returns a new unary client interceptor that logs the paylods of requests and responses.
-func PayloadUnaryClientInterceptor(logger *zap.Logger, decider grpc_logging.ClientPayloadLoggingDecider) grpc.UnaryClientInterceptor {
+func PayloadUnaryClientInterceptor(logger *zap.Logger, decider grpclogging.ClientPayloadLoggingDecider) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if !decider(ctx, method) {
 			return invoker(ctx, method, req, reply, cc, opts...)
@@ -71,7 +73,7 @@ func PayloadUnaryClientInterceptor(logger *zap.Logger, decider grpc_logging.Clie
 }
 
 // PayloadStreamClientInterceptor returns a new streaming client interceptor that logs the paylods of requests and responses.
-func PayloadStreamClientInterceptor(logger *zap.Logger, decider grpc_logging.ClientPayloadLoggingDecider) grpc.StreamClientInterceptor {
+func PayloadStreamClientInterceptor(logger *zap.Logger, decider grpclogging.ClientPayloadLoggingDecider) grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		if !decider(ctx, method) {
 			return streamer(ctx, desc, cc, method, opts...)
@@ -141,9 +143,13 @@ func (j *jsonpbObjectMarshaler) MarshalLogObject(e zapcore.ObjectEncoder) error 
 }
 
 func (j *jsonpbObjectMarshaler) MarshalJSON() ([]byte, error) {
-	b := &bytes.Buffer{}
-	if err := JsonPbMarshaller.Marshal(b, j.pb); err != nil {
+	//b := &bytes.Buffer{}
+	//if err := JsonPbMarshaller.Marshal(b, j.pb); err != nil {
+	//	return nil, fmt.Errorf("jsonpb serializer failed: %v", err)
+	//}
+	b, err := ProtojsonOpts.Marshal(j.pb)
+	if err != nil {
 		return nil, fmt.Errorf("jsonpb serializer failed: %v", err)
 	}
-	return b.Bytes(), nil
+	return b, nil
 }
