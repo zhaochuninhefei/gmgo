@@ -17,13 +17,13 @@ package conversion_test
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 
-	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
-	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/conversion"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 )
 
 func TestConversion(t *testing.T) {
@@ -35,16 +35,16 @@ func TestConversion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	pbst := map[string]*pstruct.Value{
-		"version_info": {Kind: &pstruct.Value_StringValue{StringValue: "test"}},
-		"node": {Kind: &pstruct.Value_StructValue{StructValue: &pstruct.Struct{
-			Fields: map[string]*pstruct.Value{
-				"id": {Kind: &pstruct.Value_StringValue{StringValue: "proxy"}},
+	pbst := map[string]*structpb.Value{
+		"version_info": {Kind: &structpb.Value_StringValue{StringValue: "test"}},
+		"node": {Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"id": {Kind: &structpb.Value_StringValue{StringValue: "proxy"}},
 			},
 		}}},
 	}
-	if !cmp.Equal(st.Fields, pbst, cmp.Comparer(proto.Equal)) {
-		t.Errorf("MessageToStruct(%v) => got %v, want %v", pb, st.Fields, pbst)
+	if !cmp.Equal(st.GetFields(), pbst, cmp.Comparer(proto.Equal)) {
+		t.Errorf("MessageToStruct(%v) => got %v, want %v", pb, st.GetFields(), pbst)
 	}
 
 	out := &discovery.DiscoveryRequest{}

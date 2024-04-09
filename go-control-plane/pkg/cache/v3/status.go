@@ -15,11 +15,12 @@
 package cache
 
 import (
+	"sort"
 	"sync"
 	"time"
 
-	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/stream/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
 )
 
 // NodeHash computes string identifiers for Envoy nodes.
@@ -36,13 +37,12 @@ func (IDHash) ID(node *core.Node) string {
 	if node == nil {
 		return ""
 	}
-	return node.Id
+	return node.GetId()
 }
 
 var _ NodeHash = IDHash{}
 
-// StatusInfo tracks the server state for the remote Envoy node.
-// Not all fields are used by all cache implementations.
+// StatusInfo publishes information about nodes that are watching the xDS cache.
 type StatusInfo interface {
 	// GetNode returns the node metadata.
 	GetNode() *core.Node
@@ -58,23 +58,20 @@ type StatusInfo interface {
 
 	// GetLastDeltaWatchRequestTime returns the timestamp of the last delta discovery watch request.
 	GetLastDeltaWatchRequestTime() time.Time
-
-	// SetLastDeltaWatchRequestTime will set the current time of the last delta discovery watch request
-	SetLastDeltaWatchRequestTime(time.Time)
-
-	// SetDeltaResponseWatch will set the provided delta response watch to the associate watch ID
-	SetDeltaResponseWatch(int64, DeltaResponseWatch)
 }
 
+// statusInfo tracks the server state for the remote Envoy node.
 type statusInfo struct {
 	// node is the constant Envoy node metadata.
 	node *core.Node
 
 	// watches are indexed channels for the response watches and the original requests.
-	watches map[int64]ResponseWatch
+	watches        map[int64]ResponseWatch
+	orderedWatches keys
 
 	// deltaWatches are indexed channels for the delta response watches and the original requests
-	deltaWatches map[int64]DeltaResponseWatch
+	deltaWatches        map[int64]DeltaResponseWatch
+	orderedDeltaWatches keys
 
 	// the timestamp of the last watch request
 	lastWatchRequestTime time.Time
@@ -111,9 +108,10 @@ type DeltaResponseWatch struct {
 // newStatusInfo initializes a status info data structure.
 func newStatusInfo(node *core.Node) *statusInfo {
 	out := statusInfo{
-		node:         node,
-		watches:      make(map[int64]ResponseWatch),
-		deltaWatches: make(map[int64]DeltaResponseWatch),
+		node:           node,
+		watches:        make(map[int64]ResponseWatch),
+		orderedWatches: make(keys, 0),
+		deltaWatches:   make(map[int64]DeltaResponseWatch),
 	}
 	return &out
 }
@@ -148,21 +146,54 @@ func (info *statusInfo) GetLastDeltaWatchRequestTime() time.Time {
 	return info.lastDeltaWatchRequestTime
 }
 
-// GetDeltaStreamState will pull the stream state with the version map out of a specific watch
-func (info *statusInfo) GetDeltaStreamState(watchID int64) stream.StreamState {
-	info.mu.RLock()
-	defer info.mu.RUnlock()
-	return info.deltaWatches[watchID].StreamState
-}
-
-func (info *statusInfo) SetLastDeltaWatchRequestTime(t time.Time) {
+// setLastDeltaWatchRequestTime will set the current time of the last delta discovery watch request.
+func (info *statusInfo) setLastDeltaWatchRequestTime(t time.Time) {
 	info.mu.Lock()
 	defer info.mu.Unlock()
 	info.lastDeltaWatchRequestTime = t
 }
 
-func (info *statusInfo) SetDeltaResponseWatch(id int64, drw DeltaResponseWatch) {
+// setDeltaResponseWatch will set the provided delta response watch for the associated watch ID.
+func (info *statusInfo) setDeltaResponseWatch(id int64, drw DeltaResponseWatch) {
 	info.mu.Lock()
 	defer info.mu.Unlock()
 	info.deltaWatches[id] = drw
+}
+
+// orderResponseWatches will track a list of watch keys and order them if
+// true is passed.
+func (info *statusInfo) orderResponseWatches() {
+	info.orderedWatches = make(keys, len(info.watches))
+
+	var index int
+	for id, watch := range info.watches {
+		info.orderedWatches[index] = key{
+			ID:      id,
+			TypeURL: watch.Request.GetTypeUrl(),
+		}
+		index++
+	}
+
+	// Sort our list which we can use in the SetSnapshot functions.
+	// This is only run when we enable ADS on the cache.
+	sort.Sort(info.orderedWatches)
+}
+
+// orderResponseDeltaWatches will track a list of delta watch keys and order them if
+// true is passed.
+func (info *statusInfo) orderResponseDeltaWatches() {
+	info.orderedDeltaWatches = make(keys, len(info.deltaWatches))
+
+	var index int
+	for id, deltaWatch := range info.deltaWatches {
+		info.orderedDeltaWatches[index] = key{
+			ID:      id,
+			TypeURL: deltaWatch.Request.GetTypeUrl(),
+		}
+		index++
+	}
+
+	// Sort our list which we can use in the SetSnapshot functions.
+	// This is only run when we enable ADS on the cache.
+	sort.Sort(info.orderedDeltaWatches)
 }

@@ -20,7 +20,7 @@ import (
 	cryptotls "crypto/tls"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -28,11 +28,13 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/resource/v3"
-	testv3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	conf "github.com/envoyproxy/go-control-plane/pkg/server/config"
+	"github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/test"
+	"github.com/envoyproxy/go-control-plane/pkg/test/resource/v3"
+	testv3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
 )
 
 var (
@@ -49,14 +51,16 @@ var (
 	requests int
 	updates  int
 
-	mode          string
-	clusters      int
-	httpListeners int
-	tcpListeners  int
-	runtimes      int
-	tls           bool
-	mux           bool
-	extensionNum  int
+	mode                string
+	clusters            int
+	httpListeners       int
+	scopedHTTPListeners int
+	vhdsHTTPListeners   int
+	tcpListeners        int
+	runtimes            int
+	tls                 bool
+	mux                 bool
+	extensionNum        int
 
 	nodeID string
 
@@ -87,7 +91,7 @@ func init() {
 	// upstream server
 	flag.UintVar(&basePort, "base", 9000, "Envoy Proxy listener port")
 
-	// The control plane accesslog server port (currently unused)
+	// The control plane accesslog server port
 	flag.UintVar(&alsPort, "als", 18090, "Control plane accesslog server port")
 
 	//
@@ -133,6 +137,10 @@ func init() {
 
 	// Test this many HTTP listeners per snapshot
 	flag.IntVar(&httpListeners, "http", 2, "Number of HTTP listeners (and RDS configs)")
+	// Test this many scoped HTTP listeners per snapshot
+	flag.IntVar(&scopedHTTPListeners, "scopedhttp", 2, "Number of HTTP listeners (and SRDS configs)")
+	// Test this many VHDS HTTP listeners per snapshot
+	flag.IntVar(&vhdsHTTPListeners, "vhdshttp", 2, "Number of VHDS HTTP listeners")
 	// Test this many TCP listeners per snapshot
 	flag.IntVar(&tcpListeners, "tcp", 2, "Number of TCP pass-through listeners")
 
@@ -147,7 +155,6 @@ func init() {
 
 	// Enable use of the pprof profiler
 	flag.BoolVar(&pprofEnabled, "pprof", false, "Enable use of the pprof profiler")
-
 }
 
 // main returns code 1 if any of the batches failed to pass all requests
@@ -170,14 +177,15 @@ func main() {
 	cb := &testv3.Callbacks{Signal: signal, Debug: debug}
 
 	// mux integration
-	config := cache.NewSnapshotCache(mode == resource.Ads, cache.IDHash{}, logger{})
+	// nil for logger uses default logger
+	config := cache.NewSnapshotCache(mode == resource.Ads, cache.IDHash{}, nil)
 	var configCache cache.Cache = config
 	typeURL := "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment"
 	eds := cache.NewLinearCache(typeURL)
 	if mux {
 		configCache = &cache.MuxCache{
 			Classify: func(req *cache.Request) string {
-				if req.TypeUrl == typeURL {
+				if req.GetTypeUrl() == typeURL {
 					return "eds"
 				}
 				return "default"
@@ -188,26 +196,39 @@ func main() {
 			},
 		}
 	}
-	srv := server.NewServer(context.Background(), configCache, cb)
+
+	opts := []conf.XDSOption{}
+	if mode == resource.Ads {
+		log.Println("enabling ordered ADS mode...")
+		// Enable resource ordering if we enter ADS mode.
+		opts = append(opts, sotw.WithOrderedADS())
+	}
+	srv := server.NewServer(context.Background(), configCache, cb, opts...)
 	als := &testv3.AccessLogService{}
+
+	if mode != resource.Delta {
+		vhdsHTTPListeners = 0
+	}
 
 	// create a test snapshot
 	snapshots := resource.TestSnapshot{
-		Xds:              mode,
-		UpstreamPort:     uint32(upstreamPort),
-		BasePort:         uint32(basePort),
-		NumClusters:      clusters,
-		NumHTTPListeners: httpListeners,
-		NumTCPListeners:  tcpListeners,
-		TLS:              tls,
-		NumRuntimes:      runtimes,
-		NumExtension:     extensionNum,
+		Xds:                    mode,
+		UpstreamPort:           uint32(upstreamPort),
+		BasePort:               uint32(basePort),
+		NumClusters:            clusters,
+		NumHTTPListeners:       httpListeners,
+		NumScopedHTTPListeners: scopedHTTPListeners,
+		NumVHDSHTTPListeners:   vhdsHTTPListeners,
+		NumTCPListeners:        tcpListeners,
+		TLS:                    tls,
+		NumRuntimes:            runtimes,
+		NumExtension:           extensionNum,
 	}
 
 	// start the xDS server
 	go test.RunAccessLogServer(ctx, als, alsPort)
 	go test.RunManagementServer(ctx, srv, port)
-	go test.RunManagementGateway(ctx, srv, gatewayPort, logger{})
+	go test.RunManagementGateway(ctx, srv, gatewayPort)
 
 	log.Println("waiting for the first request...")
 	select {
@@ -226,7 +247,7 @@ func main() {
 
 		snapshot := snapshots.Generate()
 		if err := snapshot.Consistent(); err != nil {
-			log.Printf("snapshot inconsistency: %+v\n", snapshot)
+			log.Printf("snapshot inconsistency: %+v\n%+v\n", snapshot, err)
 		}
 
 		err := config.SetSnapshot(context.Background(), nodeID, snapshot)
@@ -282,8 +303,8 @@ func main() {
 			if err != nil {
 				log.Fatalf("could not create %s profile %s: %s", prof, filePath, err)
 			}
-			_ = p.WriteTo(f, 1) // nolint:errcheck
-			_ = f.Close()
+			p.WriteTo(f, 1) // nolint:errcheck
+			f.Close()
 		}
 	}
 
@@ -293,35 +314,50 @@ func main() {
 // callEcho calls upstream echo service on all listener ports and returns an error
 // if any of the listeners returned an error.
 func callEcho() (int, int) {
-	total := httpListeners + tcpListeners
+	total := httpListeners + scopedHTTPListeners + tcpListeners + vhdsHTTPListeners
 	ok, failed := 0, 0
 	ch := make(chan error, total)
+
+	client := http.Client{
+		Timeout: 100 * time.Millisecond,
+		Transport: &http.Transport{
+			TLSClientConfig: &cryptotls.Config{InsecureSkipVerify: true}, // nolint:gosec
+		},
+	}
+
+	get := func(count int) (*http.Response, error) {
+		proto := "http"
+		if tls {
+			proto = "https"
+		}
+
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodGet,
+			fmt.Sprintf("%s://127.0.0.1:%d", proto, basePort+uint(count)),
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return client.Do(req)
+	}
 
 	// spawn requests
 	for i := 0; i < total; i++ {
 		go func(i int) {
-			client := http.Client{
-				Timeout: 100 * time.Millisecond,
-				Transport: &http.Transport{
-					TLSClientConfig: &cryptotls.Config{InsecureSkipVerify: true}, // nolint:gosec
-				},
-			}
-			proto := "http"
-			if tls {
-				proto = "https"
-			}
-			req, err := client.Get(fmt.Sprintf("%s://127.0.0.1:%d", proto, basePort+uint(i)))
+			resp, err := get(i)
 			if err != nil {
 				ch <- err
 				return
 			}
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				_ = req.Body.Close()
+				resp.Body.Close()
 				ch <- err
 				return
 			}
-			if err := req.Body.Close(); err != nil {
+			if err := resp.Body.Close(); err != nil {
 				ch <- err
 				return
 			}
@@ -344,26 +380,4 @@ func callEcho() (int, int) {
 			return ok, failed
 		}
 	}
-}
-
-type logger struct{}
-
-func (logger logger) Debugf(format string, args ...interface{}) {
-	if debug {
-		log.Printf(format+"\n", args...)
-	}
-}
-
-func (logger logger) Infof(format string, args ...interface{}) {
-	if debug {
-		log.Printf(format+"\n", args...)
-	}
-}
-
-func (logger logger) Warnf(format string, args ...interface{}) {
-	log.Printf(format+"\n", args...)
-}
-
-func (logger logger) Errorf(format string, args ...interface{}) {
-	log.Printf(format+"\n", args...)
 }

@@ -22,21 +22,12 @@ import (
 	"testing"
 	"testing/iotest"
 
-	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 )
-
-type logger struct {
-	t *testing.T
-}
-
-func (log logger) Debugf(format string, args ...interface{}) { log.t.Logf(format, args...) }
-func (log logger) Infof(format string, args ...interface{})  { log.t.Logf(format, args...) }
-func (log logger) Warnf(format string, args ...interface{})  { log.t.Logf(format, args...) }
-func (log logger) Errorf(format string, args ...interface{}) { log.t.Logf(format, args...) }
 
 func TestGateway(t *testing.T) {
 	config := makeMockConfigWatcher()
@@ -58,12 +49,12 @@ func TestGateway(t *testing.T) {
 		resource.ListenerType: {
 			&cache.RawResponse{
 				Version:   "4",
-				Resources: []types.ResourceWithTTL{{Resource: listener}},
+				Resources: []types.ResourceWithTTL{{Resource: httpListener}, {Resource: httpScopedListener}},
 				Request:   &discovery.DiscoveryRequest{TypeUrl: resource.ListenerType},
 			},
 		},
 	}
-	gtw := server.HTTPGateway{Log: logger{t: t}, Server: server.NewServer(context.Background(), config, nil)}
+	gtw := server.HTTPGateway{Server: server.NewServer(context.Background(), config, nil)}
 
 	failCases := []struct {
 		path   string
@@ -96,7 +87,7 @@ func TestGateway(t *testing.T) {
 		},
 	}
 	for _, cs := range failCases {
-		req, err := http.NewRequest(http.MethodPost, cs.path, cs.body)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, cs.path, cs.body)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +104,7 @@ func TestGateway(t *testing.T) {
 	}
 
 	for _, path := range []string{resource.FetchClusters, resource.FetchRoutes, resource.FetchListeners} {
-		req, err := http.NewRequest(http.MethodPost, path, strings.NewReader("{\"node\": {\"id\": \"test\"}}"))
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, path, strings.NewReader("{\"node\": {\"id\": \"test\"}}"))
 		if err != nil {
 			t.Fatal(err)
 		}

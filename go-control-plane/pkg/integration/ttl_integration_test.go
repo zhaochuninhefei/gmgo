@@ -2,22 +2,25 @@ package integration
 
 import (
 	"context"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"net"
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
-	envoyconfigcorev3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
-	envoyconfigendpointv3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
-	envoyservicediscoveryv3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
-	endpointservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/endpoint/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 )
 
 type logger struct {
@@ -30,63 +33,58 @@ func (log logger) Warnf(format string, args ...interface{})  { log.t.Logf(format
 func (log logger) Errorf(format string, args ...interface{}) { log.t.Logf(format, args...) }
 
 func TestTTLResponse(t *testing.T) {
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	snapshotCache := cache.NewSnapshotCacheWithHeartbeating(ctx, false, cache.IDHash{}, logger{t: t}, time.Second)
-
-	ttlServer := server.NewServer(ctx, snapshotCache, nil)
-
+	server := server.NewServer(ctx, snapshotCache, nil)
 	grpcServer := grpc.NewServer()
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, ttlServer)
+	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 
 	l, err := net.Listen("tcp", ":9999") // nolint:gosec
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	go func() {
-		assert.NoError(t, grpcServer.Serve(l))
+		require.NoError(t, grpcServer.Serve(l))
 	}()
 	defer grpcServer.Stop()
 
-	// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
-	//conn, err := grpc.Dial(":9999", grpc.WithInsecure())
 	conn, err := grpc.Dial(":9999", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	assert.NoError(t, err)
+	require.NoError(t, err)
+
 	client := endpointservice.NewEndpointDiscoveryServiceClient(conn)
-
 	sclient, err := client.StreamEndpoints(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	err = sclient.Send(&envoyservicediscoveryv3.DiscoveryRequest{
-		Node: &envoyconfigcorev3.Node{
+	err = sclient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
+		Node: &envoy_config_core_v3.Node{
 			Id: "test",
 		},
 		ResourceNames: []string{"resource"},
 		TypeUrl:       resource.EndpointType,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	oneSecond := time.Second
-	cla := &envoyconfigendpointv3.ClusterLoadAssignment{ClusterName: "resource"}
+	cla := &envoy_config_endpoint_v3.ClusterLoadAssignment{ClusterName: "resource"}
 	snap, _ := cache.NewSnapshotWithTTLs("1", map[resource.Type][]types.ResourceWithTTL{
 		resource.EndpointType: {{
 			Resource: cla,
 			TTL:      &oneSecond,
 		}},
 	})
+
 	err = snapshotCache.SetSnapshot(context.Background(), "test", snap)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	timeout := time.NewTimer(5 * time.Second)
-
-	awaitResponse := func() *envoyservicediscoveryv3.DiscoveryResponse {
+	awaitResponse := func() *envoy_service_discovery_v3.DiscoveryResponse {
 		t.Helper()
-		doneCh := make(chan *envoyservicediscoveryv3.DiscoveryResponse)
-		go func() {
+		doneCh := make(chan *envoy_service_discovery_v3.DiscoveryResponse)
 
+		go func() {
 			r, err := sclient.Recv()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			doneCh <- r
 		}()
@@ -103,48 +101,43 @@ func TestTTLResponse(t *testing.T) {
 	response := awaitResponse()
 	isFullResponseWithTTL(t, response)
 
-	err = sclient.Send(&envoyservicediscoveryv3.DiscoveryRequest{
-		Node: &envoyconfigcorev3.Node{
+	err = sclient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
+		Node: &envoy_config_core_v3.Node{
 			Id: "test",
 		},
 		ResourceNames: []string{"resource"},
 		TypeUrl:       resource.EndpointType,
 		VersionInfo:   "1",
-		ResponseNonce: response.Nonce,
+		ResponseNonce: response.GetNonce(),
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	response = awaitResponse()
 	isHeartbeatResponseWithTTL(t, response)
 }
 
-func isFullResponseWithTTL(t *testing.T, response *envoyservicediscoveryv3.DiscoveryResponse) {
+func isFullResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.DiscoveryResponse) {
 	t.Helper()
 
-	assert.Len(t, response.Resources, 1)
-	r := response.Resources[0]
-	res := &envoyservicediscoveryv3.Resource{}
-	// ptypes.UnmarshalAny is deprecated, Call the any.UnmarshalTo method instead.
-	//err := ptypes.UnmarshalAny(r, res)
-	err := r.UnmarshalTo(res)
+	require.Len(t, response.GetResources(), 1)
+	r := response.GetResources()[0]
+	resource := &envoy_service_discovery_v3.Resource{}
+	err := anypb.UnmarshalTo(r, resource, proto.UnmarshalOptions{})
+	require.NoError(t, err)
 
-	assert.NoError(t, err)
-
-	assert.NotNil(t, res.Ttl)
-	assert.NotNil(t, res.Resource)
+	assert.NotNil(t, resource.GetTtl())
+	assert.NotNil(t, resource.GetResource())
 }
 
-func isHeartbeatResponseWithTTL(t *testing.T, response *envoyservicediscoveryv3.DiscoveryResponse) {
+func isHeartbeatResponseWithTTL(t *testing.T, response *envoy_service_discovery_v3.DiscoveryResponse) {
 	t.Helper()
 
-	assert.Len(t, response.Resources, 1)
-	r := response.Resources[0]
-	res := &envoyservicediscoveryv3.Resource{}
-	// ptypes.UnmarshalAny is deprecated, Call the any.UnmarshalTo method instead.
-	//err := ptypes.UnmarshalAny(r, res)
-	err := r.UnmarshalTo(res)
-	assert.NoError(t, err)
+	require.Len(t, response.GetResources(), 1)
+	r := response.GetResources()[0]
+	resource := &envoy_service_discovery_v3.Resource{}
+	err := anypb.UnmarshalTo(r, resource, proto.UnmarshalOptions{})
+	require.NoError(t, err)
 
-	assert.NotNil(t, res.Ttl)
-	assert.Nil(t, res.Resource)
+	assert.NotNil(t, resource.GetTtl())
+	assert.Nil(t, resource.GetResource())
 }

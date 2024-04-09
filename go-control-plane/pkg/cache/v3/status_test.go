@@ -18,13 +18,13 @@ import (
 	"reflect"
 	"testing"
 
-	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 )
 
 func TestIDHash(t *testing.T) {
 	node := &core.Node{Id: "test"}
 	if got := (IDHash{}).ID(node); got != "test" {
-		t.Errorf("IDHash.ID(%v) => got %s, want %s", node, got, node.Id)
+		t.Errorf("IDHash.ID(%v) => got %s, want %s", node, got, node.GetId())
 	}
 	if got := (IDHash{}).ID(nil); got != "" {
 		t.Errorf("IDHash.ID(nil) => got %s, want empty", got)

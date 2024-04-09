@@ -21,15 +21,14 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/stream/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 )
 
 // Request is an alias for the discovery request type.
@@ -45,15 +44,22 @@ type DeltaRequest = discovery.DeltaDiscoveryRequest
 // ConfigWatcher implementation must be thread-safe.
 type ConfigWatcher interface {
 	// CreateWatch returns a new open watch from a non-empty request.
+	// This is the entrypoint to propagate configuration changes the
+	// provided Response channel. State from the gRPC server is utilized
+	// to make sure consuming cache implementations can see what the server has sent to clients.
+	//
 	// An individual consumer normally issues a single open watch by each type URL.
 	//
 	// The provided channel produces requested resources as responses, once they are available.
 	//
 	// Cancel is an optional function to release resources in the producer. If
 	// provided, the consumer may call this function multiple times.
-	CreateWatch(*Request, chan Response) (cancel func())
+	CreateWatch(*Request, stream.StreamState, chan Response) (cancel func())
 
 	// CreateDeltaWatch returns a new open incremental xDS watch.
+	// This is the entrypoint to propagate configuration changes the
+	// provided DeltaResponse channel. State from the gRPC server is utilized
+	// to make sure consuming cache implementations can see what the server has sent to clients.
 	//
 	// The provided channel produces requested resources as responses, or spontaneous updates in accordance
 	// with the incremental xDS specification.
@@ -77,36 +83,36 @@ type Cache interface {
 
 // Response is a wrapper around Envoy's DiscoveryResponse.
 type Response interface {
-	// GetDiscoveryResponse Get the Constructed DiscoveryResponse
+	// Get the Constructed DiscoveryResponse
 	GetDiscoveryResponse() (*discovery.DiscoveryResponse, error)
 
-	// GetRequest Get the original Request for the Response.
+	// Get the original Request for the Response.
 	GetRequest() *discovery.DiscoveryRequest
 
-	// GetVersion Get the version in the Response.
+	// Get the version in the Response.
 	GetVersion() (string, error)
 
-	// GetContext Get the context provided during response creation.
+	// Get the context provided during response creation.
 	GetContext() context.Context
 }
 
 // DeltaResponse is a wrapper around Envoy's DeltaDiscoveryResponse
 type DeltaResponse interface {
-	// GetDeltaDiscoveryResponse Get the constructed DeltaDiscoveryResponse
+	// Get the constructed DeltaDiscoveryResponse
 	GetDeltaDiscoveryResponse() (*discovery.DeltaDiscoveryResponse, error)
 
-	// GetDeltaRequest Get the request that created the watch that we're now responding to. This is provided to allow the caller to correlate the
+	// Get the request that created the watch that we're now responding to. This is provided to allow the caller to correlate the
 	// response with a request. Generally this will be the latest request seen on the stream for the specific type.
 	GetDeltaRequest() *discovery.DeltaDiscoveryRequest
 
-	// GetSystemVersion Get the version in the DeltaResponse. This field is generally used for debugging purposes as noted by the Envoy documentation.
+	// Get the version in the DeltaResponse. This field is generally used for debugging purposes as noted by the Envoy documentation.
 	GetSystemVersion() (string, error)
 
-	// GetNextVersionMap Get the version map of the internal cache.
+	// Get the version map of the internal cache.
 	// The version map consists of updated version mappings after this response is applied
 	GetNextVersionMap() map[string]string
 
-	// GetContext Get the context provided during response creation
+	// Get the context provided during response creation
 	GetContext() context.Context
 }
 
@@ -161,8 +167,10 @@ type RawDeltaResponse struct {
 	marshaledResponse atomic.Value
 }
 
-var _ Response = &RawResponse{}
-var _ DeltaResponse = &RawDeltaResponse{}
+var (
+	_ Response      = &RawResponse{}
+	_ DeltaResponse = &RawDeltaResponse{}
+)
 
 // PassthroughResponse is a pre constructed xDS response that need not go through marshaling transformations.
 type PassthroughResponse struct {
@@ -189,19 +197,19 @@ type DeltaPassthroughResponse struct {
 	ctx context.Context
 }
 
-var _ Response = &PassthroughResponse{}
-var _ DeltaResponse = &DeltaPassthroughResponse{}
+var (
+	_ Response      = &PassthroughResponse{}
+	_ DeltaResponse = &DeltaPassthroughResponse{}
+)
 
 // GetDiscoveryResponse performs the marshaling the first time its called and uses the cached response subsequently.
 // This is necessary because the marshaled response does not change across the calls.
 // This caching behavior is important in high throughput scenarios because grpc marshaling has a cost and it drives the cpu utilization under load.
 func (r *RawResponse) GetDiscoveryResponse() (*discovery.DiscoveryResponse, error) {
-
 	marshaledResponse := r.marshaledResponse.Load()
 
 	if marshaledResponse == nil {
-
-		marshaledResources := make([]*any.Any, len(r.Resources))
+		marshaledResources := make([]*anypb.Any, len(r.Resources))
 
 		for i, resource := range r.Resources {
 			maybeTtldResource, resourceType, err := r.maybeCreateTTLResource(resource)
@@ -212,7 +220,7 @@ func (r *RawResponse) GetDiscoveryResponse() (*discovery.DiscoveryResponse, erro
 			if err != nil {
 				return nil, err
 			}
-			marshaledResources[i] = &any.Any{
+			marshaledResources[i] = &anypb.Any{
 				TypeUrl: resourceType,
 				Value:   marshaledResource,
 			}
@@ -221,7 +229,7 @@ func (r *RawResponse) GetDiscoveryResponse() (*discovery.DiscoveryResponse, erro
 		marshaledResponse = &discovery.DiscoveryResponse{
 			VersionInfo: r.Version,
 			Resources:   marshaledResources,
-			TypeUrl:     r.Request.TypeUrl,
+			TypeUrl:     r.GetRequest().GetTypeUrl(),
 		}
 
 		r.marshaledResponse.Store(marshaledResponse)
@@ -251,8 +259,8 @@ func (r *RawDeltaResponse) GetDeltaDiscoveryResponse() (*discovery.DeltaDiscover
 			}
 			marshaledResources[i] = &discovery.Resource{
 				Name: name,
-				Resource: &any.Any{
-					TypeUrl: r.DeltaRequest.TypeUrl,
+				Resource: &anypb.Any{
+					TypeUrl: r.GetDeltaRequest().GetTypeUrl(),
 					Value:   marshaledResource,
 				},
 				Version: version,
@@ -262,7 +270,7 @@ func (r *RawDeltaResponse) GetDeltaDiscoveryResponse() (*discovery.DeltaDiscover
 		marshaledResponse = &discovery.DeltaDiscoveryResponse{
 			Resources:         marshaledResources,
 			RemovedResources:  r.RemovedResources,
-			TypeUrl:           r.DeltaRequest.TypeUrl,
+			TypeUrl:           r.GetDeltaRequest().GetTypeUrl(),
 			SystemVersionInfo: r.SystemVersionInfo,
 		}
 		r.marshaledResponse.Store(marshaledResponse)
@@ -295,7 +303,7 @@ func (r *RawDeltaResponse) GetSystemVersion() (string, error) {
 	return r.SystemVersionInfo, nil
 }
 
-// GetNextVersionMap returns the version map which consists of updated version mappings after this response is applied
+// NextVersionMap returns the version map which consists of updated version mappings after this response is applied
 func (r *RawDeltaResponse) GetNextVersionMap() map[string]string {
 	return r.NextVersionMap
 }
@@ -304,31 +312,28 @@ func (r *RawDeltaResponse) GetContext() context.Context {
 	return r.Ctx
 }
 
-//goland:noinspection GoDeprecation
-var deltaResourceTypeURL = "type.googleapis.com/" + proto.MessageName(&discovery.Resource{})
+var deltaResourceTypeURL = "type.googleapis.com/" + string(proto.MessageName(&discovery.Resource{}))
 
 func (r *RawResponse) maybeCreateTTLResource(resource types.ResourceWithTTL) (types.Resource, string, error) {
 	if resource.TTL != nil {
-		//goland:noinspection GoDeprecation
 		wrappedResource := &discovery.Resource{
 			Name: GetResourceName(resource.Resource),
-			Ttl:  ptypes.DurationProto(*resource.TTL),
+			Ttl:  durationpb.New(*resource.TTL),
 		}
 
 		if !r.Heartbeat {
-			//goland:noinspection GoDeprecation
-			res, err := ptypes.MarshalAny(resource.Resource)
+			rsrc, err := anypb.New(resource.Resource)
 			if err != nil {
 				return nil, "", err
 			}
-			res.TypeUrl = r.Request.TypeUrl
-			wrappedResource.Resource = res
+			rsrc.TypeUrl = r.GetRequest().GetTypeUrl()
+			wrappedResource.Resource = rsrc
 		}
 
 		return wrappedResource, deltaResourceTypeURL, nil
 	}
 
-	return resource.Resource, r.Request.TypeUrl, nil
+	return resource.Resource, r.GetRequest().GetTypeUrl(), nil
 }
 
 // GetDiscoveryResponse returns the final passthrough Discovery Response.
@@ -353,24 +358,27 @@ func (r *DeltaPassthroughResponse) GetDeltaRequest() *discovery.DeltaDiscoveryRe
 
 // GetVersion returns the response version.
 func (r *PassthroughResponse) GetVersion() (string, error) {
-	if r.DiscoveryResponse != nil {
-		return r.DiscoveryResponse.VersionInfo, nil
+	discoveryResponse, _ := r.GetDiscoveryResponse()
+	if discoveryResponse != nil {
+		return discoveryResponse.GetVersionInfo(), nil
 	}
 	return "", fmt.Errorf("DiscoveryResponse is nil")
 }
+
 func (r *PassthroughResponse) GetContext() context.Context {
 	return r.ctx
 }
 
 // GetSystemVersion returns the response version.
 func (r *DeltaPassthroughResponse) GetSystemVersion() (string, error) {
-	if r.DeltaDiscoveryResponse != nil {
-		return r.DeltaDiscoveryResponse.SystemVersionInfo, nil
+	deltaDiscoveryResponse, _ := r.GetDeltaDiscoveryResponse()
+	if deltaDiscoveryResponse != nil {
+		return deltaDiscoveryResponse.GetSystemVersionInfo(), nil
 	}
 	return "", fmt.Errorf("DeltaDiscoveryResponse is nil")
 }
 
-// GetNextVersionMap returns the version map from a DeltaPassthroughResponse
+// NextVersionMap returns the version map from a DeltaPassthroughResponse
 func (r *DeltaPassthroughResponse) GetNextVersionMap() map[string]string {
 	return r.NextVersionMap
 }

@@ -1,17 +1,19 @@
 package cache_test
 
 import (
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
-	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
-	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
-	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 )
 
 const (
@@ -27,29 +29,27 @@ func TestResponseGetDiscoveryResponse(t *testing.T) {
 	}
 
 	discoveryResponse, err := resp.GetDiscoveryResponse()
-	assert.Nil(t, err)
-	assert.Equal(t, discoveryResponse.VersionInfo, resp.Version)
-	assert.Equal(t, len(discoveryResponse.Resources), 1)
+	require.NoError(t, err)
+	assert.Equal(t, discoveryResponse.GetVersionInfo(), resp.Version)
+	assert.Len(t, discoveryResponse.GetResources(), 1)
 
 	cachedResponse, err := resp.GetDiscoveryResponse()
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Same(t, discoveryResponse, cachedResponse)
 
 	r := &route.RouteConfiguration{}
-	//err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
-	err = discoveryResponse.Resources[0].UnmarshalTo(r)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Name, resourceName)
+	err = anypb.UnmarshalTo(discoveryResponse.GetResources()[0], r, proto.UnmarshalOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, resourceName, r.GetName())
 }
 
 func TestPassthroughResponseGetDiscoveryResponse(t *testing.T) {
 	routes := []types.Resource{&route.RouteConfiguration{Name: resourceName}}
-	//rsrc, err := ptypes.MarshalAny(routes[0])
-	rsrc, err := anypb.New(routes[0].(*route.RouteConfiguration))
-
+	rsrc, err := anypb.New(routes[0])
+	require.NoError(t, err)
 	dr := &discovery.DiscoveryResponse{
 		TypeUrl:     resource.RouteType,
-		Resources:   []*any.Any{rsrc},
+		Resources:   []*anypb.Any{rsrc},
 		VersionInfo: "v",
 	}
 	resp := cache.PassthroughResponse{
@@ -58,15 +58,14 @@ func TestPassthroughResponseGetDiscoveryResponse(t *testing.T) {
 	}
 
 	discoveryResponse, err := resp.GetDiscoveryResponse()
-	assert.Nil(t, err)
-	assert.Equal(t, discoveryResponse.VersionInfo, resp.DiscoveryResponse.VersionInfo)
-	assert.Equal(t, len(discoveryResponse.Resources), 1)
+	require.NoError(t, err)
+	assert.Equal(t, "v", discoveryResponse.GetVersionInfo())
+	assert.Len(t, discoveryResponse.GetResources(), 1)
 
 	r := &route.RouteConfiguration{}
-	//err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
-	err = discoveryResponse.Resources[0].UnmarshalTo(r)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Name, resourceName)
+	err = anypb.UnmarshalTo(discoveryResponse.GetResources()[0], r, proto.UnmarshalOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, resourceName, r.GetName())
 	assert.Equal(t, discoveryResponse, dr)
 }
 
@@ -80,29 +79,27 @@ func TestHeartbeatResponseGetDiscoveryResponse(t *testing.T) {
 	}
 
 	discoveryResponse, err := resp.GetDiscoveryResponse()
-	assert.Nil(t, err)
-	assert.Equal(t, discoveryResponse.VersionInfo, resp.Version)
-	assert.Equal(t, len(discoveryResponse.Resources), 1)
-	assert.False(t, isTTLResource(discoveryResponse.Resources[0]))
+	require.NoError(t, err)
+	assert.Equal(t, discoveryResponse.GetVersionInfo(), resp.Version)
+	require.Len(t, discoveryResponse.GetResources(), 1)
+	assert.False(t, isTTLResource(discoveryResponse.GetResources()[0]))
 
 	cachedResponse, err := resp.GetDiscoveryResponse()
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Same(t, discoveryResponse, cachedResponse)
 
 	r := &route.RouteConfiguration{}
-	//err = ptypes.UnmarshalAny(discoveryResponse.Resources[0], r)
-	err = discoveryResponse.Resources[0].UnmarshalTo(r)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Name, resourceName)
+	err = anypb.UnmarshalTo(discoveryResponse.GetResources()[0], r, proto.UnmarshalOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, resourceName, r.GetName())
 }
 
-func isTTLResource(resource *any.Any) bool {
+func isTTLResource(resource *anypb.Any) bool {
 	wrappedResource := &discovery.Resource{}
-	//err := ptypes.UnmarshalAny(resource, wrappedResource)
-	err := resource.UnmarshalTo(wrappedResource)
+	err := protojson.Unmarshal(resource.GetValue(), wrappedResource)
 	if err != nil {
 		return false
 	}
 
-	return wrappedResource.Resource == nil
+	return wrappedResource.GetResource() == nil
 }
