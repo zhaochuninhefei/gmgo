@@ -4,10 +4,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
 )
 
 // process handles a bi-di stream request

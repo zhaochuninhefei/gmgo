@@ -21,12 +21,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	rsrc "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/resource/v3"
+	cluster "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
+	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	rsrc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/resource/v3"
 )
 
 const (

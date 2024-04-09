@@ -7,9 +7,9 @@
 package health_checkv2
 
 import (
+	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/route"
+	_type "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	_type "github.com/envoyproxy/go-control-plane/envoy/type"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"

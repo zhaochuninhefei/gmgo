@@ -24,16 +24,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
-	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
-	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
-	listenerservice "github.com/envoyproxy/go-control-plane/envoy/service/listener/v3"
-	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
-	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
-	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	clusterservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/cluster/v3"
+	discoverygrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	endpointservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/endpoint/v3"
+	listenerservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/listener/v3"
+	routeservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/route/v3"
+	runtimeservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/runtime/v3"
+	secretservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/secret/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/v3"
 )
 
 const (

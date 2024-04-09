@@ -7,12 +7,12 @@
 package rbacv3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
+	v33 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v32 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	v33 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

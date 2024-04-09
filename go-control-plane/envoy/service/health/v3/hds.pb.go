@@ -8,11 +8,11 @@ package healthv3
 
 import (
 	context "context"
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v32 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"

@@ -7,8 +7,8 @@
 package set_metadatav3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	any1 "github.com/golang/protobuf/ptypes/any"
 	_struct "github.com/golang/protobuf/ptypes/struct"

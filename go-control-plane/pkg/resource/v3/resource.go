@@ -4,9 +4,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	listener "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v3"
+	hcm "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 )
 
 // Type is an alias to string which we expose to users of the snapshot API which accepts `resource.Type` resource URLs.

@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
 )
 
 func TestIndexResourcesByName(t *testing.T) {

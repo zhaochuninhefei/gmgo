@@ -8,9 +8,9 @@ package routev3
 
 import (
 	context "context"
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

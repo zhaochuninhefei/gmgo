@@ -8,9 +8,9 @@ package tracev2
 
 import (
 	context "context"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
 	v1 "github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

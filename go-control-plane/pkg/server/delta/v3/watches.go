@@ -1,9 +1,9 @@
 package delta
 
 import (
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/stream/v3"
 )
 
 // watches for all delta xDS resource types

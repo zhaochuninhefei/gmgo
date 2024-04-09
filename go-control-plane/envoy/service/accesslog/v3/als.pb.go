@@ -8,9 +8,9 @@ package accesslogv3
 
 import (
 	context "context"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/data/accesslog/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/data/accesslog/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

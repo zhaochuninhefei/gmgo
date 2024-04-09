@@ -20,10 +20,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	rsrc "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/resource/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	rsrc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/resource/v3"
 )
 
 // Tests the snapshot defined in simple_test.go to ensure it is consistent.

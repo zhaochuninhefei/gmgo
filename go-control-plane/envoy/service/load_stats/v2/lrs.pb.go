@@ -8,9 +8,9 @@ package load_statsv2
 
 import (
 	context "context"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	endpoint "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/endpoint"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

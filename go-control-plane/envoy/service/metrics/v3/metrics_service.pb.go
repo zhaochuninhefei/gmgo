@@ -8,8 +8,8 @@ package metricsv3
 
 import (
 	context "context"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_go "github.com/prometheus/client_model/go"
 	grpc "google.golang.org/grpc"

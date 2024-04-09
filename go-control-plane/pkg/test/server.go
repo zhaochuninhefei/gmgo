@@ -12,10 +12,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
-	server "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	server "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/v3"
 
-	gcplogger "github.com/envoyproxy/go-control-plane/pkg/log"
+	gcplogger "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/log"
 )
 
 const (

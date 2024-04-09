@@ -7,9 +7,9 @@
 package v2alpha
 
 import (
+	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/route"
+	matcher "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	any1 "github.com/golang/protobuf/ptypes/any"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

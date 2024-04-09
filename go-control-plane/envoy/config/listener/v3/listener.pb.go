@@ -7,13 +7,13 @@
 package listenerv3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v33 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/accesslog/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
 	_ "github.com/cncf/xds/go/xds/annotations/v3"
 	v31 "github.com/cncf/xds/go/xds/core/v3"
 	v32 "github.com/cncf/xds/go/xds/type/matcher/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v33 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"

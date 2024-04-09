@@ -8,9 +8,9 @@ package v2alpha
 
 import (
 	context "context"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	v2alpha "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/data/tap/v2alpha"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	v2alpha "github.com/envoyproxy/go-control-plane/envoy/data/tap/v2alpha"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

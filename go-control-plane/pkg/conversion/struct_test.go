@@ -21,9 +21,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/conversion"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/conversion"
 )
 
 func TestConversion(t *testing.T) {

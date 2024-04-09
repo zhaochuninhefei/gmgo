@@ -7,14 +7,14 @@
 package bootstrapv2
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v22 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2"
+	auth "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/auth"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	v2 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/metrics/v2"
+	v2alpha "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/overload/v2alpha"
+	v21 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/trace/v2"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v22 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2"
-	v2alpha "github.com/envoyproxy/go-control-plane/envoy/config/overload/v2alpha"
-	v21 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v2"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	_struct "github.com/golang/protobuf/ptypes/struct"

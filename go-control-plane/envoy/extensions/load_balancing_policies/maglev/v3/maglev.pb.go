@@ -7,8 +7,8 @@
 package maglevv3
 
 import (
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/common/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/common/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

@@ -7,9 +7,9 @@
 package corev3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
 	_ "github.com/cncf/xds/go/udpa/annotations"
 	v3 "github.com/cncf/xds/go/xds/core/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	any1 "github.com/golang/protobuf/ptypes/any"
 	duration "github.com/golang/protobuf/ptypes/duration"

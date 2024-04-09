@@ -7,11 +7,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/stream/v3"
 )
 
 // process handles a bi-di stream request

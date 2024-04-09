@@ -7,8 +7,8 @@
 package v2alpha
 
 import (
+	v2alpha "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/common/tap/v2alpha"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v2alpha "github.com/envoyproxy/go-control-plane/envoy/config/common/tap/v2alpha"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

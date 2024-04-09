@@ -8,9 +8,9 @@ package ratelimitv2
 
 import (
 	context "context"
+	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	ratelimit "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/ratelimit"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	ratelimit "github.com/envoyproxy/go-control-plane/envoy/api/v2/ratelimit"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

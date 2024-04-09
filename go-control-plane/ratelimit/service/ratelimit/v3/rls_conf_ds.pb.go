@@ -8,7 +8,7 @@ package configv3
 
 import (
 	context "context"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

@@ -7,10 +7,10 @@
 package faultv3
 
 import (
+	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/common/fault/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v32 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/common/fault/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"

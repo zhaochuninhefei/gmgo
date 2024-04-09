@@ -7,12 +7,12 @@
 package udp_proxyv3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/accesslog/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
 	_ "github.com/cncf/xds/go/xds/annotations/v3"
 	v32 "github.com/cncf/xds/go/xds/type/matcher/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	any1 "github.com/golang/protobuf/ptypes/any"
 	duration "github.com/golang/protobuf/ptypes/duration"

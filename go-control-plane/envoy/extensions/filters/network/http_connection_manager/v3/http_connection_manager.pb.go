@@ -7,15 +7,15 @@
 package http_connection_managerv3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/accesslog/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
+	v35 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/trace/v3"
+	v36 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/http/v3"
+	v34 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/tracing/v3"
+	v33 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	v32 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	v35 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
-	v36 "github.com/envoyproxy/go-control-plane/envoy/type/http/v3"
-	v34 "github.com/envoyproxy/go-control-plane/envoy/type/tracing/v3"
-	v33 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	any1 "github.com/golang/protobuf/ptypes/any"
 	duration "github.com/golang/protobuf/ptypes/duration"

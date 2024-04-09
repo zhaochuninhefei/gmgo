@@ -28,13 +28,13 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	conf "github.com/envoyproxy/go-control-plane/pkg/server/config"
-	"github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test"
-	"github.com/envoyproxy/go-control-plane/pkg/test/resource/v3"
-	testv3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/v3"
+	conf "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/config"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/sotw/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/resource/v3"
+	testv3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/test/v3"
 )
 
 var (

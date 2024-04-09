@@ -8,8 +8,8 @@ package apiv2
 
 import (
 	context "context"
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

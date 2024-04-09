@@ -8,11 +8,11 @@ package statusv3
 
 import (
 	context "context"
+	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/admin/v3"
+	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
+	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v32 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	any1 "github.com/golang/protobuf/ptypes/any"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "google.golang.org/genproto/googleapis/api/annotations"

@@ -7,8 +7,8 @@
 package routerv2
 
 import (
+	v2 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/filter/accesslog/v2"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

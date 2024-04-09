@@ -7,8 +7,8 @@
 package rbacv2
 
 import (
+	v2 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v2"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

@@ -21,13 +21,13 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	runtime "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	cluster "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
+	endpoint "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
+	listener "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v3"
+	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
+	runtime "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/runtime/v3"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"
+	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/resource/v3"
 )
 
 // GetResponseType returns the enumeration for a valid xDS type URL.
