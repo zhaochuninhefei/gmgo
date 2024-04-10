@@ -31,7 +31,6 @@
 package grpc_service_config
 
 import (
-	proto "github.com/golang/protobuf/proto"
 	code "google.golang.org/genproto/googleapis/rpc/code"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -47,10 +46,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-// This is a compile-time assertion that a sufficiently up-to-date version
-// of the legacy proto package is being used.
-const _ = proto.ProtoPackageIsVersion4
 
 // Load balancing policy.
 //
@@ -874,10 +869,10 @@ func (x *LrsLoadBalancingPolicyConfig) GetChildPolicy() []*LoadBalancingConfig {
 // support.  This allows the service config to specify custom policies that may
 // not be known to all clients.
 //
-// - If the config for the first supported policy is invalid, the whole service
-//   config is invalid.
-// - If the list doesn't contain any supported policy, the whole service config
-//   is invalid.
+//   - If the config for the first supported policy is invalid, the whole service
+//     config is invalid.
+//   - If the list doesn't contain any supported policy, the whole service config
+//     is invalid.
 type LoadBalancingConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1174,13 +1169,13 @@ func (x *ServiceConfig) GetHealthCheckConfig() *ServiceConfig_HealthCheckConfig 
 }
 
 // The names of the methods to which this configuration applies.
-// - MethodConfig without names (empty list) will be skipped.
-// - Each name entry must be unique across the entire ServiceConfig.
-// - If the 'method' field is empty, this MethodConfig specifies the defaults
-//   for all methods for the specified service.
-// - If the 'service' field is empty, the 'method' field must be empty, and
-//   this MethodConfig specifies the default for all methods (it's the default
-//   config).
+//   - MethodConfig without names (empty list) will be skipped.
+//   - Each name entry must be unique across the entire ServiceConfig.
+//   - If the 'method' field is empty, this MethodConfig specifies the defaults
+//     for all methods for the specified service.
+//   - If the 'service' field is empty, the 'method' field must be empty, and
+//     this MethodConfig specifies the default for all methods (it's the default
+//     config).
 //
 // When determining which MethodConfig to use for a given RPC, the most
 // specific match wins. For example, let's say that the service config
