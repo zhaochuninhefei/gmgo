@@ -20,13 +20,15 @@ package grpclb
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"io"
 	"net"
 	"sync"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
 	lbpb "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/grpclb/grpc_lb_v1"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
@@ -36,9 +38,9 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/keepalive"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
-	"github.com/golang/protobuf/proto"
 	timestamppb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
 )
 
 // processServerList updates balancer's internal state, create/remove SubConns
@@ -228,7 +230,7 @@ func (lb *lbBalancer) newRemoteBalancerCCWrapper() {
 	} else if bundle := lb.grpclbClientConnCreds; bundle != nil {
 		dopts = append(dopts, grpc.WithCredentialsBundle(bundle))
 	} else {
-		dopts = append(dopts, grpc.WithInsecure())
+		dopts = append(dopts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 	if lb.opt.Dialer != nil {
 		dopts = append(dopts, grpc.WithContextDialer(lb.opt.Dialer))
@@ -273,7 +275,7 @@ func (lb *lbBalancer) newRemoteBalancerCCWrapper() {
 // goroutines to finish.
 func (ccw *remoteBalancerCCWrapper) close() {
 	close(ccw.done)
-	ccw.cc.Close()
+	_ = ccw.cc.Close()
 	ccw.wg.Wait()
 }
 
@@ -413,7 +415,7 @@ func (ccw *remoteBalancerCCWrapper) watchRemoteBalancer() {
 			return
 		default:
 			if err != nil {
-				if err == errServerTerminatedConnection {
+				if errors.Is(err, errServerTerminatedConnection) {
 					logger.Info(err)
 				} else {
 					logger.Warning(err)

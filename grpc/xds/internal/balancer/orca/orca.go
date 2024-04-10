@@ -22,7 +22,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/balancerload"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 const mdKey = "X-Endpoint-Load-Metrics-Bin"
