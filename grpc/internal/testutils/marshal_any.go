@@ -20,7 +20,7 @@ package testutils
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -29,7 +29,7 @@ import (
 func MarshalAny(m proto.Message) *anypb.Any {
 	// ptypes.MarshalAny is deprecated, call the anypb.New function instead.
 	//a, err := ptypes.MarshalAny(m)
-	a, err := anypb.New(proto.MessageV2(m))
+	a, err := anypb.New(m)
 	if err != nil {
 		panic(fmt.Sprintf("ptypes.MarshalAny(%+v) failed: %v", m, err))
 	}

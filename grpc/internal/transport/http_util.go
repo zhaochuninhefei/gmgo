@@ -33,14 +33,13 @@ import (
 	"unicode/utf8"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/net/http2"
 	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
-	"github.com/golang/protobuf/proto"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const (

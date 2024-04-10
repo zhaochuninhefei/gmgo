@@ -32,22 +32,20 @@ import (
 	"time"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcutil"
-	"gitee.com/zhaochuninhefei/gmgo/net/http2"
-	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
-	"github.com/golang/protobuf/proto"
-
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/channelz"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcrand"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcutil"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/keepalive"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/peer"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/stats"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/tap"
+	"gitee.com/zhaochuninhefei/gmgo/net/http2"
+	"gitee.com/zhaochuninhefei/gmgo/net/http2/hpack"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -1054,6 +1052,7 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 
 // Write converts the data into HTTP2 data frame and sends it out. Non-nil error
 // is returns if it fails (e.g., framing error, transport error).
+//
 //goland:noinspection GoUnusedParameter
 func (t *http2Server) Write(s *Stream, hdr []byte, data []byte, opts *Options) error {
 	if !s.isHeaderSent() { // Headers haven't been written yet.

@@ -35,7 +35,6 @@ import (
 	"time"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcutil"
@@ -44,7 +43,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/stats"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/net/http2"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewServerHandlerTransport returns a ServerTransport handling gRPC
@@ -445,10 +444,10 @@ func (ht *serverHandlerTransport) Drain() {
 // mapRecvMsgError returns the non-nil err into the appropriate
 // error value as expected by callers of *grpc.parser.recvMsg.
 // In particular, in can only be:
-//   * io.EOF
-//   * io.ErrUnexpectedEOF
-//   * of type transport.ConnectionError
-//   * an error from the status package
+//   - io.EOF
+//   - io.ErrUnexpectedEOF
+//   - of type transport.ConnectionError
+//   - an error from the status package
 func mapRecvMsgError(err error) error {
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		return err
