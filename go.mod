@@ -5,7 +5,7 @@ go 1.22
 require (
 	gitee.com/zhaochuninhefei/zcgolog v0.0.23
 	github.com/census-instrumentation/opencensus-proto v0.4.1
-	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/cncf/xds/go v0.0.0-20231128003011-0fa0005c9caa
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/golang/glog v1.2.0
