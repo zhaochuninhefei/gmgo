@@ -30,9 +30,10 @@ package status
 import (
 	"errors"
 	"fmt"
+
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
-	"github.com/golang/protobuf/proto"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -48,6 +49,7 @@ func New(c codes.Code, msg string) *Status {
 }
 
 // Newf returns New(c, fmt.Sprintf(format, a...)).
+//
 //goland:noinspection GoUnusedExportedFunction
 func Newf(c codes.Code, format string, a ...interface{}) *Status {
 	return New(c, fmt.Sprintf(format, a...))
@@ -64,6 +66,7 @@ func Err(c codes.Code, msg string) error {
 }
 
 // Errorf returns Error(c, fmt.Sprintf(format, a...)).
+//
 //goland:noinspection GoUnusedExportedFunction
 func Errorf(c codes.Code, format string, a ...interface{}) error {
 	return Err(c, fmt.Sprintf(format, a...))
@@ -112,7 +115,7 @@ func (s *Status) WithDetails(details ...proto.Message) (*Status, error) {
 	for _, detail := range details {
 		// ptypes.MarshalAny is deprecated, Call the anypb.New function instead.
 		//any, err := ptypes.MarshalAny(detail)
-		any, err := anypb.New(proto.MessageV2(detail))
+		any, err := anypb.New(detail)
 		if err != nil {
 			return nil, err
 		}
