@@ -19,8 +19,6 @@
 package binarylog
 
 import (
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -29,7 +27,9 @@ import (
 	pb "gitee.com/zhaochuninhefei/gmgo/grpc/binarylog/grpc_binarylog_v1"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type callIDGenerator struct {
