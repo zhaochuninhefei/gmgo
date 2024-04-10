@@ -8,7 +8,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1
 	github.com/envoyproxy/protoc-gen-validate v0.1.0
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
