@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
 )
 
@@ -44,7 +43,7 @@ func (s) TestClientConnAuthority(t *testing.T) {
 		{
 			name:          "default",
 			target:        "Non-Existent.Server:8080",
-			opts:          []DialOption{WithTransportCredentials(insecure.NewCredentials())},
+			opts:          []DialOption{WithInsecure()},
 			wantAuthority: "Non-Existent.Server:8080",
 		},
 		{
@@ -56,7 +55,7 @@ func (s) TestClientConnAuthority(t *testing.T) {
 		{
 			name:          "override-via-WithAuthority",
 			target:        "Non-Existent.Server:8080",
-			opts:          []DialOption{WithTransportCredentials(insecure.NewCredentials()), WithAuthority("authority-override")},
+			opts:          []DialOption{WithInsecure(), WithAuthority("authority-override")},
 			wantAuthority: "authority-override",
 		},
 		{
@@ -68,13 +67,13 @@ func (s) TestClientConnAuthority(t *testing.T) {
 		{
 			name:          "unix relative",
 			target:        "unix:sock.sock",
-			opts:          []DialOption{WithTransportCredentials(insecure.NewCredentials())},
+			opts:          []DialOption{WithInsecure()},
 			wantAuthority: "localhost",
 		},
 		{
 			name:   "unix relative with custom dialer",
 			target: "unix:sock.sock",
-			opts: []DialOption{WithTransportCredentials(insecure.NewCredentials()), WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			opts: []DialOption{WithInsecure(), WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 				return (&net.Dialer{}).DialContext(ctx, "", addr)
 			})},
 			wantAuthority: "localhost",
@@ -82,13 +81,13 @@ func (s) TestClientConnAuthority(t *testing.T) {
 		{
 			name:          "unix absolute",
 			target:        "unix:/sock.sock",
-			opts:          []DialOption{WithTransportCredentials(insecure.NewCredentials())},
+			opts:          []DialOption{WithInsecure()},
 			wantAuthority: "localhost",
 		},
 		{
 			name:   "unix absolute with custom dialer",
 			target: "unix:///sock.sock",
-			opts: []DialOption{WithTransportCredentials(insecure.NewCredentials()), WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			opts: []DialOption{WithInsecure(), WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 				return (&net.Dialer{}).DialContext(ctx, "", addr)
 			})},
 			wantAuthority: "localhost",
@@ -96,13 +95,13 @@ func (s) TestClientConnAuthority(t *testing.T) {
 		{
 			name:          "localhost colon port",
 			target:        "localhost:50051",
-			opts:          []DialOption{WithTransportCredentials(insecure.NewCredentials())},
+			opts:          []DialOption{WithInsecure()},
 			wantAuthority: "localhost:50051",
 		},
 		{
 			name:          "colon port",
 			target:        ":50051",
-			opts:          []DialOption{WithTransportCredentials(insecure.NewCredentials())},
+			opts:          []DialOption{WithInsecure()},
 			wantAuthority: "localhost:50051",
 		},
 	}

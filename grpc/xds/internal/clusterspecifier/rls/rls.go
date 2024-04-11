@@ -24,25 +24,23 @@ import (
 	"fmt"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
-	rlspb "gitee.com/zhaochuninhefei/gmgo/grpc/internal/proto/grpc_lookup_v1"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/proto/grpc_lookup_v1"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/clusterspecifier"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	// Blank import to init the RLS LB policy.
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/rls"
 )
 
-func init() {
-	clusterspecifier.Register(rls{})
+const rlsBalancerName = "rls_experimental"
 
-	// TODO: Remove these once the RLS env var is removed.
-	internal.RegisterRLSClusterSpecifierPluginForTesting = func() {
+func init() {
+	if envconfig.XDSRLS {
 		clusterspecifier.Register(rls{})
-	}
-	internal.UnregisterRLSClusterSpecifierPluginForTesting = func() {
-		for _, typeURL := range rls.TypeURLs(rls{}) {
-			clusterspecifier.UnregisterForTesting(typeURL)
-		}
 	}
 }
 
@@ -69,9 +67,9 @@ func (rls) ParseClusterSpecifierConfig(cfg proto.Message) (clusterspecifier.Bala
 	if !ok {
 		return nil, fmt.Errorf("rls_csp: error parsing config %v: unknown type %T", cfg, cfg)
 	}
-	rlcs := new(rlspb.RouteLookupClusterSpecifier)
+	rlcs := new(grpc_lookup_v1.RouteLookupClusterSpecifier)
 
-	if err := any.UnmarshalTo(rlcs); err != nil {
+	if err := ptypes.UnmarshalAny(any, rlcs); err != nil {
 		return nil, fmt.Errorf("rls_csp: error parsing config %v: %v", cfg, err)
 	}
 	rlcJSON, err := protojson.Marshal(rlcs.GetRouteLookupConfig())
@@ -93,13 +91,14 @@ func (rls) ParseClusterSpecifierConfig(cfg proto.Message) (clusterspecifier.Bala
 		return nil, fmt.Errorf("rls_csp: error marshaling load balancing config %v: %v", lbCfgJSON, err)
 	}
 
-	rlsBB := balancer.Get(internal.RLSLoadBalancingPolicyName)
+	rlsBB := balancer.Get(rlsBalancerName)
 	if rlsBB == nil {
 		return nil, fmt.Errorf("RLS LB policy not registered")
 	}
-	if _, err = rlsBB.(balancer.ConfigParser).ParseConfig(rawJSON); err != nil {
-		return nil, fmt.Errorf("rls_csp: validation error from rls lb policy parsing: %v", err)
+	_, err = rlsBB.(balancer.ConfigParser).ParseConfig(rawJSON)
+	if err != nil {
+		return nil, fmt.Errorf("rls_csp: validation error from rls lb policy parsing %v", err)
 	}
 
-	return clusterspecifier.BalancerConfig{{internal.RLSLoadBalancingPolicyName: lbCfgJSON}}, nil
+	return clusterspecifier.BalancerConfig{{rlsBalancerName: lbCfgJSON}}, nil
 }

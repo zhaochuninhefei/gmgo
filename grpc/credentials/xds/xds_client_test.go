@@ -22,15 +22,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
-	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"io/ioutil"
 	"net"
-	"os"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
-	"unsafe"
+
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/tls/certprovider"
@@ -161,7 +161,7 @@ func testServerMutualTLSHandshake(rawConn net.Conn) handshakeResult {
 	if err != nil {
 		return handshakeResult{err: err}
 	}
-	pemData, err := os.ReadFile(testdata.Path("x509/client_ca_cert.pem"))
+	pemData, err := ioutil.ReadFile(testdata.Path("x509/client_ca_cert.pem"))
 	if err != nil {
 		return handshakeResult{err: err}
 	}
@@ -206,7 +206,7 @@ func makeIdentityProvider(t *testing.T, certPath, keyPath string) certprovider.P
 // makeRootProvider creates a new instance of the fakeProvider returning the
 // root key material specified in the provider file paths.
 func makeRootProvider(t *testing.T, caPath string) *fakeProvider {
-	pemData, err := os.ReadFile(testdata.Path(caPath))
+	pemData, err := ioutil.ReadFile(testdata.Path(caPath))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,13 +221,11 @@ func newTestContextWithHandshakeInfo(parent context.Context, root, identity cert
 	// Creating the HandshakeInfo and adding it to the attributes is very
 	// similar to what the CDS balancer would do when it intercepts calls to
 	// NewSubConn().
-	var sms []matcher.StringMatcher
+	info := xdsinternal.NewHandshakeInfo(root, identity)
 	if sanExactMatch != "" {
-		sms = []matcher.StringMatcher{matcher.StringMatcherForTesting(newStringP(sanExactMatch), nil, nil, nil, nil, false)}
+		info.SetSANMatchers([]matcher.StringMatcher{matcher.StringMatcherForTesting(newStringP(sanExactMatch), nil, nil, nil, nil, false)})
 	}
-	info := xdsinternal.NewHandshakeInfo(root, identity, sms, false)
-	uPtr := unsafe.Pointer(info)
-	addr := xdsinternal.SetHandshakeInfo(resolver.Address{}, &uPtr)
+	addr := xdsinternal.SetHandshakeInfo(resolver.Address{}, info)
 
 	// Moving the attributes from the resolver.Address to the context passed to
 	// the handshaker is done in the transport layer. Since we directly call the
@@ -480,7 +478,7 @@ func (s) TestClientCredsHandshakeFailure(t *testing.T) {
 			handshakeFunc: testServerTLSHandshake,
 			rootProvider:  makeRootProvider(t, "x509/server_ca_cert.pem"),
 			san:           "bad-san",
-			wantErr:       "do not match any of the accepted SANs",
+			wantErr:       "does not match any of the accepted SANs",
 		},
 	}
 
@@ -537,12 +535,13 @@ func (s) TestClientCredsProviderSwitch(t *testing.T) {
 	// Create a root provider which will fail the handshake because it does not
 	// use the correct trust roots.
 	root1 := makeRootProvider(t, "x509/client_ca_cert.pem")
-	handshakeInfo := xdsinternal.NewHandshakeInfo(root1, nil, []matcher.StringMatcher{matcher.StringMatcherForTesting(newStringP(defaultTestCertSAN), nil, nil, nil, nil, false)}, false)
+	handshakeInfo := xdsinternal.NewHandshakeInfo(root1, nil)
+	handshakeInfo.SetSANMatchers([]matcher.StringMatcher{matcher.StringMatcherForTesting(newStringP(defaultTestCertSAN), nil, nil, nil, nil, false)})
+
 	// We need to repeat most of what newTestContextWithHandshakeInfo() does
 	// here because we need access to the underlying HandshakeInfo so that we
 	// can update it before the next call to ClientHandshake().
-	uPtr := unsafe.Pointer(handshakeInfo)
-	addr := xdsinternal.SetHandshakeInfo(resolver.Address{}, &uPtr)
+	addr := xdsinternal.SetHandshakeInfo(resolver.Address{}, handshakeInfo)
 	ctx = icredentials.NewClientHandshakeInfoContext(ctx, credentials.ClientHandshakeInfo{Attributes: addr.Attributes})
 	if _, _, err := creds.ClientHandshake(ctx, authority, conn); err == nil {
 		t.Fatal("ClientHandshake() succeeded when expected to fail")
@@ -563,10 +562,7 @@ func (s) TestClientCredsProviderSwitch(t *testing.T) {
 	// Create a new root provider which uses the correct trust roots. And update
 	// the HandshakeInfo with the new provider.
 	root2 := makeRootProvider(t, "x509/server_ca_cert.pem")
-	handshakeInfo = xdsinternal.NewHandshakeInfo(root2, nil, []matcher.StringMatcher{matcher.StringMatcherForTesting(newStringP(defaultTestCertSAN), nil, nil, nil, nil, false)}, false)
-	// Update the existing pointer, which address attribute will continue to
-	// point to.
-	atomic.StorePointer(&uPtr, unsafe.Pointer(handshakeInfo))
+	handshakeInfo.SetRootCertProvider(root2)
 	_, ai, err := creds.ClientHandshake(ctx, authority, conn)
 	if err != nil {
 		t.Fatalf("ClientHandshake() returned failed: %q", err)

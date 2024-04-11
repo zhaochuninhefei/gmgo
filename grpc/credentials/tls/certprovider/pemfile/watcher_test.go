@@ -21,6 +21,7 @@ package pemfile
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -30,6 +31,8 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 const (
@@ -61,10 +64,15 @@ func compareKeyMaterial(got, want *certprovider.KeyMaterial) error {
 		}
 	}
 
-	if gotR, wantR := got.Roots, want.Roots; !gotR.Equal(wantR) {
+	// x509.CertPool contains only unexported fields some of which contain other
+	// unexported fields. So usage of cmp.AllowUnexported() or
+	// cmpopts.IgnoreUnexported() does not help us much here. Also, the standard
+	// library does not provide a way to compare CertPool values. Comparing the
+	// subjects field of the certs in the CertPool seems like a reasonable
+	// approach.
+	if gotR, wantR := got.Roots.Subjects(), want.Roots.Subjects(); !cmp.Equal(gotR, wantR, cmpopts.EquateEmpty()) {
 		return fmt.Errorf("keyMaterial roots = %v, want %v", gotR, wantR)
 	}
-
 	return nil
 }
 
@@ -153,12 +161,12 @@ func (wd *wrappedDistributor) Set(km *certprovider.KeyMaterial, err error) {
 func createTmpFile(t *testing.T, src, dst string) {
 	t.Helper()
 
-	data, err := os.ReadFile(src)
+	data, err := ioutil.ReadFile(src)
 	if err != nil {
-		t.Fatalf("os.ReadFile(%q) failed: %v", src, err)
+		t.Fatalf("ioutil.ReadFile(%q) failed: %v", src, err)
 	}
-	if err := os.WriteFile(dst, data, os.ModePerm); err != nil {
-		t.Fatalf("os.WriteFile(%q) failed: %v", dst, err)
+	if err := ioutil.WriteFile(dst, data, os.ModePerm); err != nil {
+		t.Fatalf("ioutil.WriteFile(%q) failed: %v", dst, err)
 	}
 	t.Logf("Wrote file at: %s", dst)
 	t.Logf("%s", string(data))
@@ -173,9 +181,9 @@ func createTmpDirWithFiles(t *testing.T, dirSuffix, certSrc, keySrc, rootSrc str
 
 	// Create a temp directory. Passing an empty string for the first argument
 	// uses the system temp directory.
-	dir, err := os.MkdirTemp("", dirSuffix)
+	dir, err := ioutil.TempDir("", dirSuffix)
 	if err != nil {
-		t.Fatalf("os.MkdirTemp() failed: %v", err)
+		t.Fatalf("ioutil.TempDir() failed: %v", err)
 	}
 	t.Logf("Using tmpdir: %s", dir)
 
@@ -315,9 +323,9 @@ func (s) TestProvider_UpdateSuccessWithSymlink(t *testing.T) {
 	dir2 := createTmpDirWithFiles(t, "update_with_symlink2_*", "x509/server1_cert.pem", "x509/server1_key.pem", "x509/server_ca_cert.pem")
 
 	// Create a symlink under a new tempdir, and make it point to dir1.
-	tmpdir, err := os.MkdirTemp("", "test_symlink_*")
+	tmpdir, err := ioutil.TempDir("", "test_symlink_*")
 	if err != nil {
-		t.Fatalf("os.MkdirTemp() failed: %v", err)
+		t.Fatalf("ioutil.TempDir() failed: %v", err)
 	}
 	symLinkName := path.Join(tmpdir, "test_symlink")
 	if err := os.Symlink(dir1, symLinkName); err != nil {

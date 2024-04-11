@@ -19,8 +19,9 @@ package testutils
 
 import (
 	"context"
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"time"
+
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 )
 
 // DefaultHTTPRequestTimeout is the default timeout value for the amount of time

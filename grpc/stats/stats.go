@@ -59,36 +59,18 @@ func (s *Begin) IsClient() bool { return s.Client }
 
 func (s *Begin) isRPCStats() {}
 
-// PickerUpdated indicates that the LB policy provided a new picker while the
-// RPC was waiting for one.
-type PickerUpdated struct{}
-
-// IsClient indicates if the stats information is from client side. Only Client
-// Side interfaces with a Picker, thus always returns true.
-func (*PickerUpdated) IsClient() bool { return true }
-
-func (*PickerUpdated) isRPCStats() {}
-
 // InPayload contains the information for an incoming payload.
 type InPayload struct {
 	// Client is true if this InPayload is from client side.
 	Client bool
 	// Payload is the payload with original type.
-	Payload any
+	Payload interface{}
 	// Data is the serialized message payload.
 	Data []byte
-
-	// Length is the size of the uncompressed payload data. Does not include any
-	// framing (gRPC or HTTP/2).
+	// Length is the length of uncompressed data.
 	Length int
-	// CompressedLength is the size of the compressed payload data. Does not
-	// include any framing (gRPC or HTTP/2). Same as Length if compression not
-	// enabled.
-	CompressedLength int
-	// WireLength is the size of the compressed payload data plus gRPC framing.
-	// Does not include HTTP/2 framing.
+	// WireLength is the length of data on wire (compressed, signed, encrypted).
 	WireLength int
-
 	// RecvTime is the time when the payload is received.
 	RecvTime time.Time
 }
@@ -144,18 +126,12 @@ type OutPayload struct {
 	// Client is true if this OutPayload is from client side.
 	Client bool
 	// Payload is the payload with original type.
-	Payload any
+	Payload interface{}
 	// Data is the serialized message payload.
 	Data []byte
-	// Length is the size of the uncompressed payload data. Does not include any
-	// framing (gRPC or HTTP/2).
+	// Length is the length of uncompressed data.
 	Length int
-	// CompressedLength is the size of the compressed payload data. Does not
-	// include any framing (gRPC or HTTP/2). Same as Length if compression not
-	// enabled.
-	CompressedLength int
-	// WireLength is the size of the compressed payload data plus gRPC framing.
-	// Does not include HTTP/2 framing.
+	// WireLength is the length of data on wire (compressed, signed, encrypted).
 	WireLength int
 	// SentTime is the time when the payload is sent.
 	SentTime time.Time
@@ -218,7 +194,7 @@ type End struct {
 	EndTime time.Time
 	// Trailer contains the trailer metadata received from the server. This
 	// field is only valid if this End is from the client side.
-	// Deprecated: use Trailer in InTrailer instead.
+	// ToDeprecated: use Trailer in InTrailer instead.
 	Trailer metadata.MD
 	// Error is the error the RPC ended with. It is an error generated from
 	// status.Status and can be converted back to status.Status using

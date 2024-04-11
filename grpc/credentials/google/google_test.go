@@ -24,9 +24,9 @@ import (
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
 	icredentials "gitee.com/zhaochuninhefei/gmgo/grpc/internal/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 )
 
@@ -65,24 +65,17 @@ var (
 )
 
 func overrideNewCredsFuncs() func() {
-	origNewTLS := newTLS
+	oldNewTLS := newTLS
 	newTLS = func() credentials.TransportCredentials {
 		return testTLS
 	}
-	origNewALTS := newALTS
+	oldNewALTS := newALTS
 	newALTS = func() credentials.TransportCredentials {
 		return testALTS
 	}
-	origNewADC := newADC
-	newADC = func(context.Context) (credentials.PerRPCCredentials, error) {
-		// We do not use perRPC creds in this test. It is safe to return nil here.
-		return nil, nil
-	}
-
 	return func() {
-		newTLS = origNewTLS
-		newALTS = origNewALTS
-		newADC = origNewADC
+		newTLS = oldNewTLS
+		newALTS = oldNewALTS
 	}
 }
 
@@ -109,7 +102,7 @@ func (s) TestClientHandshakeBasedOnClusterName(t *testing.T) {
 			{
 				name: "with non-CFE cluster name",
 				ctx: icredentials.NewClientHandshakeInfoContext(context.Background(), credentials.ClientHandshakeInfo{
-					Attributes: xds.SetXDSHandshakeClusterName(resolver.Address{}, "lalala").Attributes,
+					Attributes: internal.SetXDSHandshakeClusterName(resolver.Address{}, "lalala").Attributes,
 				}),
 				// non-CFE backends should use alts.
 				wantTyp: "alts",
@@ -117,26 +110,10 @@ func (s) TestClientHandshakeBasedOnClusterName(t *testing.T) {
 			{
 				name: "with CFE cluster name",
 				ctx: icredentials.NewClientHandshakeInfoContext(context.Background(), credentials.ClientHandshakeInfo{
-					Attributes: xds.SetXDSHandshakeClusterName(resolver.Address{}, "google_cfe_bigtable.googleapis.com").Attributes,
+					Attributes: internal.SetXDSHandshakeClusterName(resolver.Address{}, "google_cfe_bigtable.googleapis.com").Attributes,
 				}),
 				// CFE should use tls.
 				wantTyp: "tls",
-			},
-			{
-				name: "with xdstp CFE cluster name",
-				ctx: icredentials.NewClientHandshakeInfoContext(context.Background(), credentials.ClientHandshakeInfo{
-					Attributes: xds.SetXDSHandshakeClusterName(resolver.Address{}, "xdstp://traffic-director-c2p.xds.googleapis.com/envoy.config.cluster.v3.Cluster/google_cfe_bigtable.googleapis.com").Attributes,
-				}),
-				// CFE should use tls.
-				wantTyp: "tls",
-			},
-			{
-				name: "with xdstp non-CFE cluster name",
-				ctx: icredentials.NewClientHandshakeInfoContext(context.Background(), credentials.ClientHandshakeInfo{
-					Attributes: xds.SetXDSHandshakeClusterName(resolver.Address{}, "xdstp://other.com/envoy.config.cluster.v3.Cluster/google_cfe_bigtable.googleapis.com").Attributes,
-				}),
-				// non-CFE should use atls.
-				wantTyp: "alts",
 			},
 		}
 		for _, tt := range tests {

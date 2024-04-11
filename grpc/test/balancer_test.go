@@ -29,17 +29,16 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/attributes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer/roundrobin"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/balancer/stub"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/balancerload"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcsync"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcutil"
 	imetadata "gitee.com/zhaochuninhefei/gmgo/grpc/internal/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/stubserver"
@@ -48,10 +47,8 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver/manual"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
-
-	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 )
 
 const testBalancerName = "testbalancer"
@@ -87,7 +84,6 @@ func (b *testBalancer) UpdateClientConnState(state balancer.ClientConnState) err
 	// Only create a subconn at the first time.
 	if b.sc == nil {
 		var err error
-		b.newSubConnOptions.StateListener = b.updateSubConnState
 		b.sc, err = b.cc.NewSubConn(state.ResolverState.Addresses, b.newSubConnOptions)
 		if err != nil {
 			logger.Errorf("testBalancer: failed to NewSubConn: %v", err)
@@ -100,17 +96,21 @@ func (b *testBalancer) UpdateClientConnState(state balancer.ClientConnState) err
 }
 
 func (b *testBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
-	panic(fmt.Sprintf("UpdateSubConnState(%v, %+v) called unexpectedly", sc, s))
-}
-
-func (b *testBalancer) updateSubConnState(s balancer.SubConnState) {
-	logger.Infof("testBalancer: updateSubConnState: %v", s)
+	logger.Infof("testBalancer: UpdateSubConnState: %p, %v", sc, s)
+	if b.sc != sc {
+		logger.Infof("testBalancer: ignored state change because sc is not recognized")
+		return
+	}
+	if s.ConnectivityState == connectivity.Shutdown {
+		b.sc = nil
+		return
+	}
 
 	switch s.ConnectivityState {
 	case connectivity.Ready:
-		b.cc.UpdateState(balancer.State{ConnectivityState: s.ConnectivityState, Picker: &picker{bal: b}})
+		b.cc.UpdateState(balancer.State{ConnectivityState: s.ConnectivityState, Picker: &picker{sc: sc, bal: b}})
 	case connectivity.Idle:
-		b.cc.UpdateState(balancer.State{ConnectivityState: s.ConnectivityState, Picker: &picker{bal: b, idle: true}})
+		b.cc.UpdateState(balancer.State{ConnectivityState: s.ConnectivityState, Picker: &picker{sc: sc, bal: b, idle: true}})
 	case connectivity.Connecting:
 		b.cc.UpdateState(balancer.State{ConnectivityState: s.ConnectivityState, Picker: &picker{err: balancer.ErrNoSubConnAvailable, bal: b}})
 	case connectivity.TransientFailure:
@@ -124,6 +124,7 @@ func (b *testBalancer) ExitIdle() {}
 
 type picker struct {
 	err  error
+	sc   balancer.SubConn
 	bal  *testBalancer
 	idle bool
 }
@@ -133,14 +134,14 @@ func (p *picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 		return balancer.PickResult{}, p.err
 	}
 	if p.idle {
-		p.bal.sc.Connect()
+		p.sc.Connect()
 		return balancer.PickResult{}, balancer.ErrNoSubConnAvailable
 	}
 	extraMD, _ := grpcutil.ExtraMetadata(info.Ctx)
 	info.Ctx = nil // Do not validate context.
 	p.bal.pickInfos = append(p.bal.pickInfos, info)
 	p.bal.pickExtraMDs = append(p.bal.pickExtraMDs, extraMD)
-	return balancer.PickResult{SubConn: p.bal.sc, Done: func(d balancer.DoneInfo) { p.bal.doneInfo = append(p.bal.doneInfo, d) }}, nil
+	return balancer.PickResult{SubConn: p.sc, Done: func(d balancer.DoneInfo) { p.bal.doneInfo = append(p.bal.doneInfo, d) }}, nil
 }
 
 func (s) TestCredsBundleFromBalancer(t *testing.T) {
@@ -152,7 +153,7 @@ func (s) TestCredsBundleFromBalancer(t *testing.T) {
 	te := newTest(t, env{name: "creds-bundle", network: "tcp", balancer: ""})
 	te.tapHandle = authHandle
 	te.customDialOptions = []grpc.DialOption{
-		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, testBalancerName)),
+		grpc.WithBalancerName(testBalancerName),
 	}
 	creds, err := credentials.NewServerTLSFromFile(testdata.Path("x509/server1_cert.pem"), testdata.Path("x509/server1_key.pem"))
 	if err != nil {
@@ -165,10 +166,8 @@ func (s) TestCredsBundleFromBalancer(t *testing.T) {
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testgrpc.NewTestServiceClient(cc)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	defer cancel()
-	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
+	tc := testpb.NewTestServiceClient(cc)
+	if _, err := tc.EmptyCall(context.Background(), &testpb.Empty{}); err != nil {
 		t.Fatalf("Test failed. Reason: %v", err)
 	}
 }
@@ -189,18 +188,22 @@ func testPickExtraMetadata(t *testing.T, e env) {
 	)
 
 	te.customDialOptions = []grpc.DialOption{
-		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, testBalancerName)),
+		grpc.WithBalancerName(testBalancerName),
 		grpc.WithUserAgent(testUserAgent),
 	}
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
 
-	// Trigger the extra-metadata-adding code path.
-	defer func(old string) { internal.GRPCResolverSchemeExtraMetadata = old }(internal.GRPCResolverSchemeExtraMetadata)
-	internal.GRPCResolverSchemeExtraMetadata = "passthrough"
-
+	// Set resolver to xds to trigger the extra metadata code path.
+	r := manual.NewBuilderWithScheme("xds")
+	resolver.Register(r)
+	defer func() {
+		resolver.UnregisterForTesting("xds")
+	}()
+	r.InitialState(resolver.State{Addresses: []resolver.Address{{Addr: te.srvAddr}}})
+	te.resolverScheme = "xds"
 	cc := te.clientConn()
-	tc := testgrpc.NewTestServiceClient(cc)
+	tc := testpb.NewTestServiceClient(cc)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
@@ -233,20 +236,20 @@ func testDoneInfo(t *testing.T, e env) {
 	b := &testBalancer{}
 	balancer.Register(b)
 	te.customDialOptions = []grpc.DialOption{
-		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, testBalancerName)),
+		grpc.WithBalancerName(testBalancerName),
 	}
 	te.userAgent = failAppUA
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testgrpc.NewTestServiceClient(cc)
+	tc := testpb.NewTestServiceClient(cc)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	wantErr := detailedError
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); !testutils.StatusErrEqual(err, wantErr) {
-		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want _, %v", status.Convert(err).Proto(), status.Convert(wantErr).Proto())
+		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want _, %v", err, wantErr)
 	}
 	if _, err := tc.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil {
 		t.Fatalf("TestService.UnaryCall(%v, _, _, _) = _, %v; want _, <nil>", ctx, err)
@@ -284,7 +287,7 @@ const loadMDKey = "X-Endpoint-Load-Metrics-Bin"
 
 type testLoadParser struct{}
 
-func (*testLoadParser) Parse(md metadata.MD) any {
+func (*testLoadParser) Parse(md metadata.MD) interface{} {
 	vs := md.Get(loadMDKey)
 	if len(vs) == 0 {
 		return nil
@@ -312,14 +315,14 @@ func testDoneLoads(t *testing.T) {
 			return &testpb.Empty{}, nil
 		},
 	}
-	if err := ss.Start(nil, grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, testBalancerName))); err != nil {
+	if err := ss.Start(nil, grpc.WithBalancerName(testBalancerName)); err != nil {
 		t.Fatalf("error starting testing server: %v", err)
 	}
 	defer ss.Stop()
 
-	tc := testgrpc.NewTestServiceClient(ss.CC)
+	tc := testpb.NewTestServiceClient(ss.CC)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
 		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want _, %v", err, nil)
@@ -338,6 +341,95 @@ func testDoneLoads(t *testing.T) {
 	gotLoad, _ := b.doneInfo[0].ServerLoad.(string)
 	if gotLoad != testLoad {
 		t.Fatalf("b.doneInfo[0].ServerLoad = %v; want = %v", b.doneInfo[0].ServerLoad, testLoad)
+	}
+}
+
+const testBalancerKeepAddressesName = "testbalancer-keepingaddresses"
+
+// testBalancerKeepAddresses keeps the addresses in the builder instead of
+// creating SubConns.
+//
+// It's used to test the addresses balancer gets are correct.
+type testBalancerKeepAddresses struct {
+	addrsChan chan []resolver.Address
+}
+
+func newTestBalancerKeepAddresses() *testBalancerKeepAddresses {
+	return &testBalancerKeepAddresses{
+		addrsChan: make(chan []resolver.Address, 10),
+	}
+}
+
+func (testBalancerKeepAddresses) ResolverError(err error) {
+	panic("not implemented")
+}
+
+func (b *testBalancerKeepAddresses) Build(cc balancer.ClientConn, opt balancer.BuildOptions) balancer.Balancer {
+	return b
+}
+
+func (*testBalancerKeepAddresses) Name() string {
+	return testBalancerKeepAddressesName
+}
+
+func (b *testBalancerKeepAddresses) UpdateClientConnState(state balancer.ClientConnState) error {
+	b.addrsChan <- state.ResolverState.Addresses
+	return nil
+}
+
+func (testBalancerKeepAddresses) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+	panic("not used")
+}
+
+func (testBalancerKeepAddresses) Close() {}
+
+func (testBalancerKeepAddresses) ExitIdle() {}
+
+// Make sure that non-grpclb balancers don't get grpclb addresses even if name
+// resolver sends them
+func (s) TestNonGRPCLBBalancerGetsNoGRPCLBAddress(t *testing.T) {
+	r := manual.NewBuilderWithScheme("whatever")
+
+	b := newTestBalancerKeepAddresses()
+	balancer.Register(b)
+
+	cc, err := grpc.Dial(r.Scheme()+":///test.server", grpc.WithInsecure(), grpc.WithResolvers(r),
+		grpc.WithBalancerName(b.Name()))
+	if err != nil {
+		t.Fatalf("failed to dial: %v", err)
+	}
+	defer cc.Close()
+
+	grpclbAddresses := []resolver.Address{{
+		Addr:       "grpc.lb.com",
+		Type:       resolver.GRPCLB,
+		ServerName: "grpc.lb.com",
+	}}
+
+	nonGRPCLBAddresses := []resolver.Address{{
+		Addr: "localhost",
+		Type: resolver.Backend,
+	}}
+
+	r.UpdateState(resolver.State{
+		Addresses: nonGRPCLBAddresses,
+	})
+	if got := <-b.addrsChan; !reflect.DeepEqual(got, nonGRPCLBAddresses) {
+		t.Fatalf("With only backend addresses, balancer got addresses %v, want %v", got, nonGRPCLBAddresses)
+	}
+
+	r.UpdateState(resolver.State{
+		Addresses: grpclbAddresses,
+	})
+	if got := <-b.addrsChan; len(got) != 0 {
+		t.Fatalf("With only grpclb addresses, balancer got addresses %v, want empty", got)
+	}
+
+	r.UpdateState(resolver.State{
+		Addresses: append(grpclbAddresses, nonGRPCLBAddresses...),
+	})
+	if got := <-b.addrsChan; !reflect.DeepEqual(got, nonGRPCLBAddresses) {
+		t.Fatalf("With both backend and grpclb addresses, balancer got addresses %v, want %v", got, nonGRPCLBAddresses)
 	}
 }
 
@@ -393,17 +485,15 @@ func (s) TestAddressAttributesInNewSubConn(t *testing.T) {
 			// Only use the first address.
 			attr := attributes.New(testAttrKey, testAttrVal)
 			addrs[0].Attributes = attr
-			var sc balancer.SubConn
-			sc, err := bd.ClientConn.NewSubConn([]resolver.Address{addrs[0]}, balancer.NewSubConnOptions{
-				StateListener: func(state balancer.SubConnState) {
-					bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
-				},
-			})
+			sc, err := bd.ClientConn.NewSubConn([]resolver.Address{addrs[0]}, balancer.NewSubConnOptions{})
 			if err != nil {
 				return err
 			}
 			sc.Connect()
 			return nil
+		},
+		UpdateSubConnState: func(bd *stub.BalancerData, sc balancer.SubConn, state balancer.SubConnState) {
+			bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
 		},
 	}
 	stub.Register(attrBalancerName, bf)
@@ -418,7 +508,7 @@ func (s) TestAddressAttributesInNewSubConn(t *testing.T) {
 	}
 
 	s := grpc.NewServer()
-	testgrpc.RegisterTestServiceServer(s, &testServer{})
+	testpb.RegisterTestServiceServer(s, &testServer{})
 	go s.Serve(lis)
 	defer s.Stop()
 	t.Logf("Started gRPC server at %s...", lis.Addr().String())
@@ -434,11 +524,11 @@ func (s) TestAddressAttributesInNewSubConn(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer cc.Close()
-	tc := testgrpc.NewTestServiceClient(cc)
+	tc := testpb.NewTestServiceClient(cc)
 	t.Log("Created a ClientConn...")
 
 	// The first RPC should fail because there's no address.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestShortTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err == nil || status.Code(err) != codes.DeadlineExceeded {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
@@ -450,7 +540,7 @@ func (s) TestAddressAttributesInNewSubConn(t *testing.T) {
 	t.Logf("Pushing resolver state update: %v through the manual resolver", state)
 
 	// The second RPC should succeed.
-	ctx, cancel = context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
 		t.Fatalf("EmptyCall() = _, %v, want _, <nil>", err)
@@ -481,19 +571,17 @@ func (s) TestMetadataInAddressAttributes(t *testing.T) {
 				return nil
 			}
 			// Only use the first address.
-			var sc balancer.SubConn
 			sc, err := bd.ClientConn.NewSubConn([]resolver.Address{
 				imetadata.Set(addrs[0], metadata.Pairs(testMDKey, testMDValue)),
-			}, balancer.NewSubConnOptions{
-				StateListener: func(state balancer.SubConnState) {
-					bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
-				},
-			})
+			}, balancer.NewSubConnOptions{})
 			if err != nil {
 				return err
 			}
 			sc.Connect()
 			return nil
+		},
+		UpdateSubConnState: func(bd *stub.BalancerData, sc balancer.SubConn, state balancer.SubConnState) {
+			bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
 		},
 	}
 	stub.Register(mdBalancerName, bf)
@@ -521,7 +609,7 @@ func (s) TestMetadataInAddressAttributes(t *testing.T) {
 	defer ss.Stop()
 
 	// The RPC should succeed with the expected md.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if _, err := ss.Client.EmptyCall(ctx, &testpb.Empty{}); err != nil {
 		t.Fatalf("EmptyCall() = _, %v, want _, <nil>", err)
@@ -538,7 +626,7 @@ func (s) TestMetadataInAddressAttributes(t *testing.T) {
 // TestServersSwap creates two servers and verifies the client switches between
 // them when the name resolver reports the first and then the second.
 func (s) TestServersSwap(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Initialize servers
@@ -553,7 +641,7 @@ func (s) TestServersSwap(t *testing.T) {
 				return &testpb.SimpleResponse{Username: username}, nil
 			},
 		}
-		testgrpc.RegisterTestServiceServer(s, ts)
+		testpb.RegisterTestServiceServer(s, ts)
 		go s.Serve(lis)
 		return lis.Addr().String(), s.Stop
 	}
@@ -567,12 +655,12 @@ func (s) TestServersSwap(t *testing.T) {
 	// Initialize client
 	r := manual.NewBuilderWithScheme("whatever")
 	r.InitialState(resolver.State{Addresses: []resolver.Address{{Addr: addr1}}})
-	cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(r))
+	cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithInsecure(), grpc.WithResolvers(r))
 	if err != nil {
 		t.Fatalf("Error creating client: %v", err)
 	}
 	defer cc.Close()
-	client := testgrpc.NewTestServiceClient(cc)
+	client := testpb.NewTestServiceClient(cc)
 
 	// Confirm we are connected to the first server
 	if res, err := client.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil || res.Username != one {
@@ -593,8 +681,11 @@ func (s) TestServersSwap(t *testing.T) {
 	}
 }
 
-func (s) TestWaitForReady(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+// TestEmptyAddrs verifies client behavior when a working connection is
+// removed.  In pick first and round-robin, both will continue using the old
+// connections.
+func (s) TestEmptyAddrs(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Initialize server
@@ -610,18 +701,96 @@ func (s) TestWaitForReady(t *testing.T) {
 			return &testpb.SimpleResponse{Username: one}, nil
 		},
 	}
-	testgrpc.RegisterTestServiceServer(s, ts)
+	testpb.RegisterTestServiceServer(s, ts)
+	go s.Serve(lis)
+
+	// Initialize pickfirst client
+	pfr := manual.NewBuilderWithScheme("whatever")
+
+	pfr.InitialState(resolver.State{Addresses: []resolver.Address{{Addr: lis.Addr().String()}}})
+
+	pfcc, err := grpc.DialContext(ctx, pfr.Scheme()+":///", grpc.WithInsecure(), grpc.WithResolvers(pfr))
+	if err != nil {
+		t.Fatalf("Error creating client: %v", err)
+	}
+	defer pfcc.Close()
+	pfclient := testpb.NewTestServiceClient(pfcc)
+
+	// Confirm we are connected to the server
+	if res, err := pfclient.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil || res.Username != one {
+		t.Fatalf("UnaryCall(_) = %v, %v; want {Username: %q}, nil", res, err, one)
+	}
+
+	// Remove all addresses.
+	pfr.UpdateState(resolver.State{})
+
+	// Initialize roundrobin client
+	rrr := manual.NewBuilderWithScheme("whatever")
+
+	rrr.InitialState(resolver.State{Addresses: []resolver.Address{{Addr: lis.Addr().String()}}})
+
+	rrcc, err := grpc.DialContext(ctx, rrr.Scheme()+":///", grpc.WithInsecure(), grpc.WithResolvers(rrr),
+		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{ "loadBalancingConfig": [{"%v": {}}] }`, roundrobin.Name)))
+	if err != nil {
+		t.Fatalf("Error creating client: %v", err)
+	}
+	defer rrcc.Close()
+	rrclient := testpb.NewTestServiceClient(rrcc)
+
+	// Confirm we are connected to the server
+	if res, err := rrclient.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil || res.Username != one {
+		t.Fatalf("UnaryCall(_) = %v, %v; want {Username: %q}, nil", res, err, one)
+	}
+
+	// Remove all addresses.
+	rrr.UpdateState(resolver.State{})
+
+	// Confirm several new RPCs succeed on pick first.
+	for i := 0; i < 10; i++ {
+		if _, err := pfclient.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil {
+			t.Fatalf("UnaryCall(_) = _, %v; want _, nil", err)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	// Confirm several new RPCs succeed on round robin.
+	for i := 0; i < 10; i++ {
+		if _, err := pfclient.UnaryCall(ctx, &testpb.SimpleRequest{}); err != nil {
+			t.Fatalf("UnaryCall(_) = _, %v; want _, nil", err)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func (s) TestWaitForReady(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Initialize server
+	lis, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("Error while listening. Err: %v", err)
+	}
+	s := grpc.NewServer()
+	defer s.Stop()
+	const one = "1"
+	ts := &funcServer{
+		unaryCall: func(ctx context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
+			return &testpb.SimpleResponse{Username: one}, nil
+		},
+	}
+	testpb.RegisterTestServiceServer(s, ts)
 	go s.Serve(lis)
 
 	// Initialize client
 	r := manual.NewBuilderWithScheme("whatever")
 
-	cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(r))
+	cc, err := grpc.DialContext(ctx, r.Scheme()+":///", grpc.WithInsecure(), grpc.WithResolvers(r))
 	if err != nil {
 		t.Fatalf("Error creating client: %v", err)
 	}
 	defer cc.Close()
-	client := testgrpc.NewTestServiceClient(cc)
+	client := testpb.NewTestServiceClient(cc)
 
 	// Report an error so non-WFR RPCs will give up early.
 	r.CC.ReportError(errors.New("fake resolver error"))
@@ -717,17 +886,15 @@ func (s) TestAuthorityInBuildOptions(t *testing.T) {
 					}
 
 					// Only use the first address.
-					var sc balancer.SubConn
-					sc, err := bd.ClientConn.NewSubConn([]resolver.Address{addrs[0]}, balancer.NewSubConnOptions{
-						StateListener: func(state balancer.SubConnState) {
-							bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
-						},
-					})
+					sc, err := bd.ClientConn.NewSubConn([]resolver.Address{addrs[0]}, balancer.NewSubConnOptions{})
 					if err != nil {
 						return err
 					}
 					sc.Connect()
 					return nil
+				},
+				UpdateSubConnState: func(bd *stub.BalancerData, sc balancer.SubConn, state balancer.SubConnState) {
+					bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
 				},
 			}
 			balancerName := "stub-balancer-" + test.name
@@ -740,7 +907,7 @@ func (s) TestAuthorityInBuildOptions(t *testing.T) {
 			}
 
 			s := grpc.NewServer()
-			testgrpc.RegisterTestServiceServer(s, &testServer{})
+			testpb.RegisterTestServiceServer(s, &testServer{})
 			go s.Serve(lis)
 			defer s.Stop()
 			t.Logf("Started gRPC server at %s...", lis.Addr().String())
@@ -758,7 +925,7 @@ func (s) TestAuthorityInBuildOptions(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer cc.Close()
-			tc := testgrpc.NewTestServiceClient(cc)
+			tc := testpb.NewTestServiceClient(cc)
 			t.Log("Created a ClientConn...")
 
 			ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -775,354 +942,6 @@ func (s) TestAuthorityInBuildOptions(t *testing.T) {
 				if gotAuthority != test.wantAuthority {
 					t.Fatalf("Authority in balancer.BuildOptions is %s, want %s", gotAuthority, test.wantAuthority)
 				}
-			}
-		})
-	}
-}
-
-// testCCWrapper wraps a balancer.ClientConn and intercepts UpdateState and
-// returns a custom picker which injects arbitrary metadata on a per-call basis.
-type testCCWrapper struct {
-	balancer.ClientConn
-}
-
-func (t *testCCWrapper) UpdateState(state balancer.State) {
-	state.Picker = &wrappedPicker{p: state.Picker}
-	t.ClientConn.UpdateState(state)
-}
-
-const (
-	metadataHeaderInjectedByBalancer    = "metadata-header-injected-by-balancer"
-	metadataHeaderInjectedByApplication = "metadata-header-injected-by-application"
-	metadataValueInjectedByBalancer     = "metadata-value-injected-by-balancer"
-	metadataValueInjectedByApplication  = "metadata-value-injected-by-application"
-)
-
-// wrappedPicker wraps the picker returned by the pick_first
-type wrappedPicker struct {
-	p balancer.Picker
-}
-
-func (wp *wrappedPicker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
-	res, err := wp.p.Pick(info)
-	if err != nil {
-		return balancer.PickResult{}, err
-	}
-
-	if res.Metadata == nil {
-		res.Metadata = metadata.Pairs(metadataHeaderInjectedByBalancer, metadataValueInjectedByBalancer)
-	} else {
-		res.Metadata.Append(metadataHeaderInjectedByBalancer, metadataValueInjectedByBalancer)
-	}
-	return res, nil
-}
-
-// TestMetadataInPickResult tests the scenario where an LB policy inject
-// arbitrary metadata on a per-call basis and verifies that the injected
-// metadata makes it all the way to the server RPC handler.
-func (s) TestMetadataInPickResult(t *testing.T) {
-	t.Log("Starting test backend...")
-	mdChan := make(chan metadata.MD, 1)
-	ss := &stubserver.StubServer{
-		EmptyCallF: func(ctx context.Context, _ *testpb.Empty) (*testpb.Empty, error) {
-			md, _ := metadata.FromIncomingContext(ctx)
-			select {
-			case mdChan <- md:
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-			return &testpb.Empty{}, nil
-		},
-	}
-	if err := ss.StartServer(); err != nil {
-		t.Fatalf("Starting test backend: %v", err)
-	}
-	defer ss.Stop()
-	t.Logf("Started test backend at %q", ss.Address)
-
-	// Register a test balancer that contains a pick_first balancer and forwards
-	// all calls from the ClientConn to it. For state updates from the
-	// pick_first balancer, it creates a custom picker which injects arbitrary
-	// metadata on a per-call basis.
-	stub.Register(t.Name(), stub.BalancerFuncs{
-		Init: func(bd *stub.BalancerData) {
-			cc := &testCCWrapper{ClientConn: bd.ClientConn}
-			bd.Data = balancer.Get(grpc.PickFirstBalancerName).Build(cc, bd.BuildOptions)
-		},
-		UpdateClientConnState: func(bd *stub.BalancerData, ccs balancer.ClientConnState) error {
-			bal := bd.Data.(balancer.Balancer)
-			return bal.UpdateClientConnState(ccs)
-		},
-	})
-
-	t.Log("Creating ClientConn to test backend...")
-	r := manual.NewBuilderWithScheme("whatever")
-	r.InitialState(resolver.State{Addresses: []resolver.Address{{Addr: ss.Address}}})
-	dopts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithResolvers(r),
-		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, t.Name())),
-	}
-	cc, err := grpc.Dial(r.Scheme()+":///test.server", dopts...)
-	if err != nil {
-		t.Fatalf("grpc.Dial(): %v", err)
-	}
-	defer cc.Close()
-	tc := testgrpc.NewTestServiceClient(cc)
-
-	t.Log("Making EmptyCall() RPC with custom metadata...")
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	defer cancel()
-	md := metadata.Pairs(metadataHeaderInjectedByApplication, metadataValueInjectedByApplication)
-	ctx = metadata.NewOutgoingContext(ctx, md)
-	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
-		t.Fatalf("EmptyCall() RPC: %v", err)
-	}
-	t.Log("EmptyCall() RPC succeeded")
-
-	t.Log("Waiting for custom metadata to be received at the test backend...")
-	var gotMD metadata.MD
-	select {
-	case gotMD = <-mdChan:
-	case <-ctx.Done():
-		t.Fatalf("Timed out waiting for custom metadata to be received at the test backend")
-	}
-
-	t.Log("Verifying custom metadata added by the client application is received at the test backend...")
-	wantMDVal := []string{metadataValueInjectedByApplication}
-	gotMDVal := gotMD.Get(metadataHeaderInjectedByApplication)
-	if !cmp.Equal(gotMDVal, wantMDVal) {
-		t.Fatalf("Mismatch in custom metadata received at test backend, got: %v, want %v", gotMDVal, wantMDVal)
-	}
-
-	t.Log("Verifying custom metadata added by the LB policy is received at the test backend...")
-	wantMDVal = []string{metadataValueInjectedByBalancer}
-	gotMDVal = gotMD.Get(metadataHeaderInjectedByBalancer)
-	if !cmp.Equal(gotMDVal, wantMDVal) {
-		t.Fatalf("Mismatch in custom metadata received at test backend, got: %v, want %v", gotMDVal, wantMDVal)
-	}
-}
-
-// producerTestBalancerBuilder and producerTestBalancer start a producer which
-// makes an RPC before the subconn is READY, then connects the subconn, and
-// pushes the resulting error (expected to be nil) to rpcErrChan.
-type producerTestBalancerBuilder struct {
-	rpcErrChan chan error
-	ctxChan    chan context.Context
-	connect    bool
-}
-
-func (bb *producerTestBalancerBuilder) Build(cc balancer.ClientConn, opts balancer.BuildOptions) balancer.Balancer {
-	return &producerTestBalancer{cc: cc, rpcErrChan: bb.rpcErrChan, ctxChan: bb.ctxChan, connect: bb.connect}
-}
-
-const producerTestBalancerName = "producer_test_balancer"
-
-func (bb *producerTestBalancerBuilder) Name() string { return producerTestBalancerName }
-
-type producerTestBalancer struct {
-	cc         balancer.ClientConn
-	rpcErrChan chan error
-	ctxChan    chan context.Context
-	connect    bool
-}
-
-func (b *producerTestBalancer) UpdateClientConnState(ccs balancer.ClientConnState) error {
-	// Create the subconn, but don't connect it.
-	sc, err := b.cc.NewSubConn(ccs.ResolverState.Addresses, balancer.NewSubConnOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating subconn: %v", err)
-	}
-
-	// Create the producer.  This will call the producer builder's Build
-	// method, which will try to start an RPC in a goroutine.
-	p := &testProducerBuilder{start: grpcsync.NewEvent(), rpcErrChan: b.rpcErrChan, ctxChan: b.ctxChan}
-	sc.GetOrBuildProducer(p)
-
-	// Wait here until the producer is about to perform the RPC, which should
-	// block until connected.
-	<-p.start.Done()
-
-	// Ensure the error chan doesn't get anything on it before we connect the
-	// subconn.
-	select {
-	case err := <-b.rpcErrChan:
-		go func() { b.rpcErrChan <- fmt.Errorf("Got unexpected data on rpcErrChan: %v", err) }()
-	default:
-	}
-
-	if b.connect {
-		// Now we can connect, which will unblock the RPC above.
-		sc.Connect()
-	}
-
-	// The stub server requires a READY picker to be reported, to unblock its
-	// Start method.  We won't make RPCs in our test, so a nil picker is okay.
-	b.cc.UpdateState(balancer.State{ConnectivityState: connectivity.Ready, Picker: nil})
-	return nil
-}
-
-func (b *producerTestBalancer) ResolverError(err error) {
-	panic(fmt.Sprintf("Unexpected resolver error: %v", err))
-}
-
-func (b *producerTestBalancer) UpdateSubConnState(balancer.SubConn, balancer.SubConnState) {}
-func (b *producerTestBalancer) Close()                                                     {}
-
-type testProducerBuilder struct {
-	start      *grpcsync.Event
-	rpcErrChan chan error
-	ctxChan    chan context.Context
-}
-
-func (b *testProducerBuilder) Build(cci any) (balancer.Producer, func()) {
-	c := testgrpc.NewTestServiceClient(cci.(grpc.ClientConnInterface))
-	// Perform the RPC in a goroutine instead of during build because the
-	// subchannel's mutex is held here.
-	go func() {
-		ctx := <-b.ctxChan
-		b.start.Fire()
-		_, err := c.EmptyCall(ctx, &testpb.Empty{})
-		b.rpcErrChan <- err
-	}()
-	return nil, func() {}
-}
-
-// TestBalancerProducerBlockUntilReady tests that we get no RPC errors from
-// producers when subchannels aren't ready.
-func (s) TestBalancerProducerBlockUntilReady(t *testing.T) {
-	// rpcErrChan is given to the LB policy to report the status of the
-	// producer's one RPC.
-	ctxChan := make(chan context.Context, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	defer cancel()
-	ctxChan <- ctx
-
-	rpcErrChan := make(chan error)
-	balancer.Register(&producerTestBalancerBuilder{rpcErrChan: rpcErrChan, ctxChan: ctxChan, connect: true})
-
-	ss := &stubserver.StubServer{
-		EmptyCallF: func(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
-			return &testpb.Empty{}, nil
-		},
-	}
-
-	// Start the server & client with the test producer LB policy.
-	svcCfg := fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, producerTestBalancerName)
-	if err := ss.Start(nil, grpc.WithDefaultServiceConfig(svcCfg)); err != nil {
-		t.Fatalf("Error starting testing server: %v", err)
-	}
-	defer ss.Stop()
-
-	// Receive the error from the producer's RPC, which should be nil.
-	if err := <-rpcErrChan; err != nil {
-		t.Fatalf("Received unexpected error from producer RPC: %v", err)
-	}
-}
-
-// TestBalancerProducerHonorsContext tests that producers that perform RPC get
-// context errors correctly.
-func (s) TestBalancerProducerHonorsContext(t *testing.T) {
-	// rpcErrChan is given to the LB policy to report the status of the
-	// producer's one RPC.
-	ctxChan := make(chan context.Context, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	ctxChan <- ctx
-
-	rpcErrChan := make(chan error)
-	balancer.Register(&producerTestBalancerBuilder{rpcErrChan: rpcErrChan, ctxChan: ctxChan, connect: false})
-
-	ss := &stubserver.StubServer{
-		EmptyCallF: func(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
-			return &testpb.Empty{}, nil
-		},
-	}
-
-	// Start the server & client with the test producer LB policy.
-	svcCfg := fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, producerTestBalancerName)
-	if err := ss.Start(nil, grpc.WithDefaultServiceConfig(svcCfg)); err != nil {
-		t.Fatalf("Error starting testing server: %v", err)
-	}
-	defer ss.Stop()
-
-	cancel()
-
-	// Receive the error from the producer's RPC, which should be canceled.
-	if err := <-rpcErrChan; status.Code(err) != codes.Canceled {
-		t.Fatalf("RPC error: %v; want status.Code(err)=%v", err, codes.Canceled)
-	}
-}
-
-// TestSubConnShutdown confirms that the Shutdown method on subconns and
-// RemoveSubConn method on ClientConn properly initiates subconn shutdown.
-func (s) TestSubConnShutdown(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	defer cancel()
-
-	testCases := []struct {
-		name     string
-		shutdown func(cc balancer.ClientConn, sc balancer.SubConn)
-	}{{
-		name: "ClientConn.RemoveSubConn",
-		shutdown: func(cc balancer.ClientConn, sc balancer.SubConn) {
-			cc.RemoveSubConn(sc)
-		},
-	}, {
-		name: "SubConn.Shutdown",
-		shutdown: func(_ balancer.ClientConn, sc balancer.SubConn) {
-			sc.Shutdown()
-		},
-	}}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gotShutdown := grpcsync.NewEvent()
-
-			bf := stub.BalancerFuncs{
-				UpdateClientConnState: func(bd *stub.BalancerData, ccs balancer.ClientConnState) error {
-					var sc balancer.SubConn
-					opts := balancer.NewSubConnOptions{
-						StateListener: func(scs balancer.SubConnState) {
-							switch scs.ConnectivityState {
-							case connectivity.Connecting:
-								// Ignored.
-							case connectivity.Ready:
-								tc.shutdown(bd.ClientConn, sc)
-							case connectivity.Shutdown:
-								gotShutdown.Fire()
-							default:
-								t.Errorf("got unexpected state %q in listener", scs.ConnectivityState)
-							}
-						},
-					}
-					sc, err := bd.ClientConn.NewSubConn(ccs.ResolverState.Addresses, opts)
-					if err != nil {
-						return err
-					}
-					sc.Connect()
-					// Report the state as READY to unblock ss.Start(), which waits for ready.
-					bd.ClientConn.UpdateState(balancer.State{ConnectivityState: connectivity.Ready})
-					return nil
-				},
-			}
-
-			testBalName := "shutdown-test-balancer-" + tc.name
-			stub.Register(testBalName, bf)
-			t.Logf("Registered balancer %s...", testBalName)
-
-			ss := &stubserver.StubServer{}
-			if err := ss.Start(nil, grpc.WithDefaultServiceConfig(
-				fmt.Sprintf(`{ "loadBalancingConfig": [{"%v": {}}] }`, testBalName),
-			)); err != nil {
-				t.Fatalf("Error starting endpoint server: %v", err)
-			}
-			defer ss.Stop()
-
-			select {
-			case <-gotShutdown.Done():
-				// Success
-			case <-ctx.Done():
-				t.Fatalf("Timed out waiting for gotShutdown to be fired.")
 			}
 		})
 	}

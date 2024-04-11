@@ -15,9 +15,9 @@ package grpc_test
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"testing"
 	"time"
 
@@ -105,17 +105,17 @@ func serverRun() {
 
 	// 准备CA证书池，导入颁发客户端证书的CA证书
 	certPool := x509.NewCertPool()
-	sm2CaCert, err := os.ReadFile(sm2_ca)
+	sm2CaCert, err := ioutil.ReadFile(sm2_ca)
 	if err != nil {
 		log.Fatal(err)
 	}
 	certPool.AppendCertsFromPEM(sm2CaCert)
-	ecdsaCaCert, err := os.ReadFile(ecdsa_ca)
+	ecdsaCaCert, err := ioutil.ReadFile(ecdsa_ca)
 	if err != nil {
 		log.Fatal(err)
 	}
 	certPool.AppendCertsFromPEM(ecdsaCaCert)
-	ecdsaextCaCert, err := os.ReadFile(ecdsaext_ca)
+	ecdsaextCaCert, err := ioutil.ReadFile(ecdsaext_ca)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func clientRun(certType string) {
 	switch certType {
 	case "sm2":
 		// 读取sm2 ca证书
-		cacert, err = os.ReadFile(sm2_ca)
+		cacert, err = ioutil.ReadFile(sm2_ca)
 		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
 		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
 		// 此时该证书应该由第三方ca机构颁发签名。
@@ -171,7 +171,7 @@ func clientRun(certType string) {
 		cipherSuitesPrefer = append(cipherSuitesPrefer, gmtls.TLS_SM4_GCM_SM3)
 	case "ecdsa":
 		// 读取ecdsa ca证书
-		cacert, err = os.ReadFile(ecdsa_ca)
+		cacert, err = ioutil.ReadFile(ecdsa_ca)
 		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
 		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
 		// 此时该证书应该由第三方ca机构颁发签名。
@@ -181,7 +181,7 @@ func clientRun(certType string) {
 		sigAlgPrefer = append(sigAlgPrefer, gmtls.ECDSAWithP256AndSHA256)
 	case "ecdsaext":
 		// 读取ecdsaext ca证书
-		cacert, err = os.ReadFile(ecdsaext_ca)
+		cacert, err = ioutil.ReadFile(ecdsaext_ca)
 		// 读取User证书与私钥，作为客户端的证书与私钥，一般用作密钥交换证书。
 		// 但如果服务端要求查看客户端证书(双向tls通信)则也作为客户端身份验证用证书，
 		// 此时该证书应该由第三方ca机构颁发签名。
@@ -238,13 +238,7 @@ func echoInClient(c echo.EchoClient) {
 
 type server struct{}
 
-func (s *server) mustEmbedUnimplementedEchoServer() {
-	//TODO implement me
-	panic("implement me")
-}
-
 // Echo 服务端echo处理
-//
 //goland:noinspection GoUnusedParameter
 func (s *server) Echo(ctx context.Context, req *echo.EchoRequest) (*echo.EchoResponse, error) {
 	msgClient := req.Req
@@ -253,5 +247,3 @@ func (s *server) Echo(ctx context.Context, req *echo.EchoRequest) (*echo.EchoRes
 	fmt.Printf("服务端返回消息: %s\n", msgServer)
 	return &echo.EchoResponse{Result: msgServer}, nil
 }
-
-//func (s *server) mustEmbedUnimplementedEchoServer() {}

@@ -20,20 +20,14 @@
 // name without scheme back to gRPC as resolved address.
 package passthrough
 
-import (
-	"errors"
-
-	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
-)
+import "gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 
 const scheme = "passthrough"
 
 type passthroughBuilder struct{}
 
+//goland:noinspection GoUnusedParameter
 func (*passthroughBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	if target.Endpoint() == "" && opts.Dialer == nil {
-		return nil, errors.New("passthrough: received empty target in Build()")
-	}
 	r := &passthroughResolver{
 		target: target,
 		cc:     cc,
@@ -52,9 +46,12 @@ type passthroughResolver struct {
 }
 
 func (r *passthroughResolver) start() {
-	r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint()}}})
+	// Endpoint is deprecated, use GetEndpoint() instead.
+	//_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.Endpoint}}})
+	_ = r.cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: r.target.GetEndpoint()}}})
 }
 
+//goland:noinspection GoUnusedParameter
 func (*passthroughResolver) ResolveNow(o resolver.ResolveNowOptions) {}
 
 func (*passthroughResolver) Close() {}

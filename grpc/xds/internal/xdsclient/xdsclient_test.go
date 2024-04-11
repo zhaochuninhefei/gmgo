@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/controller/version/v2" // Register the v2 API client.
 )
 
 type s struct {

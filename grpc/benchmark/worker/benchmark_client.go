@@ -26,21 +26,17 @@ import (
 	"sync"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/benchmark"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/benchmark/stats"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcrand"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/syscall"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
 
 	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds" // To install the xds resolvers and balancers.
 )
 
 var caFile = flag.String("ca_file", "", "The file containing the CA root cert file")
@@ -116,10 +112,7 @@ func setupClientEnv(config *testpb.ClientConfig) {
 // It returns the connections and corresponding function to close them.
 // It returns non-nil error if there is anything wrong.
 func createConns(config *testpb.ClientConfig) ([]*grpc.ClientConn, func(), error) {
-	opts := []grpc.DialOption{
-		grpc.WithWriteBufferSize(128 * 1024),
-		grpc.WithReadBufferSize(128 * 1024),
-	}
+	var opts []grpc.DialOption
 
 	// Sanity check for client type.
 	switch config.ClientType {
@@ -136,11 +129,11 @@ func createConns(config *testpb.ClientConfig) ([]*grpc.ClientConn, func(), error
 		}
 		creds, err := credentials.NewClientTLSFromFile(*caFile, config.SecurityParams.ServerHostOverride)
 		if err != nil {
-			return nil, nil, status.Errorf(codes.InvalidArgument, "failed to create TLS credentials: %v", err)
+			return nil, nil, status.Errorf(codes.InvalidArgument, "failed to create TLS credentials %v", err)
 		}
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		opts = append(opts, grpc.WithInsecure())
 	}
 
 	// Use byteBufCodec if it is required.
@@ -189,21 +182,11 @@ func performRPCs(config *testpb.ClientConfig, conns []*grpc.ClientConn, bc *benc
 		}
 	}
 
-	// If set, perform an open loop, if not perform a closed loop. An open loop
-	// asynchronously starts RPCs based on random start times derived from a
-	// Poisson distribution. A closed loop performs RPCs in a blocking manner,
-	// and runs the next RPC after the previous RPC completes and returns.
-	var poissonLambda *float64
-	switch t := config.LoadParams.Load.(type) {
+	// TODO add open loop distribution.
+	switch config.LoadParams.Load.(type) {
 	case *testpb.LoadParams_ClosedLoop:
 	case *testpb.LoadParams_Poisson:
-		if t.Poisson == nil {
-			return status.Errorf(codes.InvalidArgument, "poisson is nil, needs to be set")
-		}
-		if t.Poisson.OfferedLoad <= 0 {
-			return status.Errorf(codes.InvalidArgument, "poisson.offered is <= 0: %v, needs to be >0", t.Poisson.OfferedLoad)
-		}
-		poissonLambda = &t.Poisson.OfferedLoad
+		return status.Errorf(codes.Unimplemented, "unsupported load params: %v", config.LoadParams)
 	default:
 		return status.Errorf(codes.InvalidArgument, "unknown load params: %v", config.LoadParams)
 	}
@@ -212,9 +195,11 @@ func performRPCs(config *testpb.ClientConfig, conns []*grpc.ClientConn, bc *benc
 
 	switch config.RpcType {
 	case testpb.RpcType_UNARY:
-		bc.unaryLoop(conns, rpcCountPerConn, payloadReqSize, payloadRespSize, poissonLambda)
+		bc.doCloseLoopUnary(conns, rpcCountPerConn, payloadReqSize, payloadRespSize)
+		// TODO open loop.
 	case testpb.RpcType_STREAMING:
-		bc.streamingLoop(conns, rpcCountPerConn, payloadReqSize, payloadRespSize, payloadType, poissonLambda)
+		bc.doCloseLoopStreaming(conns, rpcCountPerConn, payloadReqSize, payloadRespSize, payloadType)
+		// TODO open loop.
 	default:
 		return status.Errorf(codes.InvalidArgument, "unknown rpc type: %v", config.RpcType)
 	}
@@ -258,7 +243,7 @@ func startBenchmarkClient(config *testpb.ClientConfig) (*benchmarkClient, error)
 	return bc, nil
 }
 
-func (bc *benchmarkClient) unaryLoop(conns []*grpc.ClientConn, rpcCountPerConn int, reqSize int, respSize int, poissonLambda *float64) {
+func (bc *benchmarkClient) doCloseLoopUnary(conns []*grpc.ClientConn, rpcCountPerConn int, reqSize int, respSize int) {
 	for ic, conn := range conns {
 		client := testgrpc.NewBenchmarkServiceClient(conn)
 		// For each connection, create rpcCountPerConn goroutines to do rpc.
@@ -272,44 +257,36 @@ func (bc *benchmarkClient) unaryLoop(conns []*grpc.ClientConn, rpcCountPerConn i
 				// Now relying on worker client to reserve time to do warm up.
 				// The worker client needs to wait for some time after client is created,
 				// before starting benchmark.
-				if poissonLambda == nil { // Closed loop.
-					done := make(chan bool)
-					for {
-						go func() {
-							start := time.Now()
-							if err := benchmark.DoUnaryCall(client, reqSize, respSize); err != nil {
-								select {
-								case <-bc.stop:
-								case done <- false:
-								}
-								return
-							}
-							elapse := time.Since(start)
-							bc.lockingHistograms[idx].add(int64(elapse))
+				done := make(chan bool)
+				for {
+					go func() {
+						start := time.Now()
+						if err := benchmark.DoUnaryCall(client, reqSize, respSize); err != nil {
 							select {
 							case <-bc.stop:
-							case done <- true:
+							case done <- false:
 							}
-						}()
+							return
+						}
+						elapse := time.Since(start)
+						bc.lockingHistograms[idx].add(int64(elapse))
 						select {
 						case <-bc.stop:
-							return
-						case <-done:
+						case done <- true:
 						}
+					}()
+					select {
+					case <-bc.stop:
+						return
+					case <-done:
 					}
-				} else { // Open loop.
-					timeBetweenRPCs := time.Duration((grpcrand.ExpFloat64() / *poissonLambda) * float64(time.Second))
-					time.AfterFunc(timeBetweenRPCs, func() {
-						bc.poissonUnary(client, idx, reqSize, respSize, *poissonLambda)
-					})
 				}
-
 			}(idx)
 		}
 	}
 }
 
-func (bc *benchmarkClient) streamingLoop(conns []*grpc.ClientConn, rpcCountPerConn int, reqSize int, respSize int, payloadType string, poissonLambda *float64) {
+func (bc *benchmarkClient) doCloseLoopStreaming(conns []*grpc.ClientConn, rpcCountPerConn int, reqSize int, respSize int, payloadType string) {
 	var doRPC func(testgrpc.BenchmarkService_StreamingCallClient, int, int) error
 	if payloadType == "bytebuf" {
 		doRPC = benchmark.DoByteBufStreamingRoundTrip
@@ -324,67 +301,31 @@ func (bc *benchmarkClient) streamingLoop(conns []*grpc.ClientConn, rpcCountPerCo
 			if err != nil {
 				logger.Fatalf("%v.StreamingCall(_) = _, %v", c, err)
 			}
+			// Create histogram for each goroutine.
 			idx := ic*rpcCountPerConn + j
 			bc.lockingHistograms[idx].histogram = stats.NewHistogram(bc.histogramOptions)
-			if poissonLambda == nil { // Closed loop.
-				// Start goroutine on the created mutex and histogram.
-				go func(idx int) {
-					// TODO: do warm up if necessary.
-					// Now relying on worker client to reserve time to do warm up.
-					// The worker client needs to wait for some time after client is created,
-					// before starting benchmark.
-					for {
-						start := time.Now()
-						if err := doRPC(stream, reqSize, respSize); err != nil {
-							return
-						}
-						elapse := time.Since(start)
-						bc.lockingHistograms[idx].add(int64(elapse))
-						select {
-						case <-bc.stop:
-							return
-						default:
-						}
+			// Start goroutine on the created mutex and histogram.
+			go func(idx int) {
+				// TODO: do warm up if necessary.
+				// Now relying on worker client to reserve time to do warm up.
+				// The worker client needs to wait for some time after client is created,
+				// before starting benchmark.
+				for {
+					start := time.Now()
+					if err := doRPC(stream, reqSize, respSize); err != nil {
+						return
 					}
-				}(idx)
-			} else { // Open loop.
-				timeBetweenRPCs := time.Duration((grpcrand.ExpFloat64() / *poissonLambda) * float64(time.Second))
-				time.AfterFunc(timeBetweenRPCs, func() {
-					bc.poissonStreaming(stream, idx, reqSize, respSize, *poissonLambda, doRPC)
-				})
-			}
+					elapse := time.Since(start)
+					bc.lockingHistograms[idx].add(int64(elapse))
+					select {
+					case <-bc.stop:
+						return
+					default:
+					}
+				}
+			}(idx)
 		}
 	}
-}
-
-func (bc *benchmarkClient) poissonUnary(client testgrpc.BenchmarkServiceClient, idx int, reqSize int, respSize int, lambda float64) {
-	go func() {
-		start := time.Now()
-		if err := benchmark.DoUnaryCall(client, reqSize, respSize); err != nil {
-			return
-		}
-		elapse := time.Since(start)
-		bc.lockingHistograms[idx].add(int64(elapse))
-	}()
-	timeBetweenRPCs := time.Duration((grpcrand.ExpFloat64() / lambda) * float64(time.Second))
-	time.AfterFunc(timeBetweenRPCs, func() {
-		bc.poissonUnary(client, idx, reqSize, respSize, lambda)
-	})
-}
-
-func (bc *benchmarkClient) poissonStreaming(stream testgrpc.BenchmarkService_StreamingCallClient, idx int, reqSize int, respSize int, lambda float64, doRPC func(testgrpc.BenchmarkService_StreamingCallClient, int, int) error) {
-	go func() {
-		start := time.Now()
-		if err := doRPC(stream, reqSize, respSize); err != nil {
-			return
-		}
-		elapse := time.Since(start)
-		bc.lockingHistograms[idx].add(int64(elapse))
-	}()
-	timeBetweenRPCs := time.Duration((grpcrand.ExpFloat64() / lambda) * float64(time.Second))
-	time.AfterFunc(timeBetweenRPCs, func() {
-		bc.poissonStreaming(stream, idx, reqSize, respSize, lambda, doRPC)
-	})
 }
 
 // getStats returns the stats for benchmark client.

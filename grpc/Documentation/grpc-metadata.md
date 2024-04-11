@@ -223,8 +223,3 @@ func (s *server) SomeStreamingRPC(stream pb.Service_SomeStreamingRPCServer) erro
     stream.SetTrailer(trailer)
 }
 ```
-
-## Updating metadata from a server interceptor
-
-An example for updating metadata from a server interceptor is
-available [here](../examples/features/metadata_interceptor/server/main.go).

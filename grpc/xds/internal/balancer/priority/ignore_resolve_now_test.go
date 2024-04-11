@@ -23,44 +23,81 @@ import (
 	"testing"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer/roundrobin"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 )
 
-func (s) TestIgnoreResolveNowClientConn(t *testing.T) {
-	cc := testutils.NewBalancerClientConn(t)
-	ignoreCC := newIgnoreResolveNowClientConn(cc, false)
+const resolveNowBalancerName = "test-resolve-now-balancer"
+
+var resolveNowBalancerCCCh = testutils.NewChannel()
+
+type resolveNowBalancerBuilder struct {
+	balancer.Builder
+}
+
+func (r *resolveNowBalancerBuilder) Build(cc balancer.ClientConn, opts balancer.BuildOptions) balancer.Balancer {
+	resolveNowBalancerCCCh.Send(cc)
+	return r.Builder.Build(cc, opts)
+}
+
+func (r *resolveNowBalancerBuilder) Name() string {
+	return resolveNowBalancerName
+}
+
+func init() {
+	balancer.Register(&resolveNowBalancerBuilder{
+		Builder: balancer.Get(roundrobin.Name),
+	})
+}
+
+func (s) TestIgnoreResolveNowBalancerBuilder(t *testing.T) {
+	resolveNowBB := balancer.Get(resolveNowBalancerName)
+	// Create a build wrapper, but will not ignore ResolveNow().
+	ignoreResolveNowBB := newIgnoreResolveNowBalancerBuilder(resolveNowBB, false)
+
+	cc := testutils.NewTestClientConn(t)
+	tb := ignoreResolveNowBB.Build(cc, balancer.BuildOptions{})
+	defer tb.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	// This is the balancer.ClientConn that the inner resolverNowBalancer is
+	// built with.
+	balancerCCI, err := resolveNowBalancerCCCh.Receive(ctx)
+	if err != nil {
+		t.Fatalf("timeout waiting for ClientConn from balancer builder")
+	}
+	balancerCC := balancerCCI.(balancer.ClientConn)
 
 	// Call ResolveNow() on the CC, it should be forwarded.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	defer cancel()
-
-	ignoreCC.ResolveNow(resolver.ResolveNowOptions{})
+	balancerCC.ResolveNow(resolver.ResolveNowOptions{})
 	select {
 	case <-cc.ResolveNowCh:
-	case <-ctx.Done():
-		t.Fatalf("Timeout waiting for ResolveNow()")
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for ResolveNow()")
 	}
 
 	// Update ignoreResolveNow to true, call ResolveNow() on the CC, they should
 	// all be ignored.
-	ignoreCC.updateIgnoreResolveNow(true)
+	ignoreResolveNowBB.updateIgnoreResolveNow(true)
 	for i := 0; i < 5; i++ {
-		ignoreCC.ResolveNow(resolver.ResolveNowOptions{})
+		balancerCC.ResolveNow(resolver.ResolveNowOptions{})
 	}
 	select {
 	case <-cc.ResolveNowCh:
 		t.Fatalf("got unexpected ResolveNow() call")
-	case <-time.After(defaultTestShortTimeout):
+	case <-time.After(time.Millisecond * 100):
 	}
 
 	// Update ignoreResolveNow to false, new ResolveNow() calls should be
 	// forwarded.
-	ignoreCC.updateIgnoreResolveNow(false)
-	ignoreCC.ResolveNow(resolver.ResolveNowOptions{})
+	ignoreResolveNowBB.updateIgnoreResolveNow(false)
+	balancerCC.ResolveNow(resolver.ResolveNowOptions{})
 	select {
 	case <-cc.ResolveNowCh:
-	case <-ctx.Done():
+	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for ResolveNow()")
 	}
 }

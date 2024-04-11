@@ -20,32 +20,31 @@ package xdsresource
 import (
 	"errors"
 	"fmt"
-	"math"
 	"regexp"
 	"testing"
 	"time"
 
-	v3discoverypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds/matcher"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/clusterspecifier"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
+	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	v2xdspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2"
+	v2routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/route"
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	rpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v3"
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3rbacpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
 	v3typepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
+	anypb "github.com/golang/protobuf/ptypes/any"
+	wrapperspb "github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
@@ -98,42 +97,6 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 
 			return rc
 		}
-		goodRouteConfigWithClusterSpecifierPluginsAndNormalRoute = func(csps []*v3routepb.ClusterSpecifierPlugin, cspReferences []string) *v3routepb.RouteConfiguration {
-			rs := goodRouteConfigWithClusterSpecifierPlugins(csps, cspReferences)
-			rs.VirtualHosts[0].Routes = append(rs.VirtualHosts[0].Routes, &v3routepb.Route{
-				Match: &v3routepb.RouteMatch{
-					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/"},
-					CaseSensitive: &wrapperspb.BoolValue{Value: false},
-				},
-				Action: &v3routepb.Route_Route{
-					Route: &v3routepb.RouteAction{
-						ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName},
-					}}})
-			return rs
-		}
-		goodRouteConfigWithUnsupportedClusterSpecifier = &v3routepb.RouteConfiguration{
-			Name: routeName,
-			VirtualHosts: []*v3routepb.VirtualHost{{
-				Domains: []string{ldsTarget},
-				Routes: []*v3routepb.Route{
-					{
-						Match: &v3routepb.RouteMatch{
-							PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/"},
-							CaseSensitive: &wrapperspb.BoolValue{Value: false},
-						},
-						Action: &v3routepb.Route_Route{
-							Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
-						}},
-					{
-						Match: &v3routepb.RouteMatch{PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "|"}},
-						Action: &v3routepb.Route_Route{
-							Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_ClusterHeader{}},
-						}},
-				},
-			},
-			},
-		}
-
 		goodUpdateWithFilterConfigs = func(cfgs map[string]httpfilter.FilterConfig) RouteConfigUpdate {
 			return RouteConfigUpdate{
 				VirtualHosts: []*VirtualHost{{
@@ -147,16 +110,11 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 				}},
 			}
 		}
-		goodUpdateWithNormalRoute = RouteConfigUpdate{
-			VirtualHosts: []*VirtualHost{
-				{
-					Domains: []string{ldsTarget},
-					Routes: []*Route{{Prefix: newStringP("/"),
-						CaseInsensitive:  true,
-						WeightedClusters: map[string]WeightedCluster{clusterName: {Weight: 1}},
-						ActionType:       RouteActionRoute}},
-				},
-			},
+		goodUpdate = RouteConfigUpdate{
+			VirtualHosts: []*VirtualHost{{
+				Domains: []string{ldsTarget},
+				Routes:  nil,
+			}},
 		}
 		goodUpdateWithClusterSpecifierPluginA = RouteConfigUpdate{
 			VirtualHosts: []*VirtualHost{{
@@ -171,13 +129,12 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 				"cspA": nil,
 			},
 		}
-		clusterSpecifierPlugin = func(name string, config *anypb.Any, isOptional bool) *v3routepb.ClusterSpecifierPlugin {
+		clusterSpecifierPlugin = func(name string, config *anypb.Any) *v3routepb.ClusterSpecifierPlugin {
 			return &v3routepb.ClusterSpecifierPlugin{
 				Extension: &v3corepb.TypedExtensionConfig{
 					Name:        name,
 					TypedConfig: config,
 				},
-				IsOptional: isOptional,
 			}
 		}
 		goodRouteConfigWithRetryPolicy = func(vhrp *v3routepb.RetryPolicy, rrp *v3routepb.RetryPolicy) *v3routepb.RouteConfiguration {
@@ -215,11 +172,17 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 		defaultRetryBackoff = RetryBackoff{BaseInterval: 25 * time.Millisecond, MaxInterval: 250 * time.Millisecond}
 	)
 
+	oldRLS := envconfig.XDSRLS
+	defer func() {
+		envconfig.XDSRLS = oldRLS
+	}()
+
 	tests := []struct {
 		name       string
 		rc         *v3routepb.RouteConfiguration
 		wantUpdate RouteConfigUpdate
 		wantError  bool
+		rlsEnabled bool
 	}{
 		{
 			name: "default-route-match-field-is-nil",
@@ -401,6 +364,38 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 			},
 		},
 		{
+			// weights not add up to total-weight.
+			name: "route-config-with-weighted_clusters_weights_not_add_up",
+			rc: &v3routepb.RouteConfiguration{
+				Name: routeName,
+				VirtualHosts: []*v3routepb.VirtualHost{
+					{
+						Domains: []string{ldsTarget},
+						Routes: []*v3routepb.Route{
+							{
+								Match: &v3routepb.RouteMatch{PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/"}},
+								Action: &v3routepb.Route_Route{
+									Route: &v3routepb.RouteAction{
+										ClusterSpecifier: &v3routepb.RouteAction_WeightedClusters{
+											WeightedClusters: &v3routepb.WeightedCluster{
+												Clusters: []*v3routepb.WeightedCluster_ClusterWeight{
+													{Name: "a", Weight: &wrapperspb.UInt32Value{Value: 2}},
+													{Name: "b", Weight: &wrapperspb.UInt32Value{Value: 3}},
+													{Name: "c", Weight: &wrapperspb.UInt32Value{Value: 5}},
+												},
+												TotalWeight: &wrapperspb.UInt32Value{Value: 30},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
 			name: "good-route-config-with-weighted_clusters",
 			rc: &v3routepb.RouteConfiguration{
 				Name: routeName,
@@ -419,6 +414,7 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 													{Name: "b", Weight: &wrapperspb.UInt32Value{Value: 3}},
 													{Name: "c", Weight: &wrapperspb.UInt32Value{Value: 5}},
 												},
+												TotalWeight: &wrapperspb.UInt32Value{Value: 10},
 											},
 										},
 									},
@@ -555,19 +551,19 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": customFilterConfig}),
 			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
-		{
-			name:       "good-route-config-with-http-filter-config-in-old-typed-struct",
-			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": testutils.MarshalAny(t, customFilterOldTypedStructConfig)}),
-			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
-		},
+		//{
+		//	name:       "good-route-config-with-http-filter-config-in-old-typed-struct",
+		//	rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterOldTypedStructConfig}),
+		//	wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
+		//},
 		{
 			name:       "good-route-config-with-http-filter-config-in-new-typed-struct",
-			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": testutils.MarshalAny(t, customFilterNewTypedStructConfig)}),
+			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterNewTypedStructConfig}),
 			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterNewTypedStructConfig}}),
 		},
 		{
 			name:       "good-route-config-with-optional-http-filter-config",
-			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter(t, "custom.filter")}),
+			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("custom.filter")}),
 			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
 		{
@@ -577,7 +573,7 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 		},
 		{
 			name:      "good-route-config-with-http-optional-err-filter-config",
-			rc:        goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter(t, "err.custom.filter")}),
+			rc:        goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("err.custom.filter")}),
 			wantError: true,
 		},
 		{
@@ -587,12 +583,12 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 		},
 		{
 			name:       "good-route-config-with-http-optional-unknown-filter-config",
-			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter(t, "unknown.custom.filter")}),
+			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("unknown.custom.filter")}),
 			wantUpdate: goodUpdateWithFilterConfigs(nil),
 		},
 		{
 			name: "good-route-config-with-bad-rbac-http-filter-configuration",
-			rc: goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"rbac": testutils.MarshalAny(t, &v3rbacpb.RBACPerRoute{Rbac: &v3rbacpb.RBAC{
+			rc: goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"rbac": testutils.MarshalAny(&v3rbacpb.RBACPerRoute{Rbac: &v3rbacpb.RBAC{
 				Rules: &rpb.RBAC{
 					Action: rpb.RBAC_ALLOW,
 					Policies: map[string]*rpb.Policy{
@@ -654,63 +650,63 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 		{
 			name: "cluster-specifier-declared-which-not-registered",
 			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
-				clusterSpecifierPlugin("cspA", configOfClusterSpecifierDoesntExist, false),
+				clusterSpecifierPlugin("cspA", configOfClusterSpecifierDoesntExist),
 			}, []string{"cspA"}),
-			wantError: true,
+			wantError:  true,
+			rlsEnabled: true,
 		},
 		{
 			name: "error-in-cluster-specifier-plugin-conversion-method",
 			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
-				clusterSpecifierPlugin("cspA", errorClusterSpecifierConfig, false),
+				clusterSpecifierPlugin("cspA", errorClusterSpecifierConfig),
 			}, []string{"cspA"}),
-			wantError: true,
+			wantError:  true,
+			rlsEnabled: true,
 		},
 		{
 			name: "route-action-that-references-undeclared-cluster-specifier-plugin",
 			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
-				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig, false),
+				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig),
 			}, []string{"cspA", "cspB"}),
-			wantError: true,
+			wantError:  true,
+			rlsEnabled: true,
 		},
 		{
 			name: "emitted-cluster-specifier-plugins",
 			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
-				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig, false),
+				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig),
 			}, []string{"cspA"}),
 			wantUpdate: goodUpdateWithClusterSpecifierPluginA,
+			rlsEnabled: true,
 		},
 		{
 			name: "deleted-cluster-specifier-plugins-not-referenced",
 			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
-				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig, false),
-				clusterSpecifierPlugin("cspB", mockClusterSpecifierConfig, false),
+				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig),
+				clusterSpecifierPlugin("cspB", mockClusterSpecifierConfig),
 			}, []string{"cspA"}),
 			wantUpdate: goodUpdateWithClusterSpecifierPluginA,
+			rlsEnabled: true,
 		},
-		// This tests a scenario where a cluster specifier plugin is not found
-		// and is optional. Any routes referencing that not found optional
-		// cluster specifier plugin should be ignored. The config has two
-		// routes, and only one of them should be present in the update.
 		{
-			name: "cluster-specifier-plugin-not-found-and-optional-route-should-ignore",
-			rc: goodRouteConfigWithClusterSpecifierPluginsAndNormalRoute([]*v3routepb.ClusterSpecifierPlugin{
-				clusterSpecifierPlugin("cspA", configOfClusterSpecifierDoesntExist, true),
+			name: "ignore-error-in-cluster-specifier-plugin",
+			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
+				clusterSpecifierPlugin("cspA", configOfClusterSpecifierDoesntExist),
+			}, []string{}),
+			wantUpdate: goodUpdate,
+		},
+		{
+			name: "cluster-specifier-plugin-referenced-env-var-off",
+			rc: goodRouteConfigWithClusterSpecifierPlugins([]*v3routepb.ClusterSpecifierPlugin{
+				clusterSpecifierPlugin("cspA", mockClusterSpecifierConfig),
 			}, []string{"cspA"}),
-			wantUpdate: goodUpdateWithNormalRoute,
-		},
-		// This tests a scenario where a route has an unsupported cluster
-		// specifier. Any routes with an unsupported cluster specifier should be
-		// ignored. The config has two routes, and only one of them should be
-		// present in the update.
-		{
-			name:       "unsupported-cluster-specifier-route-should-ignore",
-			rc:         goodRouteConfigWithUnsupportedClusterSpecifier,
-			wantUpdate: goodUpdateWithNormalRoute,
+			wantError: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotUpdate, gotError := generateRDSUpdateFromRouteConfiguration(test.rc)
+			envconfig.XDSRLS = test.rlsEnabled
+			gotUpdate, gotError := generateRDSUpdateFromRouteConfiguration(test.rc, nil, false)
 			if (gotError != nil) != test.wantError ||
 				!cmp.Equal(gotUpdate, test.wantUpdate, cmpopts.EquateEmpty(),
 					cmp.Transformer("FilterConfig", func(fc httpfilter.FilterConfig) string {
@@ -750,7 +746,7 @@ func (mockClusterSpecifierPlugin) TypeURLs() []string {
 }
 
 func (mockClusterSpecifierPlugin) ParseClusterSpecifierConfig(proto.Message) (clusterspecifier.BalancerConfig, error) {
-	return []map[string]any{}, nil
+	return nil, nil
 }
 
 type errorClusterSpecifierPlugin struct{}
@@ -768,11 +764,45 @@ func (s) TestUnmarshalRouteConfig(t *testing.T) {
 		ldsTarget                = "lds.target.good:1111"
 		uninterestingDomain      = "uninteresting.domain"
 		uninterestingClusterName = "uninterestingClusterName"
+		v2RouteConfigName        = "v2RouteConfig"
 		v3RouteConfigName        = "v3RouteConfig"
+		v2ClusterName            = "v2Cluster"
 		v3ClusterName            = "v3Cluster"
 	)
 
 	var (
+		v2VirtualHost = []*v2routepb.VirtualHost{
+			{
+				Domains: []string{uninterestingDomain},
+				Routes: []*v2routepb.Route{
+					{
+						Match: &v2routepb.RouteMatch{PathSpecifier: &v2routepb.RouteMatch_Prefix{Prefix: ""}},
+						Action: &v2routepb.Route_Route{
+							Route: &v2routepb.RouteAction{
+								ClusterSpecifier: &v2routepb.RouteAction_Cluster{Cluster: uninterestingClusterName},
+							},
+						},
+					},
+				},
+			},
+			{
+				Domains: []string{ldsTarget},
+				Routes: []*v2routepb.Route{
+					{
+						Match: &v2routepb.RouteMatch{PathSpecifier: &v2routepb.RouteMatch_Prefix{Prefix: ""}},
+						Action: &v2routepb.Route_Route{
+							Route: &v2routepb.RouteAction{
+								ClusterSpecifier: &v2routepb.RouteAction_Cluster{Cluster: v2ClusterName},
+							},
+						},
+					},
+				},
+			},
+		}
+		v2RouteConfig = testutils.MarshalAny(&v2xdspb.RouteConfiguration{
+			Name:         v2RouteConfigName,
+			VirtualHosts: v2VirtualHost,
+		})
 		v3VirtualHost = []*v3routepb.VirtualHost{
 			{
 				Domains: []string{uninterestingDomain},
@@ -801,95 +831,239 @@ func (s) TestUnmarshalRouteConfig(t *testing.T) {
 				},
 			},
 		}
-		v3RouteConfig = testutils.MarshalAny(t, &v3routepb.RouteConfiguration{
+		v3RouteConfig = testutils.MarshalAny(&v3routepb.RouteConfiguration{
 			Name:         v3RouteConfigName,
 			VirtualHosts: v3VirtualHost,
 		})
 	)
+	const testVersion = "test-version-rds"
 
 	tests := []struct {
 		name       string
-		resource   *anypb.Any
-		wantName   string
-		wantUpdate RouteConfigUpdate
+		resources  []*anypb.Any
+		wantUpdate map[string]RouteConfigUpdateErrTuple
+		wantMD     UpdateMetadata
 		wantErr    bool
 	}{
 		{
-			name:     "non-routeConfig resource type",
-			resource: &anypb.Any{TypeUrl: version.V3HTTPConnManagerURL},
-			wantErr:  true,
-		},
-		{
-			name: "badly marshaled routeconfig resource",
-			resource: &anypb.Any{
-				TypeUrl: version.V3RouteConfigURL,
-				Value:   []byte{1, 2, 3, 4},
+			name:      "non-routeConfig resource type",
+			resources: []*anypb.Any{{TypeUrl: version.V3HTTPConnManagerURL}},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
 			},
 			wantErr: true,
 		},
 		{
-			name:     "v3 routeConfig resource",
-			resource: v3RouteConfig,
-			wantName: v3RouteConfigName,
-			wantUpdate: RouteConfigUpdate{
-				VirtualHosts: []*VirtualHost{
-					{
-						Domains: []string{uninterestingDomain},
-						Routes: []*Route{{Prefix: newStringP(""),
-							WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
-							ActionType:       RouteActionRoute}},
-					},
-					{
-						Domains: []string{ldsTarget},
-						Routes: []*Route{{Prefix: newStringP(""),
-							WeightedClusters: map[string]WeightedCluster{v3ClusterName: {Weight: 1}},
-							ActionType:       RouteActionRoute}},
-					},
+			name: "badly marshaled routeconfig resource",
+			resources: []*anypb.Any{
+				{
+					TypeUrl: version.V3RouteConfigURL,
+					Value:   []byte{1, 2, 3, 4},
 				},
-				Raw: v3RouteConfig,
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty resource list",
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusACKed,
+				Version: testVersion,
 			},
 		},
 		{
-			name:     "v3 routeConfig resource wrapped",
-			resource: testutils.MarshalAny(t, &v3discoverypb.Resource{Resource: v3RouteConfig}),
-			wantName: v3RouteConfigName,
-			wantUpdate: RouteConfigUpdate{
-				VirtualHosts: []*VirtualHost{
-					{
-						Domains: []string{uninterestingDomain},
-						Routes: []*Route{{Prefix: newStringP(""),
-							WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
-							ActionType:       RouteActionRoute}},
+			name:      "v2 routeConfig resource",
+			resources: []*anypb.Any{v2RouteConfig},
+			wantUpdate: map[string]RouteConfigUpdateErrTuple{
+				v2RouteConfigName: {Update: RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{
+						{
+							Domains: []string{uninterestingDomain},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+						{
+							Domains: []string{ldsTarget},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{v2ClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
 					},
-					{
-						Domains: []string{ldsTarget},
-						Routes: []*Route{{Prefix: newStringP(""),
-							WeightedClusters: map[string]WeightedCluster{v3ClusterName: {Weight: 1}},
-							ActionType:       RouteActionRoute}},
-					},
-				},
-				Raw: v3RouteConfig,
+					Raw: v2RouteConfig,
+				}},
 			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusACKed,
+				Version: testVersion,
+			},
+		},
+		{
+			name:      "v3 routeConfig resource",
+			resources: []*anypb.Any{v3RouteConfig},
+			wantUpdate: map[string]RouteConfigUpdateErrTuple{
+				v3RouteConfigName: {Update: RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{
+						{
+							Domains: []string{uninterestingDomain},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+						{
+							Domains: []string{ldsTarget},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{v3ClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+					},
+					Raw: v3RouteConfig,
+				}},
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusACKed,
+				Version: testVersion,
+			},
+		},
+		{
+			name:      "multiple routeConfig resources",
+			resources: []*anypb.Any{v2RouteConfig, v3RouteConfig},
+			wantUpdate: map[string]RouteConfigUpdateErrTuple{
+				v3RouteConfigName: {Update: RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{
+						{
+							Domains: []string{uninterestingDomain},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+						{
+							Domains: []string{ldsTarget},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{v3ClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+					},
+					Raw: v3RouteConfig,
+				}},
+				v2RouteConfigName: {Update: RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{
+						{
+							Domains: []string{uninterestingDomain},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+						{
+							Domains: []string{ldsTarget},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{v2ClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+					},
+					Raw: v2RouteConfig,
+				}},
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusACKed,
+				Version: testVersion,
+			},
+		},
+		{
+			// To test that unmarshal keeps processing on errors.
+			name: "good and bad routeConfig resources",
+			resources: []*anypb.Any{
+				v2RouteConfig,
+				testutils.MarshalAny(&v3routepb.RouteConfiguration{
+					Name: "bad",
+					VirtualHosts: []*v3routepb.VirtualHost{
+						{Domains: []string{ldsTarget},
+							Routes: []*v3routepb.Route{{
+								Match: &v3routepb.RouteMatch{PathSpecifier: &v3routepb.RouteMatch_ConnectMatcher_{}},
+							}}}}}),
+				v3RouteConfig,
+			},
+			wantUpdate: map[string]RouteConfigUpdateErrTuple{
+				v3RouteConfigName: {Update: RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{
+						{
+							Domains: []string{uninterestingDomain},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+						{
+							Domains: []string{ldsTarget},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{v3ClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+					},
+					Raw: v3RouteConfig,
+				}},
+				v2RouteConfigName: {Update: RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{
+						{
+							Domains: []string{uninterestingDomain},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{uninterestingClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+						{
+							Domains: []string{ldsTarget},
+							Routes: []*Route{{Prefix: newStringP(""),
+								WeightedClusters: map[string]WeightedCluster{v2ClusterName: {Weight: 1}},
+								ActionType:       RouteActionRoute}},
+						},
+					},
+					Raw: v2RouteConfig,
+				}},
+				"bad": {Err: cmpopts.AnyError},
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			name, update, err := unmarshalRouteConfigResource(test.resource)
-			if (err != nil) != test.wantErr {
-				t.Errorf("unmarshalRouteConfigResource(%s), got err: %v, wantErr: %v", pretty.ToJSON(test.resource), err, test.wantErr)
+			opts := &UnmarshalOptions{
+				Version:   testVersion,
+				Resources: test.resources,
 			}
-			if name != test.wantName {
-				t.Errorf("unmarshalRouteConfigResource(%s), got name: %s, want: %s", pretty.ToJSON(test.resource), name, test.wantName)
+			update, md, err := UnmarshalRouteConfig(opts)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("UnmarshalRouteConfig(%+v), got err: %v, wantErr: %v", opts, err, test.wantErr)
 			}
 			if diff := cmp.Diff(update, test.wantUpdate, cmpOpts); diff != "" {
-				t.Errorf("unmarshalRouteConfigResource(%s), got unexpected update, diff (-got +want): %v", pretty.ToJSON(test.resource), diff)
+				t.Errorf("got unexpected update, diff (-got +want): %v", diff)
+			}
+			if diff := cmp.Diff(md, test.wantMD, cmpOptsIgnoreDetails); diff != "" {
+				t.Errorf("got unexpected metadata, diff (-got +want): %v", diff)
 			}
 		})
 	}
 }
 
 func (s) TestRoutesProtoToSlice(t *testing.T) {
-	sm, _ := matcher.StringMatcherFromProto(&v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: "tv"}})
 	var (
 		goodRouteWithFilterConfigs = func(cfgs map[string]*anypb.Any) []*v3routepb.Route {
 			// Sets per-filter config in cluster "B" and in the route.
@@ -906,6 +1080,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 									{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}, TypedPerFilterConfig: cfgs},
 									{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 								},
+								TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 							}}}},
 				TypedPerFilterConfig: cfgs,
 			}}
@@ -950,6 +1125,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 									{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
 									{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 								},
+								TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 							}}}},
 			}},
 			wantRoutes: []*Route{{
@@ -989,6 +1165,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 								}}}},
 				},
 			},
@@ -1034,6 +1211,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 								}}}},
 				},
 			},
@@ -1044,51 +1222,6 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 						Name:        "th",
 						InvertMatch: newBoolP(false),
 						RegexMatch:  func() *regexp.Regexp { return regexp.MustCompile("tv") }(),
-					},
-				},
-				Fraction:         newUInt32P(10000),
-				WeightedClusters: map[string]WeightedCluster{"A": {Weight: 40}, "B": {Weight: 60}},
-				ActionType:       RouteActionRoute,
-			}},
-			wantErr: false,
-		},
-		{
-			name: "good with string matcher",
-			routes: []*v3routepb.Route{
-				{
-					Match: &v3routepb.RouteMatch{
-						PathSpecifier: &v3routepb.RouteMatch_SafeRegex{SafeRegex: &v3matcherpb.RegexMatcher{Regex: "/a/"}},
-						Headers: []*v3routepb.HeaderMatcher{
-							{
-								Name:                 "th",
-								HeaderMatchSpecifier: &v3routepb.HeaderMatcher_StringMatch{StringMatch: &v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: "tv"}}},
-							},
-						},
-						RuntimeFraction: &v3corepb.RuntimeFractionalPercent{
-							DefaultValue: &v3typepb.FractionalPercent{
-								Numerator:   1,
-								Denominator: v3typepb.FractionalPercent_HUNDRED,
-							},
-						},
-					},
-					Action: &v3routepb.Route_Route{
-						Route: &v3routepb.RouteAction{
-							ClusterSpecifier: &v3routepb.RouteAction_WeightedClusters{
-								WeightedClusters: &v3routepb.WeightedCluster{
-									Clusters: []*v3routepb.WeightedCluster_ClusterWeight{
-										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
-										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
-									},
-								}}}},
-				},
-			},
-			wantRoutes: []*Route{{
-				Regex: func() *regexp.Regexp { return regexp.MustCompile("/a/") }(),
-				Headers: []*HeaderMatcher{
-					{
-						Name:        "th",
-						InvertMatch: newBoolP(false),
-						StringMatch: &sm,
 					},
 				},
 				Fraction:         newUInt32P(10000),
@@ -1112,6 +1245,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 								}}}},
 				},
 				{
@@ -1227,13 +1361,14 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 0}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 0}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 0},
 								}}}},
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "The sum of all weighted clusters is more than uint32",
+			name: "totalWeight is nil in weighted clusters action",
 			routes: []*v3routepb.Route{
 				{
 					Match: &v3routepb.RouteMatch{
@@ -1244,9 +1379,30 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 							ClusterSpecifier: &v3routepb.RouteAction_WeightedClusters{
 								WeightedClusters: &v3routepb.WeightedCluster{
 									Clusters: []*v3routepb.WeightedCluster_ClusterWeight{
-										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: math.MaxUint32}},
-										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: math.MaxUint32}},
+										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 20}},
+										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 30}},
 									},
+								}}}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "The sum of all weighted clusters is not equal totalWeight",
+			routes: []*v3routepb.Route{
+				{
+					Match: &v3routepb.RouteMatch{
+						PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					},
+					Action: &v3routepb.Route_Route{
+						Route: &v3routepb.RouteAction{
+							ClusterSpecifier: &v3routepb.RouteAction_WeightedClusters{
+								WeightedClusters: &v3routepb.WeightedCluster{
+									Clusters: []*v3routepb.WeightedCluster_ClusterWeight{
+										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 50}},
+										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 20}},
+									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 								}}}},
 				},
 			},
@@ -1306,6 +1462,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 30}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 20}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 50},
 								}}}},
 				},
 			},
@@ -1346,6 +1503,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 								}},
 							HashPolicy: []*v3routepb.RouteAction_HashPolicy{
 								{PolicySpecifier: &v3routepb.RouteAction_HashPolicy_FilterState_{FilterState: &v3routepb.RouteAction_HashPolicy_FilterState{Key: "io.grpc.channel_id"}}},
@@ -1403,6 +1561,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 										{Name: "B", Weight: &wrapperspb.UInt32Value{Value: 60}},
 										{Name: "A", Weight: &wrapperspb.UInt32Value{Value: 40}},
 									},
+									TotalWeight: &wrapperspb.UInt32Value{Value: 100},
 								}},
 							HashPolicy: []*v3routepb.RouteAction_HashPolicy{
 								{PolicySpecifier: &v3routepb.RouteAction_HashPolicy_Header_{Header: &v3routepb.RouteAction_HashPolicy_Header{HeaderName: ":path"}}},
@@ -1434,14 +1593,14 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": customFilterConfig}),
 			wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
-		{
-			name:       "with custom HTTP filter config in typed struct",
-			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": testutils.MarshalAny(t, customFilterOldTypedStructConfig)}),
-			wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
-		},
+		//{
+		//	name:       "with custom HTTP filter config in typed struct",
+		//	routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedCustomFilterOldTypedStructConfig}),
+		//	wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
+		//},
 		{
 			name:       "with optional custom HTTP filter config",
-			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter(t, "custom.filter")}),
+			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("custom.filter")}),
 			wantRoutes: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
 		{
@@ -1451,7 +1610,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 		},
 		{
 			name:    "with optional erroring custom HTTP filter config",
-			routes:  goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter(t, "err.custom.filter")}),
+			routes:  goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("err.custom.filter")}),
 			wantErr: true,
 		},
 		{
@@ -1461,7 +1620,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 		},
 		{
 			name:       "with optional unknown custom HTTP filter config",
-			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter(t, "unknown.custom.filter")}),
+			routes:     goodRouteWithFilterConfigs(map[string]*anypb.Any{"foo": wrappedOptionalFilter("unknown.custom.filter")}),
 			wantRoutes: goodUpdateWithFilterConfigs(nil),
 		},
 	}
@@ -1473,9 +1632,12 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 			return fmt.Sprint(fc)
 		}),
 	}
+	oldRingHashSupport := envconfig.XDSRingHash
+	envconfig.XDSRingHash = true
+	defer func() { envconfig.XDSRingHash = oldRingHashSupport }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _, err := routesProtoToSlice(tt.routes, nil)
+			got, _, err := routesProtoToSlice(tt.routes, nil, nil, false)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("routesProtoToSlice() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -1583,9 +1745,12 @@ func (s) TestHashPoliciesProtoToSlice(t *testing.T) {
 		},
 	}
 
+	oldRingHashSupport := envconfig.XDSRingHash
+	envconfig.XDSRingHash = true
+	defer func() { envconfig.XDSRingHash = oldRingHashSupport }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := hashPoliciesProtoToSlice(tt.hashPolicies)
+			got, err := hashPoliciesProtoToSlice(tt.hashPolicies, nil)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("hashPoliciesProtoToSlice() error = %v, wantErr %v", err, tt.wantErr)
 			}

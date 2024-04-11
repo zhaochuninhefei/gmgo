@@ -30,13 +30,6 @@ import (
 
 type mockSubConn struct {
 	balancer.SubConn
-	mcc *mockClientConn
-}
-
-func (msc *mockSubConn) Shutdown() {
-	msc.mcc.mu.Lock()
-	defer msc.mcc.mu.Unlock()
-	delete(msc.mcc.subConns, msc)
 }
 
 type mockClientConn struct {
@@ -53,7 +46,7 @@ func newMockClientConn() *mockClientConn {
 }
 
 func (mcc *mockClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
-	sc := &mockSubConn{mcc: mcc}
+	sc := &mockSubConn{}
 	mcc.mu.Lock()
 	defer mcc.mu.Unlock()
 	mcc.subConns[sc] = addrs[0]
@@ -61,7 +54,9 @@ func (mcc *mockClientConn) NewSubConn(addrs []resolver.Address, opts balancer.Ne
 }
 
 func (mcc *mockClientConn) RemoveSubConn(sc balancer.SubConn) {
-	panic(fmt.Sprintf("RemoveSubConn(%v) called unexpectedly", sc))
+	mcc.mu.Lock()
+	defer mcc.mu.Unlock()
+	delete(mcc.subConns, sc)
 }
 
 const testCacheTimeout = 100 * time.Millisecond
@@ -87,7 +82,7 @@ func checkCacheCC(ccc *lbCacheClientConn, sccLen, sctaLen int) error {
 	return nil
 }
 
-// Test that SubConn won't be immediately shut down.
+// Test that SubConn won't be immediately removed.
 func (s) TestLBCacheClientConnExpire(t *testing.T) {
 	mcc := newMockClientConn()
 	if err := checkMockCC(mcc, 0); err != nil {
@@ -110,7 +105,7 @@ func (s) TestLBCacheClientConnExpire(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sc.Shutdown()
+	ccc.RemoveSubConn(sc)
 	// One subconn in MockCC before timeout.
 	if err := checkMockCC(mcc, 1); err != nil {
 		t.Fatal(err)
@@ -138,7 +133,7 @@ func (s) TestLBCacheClientConnExpire(t *testing.T) {
 	}
 }
 
-// Test that NewSubConn with the same address of a SubConn being shut down will
+// Test that NewSubConn with the same address of a SubConn being removed will
 // reuse the SubConn and cancel the removing.
 func (s) TestLBCacheClientConnReuse(t *testing.T) {
 	mcc := newMockClientConn()
@@ -162,7 +157,7 @@ func (s) TestLBCacheClientConnReuse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sc.Shutdown()
+	ccc.RemoveSubConn(sc)
 	// One subconn in MockCC before timeout.
 	if err := checkMockCC(mcc, 1); err != nil {
 		t.Fatal(err)
@@ -195,8 +190,8 @@ func (s) TestLBCacheClientConnReuse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Call Shutdown again, will delete after timeout.
-	sc.Shutdown()
+	// Call remove again, will delete after timeout.
+	ccc.RemoveSubConn(sc)
 	// One subconn in MockCC before timeout.
 	if err := checkMockCC(mcc, 1); err != nil {
 		t.Fatal(err)
@@ -223,9 +218,9 @@ func (s) TestLBCacheClientConnReuse(t *testing.T) {
 	}
 }
 
-// Test that if the timer to shut down a SubConn fires at the same time
-// NewSubConn cancels the timer, it doesn't cause deadlock.
-func (s) TestLBCache_ShutdownTimer_New_Race(t *testing.T) {
+// Test that if the timer to remove a SubConn fires at the same time NewSubConn
+// cancels the timer, it doesn't cause deadlock.
+func (s) TestLBCache_RemoveTimer_New_Race(t *testing.T) {
 	mcc := newMockClientConn()
 	if err := checkMockCC(mcc, 0); err != nil {
 		t.Fatal(err)
@@ -251,9 +246,9 @@ func (s) TestLBCache_ShutdownTimer_New_Race(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 1000; i++ {
-			// Shutdown starts a timer with 1 ns timeout, the NewSubConn will
-			// race with with the timer.
-			sc.Shutdown()
+			// Remove starts a timer with 1 ns timeout, the NewSubConn will race
+			// with with the timer.
+			ccc.RemoveSubConn(sc)
 			sc, _ = ccc.NewSubConn([]resolver.Address{{Addr: "address1"}}, balancer.NewSubConnOptions{})
 		}
 		close(done)

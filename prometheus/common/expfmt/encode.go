@@ -19,9 +19,10 @@ import (
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/prometheus/common/internal/bitbucket.org/ww/goautoneg"
+	"github.com/golang/protobuf/proto" //nolint:staticcheck // Ignore SA1019. Need to keep deprecated package for compatibility.
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
+
 	dto "github.com/prometheus/client_model/go"
-	"google.golang.org/protobuf/proto"
 )
 
 // Encoder types encode metric families into an underlying wire protocol.
@@ -132,11 +133,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case FmtProtoText:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
-				byteBuf, err := proto.Marshal(v)
-				if err != nil {
-					return err
-				}
-				_, err = fmt.Fprintln(w, byteBuf)
+				_, err := fmt.Fprintln(w, proto.MarshalTextString(v))
 				return err
 			},
 			close: func() error { return nil },

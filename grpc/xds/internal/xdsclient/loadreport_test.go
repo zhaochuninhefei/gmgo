@@ -23,18 +23,21 @@ import (
 	"testing"
 	"time"
 
+	v2corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	endpointpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/endpoint"
+	lrspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/load_stats/v2"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/fakeserver"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	xdstestutils "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/testutils"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/testutils/fakeserver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/bootstrap"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
+	durationpb "github.com/golang/protobuf/ptypes/duration"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
-	v3endpointpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
-	v3lrspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/load_stats/v3"
-	"google.golang.org/protobuf/types/known/durationpb"
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/controller/version/v2" // Register the v2 xDS API client.
 )
 
 const (
@@ -42,47 +45,49 @@ const (
 )
 
 func (s) TestLRSClient(t *testing.T) {
-	fs1, sCleanup, err := fakeserver.StartServer(nil)
+	fs, sCleanup, err := fakeserver.StartServer()
 	if err != nil {
 		t.Fatalf("failed to start fake xDS server: %v", err)
 	}
 	defer sCleanup()
 
-	serverCfg1 := xdstestutils.ServerConfigForAddress(t, fs1.Address)
-	xdsC, close, err := NewWithConfigForTesting(&bootstrap.Config{
-		XDSServer: serverCfg1,
-		NodeProto: &v3corepb.Node{},
-	}, defaultClientWatchExpiryTimeout, time.Duration(0))
+	xdsC, err := NewWithConfigForTesting(&bootstrap.Config{
+		XDSServer: &bootstrap.ServerConfig{
+			ServerURI:    fs.Address,
+			Creds:        grpc.WithTransportCredentials(insecure.NewCredentials()),
+			TransportAPI: version.TransportV2,
+			NodeProto:    &v2corepb.Node{},
+		},
+	}, defaultClientWatchExpiryTimeout)
 	if err != nil {
 		t.Fatalf("failed to create xds client: %v", err)
 	}
-	defer close()
-
-	// Report to the same address should not create new ClientConn.
-	store1, lrsCancel1 := xdsC.ReportLoad(serverCfg1)
-	defer lrsCancel1()
-
+	defer xdsC.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	if u, err := fs1.NewConnChan.Receive(ctx); err != nil {
+
+	// Report to the same address should not create new ClientConn.
+	store1, lrsCancel1 := xdsC.ReportLoad(fs.Address)
+	defer lrsCancel1()
+
+	if u, err := fs.NewConnChan.Receive(ctx); err != nil {
 		t.Errorf("unexpected timeout: %v, %v, want NewConn", u, err)
 	}
 
 	sCtx, sCancel := context.WithTimeout(context.Background(), defaultTestShortTimeout)
 	defer sCancel()
-	if u, err := fs1.NewConnChan.Receive(sCtx); err != context.DeadlineExceeded {
+	if u, err := fs.NewConnChan.Receive(sCtx); err != context.DeadlineExceeded {
 		t.Errorf("unexpected NewConn: %v, %v, want channel recv timeout", u, err)
 	}
 
-	fs2, sCleanup2, err := fakeserver.StartServer(nil)
+	fs2, sCleanup2, err := fakeserver.StartServer()
 	if err != nil {
 		t.Fatalf("failed to start fake xDS server: %v", err)
 	}
 	defer sCleanup2()
 
 	// Report to a different address should create new ClientConn.
-	serverCgf2 := xdstestutils.ServerConfigForAddress(t, fs2.Address)
-	store2, lrsCancel2 := xdsC.ReportLoad(serverCgf2)
+	store2, lrsCancel2 := xdsC.ReportLoad(fs2.Address)
 	defer lrsCancel2()
 	if u, err := fs2.NewConnChan.Receive(ctx); err != nil {
 		t.Errorf("unexpected timeout: %v, %v, want NewConn", u, err)
@@ -99,7 +104,7 @@ func (s) TestLRSClient(t *testing.T) {
 
 	// Send one resp to the client.
 	fs2.LRSResponseChan <- &fakeserver.Response{
-		Resp: &v3lrspb.LoadStatsResponse{
+		Resp: &lrspb.LoadStatsResponse{
 			SendAllClusters:       true,
 			LoadReportingInterval: &durationpb.Duration{Nanos: 50000000},
 		},
@@ -110,16 +115,16 @@ func (s) TestLRSClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected LRS request: %v, %v, want error canceled", u, err)
 	}
-	receivedLoad := u.(*fakeserver.Request).Req.(*v3lrspb.LoadStatsRequest).ClusterStats
+	receivedLoad := u.(*fakeserver.Request).Req.(*lrspb.LoadStatsRequest).ClusterStats
 	if len(receivedLoad) <= 0 {
 		t.Fatalf("unexpected load received, want load for cluster, eds, dropped for test")
 	}
 	receivedLoad[0].LoadReportInterval = nil
-	want := &v3endpointpb.ClusterStats{
+	want := &endpointpb.ClusterStats{
 		ClusterName:          "cluster",
 		ClusterServiceName:   "eds",
 		TotalDroppedRequests: 1,
-		DroppedRequests:      []*v3endpointpb.ClusterStats_DroppedRequests{{Category: "test", DroppedCount: 1}},
+		DroppedRequests:      []*endpointpb.ClusterStats_DroppedRequests{{Category: "test", DroppedCount: 1}},
 	}
 	if d := cmp.Diff(want, receivedLoad[0], protocmp.Transform()); d != "" {
 		t.Fatalf("unexpected load received, want load for cluster, eds, dropped for test, diff (-want +got):\n%s", d)

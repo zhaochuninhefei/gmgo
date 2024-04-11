@@ -21,10 +21,7 @@ package clusterresolver
 import (
 	"fmt"
 	"net/url"
-	"sync"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/serviceconfig"
 )
@@ -42,64 +39,33 @@ var (
 // It implements resolver.ClientConn interface to work with the DNS resolver.
 type dnsDiscoveryMechanism struct {
 	target           string
-	topLevelResolver topLevelResolver
-	dnsR             resolver.Resolver
-	logger           *grpclog.PrefixLogger
+	topLevelResolver *resourceResolver
+	r                resolver.Resolver
 
-	mu             sync.Mutex
 	addrs          []string
 	updateReceived bool
 }
 
-// newDNSResolver creates an endpoints resolver which uses a DNS resolver under
-// the hood.
-//
-// An error in parsing the provided target string or an error in creating a DNS
-// resolver means that we will never be able to resolve the provided target
-// strings to endpoints. The topLevelResolver propagates address updates to the
-// clusterresolver LB policy **only** after it receives updates from all its
-// child resolvers. Therefore, an error here means that the topLevelResolver
-// will never send address updates to the clusterresolver LB policy.
-//
-// Calling the onError() callback will ensure that this error is
-// propagated to the child policy which eventually move the channel to
-// transient failure.
-//
-// The `dnsR` field is unset if we run into erros in this function. Therefore, a
-// nil check is required wherever we access that field.
-func newDNSResolver(target string, topLevelResolver topLevelResolver, logger *grpclog.PrefixLogger) *dnsDiscoveryMechanism {
+func newDNSResolver(target string, topLevelResolver *resourceResolver) *dnsDiscoveryMechanism {
 	ret := &dnsDiscoveryMechanism{
 		target:           target,
 		topLevelResolver: topLevelResolver,
-		logger:           logger,
 	}
-	u, err := url.Parse("dns:///" + target)
+	// Target.Scheme、Target.Endpoint are deprecated, use URL.Scheme、URL.Path instead.
+	//r, err := newDNS(resolver.Target{Scheme: "dns", Endpoint: target}, ret, resolver.BuildOptions{})
+	r, err := newDNS(resolver.Target{URL: url.URL{Scheme: "dns", Path: target}}, ret, resolver.BuildOptions{})
 	if err != nil {
-		if ret.logger.V(2) {
-			ret.logger.Infof("Failed to parse dns hostname %q in clusterresolver LB policy", target)
+		select {
+		case <-topLevelResolver.updateChannel:
+		default:
 		}
-		ret.updateReceived = true
-		ret.topLevelResolver.onUpdate()
-		return ret
+		topLevelResolver.updateChannel <- &resourceUpdate{err: err}
 	}
-
-	r, err := newDNS(resolver.Target{URL: *u}, ret, resolver.BuildOptions{})
-	if err != nil {
-		if ret.logger.V(2) {
-			ret.logger.Infof("Failed to build DNS resolver for target %q: %v", target, err)
-		}
-		ret.updateReceived = true
-		ret.topLevelResolver.onUpdate()
-		return ret
-	}
-	ret.dnsR = r
+	ret.r = r
 	return ret
 }
 
-func (dr *dnsDiscoveryMechanism) lastUpdate() (any, bool) {
-	dr.mu.Lock()
-	defer dr.mu.Unlock()
-
+func (dr *dnsDiscoveryMechanism) lastUpdate() (interface{}, bool) {
 	if !dr.updateReceived {
 		return nil, false
 	}
@@ -107,80 +73,43 @@ func (dr *dnsDiscoveryMechanism) lastUpdate() (any, bool) {
 }
 
 func (dr *dnsDiscoveryMechanism) resolveNow() {
-	if dr.dnsR != nil {
-		dr.dnsR.ResolveNow(resolver.ResolveNowOptions{})
-	}
+	dr.r.ResolveNow(resolver.ResolveNowOptions{})
 }
 
-// The definition of stop() mentions that implementations must not invoke any
-// methods on the topLevelResolver once the call to `stop()` returns. The
-// underlying dns resolver does not send any updates to the resolver.ClientConn
-// interface passed to it (implemented by dnsDiscoveryMechanism in this case)
-// after its `Close()` returns. Therefore, we can guarantee that no methods of
-// the topLevelResolver are invoked after we return from this method.
 func (dr *dnsDiscoveryMechanism) stop() {
-	if dr.dnsR != nil {
-		dr.dnsR.Close()
-	}
+	dr.r.Close()
 }
 
 // dnsDiscoveryMechanism needs to implement resolver.ClientConn interface to receive
 // updates from the real DNS resolver.
 
 func (dr *dnsDiscoveryMechanism) UpdateState(state resolver.State) error {
-	if dr.logger.V(2) {
-		dr.logger.Infof("DNS discovery mechanism for resource %q reported an update: %s", dr.target, pretty.ToJSON(state))
-	}
-
-	dr.mu.Lock()
-	var addrs []string
-	if len(state.Endpoints) > 0 {
-		// Assume 1 address per endpoint, which is how DNS is expected to
-		// behave.  The slice will grow as needed, however.
-		addrs = make([]string, 0, len(state.Endpoints))
-		for _, e := range state.Endpoints {
-			for _, a := range e.Addresses {
-				addrs = append(addrs, a.Addr)
-			}
-		}
-	} else {
-		addrs = make([]string, len(state.Addresses))
-		for i, a := range state.Addresses {
-			addrs[i] = a.Addr
-		}
+	dr.topLevelResolver.mu.Lock()
+	defer dr.topLevelResolver.mu.Unlock()
+	addrs := make([]string, len(state.Addresses))
+	for i, a := range state.Addresses {
+		addrs[i] = a.Addr
 	}
 	dr.addrs = addrs
 	dr.updateReceived = true
-	dr.mu.Unlock()
-
-	dr.topLevelResolver.onUpdate()
+	dr.topLevelResolver.generate()
 	return nil
 }
 
 func (dr *dnsDiscoveryMechanism) ReportError(err error) {
-	if dr.logger.V(2) {
-		dr.logger.Infof("DNS discovery mechanism for resource %q reported error: %v", dr.target, err)
+	select {
+	case <-dr.topLevelResolver.updateChannel:
+	default:
 	}
-
-	dr.mu.Lock()
-	// If a previous good update was received, suppress the error and continue
-	// using the previous update. If RPCs were succeeding prior to this, they
-	// will continue to do so. Also suppress errors if we previously received an
-	// error, since there will be no downstream effects of propagating this
-	// error.
-	if dr.updateReceived {
-		dr.mu.Unlock()
-		return
-	}
-	dr.addrs = nil
-	dr.updateReceived = true
-	dr.mu.Unlock()
-
-	dr.topLevelResolver.onUpdate()
+	dr.topLevelResolver.updateChannel <- &resourceUpdate{err: err}
 }
 
 func (dr *dnsDiscoveryMechanism) NewAddress(addresses []resolver.Address) {
 	dr.UpdateState(resolver.State{Addresses: addresses})
+}
+
+func (dr *dnsDiscoveryMechanism) NewServiceConfig(string) {
+	// This method is deprecated, and service config isn't supported.
 }
 
 func (dr *dnsDiscoveryMechanism) ParseServiceConfig(string) *serviceconfig.ParseResult {

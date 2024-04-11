@@ -27,23 +27,19 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/health"
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/health"
+	healthgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
+	healthpb "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/channelz"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver/manual"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-
-	healthgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
-	healthpb "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
-	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 )
 
 var testHealthCheckFunc = internal.HealthCheckFunc
@@ -52,7 +48,7 @@ func newTestHealthServer() *testHealthServer {
 	return newTestHealthServerWithWatchFunc(defaultWatchFunc)
 }
 
-func newTestHealthServerWithWatchFunc(f healthWatchFunc) *testHealthServer {
+func newTestHealthServerWithWatchFunc(f func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error) *testHealthServer {
 	return &testHealthServer{
 		watchFunc: f,
 		update:    make(chan struct{}, 1),
@@ -86,11 +82,9 @@ func defaultWatchFunc(s *testHealthServer, in *healthpb.HealthCheckRequest, stre
 	return nil
 }
 
-type healthWatchFunc func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error
-
 type testHealthServer struct {
-	healthgrpc.UnimplementedHealthServer
-	watchFunc healthWatchFunc
+	healthpb.UnimplementedHealthServer
+	watchFunc func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error
 	mu        sync.Mutex
 	status    map[string]healthpb.HealthCheckResponse_ServingStatus
 	update    chan struct{}
@@ -122,7 +116,7 @@ func (s *testHealthServer) SetServingStatus(service string, status healthpb.Heal
 func setupHealthCheckWrapper() (hcEnterChan chan struct{}, hcExitChan chan struct{}, wrapper internal.HealthChecker) {
 	hcEnterChan = make(chan struct{})
 	hcExitChan = make(chan struct{})
-	wrapper = func(ctx context.Context, newStream func(string) (any, error), update func(connectivity.State, error), service string) error {
+	wrapper = func(ctx context.Context, newStream func(string) (interface{}, error), update func(connectivity.State, error), service string) error {
 		close(hcEnterChan)
 		defer close(hcExitChan)
 		return testHealthCheckFunc(ctx, newStream, update, service)
@@ -130,26 +124,25 @@ func setupHealthCheckWrapper() (hcEnterChan chan struct{}, hcExitChan chan struc
 	return
 }
 
-func setupServer(t *testing.T, watchFunc healthWatchFunc) (*grpc.Server, net.Listener, *testHealthServer) {
-	t.Helper()
+type svrConfig struct {
+	specialWatchFunc func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error
+}
 
-	lis, err := net.Listen("tcp", "localhost:0")
+func setupServer(sc *svrConfig) (s *grpc.Server, lis net.Listener, ts *testHealthServer, deferFunc func(), err error) {
+	s = grpc.NewServer()
+	lis, err = net.Listen("tcp", "localhost:0")
 	if err != nil {
-		t.Fatalf("net.Listen() failed: %v", err)
+		return nil, nil, nil, func() {}, fmt.Errorf("failed to listen due to err %v", err)
 	}
-
-	var ts *testHealthServer
-	if watchFunc != nil {
-		ts = newTestHealthServerWithWatchFunc(watchFunc)
+	if sc.specialWatchFunc != nil {
+		ts = newTestHealthServerWithWatchFunc(sc.specialWatchFunc)
 	} else {
 		ts = newTestHealthServer()
 	}
-	s := grpc.NewServer()
 	healthgrpc.RegisterHealthServer(s, ts)
-	testgrpc.RegisterTestServiceServer(s, &testServer{})
+	testpb.RegisterTestServiceServer(s, &testServer{})
 	go s.Serve(lis)
-	t.Cleanup(func() { s.Stop() })
-	return s, lis, ts
+	return s, lis, ts, s.Stop, nil
 }
 
 type clientConfig struct {
@@ -158,34 +151,28 @@ type clientConfig struct {
 	extraDialOption            []grpc.DialOption
 }
 
-func setupClient(t *testing.T, c *clientConfig) (*grpc.ClientConn, *manual.Resolver) {
-	t.Helper()
-
-	r := manual.NewBuilderWithScheme("whatever")
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithResolvers(r),
+func setupClient(c *clientConfig) (cc *grpc.ClientConn, r *manual.Resolver, deferFunc func(), err error) {
+	r = manual.NewBuilderWithScheme("whatever")
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure(), grpc.WithResolvers(r), grpc.WithBalancerName(c.balancerName))
+	if c.testHealthCheckFuncWrapper != nil {
+		opts = append(opts, internal.WithHealthCheckFunc.(func(internal.HealthChecker) grpc.DialOption)(c.testHealthCheckFuncWrapper))
 	}
-	if c != nil {
-		if c.balancerName != "" {
-			opts = append(opts, grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"loadBalancingConfig": [{"%s":{}}]}`, c.balancerName)))
-		}
-		if c.testHealthCheckFuncWrapper != nil {
-			opts = append(opts, internal.WithHealthCheckFunc.(func(internal.HealthChecker) grpc.DialOption)(c.testHealthCheckFuncWrapper))
-		}
-		opts = append(opts, c.extraDialOption...)
-	}
-
-	cc, err := grpc.Dial(r.Scheme()+":///test.server", opts...)
+	opts = append(opts, c.extraDialOption...)
+	cc, err = grpc.Dial(r.Scheme()+":///test.server", opts...)
 	if err != nil {
-		t.Fatalf("grpc.Dial() failed: %v", err)
+
+		return nil, nil, nil, fmt.Errorf("dial failed due to err: %v", err)
 	}
-	t.Cleanup(func() { cc.Close() })
-	return cc, r
+	return cc, r, func() { cc.Close() }, nil
 }
 
 func (s) TestHealthCheckWatchStateChange(t *testing.T) {
-	_, lis, ts := setupServer(t, nil)
+	_, lis, ts, deferFunc, err := setupServer(&svrConfig{})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// The table below shows the expected series of addrConn connectivity transitions when server
 	// updates its health status. As there's only one addrConn corresponds with the ClientConn in this
@@ -201,45 +188,59 @@ func (s) TestHealthCheckWatchStateChange(t *testing.T) {
 	//+------------------------------+-------------------------------------------+
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_NOT_SERVING)
 
-	cc, r := setupClient(t, nil)
+	cc, r, deferFunc, err := setupClient(&clientConfig{balancerName: "round_robin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	testutils.AwaitNotState(ctx, t, cc, connectivity.Idle)
-	testutils.AwaitNotState(ctx, t, cc, connectivity.Connecting)
-	testutils.AwaitState(ctx, t, cc, connectivity.TransientFailure)
+	if ok := cc.WaitForStateChange(ctx, connectivity.Idle); !ok {
+		t.Fatal("ClientConn is still in IDLE state when the context times out.")
+	}
+	if ok := cc.WaitForStateChange(ctx, connectivity.Connecting); !ok {
+		t.Fatal("ClientConn is still in CONNECTING state when the context times out.")
+	}
 	if s := cc.GetState(); s != connectivity.TransientFailure {
 		t.Fatalf("ClientConn is in %v state, want TRANSIENT FAILURE", s)
 	}
 
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
-	testutils.AwaitNotState(ctx, t, cc, connectivity.TransientFailure)
+	if ok := cc.WaitForStateChange(ctx, connectivity.TransientFailure); !ok {
+		t.Fatal("ClientConn is still in TRANSIENT FAILURE state when the context times out.")
+	}
 	if s := cc.GetState(); s != connectivity.Ready {
 		t.Fatalf("ClientConn is in %v state, want READY", s)
 	}
 
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVICE_UNKNOWN)
-	testutils.AwaitNotState(ctx, t, cc, connectivity.Ready)
+	if ok := cc.WaitForStateChange(ctx, connectivity.Ready); !ok {
+		t.Fatal("ClientConn is still in READY state when the context times out.")
+	}
 	if s := cc.GetState(); s != connectivity.TransientFailure {
 		t.Fatalf("ClientConn is in %v state, want TRANSIENT FAILURE", s)
 	}
 
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
-	testutils.AwaitNotState(ctx, t, cc, connectivity.TransientFailure)
+	if ok := cc.WaitForStateChange(ctx, connectivity.TransientFailure); !ok {
+		t.Fatal("ClientConn is still in TRANSIENT FAILURE state when the context times out.")
+	}
 	if s := cc.GetState(); s != connectivity.Ready {
 		t.Fatalf("ClientConn is in %v state, want READY", s)
 	}
 
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_UNKNOWN)
-	testutils.AwaitNotState(ctx, t, cc, connectivity.Ready)
+	if ok := cc.WaitForStateChange(ctx, connectivity.Ready); !ok {
+		t.Fatal("ClientConn is still in READY state when the context times out.")
+	}
 	if s := cc.GetState(); s != connectivity.TransientFailure {
 		t.Fatalf("ClientConn is in %v state, want TRANSIENT FAILURE", s)
 	}
@@ -256,20 +257,28 @@ func (s) TestHealthCheckHealthServerNotRegistered(t *testing.T) {
 	go s.Serve(lis)
 	defer s.Stop()
 
-	cc, r := setupClient(t, nil)
+	cc, r, deferFunc, err := setupClient(&clientConfig{balancerName: "round_robin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	testutils.AwaitNotState(ctx, t, cc, connectivity.Idle)
-	testutils.AwaitNotState(ctx, t, cc, connectivity.Connecting)
+
+	if ok := cc.WaitForStateChange(ctx, connectivity.Idle); !ok {
+		t.Fatal("ClientConn is still in IDLE state when the context times out.")
+	}
+	if ok := cc.WaitForStateChange(ctx, connectivity.Connecting); !ok {
+		t.Fatal("ClientConn is still in CONNECTING state when the context times out.")
+	}
 	if s := cc.GetState(); s != connectivity.Ready {
 		t.Fatalf("ClientConn is in %v state, want READY", s)
 	}
@@ -278,23 +287,37 @@ func (s) TestHealthCheckHealthServerNotRegistered(t *testing.T) {
 // In the case of a goaway received, the health check stream should be terminated and health check
 // function should exit.
 func (s) TestHealthCheckWithGoAway(t *testing.T) {
-	s, lis, ts := setupServer(t, nil)
+	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
+
+	s, lis, ts, deferFunc, err := setupServer(&svrConfig{})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
 
-	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
-	tc := testgrpc.NewTestServiceClient(cc)
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
+
 	// make some rpcs to make sure connection is working.
 	if err := verifyResultWithDelay(func() (bool, error) {
 		if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -356,19 +379,33 @@ func (s) TestHealthCheckWithGoAway(t *testing.T) {
 }
 
 func (s) TestHealthCheckWithConnClose(t *testing.T) {
-	s, lis, ts := setupServer(t, nil)
+	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
+
+	s, lis, ts, deferFunc, err := setupServer(&svrConfig{})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
 
-	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
-	tc := testgrpc.NewTestServiceClient(cc)
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -406,17 +443,30 @@ func (s) TestHealthCheckWithConnClose(t *testing.T) {
 // addrConn drain happens when addrConn gets torn down due to its address being no longer in the
 // address list returned by the resolver.
 func (s) TestHealthCheckWithAddrConnDrain(t *testing.T) {
-	_, lis, ts := setupServer(t, nil)
+	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
+
+	_, lis, ts, deferFunc, err := setupServer(&svrConfig{})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
 
-	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
-	tc := testgrpc.NewTestServiceClient(cc)
-	sc := parseServiceConfig(t, r, `{
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
+	sc := parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)
 	r.UpdateState(resolver.State{
 		Addresses:     []resolver.Address{{Addr: lis.Addr().String()}},
@@ -486,19 +536,32 @@ func (s) TestHealthCheckWithAddrConnDrain(t *testing.T) {
 
 // ClientConn close will lead to its addrConns being torn down.
 func (s) TestHealthCheckWithClientConnClose(t *testing.T) {
-	_, lis, ts := setupServer(t, nil)
+	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
+
+	_, lis, ts, deferFunc, err := setupServer(&svrConfig{})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
 
-	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
-	tc := testgrpc.NewTestServiceClient(cc)
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -538,34 +601,47 @@ func (s) TestHealthCheckWithClientConnClose(t *testing.T) {
 // closes the skipReset channel(since it has not been closed inside health check func) to unblock
 // onGoAway/onClose goroutine.
 func (s) TestHealthCheckWithoutSetConnectivityStateCalledAddrConnShutDown(t *testing.T) {
-	watchFunc := func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
-		if in.Service != "delay" {
-			return status.Error(codes.FailedPrecondition,
-				"this special Watch function only handles request with service name to be \"delay\"")
-		}
-		// Do nothing to mock a delay of health check response from server side.
-		// This case is to help with the test that covers the condition that setConnectivityState is not
-		// called inside HealthCheckFunc before the func returns.
-		select {
-		case <-stream.Context().Done():
-		case <-time.After(5 * time.Second):
-		}
-		return nil
+	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
+
+	_, lis, ts, deferFunc, err := setupServer(&svrConfig{
+		specialWatchFunc: func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
+			if in.Service != "delay" {
+				return status.Error(codes.FailedPrecondition,
+					"this special Watch function only handles request with service name to be \"delay\"")
+			}
+			// Do nothing to mock a delay of health check response from server side.
+			// This case is to help with the test that covers the condition that setConnectivityState is not
+			// called inside HealthCheckFunc before the func returns.
+			select {
+			case <-stream.Context().Done():
+			case <-time.After(5 * time.Second):
+			}
+			return nil
+		},
+	})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, lis, ts := setupServer(t, watchFunc)
+
 	ts.SetServingStatus("delay", healthpb.HealthCheckResponse_SERVING)
 
-	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	_, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
+	_, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
 
 	// The serviceName "delay" is specially handled at server side, where response will not be sent
 	// back to client immediately upon receiving the request (client should receive no response until
 	// test ends).
-	sc := parseServiceConfig(t, r, `{
+	sc := parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "delay"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)
 	r.UpdateState(resolver.State{
 		Addresses:     []resolver.Address{{Addr: lis.Addr().String()}},
@@ -601,36 +677,49 @@ func (s) TestHealthCheckWithoutSetConnectivityStateCalledAddrConnShutDown(t *tes
 // closes the allowedToReset channel(since it has not been closed inside health check func) to unblock
 // onGoAway/onClose goroutine.
 func (s) TestHealthCheckWithoutSetConnectivityStateCalled(t *testing.T) {
-	watchFunc := func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
-		if in.Service != "delay" {
-			return status.Error(codes.FailedPrecondition,
-				"this special Watch function only handles request with service name to be \"delay\"")
-		}
-		// Do nothing to mock a delay of health check response from server side.
-		// This case is to help with the test that covers the condition that setConnectivityState is not
-		// called inside HealthCheckFunc before the func returns.
-		select {
-		case <-stream.Context().Done():
-		case <-time.After(5 * time.Second):
-		}
-		return nil
+	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
+
+	s, lis, ts, deferFunc, err := setupServer(&svrConfig{
+		specialWatchFunc: func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
+			if in.Service != "delay" {
+				return status.Error(codes.FailedPrecondition,
+					"this special Watch function only handles request with service name to be \"delay\"")
+			}
+			// Do nothing to mock a delay of health check response from server side.
+			// This case is to help with the test that covers the condition that setConnectivityState is not
+			// called inside HealthCheckFunc before the func returns.
+			select {
+			case <-stream.Context().Done():
+			case <-time.After(5 * time.Second):
+			}
+			return nil
+		},
+	})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
 	}
-	s, lis, ts := setupServer(t, watchFunc)
+
 	ts.SetServingStatus("delay", healthpb.HealthCheckResponse_SERVING)
 
-	hcEnterChan, hcExitChan, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	_, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
+	_, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
 
 	// The serviceName "delay" is specially handled at server side, where response will not be sent
 	// back to client immediately upon receiving the request (client should receive no response until
 	// test ends).
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "delay"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	select {
@@ -660,18 +749,25 @@ func (s) TestHealthCheckWithoutSetConnectivityStateCalled(t *testing.T) {
 
 func testHealthCheckDisableWithDialOption(t *testing.T, addr string) {
 	hcEnterChan, _, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{
+
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
 		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
 		extraDialOption:            []grpc.DialOption{grpc.WithDisableHealthCheck()},
 	})
-	tc := testgrpc.NewTestServiceClient(cc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: addr}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -695,17 +791,24 @@ func testHealthCheckDisableWithDialOption(t *testing.T, addr string) {
 
 func testHealthCheckDisableWithBalancer(t *testing.T, addr string) {
 	hcEnterChan, _, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{
+
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "pick_first",
 		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
 	})
-	tc := testgrpc.NewTestServiceClient(cc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: addr}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "foo"
-	},
-	"loadBalancingConfig": [{"pick_first":{}}]
+	}
 }`)})
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -729,8 +832,18 @@ func testHealthCheckDisableWithBalancer(t *testing.T, addr string) {
 
 func testHealthCheckDisableWithServiceConfig(t *testing.T, addr string) {
 	hcEnterChan, _, testHealthCheckFuncWrapper := setupHealthCheckWrapper()
-	cc, r := setupClient(t, &clientConfig{testHealthCheckFuncWrapper: testHealthCheckFuncWrapper})
-	tc := testgrpc.NewTestServiceClient(cc)
+
+	cc, r, deferFunc, err := setupClient(&clientConfig{
+		balancerName:               "round_robin",
+		testHealthCheckFuncWrapper: testHealthCheckFuncWrapper,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
+	tc := testpb.NewTestServiceClient(cc)
+
 	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: addr}}})
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -753,7 +866,11 @@ func testHealthCheckDisableWithServiceConfig(t *testing.T, addr string) {
 }
 
 func (s) TestHealthCheckDisable(t *testing.T) {
-	_, lis, ts := setupServer(t, nil)
+	_, lis, ts, deferFunc, err := setupServer(&svrConfig{})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
 	ts.SetServingStatus("foo", healthpb.HealthCheckResponse_SERVING)
 
 	// test client side disabling configuration.
@@ -763,23 +880,32 @@ func (s) TestHealthCheckDisable(t *testing.T) {
 }
 
 func (s) TestHealthCheckChannelzCountingCallSuccess(t *testing.T) {
-	watchFunc := func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
-		if in.Service != "channelzSuccess" {
-			return status.Error(codes.FailedPrecondition,
-				"this special Watch function only handles request with service name to be \"channelzSuccess\"")
-		}
-		return status.Error(codes.OK, "fake success")
+	_, lis, _, deferFunc, err := setupServer(&svrConfig{
+		specialWatchFunc: func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
+			if in.Service != "channelzSuccess" {
+				return status.Error(codes.FailedPrecondition,
+					"this special Watch function only handles request with service name to be \"channelzSuccess\"")
+			}
+			return status.Error(codes.OK, "fake success")
+		},
+	})
+	defer deferFunc()
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, lis, _ := setupServer(t, watchFunc)
 
-	_, r := setupClient(t, nil)
+	_, r, deferFunc, err := setupClient(&clientConfig{balancerName: "round_robin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "channelzSuccess"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	if err := verifyResultWithDelay(func() (bool, error) {
@@ -787,48 +913,55 @@ func (s) TestHealthCheckChannelzCountingCallSuccess(t *testing.T) {
 		if len(cm) == 0 {
 			return false, errors.New("channelz.GetTopChannels return 0 top channel")
 		}
-		subChans := cm[0].SubChans()
-		if len(subChans) == 0 {
+		if len(cm[0].SubChans) == 0 {
 			return false, errors.New("there is 0 subchannel")
 		}
 		var id int64
-		for k := range subChans {
+		for k := range cm[0].SubChans {
 			id = k
 			break
 		}
 		scm := channelz.GetSubChannel(id)
-		if scm == nil {
-			return false, errors.New("nil subchannel returned")
+		if scm == nil || scm.ChannelData == nil {
+			return false, errors.New("nil subchannel metric or nil subchannel metric ChannelData returned")
 		}
 		// exponential backoff retry may result in more than one health check call.
-		cstart, csucc, cfail := scm.ChannelMetrics.CallsStarted.Load(), scm.ChannelMetrics.CallsSucceeded.Load(), scm.ChannelMetrics.CallsFailed.Load()
-		if cstart > 0 && csucc > 0 && cfail == 0 {
+		if scm.ChannelData.CallsStarted > 0 && scm.ChannelData.CallsSucceeded > 0 && scm.ChannelData.CallsFailed == 0 {
 			return true, nil
 		}
-		return false, fmt.Errorf("got %d CallsStarted, %d CallsSucceeded %d CallsFailed, want >0 >0 =0", cstart, csucc, cfail)
+		return false, fmt.Errorf("got %d CallsStarted, %d CallsSucceeded, want >0 >0", scm.ChannelData.CallsStarted, scm.ChannelData.CallsSucceeded)
 	}); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func (s) TestHealthCheckChannelzCountingCallFailure(t *testing.T) {
-	watchFunc := func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
-		if in.Service != "channelzFailure" {
-			return status.Error(codes.FailedPrecondition,
-				"this special Watch function only handles request with service name to be \"channelzFailure\"")
-		}
-		return status.Error(codes.Internal, "fake failure")
+	_, lis, _, deferFunc, err := setupServer(&svrConfig{
+		specialWatchFunc: func(s *testHealthServer, in *healthpb.HealthCheckRequest, stream healthgrpc.Health_WatchServer) error {
+			if in.Service != "channelzFailure" {
+				return status.Error(codes.FailedPrecondition,
+					"this special Watch function only handles request with service name to be \"channelzFailure\"")
+			}
+			return status.Error(codes.Internal, "fake failure")
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, lis, _ := setupServer(t, watchFunc)
+	defer deferFunc()
 
-	_, r := setupClient(t, nil)
+	_, r, deferFunc, err := setupClient(&clientConfig{balancerName: "round_robin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deferFunc()
+
 	r.UpdateState(resolver.State{
 		Addresses: []resolver.Address{{Addr: lis.Addr().String()}},
-		ServiceConfig: parseServiceConfig(t, r, `{
+		ServiceConfig: parseCfg(r, `{
 	"healthCheckConfig": {
 		"serviceName": "channelzFailure"
-	},
-	"loadBalancingConfig": [{"round_robin":{}}]
+	}
 }`)})
 
 	if err := verifyResultWithDelay(func() (bool, error) {
@@ -836,336 +969,24 @@ func (s) TestHealthCheckChannelzCountingCallFailure(t *testing.T) {
 		if len(cm) == 0 {
 			return false, errors.New("channelz.GetTopChannels return 0 top channel")
 		}
-		subChans := cm[0].SubChans()
-		if len(subChans) == 0 {
+		if len(cm[0].SubChans) == 0 {
 			return false, errors.New("there is 0 subchannel")
 		}
 		var id int64
-		for k := range subChans {
+		for k := range cm[0].SubChans {
 			id = k
 			break
 		}
 		scm := channelz.GetSubChannel(id)
-		if scm == nil {
-			return false, errors.New("nil subchannel returned")
+		if scm == nil || scm.ChannelData == nil {
+			return false, errors.New("nil subchannel metric or nil subchannel metric ChannelData returned")
 		}
 		// exponential backoff retry may result in more than one health check call.
-		cstart, cfail, csucc := scm.ChannelMetrics.CallsStarted.Load(), scm.ChannelMetrics.CallsFailed.Load(), scm.ChannelMetrics.CallsSucceeded.Load()
-		if cstart > 0 && cfail > 0 && csucc == 0 {
+		if scm.ChannelData.CallsStarted > 0 && scm.ChannelData.CallsFailed > 0 && scm.ChannelData.CallsSucceeded == 0 {
 			return true, nil
 		}
-		return false, fmt.Errorf("got %d CallsStarted, %d CallsFailed, %d CallsSucceeded, want >0, >0", cstart, cfail, csucc)
+		return false, fmt.Errorf("got %d CallsStarted, %d CallsFailed, want >0, >0", scm.ChannelData.CallsStarted, scm.ChannelData.CallsFailed)
 	}); err != nil {
 		t.Fatal(err)
 	}
-}
-
-// healthCheck is a helper function to make a unary health check RPC and return
-// the response.
-func healthCheck(d time.Duration, cc *grpc.ClientConn, service string) (*healthpb.HealthCheckResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), d)
-	defer cancel()
-	hc := healthgrpc.NewHealthClient(cc)
-	return hc.Check(ctx, &healthpb.HealthCheckRequest{Service: service})
-}
-
-// verifyHealthCheckStatus is a helper function to verify that the current
-// health status of the service matches the one passed in 'wantStatus'.
-func verifyHealthCheckStatus(t *testing.T, d time.Duration, cc *grpc.ClientConn, service string, wantStatus healthpb.HealthCheckResponse_ServingStatus) {
-	t.Helper()
-	resp, err := healthCheck(d, cc, service)
-	if err != nil {
-		t.Fatalf("Health/Check(_, _) = _, %v, want _, <nil>", err)
-	}
-	if resp.Status != wantStatus {
-		t.Fatalf("Got the serving status %v, want %v", resp.Status, wantStatus)
-	}
-}
-
-// verifyHealthCheckErrCode is a helper function to verify that a unary health
-// check RPC returns an error with a code set to 'wantCode'.
-func verifyHealthCheckErrCode(t *testing.T, d time.Duration, cc *grpc.ClientConn, service string, wantCode codes.Code) {
-	t.Helper()
-	if _, err := healthCheck(d, cc, service); status.Code(err) != wantCode {
-		t.Fatalf("Health/Check() got errCode %v, want %v", status.Code(err), wantCode)
-	}
-}
-
-// newHealthCheckStream is a helper function to start a health check streaming
-// RPC, and returns the stream.
-func newHealthCheckStream(t *testing.T, cc *grpc.ClientConn, service string) (healthgrpc.Health_WatchClient, context.CancelFunc) {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	hc := healthgrpc.NewHealthClient(cc)
-	stream, err := hc.Watch(ctx, &healthpb.HealthCheckRequest{Service: service})
-	if err != nil {
-		t.Fatalf("hc.Watch(_, %v) failed: %v", service, err)
-	}
-	return stream, cancel
-}
-
-// healthWatchChecker is a helper function to verify that the next health
-// status returned on the given stream matches the one passed in 'wantStatus'.
-func healthWatchChecker(t *testing.T, stream healthgrpc.Health_WatchClient, wantStatus healthpb.HealthCheckResponse_ServingStatus) {
-	t.Helper()
-	response, err := stream.Recv()
-	if err != nil {
-		t.Fatalf("stream.Recv() failed: %v", err)
-	}
-	if response.Status != wantStatus {
-		t.Fatalf("got servingStatus %v, want %v", response.Status, wantStatus)
-	}
-}
-
-// TestHealthCheckSuccess invokes the unary Check() RPC on the health server in
-// a successful case.
-func (s) TestHealthCheckSuccess(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthCheckSuccess(t, e)
-	}
-}
-
-func testHealthCheckSuccess(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	defer te.tearDown()
-
-	verifyHealthCheckErrCode(t, 1*time.Second, te.clientConn(), defaultHealthService, codes.OK)
-}
-
-// TestHealthCheckFailure invokes the unary Check() RPC on the health server
-// with an expired context and expects the RPC to fail.
-func (s) TestHealthCheckFailure(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthCheckFailure(t, e)
-	}
-}
-
-func testHealthCheckFailure(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.declareLogNoise(
-		"Failed to dial ",
-		"grpc: the client connection is closing; please retry",
-	)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	defer te.tearDown()
-
-	verifyHealthCheckErrCode(t, 0*time.Second, te.clientConn(), defaultHealthService, codes.DeadlineExceeded)
-	awaitNewConnLogOutput()
-}
-
-// TestHealthCheckOff makes a unary Check() RPC on the health server where the
-// health status of the defaultHealthService is not set, and therefore expects
-// an error code 'codes.NotFound'.
-func (s) TestHealthCheckOff(t *testing.T) {
-	for _, e := range listTestEnv() {
-		// TODO(bradfitz): Temporarily skip this env due to #619.
-		if e.name == "handler-tls" {
-			continue
-		}
-		testHealthCheckOff(t, e)
-	}
-}
-
-func testHealthCheckOff(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	verifyHealthCheckErrCode(t, 1*time.Second, te.clientConn(), defaultHealthService, codes.NotFound)
-}
-
-// TestHealthWatchMultipleClients makes a streaming Watch() RPC on the health
-// server with multiple clients and expects the same status on both streams.
-func (s) TestHealthWatchMultipleClients(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthWatchMultipleClients(t, e)
-	}
-}
-
-func testHealthWatchMultipleClients(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	cc := te.clientConn()
-	stream1, cf1 := newHealthCheckStream(t, cc, defaultHealthService)
-	defer cf1()
-	healthWatchChecker(t, stream1, healthpb.HealthCheckResponse_SERVICE_UNKNOWN)
-
-	stream2, cf2 := newHealthCheckStream(t, cc, defaultHealthService)
-	defer cf2()
-	healthWatchChecker(t, stream2, healthpb.HealthCheckResponse_SERVICE_UNKNOWN)
-
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_NOT_SERVING)
-	healthWatchChecker(t, stream1, healthpb.HealthCheckResponse_NOT_SERVING)
-	healthWatchChecker(t, stream2, healthpb.HealthCheckResponse_NOT_SERVING)
-}
-
-// TestHealthWatchSameStatusmakes a streaming Watch() RPC on the health server
-// and makes sure that the health status of the server is as expected after
-// multiple calls to SetServingStatus with the same status.
-func (s) TestHealthWatchSameStatus(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthWatchSameStatus(t, e)
-	}
-}
-
-func testHealthWatchSameStatus(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	stream, cf := newHealthCheckStream(t, te.clientConn(), defaultHealthService)
-	defer cf()
-
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVICE_UNKNOWN)
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVING)
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_NOT_SERVING)
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_NOT_SERVING)
-}
-
-// TestHealthWatchServiceStatusSetBeforeStartingServer starts a health server
-// on which the health status for the defaultService is set before the gRPC
-// server is started, and expects the correct health status to be returned.
-func (s) TestHealthWatchServiceStatusSetBeforeStartingServer(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthWatchSetServiceStatusBeforeStartingServer(t, e)
-	}
-}
-
-func testHealthWatchSetServiceStatusBeforeStartingServer(t *testing.T, e env) {
-	hs := health.NewServer()
-	te := newTest(t, e)
-	te.healthServer = hs
-	hs.SetServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	stream, cf := newHealthCheckStream(t, te.clientConn(), defaultHealthService)
-	defer cf()
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVING)
-}
-
-// TestHealthWatchDefaultStatusChange verifies the simple case where the
-// service starts off with a SERVICE_UNKNOWN status (because SetServingStatus
-// hasn't been called yet) and then moves to SERVING after SetServingStatus is
-// called.
-func (s) TestHealthWatchDefaultStatusChange(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthWatchDefaultStatusChange(t, e)
-	}
-}
-
-func testHealthWatchDefaultStatusChange(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	stream, cf := newHealthCheckStream(t, te.clientConn(), defaultHealthService)
-	defer cf()
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVICE_UNKNOWN)
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVING)
-}
-
-// TestHealthWatchSetServiceStatusBeforeClientCallsWatch verifies the case
-// where the health status is set to SERVING before the client calls Watch().
-func (s) TestHealthWatchSetServiceStatusBeforeClientCallsWatch(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthWatchSetServiceStatusBeforeClientCallsWatch(t, e)
-	}
-}
-
-func testHealthWatchSetServiceStatusBeforeClientCallsWatch(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	defer te.tearDown()
-
-	stream, cf := newHealthCheckStream(t, te.clientConn(), defaultHealthService)
-	defer cf()
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVING)
-}
-
-// TestHealthWatchOverallServerHealthChange verifies setting the overall status
-// of the server by using the empty service name.
-func (s) TestHealthWatchOverallServerHealthChange(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthWatchOverallServerHealthChange(t, e)
-	}
-}
-
-func testHealthWatchOverallServerHealthChange(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	stream, cf := newHealthCheckStream(t, te.clientConn(), "")
-	defer cf()
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_SERVING)
-	te.setHealthServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
-	healthWatchChecker(t, stream, healthpb.HealthCheckResponse_NOT_SERVING)
-}
-
-// TestUnknownHandler verifies that an expected error is returned (by setting
-// the unknownHandler on the server) for a service which is not exposed to the
-// client.
-func (s) TestUnknownHandler(t *testing.T) {
-	// An example unknownHandler that returns a different code and a different
-	// method, making sure that we do not expose what methods are implemented to
-	// a client that is not authenticated.
-	unknownHandler := func(srv any, stream grpc.ServerStream) error {
-		return status.Error(codes.Unauthenticated, "user unauthenticated")
-	}
-	for _, e := range listTestEnv() {
-		// TODO(bradfitz): Temporarily skip this env due to #619.
-		if e.name == "handler-tls" {
-			continue
-		}
-		testUnknownHandler(t, e, unknownHandler)
-	}
-}
-
-func testUnknownHandler(t *testing.T, e env, unknownHandler grpc.StreamHandler) {
-	te := newTest(t, e)
-	te.unknownHandler = unknownHandler
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-	verifyHealthCheckErrCode(t, 1*time.Second, te.clientConn(), "", codes.Unauthenticated)
-}
-
-// TestHealthCheckServingStatus makes a streaming Watch() RPC on the health
-// server and verifies a bunch of health status transitions.
-func (s) TestHealthCheckServingStatus(t *testing.T) {
-	for _, e := range listTestEnv() {
-		testHealthCheckServingStatus(t, e)
-	}
-}
-
-func testHealthCheckServingStatus(t *testing.T, e env) {
-	te := newTest(t, e)
-	te.enableHealthServer = true
-	te.startServer(&testServer{security: e.security})
-	defer te.tearDown()
-
-	cc := te.clientConn()
-	verifyHealthCheckStatus(t, 1*time.Second, cc, "", healthpb.HealthCheckResponse_SERVING)
-	verifyHealthCheckErrCode(t, 1*time.Second, cc, defaultHealthService, codes.NotFound)
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	verifyHealthCheckStatus(t, 1*time.Second, cc, defaultHealthService, healthpb.HealthCheckResponse_SERVING)
-	te.setHealthServingStatus(defaultHealthService, healthpb.HealthCheckResponse_NOT_SERVING)
-	verifyHealthCheckStatus(t, 1*time.Second, cc, defaultHealthService, healthpb.HealthCheckResponse_NOT_SERVING)
 }

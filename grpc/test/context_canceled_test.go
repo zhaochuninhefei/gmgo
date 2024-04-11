@@ -23,20 +23,18 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/encoding/gzip"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/stubserver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-
-	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 )
 
 func (s) TestContextCanceled(t *testing.T) {
 	ss := &stubserver.StubServer{
-		FullDuplexCallF: func(stream testgrpc.TestService_FullDuplexCallServer) error {
+		FullDuplexCallF: func(stream testpb.TestService_FullDuplexCallServer) error {
 			stream.SetTrailer(metadata.New(map[string]string{"a": "b"}))
 			return status.Error(codes.PermissionDenied, "perm denied")
 		},
@@ -125,7 +123,7 @@ func (s) TestContextCanceled(t *testing.T) {
 // will be inconsistent, and it causes internal error.
 func (s) TestCancelWhileRecvingWithCompression(t *testing.T) {
 	ss := &stubserver.StubServer{
-		FullDuplexCallF: func(stream testgrpc.TestService_FullDuplexCallServer) error {
+		FullDuplexCallF: func(stream testpb.TestService_FullDuplexCallServer) error {
 			for {
 				if err := stream.Send(&testpb.StreamingOutputCallResponse{
 					Payload: nil,
@@ -141,7 +139,7 @@ func (s) TestCancelWhileRecvingWithCompression(t *testing.T) {
 	defer ss.Stop()
 
 	for i := 0; i < 10; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		s, err := ss.Client.FullDuplexCall(ctx, grpc.UseCompressor(gzip.Name))
 		if err != nil {
 			t.Fatalf("failed to start bidi streaming RPC: %v", err)

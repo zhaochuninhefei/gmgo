@@ -21,12 +21,12 @@
 package clusterspecifier
 
 import (
-	"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // BalancerConfig is the Go Native JSON representation of a balancer
 // configuration.
-type BalancerConfig []map[string]any
+type BalancerConfig []map[string]interface{}
 
 // ClusterSpecifier defines the parsing functionality of a Cluster Specifier.
 type ClusterSpecifier interface {
@@ -37,7 +37,7 @@ type ClusterSpecifier interface {
 	// ParseClusterSpecifierConfig parses the provided configuration
 	// proto.Message from the top level RDS configuration. The resulting
 	// BalancerConfig will be used as configuration for a child LB Policy of the
-	// Cluster Manager LB Policy. A nil BalancerConfig is invalid.
+	// Cluster Manager LB Policy.
 	ParseClusterSpecifierConfig(proto.Message) (BalancerConfig, error)
 }
 
@@ -64,9 +64,4 @@ func Register(cs ClusterSpecifier) {
 // If no cluster specifier is registered with typeURL, nil will be returned.
 func Get(typeURL string) ClusterSpecifier {
 	return m[typeURL]
-}
-
-// UnregisterForTesting unregisters the ClusterSpecifier for testing purposes.
-func UnregisterForTesting(typeURL string) {
-	delete(m, typeURL)
 }

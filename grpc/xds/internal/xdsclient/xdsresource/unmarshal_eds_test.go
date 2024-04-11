@@ -25,15 +25,14 @@ import (
 
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3endpointpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
-	v3discoverypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	v3typepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
+	anypb "github.com/golang/protobuf/ptypes/any"
+	wrapperspb "github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func (s) TestEDSParseRespProto(t *testing.T) {
@@ -59,64 +58,6 @@ func (s) TestEDSParseRespProto(t *testing.T) {
 			m: func() *v3endpointpb.ClusterLoadAssignment {
 				clab0 := newClaBuilder("test", nil)
 				clab0.addLocality("", 1, 0, []string{"addr1:314"}, nil)
-				return clab0.Build()
-			}(),
-			want:    EndpointsUpdate{},
-			wantErr: true,
-		},
-		{
-			name: "zero-endpoint-weight",
-			m: func() *v3endpointpb.ClusterLoadAssignment {
-				clab0 := newClaBuilder("test", nil)
-				clab0.addLocality("locality-0", 1, 0, []string{"addr1:314"}, &addLocalityOptions{Weight: []uint32{0}})
-				return clab0.Build()
-			}(),
-			want:    EndpointsUpdate{},
-			wantErr: true,
-		},
-		{
-			name: "duplicate-locality-in-the-same-priority",
-			m: func() *v3endpointpb.ClusterLoadAssignment {
-				clab0 := newClaBuilder("test", nil)
-				clab0.addLocality("locality-0", 1, 0, []string{"addr1:314"}, nil)
-				clab0.addLocality("locality-0", 1, 0, []string{"addr1:314"}, nil) // Duplicate locality with the same priority.
-				return clab0.Build()
-			}(),
-			want:    EndpointsUpdate{},
-			wantErr: true,
-		},
-		{
-			name: "missing locality weight",
-			m: func() *v3endpointpb.ClusterLoadAssignment {
-				clab0 := newClaBuilder("test", nil)
-				clab0.addLocality("locality-1", 0, 1, []string{"addr1:314"}, &addLocalityOptions{
-					Health: []v3corepb.HealthStatus{v3corepb.HealthStatus_HEALTHY},
-				})
-				clab0.addLocality("locality-2", 0, 0, []string{"addr2:159"}, &addLocalityOptions{
-					Health: []v3corepb.HealthStatus{v3corepb.HealthStatus_HEALTHY},
-				})
-				return clab0.Build()
-			}(),
-			want: EndpointsUpdate{},
-		},
-		{
-			name: "max sum of weights at the same priority exceeded",
-			m: func() *v3endpointpb.ClusterLoadAssignment {
-				clab0 := newClaBuilder("test", nil)
-				clab0.addLocality("locality-1", 1, 0, []string{"addr1:314"}, nil)
-				clab0.addLocality("locality-2", 4294967295, 1, []string{"addr2:159"}, nil)
-				clab0.addLocality("locality-3", 1, 1, []string{"addr2:88"}, nil)
-				return clab0.Build()
-			}(),
-			want:    EndpointsUpdate{},
-			wantErr: true,
-		},
-		{
-			name: "duplicate endpoint address",
-			m: func() *v3endpointpb.ClusterLoadAssignment {
-				clab0 := newClaBuilder("test", nil)
-				clab0.addLocality("locality-1", 1, 1, []string{"addr:997"}, nil)
-				clab0.addLocality("locality-2", 1, 0, []string{"addr:997"}, nil)
 				return clab0.Build()
 			}(),
 			want:    EndpointsUpdate{},
@@ -163,48 +104,6 @@ func (s) TestEDSParseRespProto(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "good duplicate locality with different priority",
-			m: func() *v3endpointpb.ClusterLoadAssignment {
-				clab0 := newClaBuilder("test", nil)
-				clab0.addLocality("locality-1", 1, 1, []string{"addr1:314"}, &addLocalityOptions{
-					Health: []v3corepb.HealthStatus{v3corepb.HealthStatus_UNHEALTHY},
-					Weight: []uint32{271},
-				})
-				// Same locality name, but with different priority.
-				clab0.addLocality("locality-1", 1, 0, []string{"addr2:159"}, &addLocalityOptions{
-					Health: []v3corepb.HealthStatus{v3corepb.HealthStatus_DRAINING},
-					Weight: []uint32{828},
-				})
-				return clab0.Build()
-			}(),
-			want: EndpointsUpdate{
-				Drops: nil,
-				Localities: []Locality{
-					{
-						Endpoints: []Endpoint{{
-							Address:      "addr1:314",
-							HealthStatus: EndpointHealthStatusUnhealthy,
-							Weight:       271,
-						}},
-						ID:       internal.LocalityID{SubZone: "locality-1"},
-						Priority: 1,
-						Weight:   1,
-					},
-					{
-						Endpoints: []Endpoint{{
-							Address:      "addr2:159",
-							HealthStatus: EndpointHealthStatusDraining,
-							Weight:       828,
-						}},
-						ID:       internal.LocalityID{SubZone: "locality-1"},
-						Priority: 0,
-						Weight:   1,
-					},
-				},
-			},
-			wantErr: false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -221,7 +120,7 @@ func (s) TestEDSParseRespProto(t *testing.T) {
 }
 
 func (s) TestUnmarshalEndpoints(t *testing.T) {
-	var v3EndpointsAny = testutils.MarshalAny(t, func() *v3endpointpb.ClusterLoadAssignment {
+	var v3EndpointsAny = testutils.MarshalAny(func() *v3endpointpb.ClusterLoadAssignment {
 		clab0 := newClaBuilder("test", nil)
 		clab0.addLocality("locality-1", 1, 1, []string{"addr1:314"}, &addLocalityOptions{
 			Health: []v3corepb.HealthStatus{v3corepb.HealthStatus_UNHEALTHY},
@@ -233,112 +132,168 @@ func (s) TestUnmarshalEndpoints(t *testing.T) {
 		})
 		return clab0.Build()
 	}())
+	const testVersion = "test-version-eds"
 
 	tests := []struct {
 		name       string
-		resource   *anypb.Any
-		wantName   string
-		wantUpdate EndpointsUpdate
+		resources  []*anypb.Any
+		wantUpdate map[string]EndpointsUpdateErrTuple
+		wantMD     UpdateMetadata
 		wantErr    bool
 	}{
 		{
-			name:     "non-clusterLoadAssignment resource type",
-			resource: &anypb.Any{TypeUrl: version.V3HTTPConnManagerURL},
-			wantErr:  true,
+			name:      "non-clusterLoadAssignment resource type",
+			resources: []*anypb.Any{{TypeUrl: version.V3HTTPConnManagerURL}},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "badly marshaled clusterLoadAssignment resource",
-			resource: &anypb.Any{
-				TypeUrl: version.V3EndpointsURL,
-				Value:   []byte{1, 2, 3, 4},
+			resources: []*anypb.Any{
+				{
+					TypeUrl: version.V3EndpointsURL,
+					Value:   []byte{1, 2, 3, 4},
+				},
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "bad endpoints resource",
-			resource: testutils.MarshalAny(t, func() *v3endpointpb.ClusterLoadAssignment {
+			resources: []*anypb.Any{testutils.MarshalAny(func() *v3endpointpb.ClusterLoadAssignment {
 				clab0 := newClaBuilder("test", nil)
 				clab0.addLocality("locality-1", 1, 0, []string{"addr1:314"}, nil)
 				clab0.addLocality("locality-2", 1, 2, []string{"addr2:159"}, nil)
 				return clab0.Build()
-			}()),
-			wantName: "test",
-			wantErr:  true,
+			}())},
+			wantUpdate: map[string]EndpointsUpdateErrTuple{"test": {Err: cmpopts.AnyError}},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
+			},
+			wantErr: true,
 		},
 		{
-			name:     "v3 endpoints",
-			resource: v3EndpointsAny,
-			wantName: "test",
-			wantUpdate: EndpointsUpdate{
-				Drops: nil,
-				Localities: []Locality{
-					{
-						Endpoints: []Endpoint{{
-							Address:      "addr1:314",
-							HealthStatus: EndpointHealthStatusUnhealthy,
-							Weight:       271,
-						}},
-						ID:       internal.LocalityID{SubZone: "locality-1"},
-						Priority: 1,
-						Weight:   1,
+			name:      "v3 endpoints",
+			resources: []*anypb.Any{v3EndpointsAny},
+			wantUpdate: map[string]EndpointsUpdateErrTuple{
+				"test": {Update: EndpointsUpdate{
+					Drops: nil,
+					Localities: []Locality{
+						{
+							Endpoints: []Endpoint{{
+								Address:      "addr1:314",
+								HealthStatus: EndpointHealthStatusUnhealthy,
+								Weight:       271,
+							}},
+							ID:       internal.LocalityID{SubZone: "locality-1"},
+							Priority: 1,
+							Weight:   1,
+						},
+						{
+							Endpoints: []Endpoint{{
+								Address:      "addr2:159",
+								HealthStatus: EndpointHealthStatusDraining,
+								Weight:       828,
+							}},
+							ID:       internal.LocalityID{SubZone: "locality-2"},
+							Priority: 0,
+							Weight:   1,
+						},
 					},
-					{
-						Endpoints: []Endpoint{{
-							Address:      "addr2:159",
-							HealthStatus: EndpointHealthStatusDraining,
-							Weight:       828,
-						}},
-						ID:       internal.LocalityID{SubZone: "locality-2"},
-						Priority: 0,
-						Weight:   1,
-					},
-				},
-				Raw: v3EndpointsAny,
+					Raw: v3EndpointsAny,
+				}},
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusACKed,
+				Version: testVersion,
 			},
 		},
 		{
-			name:     "v3 endpoints wrapped",
-			resource: testutils.MarshalAny(t, &v3discoverypb.Resource{Resource: v3EndpointsAny}),
-			wantName: "test",
-			wantUpdate: EndpointsUpdate{
-				Drops: nil,
-				Localities: []Locality{
-					{
-						Endpoints: []Endpoint{{
-							Address:      "addr1:314",
-							HealthStatus: EndpointHealthStatusUnhealthy,
-							Weight:       271,
-						}},
-						ID:       internal.LocalityID{SubZone: "locality-1"},
-						Priority: 1,
-						Weight:   1,
-					},
-					{
-						Endpoints: []Endpoint{{
-							Address:      "addr2:159",
-							HealthStatus: EndpointHealthStatusDraining,
-							Weight:       828,
-						}},
-						ID:       internal.LocalityID{SubZone: "locality-2"},
-						Priority: 0,
-						Weight:   1,
-					},
-				},
-				Raw: v3EndpointsAny,
+			// To test that unmarshal keeps processing on errors.
+			name: "good and bad endpoints",
+			resources: []*anypb.Any{
+				v3EndpointsAny,
+				testutils.MarshalAny(func() *v3endpointpb.ClusterLoadAssignment {
+					clab0 := newClaBuilder("bad", nil)
+					clab0.addLocality("locality-1", 1, 0, []string{"addr1:314"}, nil)
+					clab0.addLocality("locality-2", 1, 2, []string{"addr2:159"}, nil)
+					return clab0.Build()
+				}()),
 			},
+			wantUpdate: map[string]EndpointsUpdateErrTuple{
+				"test": {Update: EndpointsUpdate{
+					Drops: nil,
+					Localities: []Locality{
+						{
+							Endpoints: []Endpoint{{
+								Address:      "addr1:314",
+								HealthStatus: EndpointHealthStatusUnhealthy,
+								Weight:       271,
+							}},
+							ID:       internal.LocalityID{SubZone: "locality-1"},
+							Priority: 1,
+							Weight:   1,
+						},
+						{
+							Endpoints: []Endpoint{{
+								Address:      "addr2:159",
+								HealthStatus: EndpointHealthStatusDraining,
+								Weight:       828,
+							}},
+							ID:       internal.LocalityID{SubZone: "locality-2"},
+							Priority: 0,
+							Weight:   1,
+						},
+					},
+					Raw: v3EndpointsAny,
+				}},
+				"bad": {Err: cmpopts.AnyError},
+			},
+			wantMD: UpdateMetadata{
+				Status:  ServiceStatusNACKed,
+				Version: testVersion,
+				ErrState: &UpdateErrorMetadata{
+					Version: testVersion,
+					Err:     cmpopts.AnyError,
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			name, update, err := unmarshalEndpointsResource(test.resource)
-			if (err != nil) != test.wantErr {
-				t.Fatalf("unmarshalEndpointsResource(%s), got err: %v, wantErr: %v", pretty.ToJSON(test.resource), err, test.wantErr)
+			opts := &UnmarshalOptions{
+				Version:   testVersion,
+				Resources: test.resources,
 			}
-			if name != test.wantName {
-				t.Errorf("unmarshalEndpointsResource(%s), got name: %s, want: %s", pretty.ToJSON(test.resource), name, test.wantName)
+			update, md, err := UnmarshalEndpoints(opts)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("UnmarshalEndpoints(%+v), got err: %v, wantErr: %v", opts, err, test.wantErr)
 			}
 			if diff := cmp.Diff(update, test.wantUpdate, cmpOpts); diff != "" {
-				t.Errorf("unmarshalEndpointsResource(%s), got unexpected update, diff (-got +want): %v", pretty.ToJSON(test.resource), diff)
+				t.Errorf("got unexpected update, diff (-got +want): %v", diff)
+			}
+			if diff := cmp.Diff(md, test.wantMD, cmpOptsIgnoreDetails); diff != "" {
+				t.Errorf("got unexpected metadata, diff (-got +want): %v", diff)
 			}
 		})
 	}

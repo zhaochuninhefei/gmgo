@@ -50,7 +50,7 @@ func NewDefaultCredentialsWithOptions(opts DefaultCredentialsOptions) credential
 		ctx, cancel := context.WithTimeout(context.Background(), tokenRequestTimeout)
 		defer cancel()
 		var err error
-		opts.PerRPCCreds, err = newADC(ctx)
+		opts.PerRPCCreds, err = oauth.NewApplicationDefault(ctx)
 		if err != nil {
 			logger.Warningf("NewDefaultCredentialsWithOptions: failed to create application oauth: %v", err)
 		}
@@ -111,9 +111,6 @@ var (
 	}
 	newALTS = func() credentials.TransportCredentials {
 		return alts.NewClientCreds(alts.DefaultClientOptions())
-	}
-	newADC = func(ctx context.Context) (credentials.PerRPCCredentials, error) {
-		return oauth.NewApplicationDefault(ctx)
 	}
 )
 

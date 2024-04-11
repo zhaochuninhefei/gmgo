@@ -42,4 +42,11 @@ var (
 		cmp.Comparer(func(a, b time.Time) bool { return true }),
 		protocmp.Transform(),
 	}
+
+	cmpOptsIgnoreDetails = cmp.Options{
+		cmp.Comparer(func(a, b time.Time) bool { return true }),
+		cmp.Comparer(func(x, y error) bool {
+			return (x == nil) == (y == nil)
+		}),
+	}
 )

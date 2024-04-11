@@ -43,7 +43,6 @@ import (
 
 	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/interop/xds" // to register Custom LB.
 )
 
 func init() {
@@ -139,6 +138,7 @@ func (as *accumulatedStats) makeStatsMap() map[string]*testpb.LoadBalancerAccumu
 func (as *accumulatedStats) buildResp() *testpb.LoadBalancerAccumulatedStatsResponse {
 	as.mu.Lock()
 	defer as.mu.Unlock()
+	//goland:noinspection GoDeprecation
 	return &testpb.LoadBalancerAccumulatedStatsResponse{
 		NumRpcsStartedByMethod:   copyStatsMap(as.numRPCsStartedByMethod),
 		NumRpcsSucceededByMethod: copyStatsMap(as.numRPCsSucceededByMethod),
@@ -212,7 +212,7 @@ func setRPCSucceeded() {
 	atomic.StoreUint32(&rpcSucceeded, 1)
 }
 
-// Wait for the next LoadBalancerStatsRequest.GetNumRpcs to start and complete,
+// GetClientStats Wait for the next LoadBalancerStatsRequest.GetNumRpcs to start and complete,
 // and return the distribution of remote peers. This is essentially a clientside
 // LB reporting mechanism that is designed to be queried by an external test
 // driver when verifying that the client is distributing RPCs as expected.
@@ -268,6 +268,7 @@ func (s *statsService) GetClientStats(ctx context.Context, in *testpb.LoadBalanc
 	}
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *statsService) GetClientAccumulatedStats(ctx context.Context, in *testpb.LoadBalancerAccumulatedStatsRequest) (*testpb.LoadBalancerAccumulatedStatsResponse, error) {
 	return accStats.buildResp(), nil
 }
@@ -276,6 +277,7 @@ type configureService struct {
 	testgrpc.UnimplementedXdsUpdateClientConfigureServiceServer
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *configureService) Configure(ctx context.Context, in *testpb.ClientConfigureRequest) (*testpb.ClientConfigureResponse, error) {
 	rpcsToMD := make(map[testpb.ClientConfigureRequest_RpcType][]string)
 	for _, typ := range in.GetTypes() {
@@ -341,8 +343,7 @@ type rpcConfig struct {
 }
 
 // parseRPCMetadata turns EmptyCall:key1:value1 into
-//
-//	{typ: emptyCall, md: {key1:value1}}.
+//   {typ: emptyCall, md: {key1:value1}}.
 func parseRPCMetadata(rpcMetadataStr string, rpcs []string) []*rpcConfig {
 	rpcMetadataSplit := strings.Split(rpcMetadataStr, ",")
 	rpcsToMD := make(map[string][]string)
@@ -358,7 +359,7 @@ func parseRPCMetadata(rpcMetadataStr string, rpcs []string) []*rpcConfig {
 		rpcC := &rpcConfig{
 			typ: rpcT,
 		}
-		if md := rpcsToMD[string(rpcT)]; len(md) > 0 {
+		if md := rpcsToMD[rpcT]; len(md) > 0 {
 			rpcC.md = metadata.Pairs(md...)
 		}
 		ret = append(ret, rpcC)
@@ -384,7 +385,9 @@ func main() {
 		logger.Fatalf("Failed to register admin: %v", err)
 	}
 	defer cleanup()
-	go s.Serve(lis)
+	go func() {
+		_ = s.Serve(lis)
+	}()
 
 	creds := insecure.NewCredentials()
 	if *secureMode {
@@ -401,7 +404,10 @@ func main() {
 		if err != nil {
 			logger.Fatalf("Fail to dial: %v", err)
 		}
-		defer conn.Close()
+		//goland:noinspection GoDeferInLoop
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
 		clients[i] = testgrpc.NewTestServiceClient(conn)
 	}
 	ticker := time.NewTicker(time.Second / time.Duration(*qps**numChannels))
@@ -460,7 +466,7 @@ func sendRPCs(clients []testgrpc.TestServiceClient, ticker *time.Ticker) {
 		mu.Lock()
 		savedRequestID := currentRequestID
 		currentRequestID++
-		savedWatchers := []*statsWatcher{}
+		var savedWatchers []*statsWatcher
 		for key, value := range watchers {
 			if key.startID <= savedRequestID && savedRequestID < key.endID {
 				savedWatchers = append(savedWatchers, value)

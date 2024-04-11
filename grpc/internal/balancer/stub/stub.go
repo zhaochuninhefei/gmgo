@@ -19,13 +19,7 @@
 // Package stub implements a balancer for testing purposes.
 package stub
 
-import (
-	"encoding/json"
-	"fmt"
-
-	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/serviceconfig"
-)
+import "gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
 
 // BalancerFuncs contains all balancer.Balancer functions with a preceding
 // *BalancerData parameter for passing additional instance information.  Any
@@ -34,11 +28,10 @@ type BalancerFuncs struct {
 	// Init is called after ClientConn and BuildOptions are set in
 	// BalancerData.  It may be used to initialize BalancerData.Data.
 	Init func(*BalancerData)
-	// ParseConfig is used for parsing LB configs, if specified.
-	ParseConfig func(json.RawMessage) (serviceconfig.LoadBalancingConfig, error)
 
 	UpdateClientConnState func(*BalancerData, balancer.ClientConnState) error
 	ResolverError         func(*BalancerData, error)
+	UpdateSubConnState    func(*BalancerData, balancer.SubConn, balancer.SubConnState)
 	Close                 func(*BalancerData)
 	ExitIdle              func(*BalancerData)
 }
@@ -50,7 +43,7 @@ type BalancerData struct {
 	// BuildOptions is set by the builder.
 	BuildOptions balancer.BuildOptions
 	// Data may be used to store arbitrary user data.
-	Data any
+	Data interface{}
 }
 
 type bal struct {
@@ -72,7 +65,9 @@ func (b *bal) ResolverError(e error) {
 }
 
 func (b *bal) UpdateSubConnState(sc balancer.SubConn, scs balancer.SubConnState) {
-	panic(fmt.Sprintf("UpdateSubConnState(%v, %+v) called unexpectedly", sc, scs))
+	if b.bf.UpdateSubConnState != nil {
+		b.bf.UpdateSubConnState(b.bd, sc, scs)
+	}
 }
 
 func (b *bal) Close() {
@@ -101,13 +96,6 @@ func (bb bb) Build(cc balancer.ClientConn, opts balancer.BuildOptions) balancer.
 }
 
 func (bb bb) Name() string { return bb.name }
-
-func (bb bb) ParseConfig(lbCfg json.RawMessage) (serviceconfig.LoadBalancingConfig, error) {
-	if bb.bf.ParseConfig != nil {
-		return bb.bf.ParseConfig(lbCfg)
-	}
-	return nil, nil
-}
 
 // Register registers a stub balancer builder which will call the provided
 // functions.  The name used should be unique.

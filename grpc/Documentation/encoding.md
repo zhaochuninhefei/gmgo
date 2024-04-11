@@ -19,7 +19,7 @@ that registers itself, and is imported anonymously.  For example:
 ```go
 package proto
 
-import "google.golang.org/grpc/encoding"
+import "gitee.com/zhaochuninhefei/gmgo/grpc/encoding"
 
 func init() {
 	encoding.RegisterCodec(protoCodec{})
@@ -95,7 +95,7 @@ function that registers itself, and is imported anonymously.  For example:
 ```go
 package gzip
 
-import "google.golang.org/grpc/encoding"
+import "gitee.com/zhaochuninhefei/gmgo/grpc/encoding"
 
 func init() {
 	encoding.RegisterCompressor(compressor{})
@@ -115,7 +115,7 @@ By default, gRPC does not register or use any compressors.  To use a
 ```go
 package myclient
 
-import _ "google.golang.org/grpc/encoding/gzip"
+import _ "gitee.com/zhaochuninhefei/gmgo/grpc/encoding/gzip"
 ```
 
 `Compressor`s, by definition, must be symmetric, so the same desired

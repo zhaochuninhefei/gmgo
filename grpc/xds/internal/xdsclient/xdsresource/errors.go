@@ -34,12 +34,6 @@ const (
 	// response. It's typically returned if the resource is removed in the xds
 	// server.
 	ErrorTypeResourceNotFound
-	// ErrorTypeResourceTypeUnsupported indicates the receipt of a message from
-	// the management server with resources of an unsupported resource type.
-	ErrorTypeResourceTypeUnsupported
-	// ErrTypeStreamFailedAfterRecv indicates an ADS stream error, after
-	// successful receipt of at least one message from the server.
-	ErrTypeStreamFailedAfterRecv
 )
 
 type xdsClientError struct {
@@ -53,7 +47,7 @@ func (e *xdsClientError) Error() string {
 
 // NewErrorf creates an xds client error. The callbacks are called with this
 // error, to pass additional information about the error.
-func NewErrorf(t ErrorType, format string, args ...any) error {
+func NewErrorf(t ErrorType, format string, args ...interface{}) error {
 	return &xdsClientError{t: t, desc: fmt.Sprintf(format, args...)}
 }
 

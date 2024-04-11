@@ -21,7 +21,7 @@
 // queried by a client to remotely manage the gRPC profiling behaviour of an
 // application.
 //
-// # Experimental
+// Experimental
 //
 // Notice: This package is EXPERIMENTAL and may be changed or removed in a
 // later release.
@@ -63,6 +63,7 @@ var errorNilServer = errors.New("profiling: no grpc.Server provided")
 // Init takes a *ProfilingConfig to initialize profiling (turned on/off
 // depending on the value set in pc.Enabled) and register the profiling service
 // in the server provided in pc.Server.
+//goland:noinspection GoUnusedExportedFunction
 func Init(pc *ProfilingConfig) error {
 	if pc.Server == nil {
 		return errorNilServer
@@ -99,6 +100,7 @@ func getProfilingServerInstance() *profilingServer {
 	return profilingServerInstance
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *profilingServer) Enable(ctx context.Context, req *ppb.EnableRequest) (*ppb.EnableResponse, error) {
 	if req.Enabled {
 		logger.Infof("profilingServer: Enable: enabling profiling")
@@ -133,6 +135,7 @@ func statToProtoStat(stat *profiling.Stat) *ppb.Stat {
 	return protoStat
 }
 
+//goland:noinspection GoUnusedParameter
 func (s *profilingServer) GetStreamStats(ctx context.Context, req *ppb.GetStreamStatsRequest) (*ppb.GetStreamStatsResponse, error) {
 	// Since the drain operation is destructive, only one client request should
 	// be served at a time.

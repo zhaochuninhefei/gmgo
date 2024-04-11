@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcrand"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcutil"
 	iresolver "gitee.com/zhaochuninhefei/gmgo/grpc/internal/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/serviceconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/wrr"
@@ -38,6 +38,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clustermanager"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/ringhash"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/router"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource"
 	xxhash "github.com/cespare/xxhash/v2"
 )
@@ -53,10 +54,10 @@ type serviceConfig struct {
 	LoadBalancingConfig balancerConfig `json:"loadBalancingConfig"`
 }
 
-type balancerConfig []map[string]any
+type balancerConfig []map[string]interface{}
 
-func newBalancerConfig(name string, config any) balancerConfig {
-	return []map[string]any{{name: config}}
+func newBalancerConfig(name string, config interface{}) balancerConfig {
+	return []map[string]interface{}{{name: config}}
 }
 
 type cdsBalancerConfig struct {
@@ -69,6 +70,16 @@ type xdsChildConfig struct {
 
 type xdsClusterManagerConfig struct {
 	Children map[string]xdsChildConfig `json:"children"`
+}
+
+// pruneActiveClusters deletes entries in r.activeClusters with zero
+// references.
+func (r *xdsResolver) pruneActiveClusters() {
+	for cluster, ci := range r.activeClusters {
+		if atomic.LoadInt32(&ci.refCount) == 0 {
+			delete(r.activeClusters, cluster)
+		}
+	}
 }
 
 // serviceConfigJSON produces a service config in JSON format representing all
@@ -110,7 +121,6 @@ type routeCluster struct {
 
 type route struct {
 	m                 *xdsresource.CompositeMatcher // converted from route matchers
-	actionType        xdsresource.RouteActionType   // holds route action type
 	clusters          wrr.WRR                       // holds *routeCluster entries
 	maxStreamDuration time.Duration
 	// map from filter name to its config
@@ -132,7 +142,6 @@ type configSelector struct {
 }
 
 var errNoMatchedRouteFound = status.Errorf(codes.Unavailable, "no matched route was found")
-var errUnsupportedClientRouteAction = status.Errorf(codes.Unavailable, "matched route does not have a supported route action type")
 
 func (cs *configSelector) SelectConfig(rpcInfo iresolver.RPCInfo) (*iresolver.RPCConfig, error) {
 	if cs == nil {
@@ -146,13 +155,8 @@ func (cs *configSelector) SelectConfig(rpcInfo iresolver.RPCInfo) (*iresolver.RP
 			break
 		}
 	}
-
 	if rt == nil || rt.clusters == nil {
 		return nil, errNoMatchedRouteFound
-	}
-
-	if rt.actionType != xdsresource.RouteActionRoute {
-		return nil, errUnsupportedClientRouteAction
 	}
 
 	cluster, ok := rt.clusters.Next().(*routeCluster)
@@ -171,7 +175,10 @@ func (cs *configSelector) SelectConfig(rpcInfo iresolver.RPCInfo) (*iresolver.RP
 	}
 
 	lbCtx := clustermanager.SetPickedCluster(rpcInfo.Context, cluster.name)
-	lbCtx = ringhash.SetRequestHash(lbCtx, cs.generateHash(rpcInfo, rt.hashPolicies))
+	// Request Hashes are only applicable for a Ring Hash LB.
+	if envconfig.XDSRingHash {
+		lbCtx = ringhash.SetRequestHash(lbCtx, cs.generateHash(rpcInfo, rt.hashPolicies))
+	}
 
 	config := &iresolver.RPCConfig{
 		// Communicate to the LB policy the chosen cluster and request hash, if Ring Hash LB policy.
@@ -182,9 +189,10 @@ func (cs *configSelector) SelectConfig(rpcInfo iresolver.RPCInfo) (*iresolver.RP
 			if v := atomic.AddInt32(ref, -1); v == 0 {
 				// This entry will be removed from activeClusters when
 				// producing the service config for the empty update.
-				cs.r.serializer.Schedule(func(context.Context) {
-					cs.r.onClusterRefDownToZero()
-				})
+				select {
+				case cs.r.updateCh <- suWithError{emptyUpdate: true}:
+				default:
+				}
 			}
 		},
 		Interceptor: interceptor,
@@ -215,30 +223,19 @@ func retryConfigToPolicy(config *xdsresource.RetryConfig) *serviceconfig.RetryPo
 func (cs *configSelector) generateHash(rpcInfo iresolver.RPCInfo, hashPolicies []*xdsresource.HashPolicy) uint64 {
 	var hash uint64
 	var generatedHash bool
-	var md, emd metadata.MD
-	var mdRead bool
 	for _, policy := range hashPolicies {
 		var policyHash uint64
 		var generatedPolicyHash bool
 		switch policy.HashPolicyType {
 		case xdsresource.HashPolicyTypeHeader:
-			if strings.HasSuffix(policy.HeaderName, "-bin") {
+			md, ok := metadata.FromOutgoingContext(rpcInfo.Context)
+			if !ok {
 				continue
 			}
-			if !mdRead {
-				md, _ = metadata.FromOutgoingContext(rpcInfo.Context)
-				emd, _ = grpcutil.ExtraMetadata(rpcInfo.Context)
-				mdRead = true
-			}
-			values := emd.Get(policy.HeaderName)
+			values := md.Get(policy.HeaderName)
+			// If the header isn't present, no-op.
 			if len(values) == 0 {
-				// Extra metadata (e.g. the "content-type" header) takes
-				// precedence over the user's metadata.
-				values = md.Get(policy.HeaderName)
-				if len(values) == 0 {
-					// If the header isn't present at all, this policy is a no-op.
-					continue
-				}
+				continue
 			}
 			joinedValues := strings.Join(values, ",")
 			if policy.Regex != nil {
@@ -248,8 +245,9 @@ func (cs *configSelector) generateHash(rpcInfo iresolver.RPCInfo, hashPolicies [
 			generatedHash = true
 			generatedPolicyHash = true
 		case xdsresource.HashPolicyTypeChannelID:
-			// Use the static channel ID as the hash for this policy.
-			policyHash = cs.r.channelID
+			// Hash the ClientConn pointer which logically uniquely
+			// identifies the client.
+			policyHash = xxhash.Sum64String(fmt.Sprintf("%p", &cs.r.cc))
 			generatedHash = true
 			generatedPolicyHash = true
 		}
@@ -283,6 +281,11 @@ func (cs *configSelector) newInterceptor(rt *route, cluster *routeCluster) (ires
 	}
 	interceptors := make([]iresolver.ClientInterceptor, 0, len(cs.httpFilterConfig))
 	for _, filter := range cs.httpFilterConfig {
+		if router.IsRouterFilter(filter.Filter) {
+			// Ignore any filters after the router filter.  The router itself
+			// is currently a nop.
+			return &interceptorList{interceptors: interceptors}, nil
+		}
 		override := cluster.httpFilterConfigOverride[filter.Name] // cluster is highest priority
 		if override == nil {
 			override = rt.httpFilterConfigOverride[filter.Name] // route is second priority
@@ -303,7 +306,7 @@ func (cs *configSelector) newInterceptor(rt *route, cluster *routeCluster) (ires
 			interceptors = append(interceptors, i)
 		}
 	}
-	return &interceptorList{interceptors: interceptors}, nil
+	return nil, fmt.Errorf("error in xds config: no router filter present")
 }
 
 // stop decrements refs of all clusters referenced by this config selector.
@@ -326,10 +329,99 @@ func (cs *configSelector) stop() {
 	// selector; we need another update to delete clusters from the config (if
 	// we don't have another update pending already).
 	if needUpdate {
-		cs.r.serializer.Schedule(func(context.Context) {
-			cs.r.onClusterRefDownToZero()
-		})
+		select {
+		case cs.r.updateCh <- suWithError{emptyUpdate: true}:
+		default:
+		}
 	}
+}
+
+// A global for testing.
+var newWRR = wrr.NewRandom
+
+// newConfigSelector creates the config selector for su; may add entries to
+// r.activeClusters for previously-unseen clusters.
+func (r *xdsResolver) newConfigSelector(su serviceUpdate) (*configSelector, error) {
+	cs := &configSelector{
+		r: r,
+		virtualHost: virtualHost{
+			httpFilterConfigOverride: su.virtualHost.HTTPFilterConfigOverride,
+			retryConfig:              su.virtualHost.RetryConfig,
+		},
+		routes:           make([]route, len(su.virtualHost.Routes)),
+		clusters:         make(map[string]*clusterInfo),
+		httpFilterConfig: su.ldsConfig.httpFilterConfig,
+	}
+
+	for i, rt := range su.virtualHost.Routes {
+		clusters := newWRR()
+		if rt.ClusterSpecifierPlugin != "" {
+			clusterName := clusterSpecifierPluginPrefix + rt.ClusterSpecifierPlugin
+			clusters.Add(&routeCluster{
+				name: clusterName,
+			}, 1)
+			cs.initializeCluster(clusterName, xdsChildConfig{
+				ChildPolicy: balancerConfig(su.clusterSpecifierPlugins[rt.ClusterSpecifierPlugin]),
+			})
+		} else {
+			for cluster, wc := range rt.WeightedClusters {
+				clusterName := clusterPrefix + cluster
+				clusters.Add(&routeCluster{
+					name:                     clusterName,
+					httpFilterConfigOverride: wc.HTTPFilterConfigOverride,
+				}, int64(wc.Weight))
+				cs.initializeCluster(clusterName, xdsChildConfig{
+					ChildPolicy: newBalancerConfig(cdsName, cdsBalancerConfig{Cluster: cluster}),
+				})
+			}
+		}
+		cs.routes[i].clusters = clusters
+
+		var err error
+		cs.routes[i].m, err = xdsresource.RouteToMatcher(rt)
+		if err != nil {
+			return nil, err
+		}
+		if rt.MaxStreamDuration == nil {
+			cs.routes[i].maxStreamDuration = su.ldsConfig.maxStreamDuration
+		} else {
+			cs.routes[i].maxStreamDuration = *rt.MaxStreamDuration
+		}
+
+		cs.routes[i].httpFilterConfigOverride = rt.HTTPFilterConfigOverride
+		cs.routes[i].retryConfig = rt.RetryConfig
+		cs.routes[i].hashPolicies = rt.HashPolicies
+	}
+
+	// Account for this config selector's clusters.  Do this after no further
+	// errors may occur.  Note: cs.clusters are pointers to entries in
+	// activeClusters.
+	for _, ci := range cs.clusters {
+		atomic.AddInt32(&ci.refCount, 1)
+	}
+
+	return cs, nil
+}
+
+// initializeCluster initializes entries in cs.clusters map, creating entries in
+// r.activeClusters as necessary.  Any created entries will have a ref count set
+// to zero as their ref count will be incremented by incRefs.
+func (cs *configSelector) initializeCluster(clusterName string, cfg xdsChildConfig) {
+	ci := cs.r.activeClusters[clusterName]
+	if ci == nil {
+		ci = &clusterInfo{refCount: 0}
+		cs.r.activeClusters[clusterName] = ci
+	}
+	cs.clusters[clusterName] = ci
+	cs.clusters[clusterName].cfg = cfg
+}
+
+type clusterInfo struct {
+	// number of references to this cluster; accessed atomically
+	refCount int32
+	// cfg is the child configuration for this cluster, containing either the
+	// csp config or the cds cluster config.
+	cfg xdsChildConfig
 }
 
 type interceptorList struct {

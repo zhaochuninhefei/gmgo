@@ -26,6 +26,7 @@ package main
 import (
 	"context"
 	"flag"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"net"
 	"strconv"
 	"sync"
@@ -33,7 +34,6 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/interop"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
@@ -69,19 +69,19 @@ func largeSimpleRequest() *testpb.SimpleRequest {
 }
 
 // sends two unary calls. The server asserts that the calls use different connections.
-func goaway(ctx context.Context, tc testgrpc.TestServiceClient) {
-	interop.DoLargeUnaryCall(ctx, tc)
+func goaway(tc testgrpc.TestServiceClient) {
+	interop.DoLargeUnaryCall(tc)
 	// sleep to ensure that the client has time to recv the GOAWAY.
 	// TODO(ncteisen): make this less hacky.
 	time.Sleep(1 * time.Second)
-	interop.DoLargeUnaryCall(ctx, tc)
+	interop.DoLargeUnaryCall(tc)
 }
 
 func rstAfterHeader(tc testgrpc.TestServiceClient) {
 	req := largeSimpleRequest()
 	reply, err := tc.UnaryCall(context.Background(), req)
 	if reply != nil {
-		logger.Fatal("Client received reply despite server sending rst stream after header")
+		logger.Fatalf("Client received reply despite server sending rst stream after header")
 	}
 	if status.Code(err) != codes.Internal {
 		logger.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, status.Code(err), codes.Internal)
@@ -92,7 +92,7 @@ func rstDuringData(tc testgrpc.TestServiceClient) {
 	req := largeSimpleRequest()
 	reply, err := tc.UnaryCall(context.Background(), req)
 	if reply != nil {
-		logger.Fatal("Client received reply despite server sending rst stream during data")
+		logger.Fatalf("Client received reply despite server sending rst stream during data")
 	}
 	if status.Code(err) != codes.Unknown {
 		logger.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, status.Code(err), codes.Unknown)
@@ -103,26 +103,26 @@ func rstAfterData(tc testgrpc.TestServiceClient) {
 	req := largeSimpleRequest()
 	reply, err := tc.UnaryCall(context.Background(), req)
 	if reply != nil {
-		logger.Fatal("Client received reply despite server sending rst stream after data")
+		logger.Fatalf("Client received reply despite server sending rst stream after data")
 	}
 	if status.Code(err) != codes.Internal {
 		logger.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, status.Code(err), codes.Internal)
 	}
 }
 
-func ping(ctx context.Context, tc testgrpc.TestServiceClient) {
+func ping(tc testgrpc.TestServiceClient) {
 	// The server will assert that every ping it sends was ACK-ed by the client.
-	interop.DoLargeUnaryCall(ctx, tc)
+	interop.DoLargeUnaryCall(tc)
 }
 
-func maxStreams(ctx context.Context, tc testgrpc.TestServiceClient) {
-	interop.DoLargeUnaryCall(ctx, tc)
+func maxStreams(tc testgrpc.TestServiceClient) {
+	interop.DoLargeUnaryCall(tc)
 	var wg sync.WaitGroup
 	for i := 0; i < 15; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			interop.DoLargeUnaryCall(ctx, tc)
+			interop.DoLargeUnaryCall(tc)
 		}()
 	}
 	wg.Wait()
@@ -132,17 +132,20 @@ func main() {
 	flag.Parse()
 	serverAddr := net.JoinHostPort(*serverHost, strconv.Itoa(*serverPort))
 	var opts []grpc.DialOption
+	// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
+	//opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	conn, err := grpc.Dial(serverAddr, opts...)
 	if err != nil {
 		logger.Fatalf("Fail to dial: %v", err)
 	}
-	defer conn.Close()
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
 	tc := testgrpc.NewTestServiceClient(conn)
-	ctx := context.Background()
 	switch *testCase {
 	case "goaway":
-		goaway(ctx, tc)
+		goaway(tc)
 		logger.Infoln("goaway done")
 	case "rst_after_header":
 		rstAfterHeader(tc)
@@ -154,10 +157,10 @@ func main() {
 		rstAfterData(tc)
 		logger.Infoln("rst_after_data done")
 	case "ping":
-		ping(ctx, tc)
+		ping(tc)
 		logger.Infoln("ping done")
 	case "max_streams":
-		maxStreams(ctx, tc)
+		maxStreams(tc)
 		logger.Infoln("max_streams done")
 	default:
 		logger.Fatal("Unsupported test case: ", *testCase)

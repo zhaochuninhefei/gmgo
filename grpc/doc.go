@@ -19,8 +19,11 @@
 //go:generate ./regenerate.sh
 
 /*
-Package grpc implements an RPC system called gRPC.
+package grpc implements an RPC system called gRPC.
 
 See grpc.io for more information about gRPC.
 */
-package grpc // import "gitee.com/zhaochuninhefei/gmgo/grpc"
+
+package grpc
+
+// import "gitee.com/zhaochuninhefei/gmgo/grpc"

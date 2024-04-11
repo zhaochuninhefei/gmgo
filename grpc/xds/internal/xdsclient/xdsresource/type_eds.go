@@ -64,12 +64,17 @@ type Locality struct {
 
 // EndpointsUpdate contains an EDS update.
 type EndpointsUpdate struct {
-	Drops []OverloadDropConfig
-	// Localities in the EDS response with `load_balancing_weight` field not set
-	// or explicitly set to 0 are ignored while parsing the resource, and
-	// therefore do not show up here.
+	Drops      []OverloadDropConfig
 	Localities []Locality
 
 	// Raw is the resource from the xds response.
 	Raw *anypb.Any
+}
+
+// EndpointsUpdateErrTuple is a tuple with the update and error. It contains the
+// results from unmarshal functions. It's used to pass unmarshal results of
+// multiple resources together, e.g. in maps like `map[string]{Update,error}`.
+type EndpointsUpdateErrTuple struct {
+	Update EndpointsUpdate
+	Err    error
 }

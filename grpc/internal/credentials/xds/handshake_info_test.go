@@ -19,11 +19,12 @@
 package xds
 
 import (
-	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"net"
 	"net/url"
 	"regexp"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds/matcher"
 )
@@ -125,6 +126,7 @@ func TestDNSMatch(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestMatchingSANExists_FailureCases(t *testing.T) {
 	url1, err := url.Parse("http://golang.org")
 	if err != nil {
@@ -188,7 +190,8 @@ func TestMatchingSANExists_FailureCases(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			hi := NewHandshakeInfo(nil, nil, test.sanMatchers, false)
+			hi := NewHandshakeInfo(nil, nil)
+			hi.SetSANMatchers(test.sanMatchers)
 
 			if hi.MatchingSANExists(inputCert) {
 				t.Fatalf("hi.MatchingSANExists(%+v) with SAN matchers +%v succeeded when expected to fail", inputCert, test.sanMatchers)
@@ -197,6 +200,7 @@ func TestMatchingSANExists_FailureCases(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestMatchingSANExists_Success(t *testing.T) {
 	url1, err := url.Parse("http://golang.org")
 	if err != nil {
@@ -288,7 +292,8 @@ func TestMatchingSANExists_Success(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			hi := NewHandshakeInfo(nil, nil, test.sanMatchers, false)
+			hi := NewHandshakeInfo(nil, nil)
+			hi.SetSANMatchers(test.sanMatchers)
 
 			if !hi.MatchingSANExists(inputCert) {
 				t.Fatalf("hi.MatchingSANExists(%+v) with SAN matchers +%v failed when expected to succeed", inputCert, test.sanMatchers)

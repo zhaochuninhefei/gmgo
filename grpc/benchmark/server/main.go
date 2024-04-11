@@ -20,7 +20,6 @@
 Package main provides a server used for benchmarking.  It launches a server
 which is listening on port 50051.  An example to start the server can be found
 at:
-
 	go run benchmark/server/main.go -test_name=grpc_test
 
 After starting the server, the client can be run separately and used to test
@@ -31,7 +30,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	_ "gitee.com/zhaochuninhefei/gmgo/gmhttp/pprof"
 	"net"
 	"os"
 	"os/signal"
@@ -39,7 +37,8 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	_ "gitee.com/zhaochuninhefei/gmgo/gmhttp/pprof"
+
 	"gitee.com/zhaochuninhefei/gmgo/grpc/benchmark"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/syscall"
@@ -55,7 +54,7 @@ var (
 func main() {
 	flag.Parse()
 	if *testName == "" {
-		logger.Fatal("-test_name not set")
+		logger.Fatalf("test name not set")
 	}
 	lis, err := net.Listen("tcp", ":"+*port)
 	if err != nil {
@@ -71,10 +70,7 @@ func main() {
 	pprof.StartCPUProfile(cf)
 	cpuBeg := syscall.GetCPUTime()
 	// Launch server in a separate goroutine.
-	stop := benchmark.StartServer(benchmark.ServerInfo{Type: "protobuf", Listener: lis},
-		grpc.WriteBufferSize(128*1024),
-		grpc.ReadBufferSize(128*1024),
-	)
+	stop := benchmark.StartServer(benchmark.ServerInfo{Type: "protobuf", Listener: lis})
 	// Wait on OS terminate signal.
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)

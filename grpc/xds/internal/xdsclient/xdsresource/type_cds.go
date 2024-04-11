@@ -17,11 +17,7 @@
 
 package xdsresource
 
-import (
-	"encoding/json"
-
-	"google.golang.org/protobuf/types/known/anypb"
-)
+import "google.golang.org/protobuf/types/known/anypb"
 
 // ClusterType is the type of cluster from a received CDS response.
 type ClusterType int
@@ -39,17 +35,12 @@ const (
 	ClusterTypeAggregate
 )
 
-// ClusterLRSServerConfigType is the type of LRS server config.
-type ClusterLRSServerConfigType int
-
-const (
-	// ClusterLRSOff indicates LRS is off (loads are not reported for this
-	// cluster).
-	ClusterLRSOff ClusterLRSServerConfigType = iota
-	// ClusterLRSServerSelf indicates loads should be reported to the same
-	// server (the authority) where the CDS resp is received from.
-	ClusterLRSServerSelf
-)
+// ClusterLBPolicyRingHash represents ring_hash lb policy, and also contains its
+// config.
+type ClusterLBPolicyRingHash struct {
+	MinimumRingSize uint64
+	MaximumRingSize uint64
+}
 
 // ClusterUpdate contains information from a received CDS response, which is of
 // interest to the registered CDS watcher.
@@ -60,10 +51,8 @@ type ClusterUpdate struct {
 	// EDSServiceName is an optional name for EDS. If it's not set, the balancer
 	// should watch ClusterName for the EDS resources.
 	EDSServiceName string
-	// LRSServerConfig contains the server where the load reports should be sent
-	// to. This can be change to an interface, to support other types, e.g. a
-	// ServerConfig with ServerURI, creds.
-	LRSServerConfig ClusterLRSServerConfigType
+	// EnableLRS indicates whether or not load should be reported through LRS.
+	EnableLRS bool
 	// SecurityCfg contains security configuration sent by the control plane.
 	SecurityCfg *SecurityConfig
 	// MaxRequests for circuit breaking, if any (otherwise nil).
@@ -75,14 +64,24 @@ type ClusterUpdate struct {
 	// a prioritized list of cluster names.
 	PrioritizedClusterNames []string
 
-	// LBPolicy represents the locality and endpoint picking policy in JSON,
-	// which will be the child policy of xds_cluster_impl.
-	LBPolicy json.RawMessage
-
-	// OutlierDetection is the outlier detection configuration for this cluster.
-	// If nil, it means this cluster does not use the outlier detection feature.
-	OutlierDetection json.RawMessage
+	// LBPolicy is the lb policy for this cluster.
+	//
+	// This only support round_robin and ring_hash.
+	// - if it's nil, the lb policy is round_robin
+	// - if it's not nil, the lb policy is ring_hash, the this field has the config.
+	//
+	// When we add more support policies, this can be made an interface, and
+	// will be set to different types based on the policy type.
+	LBPolicy *ClusterLBPolicyRingHash
 
 	// Raw is the resource from the xds response.
 	Raw *anypb.Any
+}
+
+// ClusterUpdateErrTuple is a tuple with the update and error. It contains the
+// results from unmarshal functions. It's used to pass unmarshal results of
+// multiple resources together, e.g. in maps like `map[string]{Update,error}`.
+type ClusterUpdateErrTuple struct {
+	Update ClusterUpdate
+	Err    error
 }

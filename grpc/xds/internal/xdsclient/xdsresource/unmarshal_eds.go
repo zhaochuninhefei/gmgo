@@ -19,25 +19,29 @@ package xdsresource
 
 import (
 	"fmt"
-	"math"
 	"net"
 	"strconv"
 
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3endpointpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
 	v3typepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal"
-	"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func unmarshalEndpointsResource(r *anypb.Any) (string, EndpointsUpdate, error) {
-	r, err := UnwrapResource(r)
-	if err != nil {
-		return "", EndpointsUpdate{}, fmt.Errorf("failed to unwrap resource: %v", err)
-	}
+// UnmarshalEndpoints processes resources received in an EDS response,
+// validates them, and transforms them into a native struct which contains only
+// fields we are interested in.
+func UnmarshalEndpoints(opts *UnmarshalOptions) (map[string]EndpointsUpdateErrTuple, UpdateMetadata, error) {
+	update := make(map[string]EndpointsUpdateErrTuple)
+	md, err := processAllResources(opts, update)
+	return update, md, err
+}
 
+func unmarshalEndpointsResource(r *anypb.Any, logger *grpclog.PrefixLogger) (string, EndpointsUpdate, error) {
 	if !IsEndpointsResource(r.GetTypeUrl()) {
 		return "", EndpointsUpdate{}, fmt.Errorf("unexpected resource type: %q ", r.GetTypeUrl())
 	}
@@ -46,6 +50,7 @@ func unmarshalEndpointsResource(r *anypb.Any) (string, EndpointsUpdate, error) {
 	if err := proto.Unmarshal(r.GetValue(), cla); err != nil {
 		return "", EndpointsUpdate{}, fmt.Errorf("failed to unmarshal resource: %v", err)
 	}
+	logger.Infof("Resource with name: %v, type: %T, contains: %v", cla.GetClusterName(), cla, pretty.ToJSON(cla))
 
 	u, err := parseEDSRespProto(cla)
 	if err != nil {
@@ -80,31 +85,16 @@ func parseDropPolicy(dropPolicy *v3endpointpb.ClusterLoadAssignment_Policy_DropO
 	}
 }
 
-func parseEndpoints(lbEndpoints []*v3endpointpb.LbEndpoint, uniqueEndpointAddrs map[string]bool) ([]Endpoint, error) {
+func parseEndpoints(lbEndpoints []*v3endpointpb.LbEndpoint) []Endpoint {
 	endpoints := make([]Endpoint, 0, len(lbEndpoints))
 	for _, lbEndpoint := range lbEndpoints {
-		// If the load_balancing_weight field is specified, it must be set to a
-		// value of at least 1.  If unspecified, each host is presumed to have
-		// equal weight in a locality.
-		weight := uint32(1)
-		if w := lbEndpoint.GetLoadBalancingWeight(); w != nil {
-			if w.GetValue() == 0 {
-				return nil, fmt.Errorf("EDS response contains an endpoint with zero weight: %+v", lbEndpoint)
-			}
-			weight = w.GetValue()
-		}
-		addr := parseAddress(lbEndpoint.GetEndpoint().GetAddress().GetSocketAddress())
-		if uniqueEndpointAddrs[addr] {
-			return nil, fmt.Errorf("duplicate endpoint with the same address %s", addr)
-		}
-		uniqueEndpointAddrs[addr] = true
 		endpoints = append(endpoints, Endpoint{
 			HealthStatus: EndpointHealthStatus(lbEndpoint.GetHealthStatus()),
-			Address:      addr,
-			Weight:       weight,
+			Address:      parseAddress(lbEndpoint.GetEndpoint().GetAddress().GetSocketAddress()),
+			Weight:       lbEndpoint.GetLoadBalancingWeight().GetValue(),
 		})
 	}
-	return endpoints, nil
+	return endpoints
 }
 
 func parseEDSRespProto(m *v3endpointpb.ClusterLoadAssignment) (EndpointsUpdate, error) {
@@ -112,58 +102,23 @@ func parseEDSRespProto(m *v3endpointpb.ClusterLoadAssignment) (EndpointsUpdate, 
 	for _, dropPolicy := range m.GetPolicy().GetDropOverloads() {
 		ret.Drops = append(ret.Drops, parseDropPolicy(dropPolicy))
 	}
-	priorities := make(map[uint32]map[string]bool)
-	sumOfWeights := make(map[uint32]uint64)
-	uniqueEndpointAddrs := make(map[string]bool)
+	priorities := make(map[uint32]struct{})
 	for _, locality := range m.Endpoints {
 		l := locality.GetLocality()
 		if l == nil {
 			return EndpointsUpdate{}, fmt.Errorf("EDS response contains a locality without ID, locality: %+v", locality)
-		}
-		weight := locality.GetLoadBalancingWeight().GetValue()
-		if weight == 0 {
-			logger.Warningf("Ignoring locality %s with weight 0", pretty.ToJSON(l))
-			continue
-		}
-		priority := locality.GetPriority()
-		sumOfWeights[priority] += uint64(weight)
-		if sumOfWeights[priority] > math.MaxUint32 {
-			return EndpointsUpdate{}, fmt.Errorf("sum of weights of localities at the same priority %d exceeded maximal value", priority)
-		}
-		localitiesWithPriority := priorities[priority]
-		if localitiesWithPriority == nil {
-			localitiesWithPriority = make(map[string]bool)
-			priorities[priority] = localitiesWithPriority
 		}
 		lid := internal.LocalityID{
 			Region:  l.Region,
 			Zone:    l.Zone,
 			SubZone: l.SubZone,
 		}
-		lidStr, _ := lid.ToString()
-
-		// "Since an xDS configuration can place a given locality under multiple
-		// priorities, it is possible to see locality weight attributes with
-		// different values for the same locality." - A52
-		//
-		// This is handled in the client by emitting the locality weight
-		// specified for the priority it is specified in. If the same locality
-		// has a different weight in two priorities, each priority will specify
-		// a locality with the locality weight specified for that priority, and
-		// thus the subsequent tree of balancers linked to that priority will
-		// use that locality weight as well.
-		if localitiesWithPriority[lidStr] {
-			return EndpointsUpdate{}, fmt.Errorf("duplicate locality %s with the same priority %v", lidStr, priority)
-		}
-		localitiesWithPriority[lidStr] = true
-		endpoints, err := parseEndpoints(locality.GetLbEndpoints(), uniqueEndpointAddrs)
-		if err != nil {
-			return EndpointsUpdate{}, err
-		}
+		priority := locality.GetPriority()
+		priorities[priority] = struct{}{}
 		ret.Localities = append(ret.Localities, Locality{
 			ID:        lid,
-			Endpoints: endpoints,
-			Weight:    weight,
+			Endpoints: parseEndpoints(locality.GetLbEndpoints()),
+			Weight:    locality.GetLoadBalancingWeight().GetValue(),
 			Priority:  priority,
 		})
 	}

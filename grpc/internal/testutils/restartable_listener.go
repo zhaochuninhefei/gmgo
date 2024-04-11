@@ -61,7 +61,7 @@ func (l *RestartableListener) Accept() (net.Conn, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.stopped {
-		conn.Close()
+		_ = conn.Close()
 		return nil, &tempError{}
 	}
 	l.conns = append(l.conns, conn)
@@ -84,7 +84,7 @@ func (l *RestartableListener) Stop() {
 	l.mu.Lock()
 	l.stopped = true
 	for _, conn := range l.conns {
-		conn.Close()
+		_ = conn.Close()
 	}
 	l.conns = nil
 	l.mu.Unlock()

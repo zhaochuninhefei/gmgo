@@ -26,7 +26,7 @@ import (
 func TestParseConfig(t *testing.T) {
 	tests := []struct {
 		desc       string
-		input      any
+		input      interface{}
 		wantOutput string
 		wantErr    bool
 	}{

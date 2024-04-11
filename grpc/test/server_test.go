@@ -23,51 +23,14 @@ import (
 	"io"
 	"testing"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/stubserver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-
-	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 )
 
 type ctxKey string
-
-// TestServerReturningContextError verifies that if a context error is returned
-// by the service handler, the status will have the correct status code, not
-// Unknown.
-func (s) TestServerReturningContextError(t *testing.T) {
-	ss := &stubserver.StubServer{
-		EmptyCallF: func(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
-			return nil, context.DeadlineExceeded
-		},
-		FullDuplexCallF: func(stream testgrpc.TestService_FullDuplexCallServer) error {
-			return context.DeadlineExceeded
-		},
-	}
-	if err := ss.Start(nil); err != nil {
-		t.Fatalf("Error starting endpoint server: %v", err)
-	}
-	defer ss.Stop()
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
-	defer cancel()
-	_, err := ss.Client.EmptyCall(ctx, &testpb.Empty{})
-	if s, ok := status.FromError(err); !ok || s.Code() != codes.DeadlineExceeded {
-		t.Fatalf("ss.Client.EmptyCall() got error %v; want <status with Code()=DeadlineExceeded>", err)
-	}
-
-	stream, err := ss.Client.FullDuplexCall(ctx)
-	if err != nil {
-		t.Fatalf("unexpected error starting the stream: %v", err)
-	}
-	_, err = stream.Recv()
-	if s, ok := status.FromError(err); !ok || s.Code() != codes.DeadlineExceeded {
-		t.Fatalf("ss.Client.FullDuplexCall().Recv() got error %v; want <status with Code()=DeadlineExceeded>", err)
-	}
-
-}
 
 func (s) TestChainUnaryServerInterceptor(t *testing.T) {
 	var (
@@ -75,7 +38,7 @@ func (s) TestChainUnaryServerInterceptor(t *testing.T) {
 		secondIntKey = ctxKey("secondIntKey")
 	)
 
-	firstInt := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	firstInt := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if ctx.Value(firstIntKey) != nil {
 			return nil, status.Errorf(codes.Internal, "first interceptor should not have %v in context", firstIntKey)
 		}
@@ -101,7 +64,7 @@ func (s) TestChainUnaryServerInterceptor(t *testing.T) {
 		}, nil
 	}
 
-	secondInt := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	secondInt := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if ctx.Value(firstIntKey) == nil {
 			return nil, status.Errorf(codes.Internal, "second interceptor should have %v in context", firstIntKey)
 		}
@@ -127,7 +90,7 @@ func (s) TestChainUnaryServerInterceptor(t *testing.T) {
 		}, nil
 	}
 
-	lastInt := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	lastInt := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if ctx.Value(firstIntKey) == nil {
 			return nil, status.Errorf(codes.Internal, "last interceptor should have %v in context", firstIntKey)
 		}
@@ -189,7 +152,7 @@ func (s) TestChainUnaryServerInterceptor(t *testing.T) {
 func (s) TestChainOnBaseUnaryServerInterceptor(t *testing.T) {
 	baseIntKey := ctxKey("baseIntKey")
 
-	baseInt := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	baseInt := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if ctx.Value(baseIntKey) != nil {
 			return nil, status.Errorf(codes.Internal, "base interceptor should not have %v in context", baseIntKey)
 		}
@@ -198,7 +161,7 @@ func (s) TestChainOnBaseUnaryServerInterceptor(t *testing.T) {
 		return handler(baseCtx, req)
 	}
 
-	chainInt := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	chainInt := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if ctx.Value(baseIntKey) == nil {
 			return nil, status.Errorf(codes.Internal, "chain interceptor should have %v in context", baseIntKey)
 		}
@@ -232,7 +195,7 @@ func (s) TestChainOnBaseUnaryServerInterceptor(t *testing.T) {
 func (s) TestChainStreamServerInterceptor(t *testing.T) {
 	callCounts := make([]int, 4)
 
-	firstInt := func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	firstInt := func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if callCounts[0] != 0 {
 			return status.Errorf(codes.Internal, "callCounts[0] should be 0, but got=%d", callCounts[0])
 		}
@@ -249,7 +212,7 @@ func (s) TestChainStreamServerInterceptor(t *testing.T) {
 		return handler(srv, stream)
 	}
 
-	secondInt := func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	secondInt := func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if callCounts[0] != 1 {
 			return status.Errorf(codes.Internal, "callCounts[0] should be 1, but got=%d", callCounts[0])
 		}
@@ -266,7 +229,7 @@ func (s) TestChainStreamServerInterceptor(t *testing.T) {
 		return handler(srv, stream)
 	}
 
-	lastInt := func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	lastInt := func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if callCounts[0] != 1 {
 			return status.Errorf(codes.Internal, "callCounts[0] should be 1, but got=%d", callCounts[0])
 		}
@@ -288,7 +251,7 @@ func (s) TestChainStreamServerInterceptor(t *testing.T) {
 	}
 
 	ss := &stubserver.StubServer{
-		FullDuplexCallF: func(stream testgrpc.TestService_FullDuplexCallServer) error {
+		FullDuplexCallF: func(stream testpb.TestService_FullDuplexCallServer) error {
 			if callCounts[0] != 1 {
 				return status.Errorf(codes.Internal, "callCounts[0] should be 1, but got=%d", callCounts[0])
 			}

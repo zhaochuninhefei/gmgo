@@ -17,7 +17,7 @@ set -eo pipefail
 
 # Constants
 readonly GITHUB_REPOSITORY_NAME="grpc-go"
-readonly TEST_DRIVER_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/${TEST_DRIVER_REPO_OWNER:-grpc}/psm-interop/${TEST_DRIVER_BRANCH:-main}/.kokoro/psm_interop_kokoro_lib.sh"
+readonly TEST_DRIVER_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/${TEST_DRIVER_REPO_OWNER:-grpc}/grpc/${TEST_DRIVER_BRANCH:-master}/tools/internal_ci/linux/grpc_xds_k8s_install_test_driver.sh"
 ## xDS test client Docker images
 readonly CLIENT_IMAGE_NAME="gcr.io/grpc-testing/xds-interop/go-client"
 readonly FORCE_IMAGE_BUILD="${FORCE_IMAGE_BUILD:-0}"
@@ -37,9 +37,6 @@ build_test_app_docker_images() {
   docker build -f "${SRC_DIR}/interop/xds/client/Dockerfile" -t "${CLIENT_IMAGE_NAME}:${GIT_COMMIT}" "${SRC_DIR}"
   gcloud -q auth configure-docker
   docker push "${CLIENT_IMAGE_NAME}:${GIT_COMMIT}"
-  if is_version_branch "${TESTING_VERSION}"; then
-    tag_and_push_docker_image "${CLIENT_IMAGE_NAME}" "${GIT_COMMIT}" "${TESTING_VERSION}"
-  fi
 }
 
 #######################################
@@ -75,8 +72,6 @@ build_docker_images_if_needed() {
 #   TEST_XML_OUTPUT_DIR: Output directory for the test xUnit XML report
 #   CLIENT_IMAGE_NAME: Test client Docker image name
 #   GIT_COMMIT: SHA-1 of git commit being built
-#   TESTING_VERSION: version branch under test: used by the framework to determine the supported PSM
-#                    features.
 # Arguments:
 #   Test case name
 # Outputs:
@@ -87,19 +82,15 @@ run_test() {
   # Test driver usage:
   # https://github.com/grpc/grpc/tree/master/tools/run_tests/xds_k8s_test_driver#basic-usage
   local test_name="${1:?Usage: run_test test_name}"
-  local out_dir="${TEST_XML_OUTPUT_DIR}/${test_name}"
-  mkdir -pv "${out_dir}"
   set -x
   python -m "tests.${test_name}" \
     --flagfile="${TEST_DRIVER_FLAGFILE}" \
-    --flagfile="config/url-map.cfg" \
     --kube_context="${KUBE_CONTEXT}" \
     --client_image="${CLIENT_IMAGE_NAME}:${GIT_COMMIT}" \
-    --testing_version="${TESTING_VERSION}" \
-    --collect_app_logs \
-    --log_dir="${out_dir}" \
-    --xml_output_file="${out_dir}/sponge_log.xml" \
-    |& tee "${out_dir}/sponge_log.log"
+    --testing_version=$(echo "$KOKORO_JOB_NAME" | sed -E 's|^grpc/go/([^/]+)/.*|\1|') \
+    --xml_output_file="${TEST_XML_OUTPUT_DIR}/${test_name}/sponge_log.xml" \
+    --flagfile="config/url-map.cfg"
+  set +x
 }
 
 #######################################
@@ -141,7 +132,7 @@ main() {
   build_docker_images_if_needed
   # Run tests
   cd "${TEST_DRIVER_FULL_DIR}"
-  run_test url_map || echo "Failed url_map test"
+  run_test url_map
 }
 
 main "$@"

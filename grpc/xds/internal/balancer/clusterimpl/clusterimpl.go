@@ -31,18 +31,16 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/balancer/gracefulswitch"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/buffer"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcsync"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/serviceconfig"
 	xdsinternal "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/loadstore"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/bootstrap"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/load"
 )
 
@@ -65,11 +63,11 @@ func (bb) Build(cc balancer.ClientConn, bOpts balancer.BuildOptions) balancer.Ba
 		closed:          grpcsync.NewEvent(),
 		done:            grpcsync.NewEvent(),
 		loadWrapper:     loadstore.NewWrapper(),
+		scWrappers:      make(map[balancer.SubConn]*scWrapper),
 		pickerUpdateCh:  buffer.NewUnbounded(),
 		requestCountMax: defaultRequestCountMax,
 	}
 	b.logger = prefixLogger(b)
-	b.child = gracefulswitch.NewBalancer(b, bOpts)
 	go b.run()
 	b.logger.Infof("Created")
 	return b
@@ -103,14 +101,26 @@ type clusterImplBalancer struct {
 	xdsClient xdsclient.XDSClient
 
 	config           *LBConfig
-	child            *gracefulswitch.Balancer
+	childLB          balancer.Balancer
 	cancelLoadReport func()
 	edsServiceName   string
-	lrsServer        *bootstrap.ServerConfig
+	lrsServerName    *string
 	loadWrapper      *loadstore.Wrapper
 
 	clusterNameMu sync.Mutex
 	clusterName   string
+
+	scWrappersMu sync.Mutex
+	// The SubConns passed to the child policy are wrapped in a wrapper, to keep
+	// locality ID. But when the parent ClientConn sends updates, it's going to
+	// give the original SubConn, not the wrapper. But the child policies only
+	// know about the wrapper, so when forwarding SubConn updates, they must be
+	// sent for the wrappers.
+	//
+	// This keeps a map from original SubConn to wrapper, so that when
+	// forwarding the SubConn state update, the child policy will get the
+	// wrappers.
+	scWrappers map[balancer.SubConn]*scWrapper
 
 	// childState/drops/requestCounter keeps the state used by the most recently
 	// generated picker. All fields can only be accessed in run(). And run() is
@@ -161,22 +171,22 @@ func (b *clusterImplBalancer) updateLoadStore(newConfig *LBConfig) error {
 	)
 
 	// Check if it's necessary to restart load report.
-	if b.lrsServer == nil {
-		if newConfig.LoadReportingServer != nil {
+	if b.lrsServerName == nil {
+		if newConfig.LoadReportingServerName != nil {
 			// Old is nil, new is not nil, start new LRS.
-			b.lrsServer = newConfig.LoadReportingServer
+			b.lrsServerName = newConfig.LoadReportingServerName
 			startNewLoadReport = true
 		}
 		// Old is nil, new is nil, do nothing.
-	} else if newConfig.LoadReportingServer == nil {
+	} else if newConfig.LoadReportingServerName == nil {
 		// Old is not nil, new is nil, stop old, don't start new.
-		b.lrsServer = newConfig.LoadReportingServer
+		b.lrsServerName = newConfig.LoadReportingServerName
 		stopOldLoadReport = true
 	} else {
 		// Old is not nil, new is not nil, compare string values, if
 		// different, stop old and start new.
-		if !b.lrsServer.Equal(newConfig.LoadReportingServer) {
-			b.lrsServer = newConfig.LoadReportingServer
+		if *b.lrsServerName != *newConfig.LoadReportingServerName {
+			b.lrsServerName = newConfig.LoadReportingServerName
 			stopOldLoadReport = true
 			startNewLoadReport = true
 		}
@@ -196,7 +206,7 @@ func (b *clusterImplBalancer) updateLoadStore(newConfig *LBConfig) error {
 	if startNewLoadReport {
 		var loadStore *load.Store
 		if b.xdsClient != nil {
-			loadStore, b.cancelLoadReport = b.xdsClient.ReportLoad(b.lrsServer)
+			loadStore, b.cancelLoadReport = b.xdsClient.ReportLoad(*b.lrsServerName)
 		}
 		b.loadWrapper.UpdateLoadStore(loadStore)
 	}
@@ -240,19 +250,31 @@ func (b *clusterImplBalancer) UpdateClientConnState(s balancer.ClientConnState) 
 		return err
 	}
 
+	// If child policy is a different type, recreate the sub-balancer.
 	if b.config == nil || b.config.ChildPolicy.Name != newConfig.ChildPolicy.Name {
-		if err := b.child.SwitchTo(bb); err != nil {
-			return fmt.Errorf("error switching to child of type %q: %v", newConfig.ChildPolicy.Name, err)
+		if b.childLB != nil {
+			b.childLB.Close()
 		}
+		b.childLB = bb.Build(b, b.bOpts)
 	}
 	b.config = newConfig
+
+	if b.childLB == nil {
+		// This is not an expected situation, and should be super rare in
+		// practice.
+		//
+		// When this happens, we already applied all the other configurations
+		// (drop/circuit breaking), but there's no child policy. This balancer
+		// will be stuck, and we report the error to the parent.
+		return fmt.Errorf("child policy is nil, this means balancer %q's Build() returned nil", newConfig.ChildPolicy.Name)
+	}
 
 	// Notify run() of this new config, in case drop and request counter need
 	// update (which means a new picker needs to be generated).
 	b.pickerUpdateCh.Put(newConfig)
 
 	// Addresses and sub-balancer config are sent to sub-balancer.
-	return b.child.UpdateClientConnState(balancer.ClientConnState{
+	return b.childLB.UpdateClientConnState(balancer.ClientConnState{
 		ResolverState:  s.ResolverState,
 		BalancerConfig: b.config.ChildPolicy.Config,
 	})
@@ -263,10 +285,13 @@ func (b *clusterImplBalancer) ResolverError(err error) {
 		b.logger.Warningf("xds: received resolver error {%+v} after clusterImplBalancer was closed", err)
 		return
 	}
-	b.child.ResolverError(err)
+
+	if b.childLB != nil {
+		b.childLB.ResolverError(err)
+	}
 }
 
-func (b *clusterImplBalancer) updateSubConnState(sc balancer.SubConn, s balancer.SubConnState, cb func(balancer.SubConnState)) {
+func (b *clusterImplBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
 	if b.closed.HasFired() {
 		b.logger.Warningf("xds: received subconn state change {%+v, %+v} after clusterImplBalancer was closed", sc, s)
 		return
@@ -283,13 +308,18 @@ func (b *clusterImplBalancer) updateSubConnState(sc balancer.SubConn, s balancer
 		b.ClientConn.ResolveNow(resolver.ResolveNowOptions{})
 	}
 
-	if cb != nil {
-		cb(s)
+	b.scWrappersMu.Lock()
+	if scw, ok := b.scWrappers[sc]; ok {
+		sc = scw
+		if s.ConnectivityState == connectivity.Shutdown {
+			// Remove this SubConn from the map on Shutdown.
+			delete(b.scWrappers, scw.SubConn)
+		}
 	}
-}
-
-func (b *clusterImplBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
-	b.logger.Errorf("UpdateSubConnState(%v, %+v) called unexpectedly", sc, s)
+	b.scWrappersMu.Unlock()
+	if b.childLB != nil {
+		b.childLB.UpdateSubConnState(sc, s)
+	}
 }
 
 func (b *clusterImplBalancer) Close() {
@@ -297,15 +327,27 @@ func (b *clusterImplBalancer) Close() {
 	b.closed.Fire()
 	b.mu.Unlock()
 
-	b.child.Close()
-	b.childState = balancer.State{}
-	b.pickerUpdateCh.Close()
+	if b.childLB != nil {
+		b.childLB.Close()
+		b.childLB = nil
+	}
 	<-b.done.Done()
 	b.logger.Infof("Shutdown")
 }
 
 func (b *clusterImplBalancer) ExitIdle() {
-	b.child.ExitIdle()
+	if b.childLB == nil {
+		return
+	}
+	if ei, ok := b.childLB.(balancer.ExitIdler); ok {
+		ei.ExitIdle()
+		return
+	}
+	// Fallback for children that don't support ExitIdle -- connect to all
+	// SubConns.
+	for _, sc := range b.scWrappers {
+		sc.Connect()
+	}
 }
 
 // Override methods to accept updates from the child LB.
@@ -359,24 +401,36 @@ func (b *clusterImplBalancer) NewSubConn(addrs []resolver.Address, opts balancer
 	newAddrs := make([]resolver.Address, len(addrs))
 	var lID xdsinternal.LocalityID
 	for i, addr := range addrs {
-		newAddrs[i] = xds.SetXDSHandshakeClusterName(addr, clusterName)
+		newAddrs[i] = internal.SetXDSHandshakeClusterName(addr, clusterName)
 		lID = xdsinternal.GetLocalityID(newAddrs[i])
 	}
-	var sc balancer.SubConn
-	oldListener := opts.StateListener
-	opts.StateListener = func(state balancer.SubConnState) { b.updateSubConnState(sc, state, oldListener) }
 	sc, err := b.ClientConn.NewSubConn(newAddrs, opts)
 	if err != nil {
 		return nil, err
 	}
 	// Wrap this SubConn in a wrapper, and add it to the map.
+	b.scWrappersMu.Lock()
 	ret := &scWrapper{SubConn: sc}
 	ret.updateLocalityID(lID)
+	b.scWrappers[sc] = ret
+	b.scWrappersMu.Unlock()
 	return ret, nil
 }
 
 func (b *clusterImplBalancer) RemoveSubConn(sc balancer.SubConn) {
-	b.logger.Errorf("RemoveSubConn(%v) called unexpectedly", sc)
+	scw, ok := sc.(*scWrapper)
+	if !ok {
+		b.ClientConn.RemoveSubConn(sc)
+		return
+	}
+	// Remove the original SubConn from the parent ClientConn.
+	//
+	// Note that we don't remove this SubConn from the scWrappers map. We will
+	// need it to forward the final SubConn state Shutdown to the child policy.
+	//
+	// This entry is kept in the map until it's state is changes to Shutdown,
+	// and will be deleted in UpdateSubConnState().
+	b.ClientConn.RemoveSubConn(scw.SubConn)
 }
 
 func (b *clusterImplBalancer) UpdateAddresses(sc balancer.SubConn, addrs []resolver.Address) {
@@ -384,7 +438,7 @@ func (b *clusterImplBalancer) UpdateAddresses(sc balancer.SubConn, addrs []resol
 	newAddrs := make([]resolver.Address, len(addrs))
 	var lID xdsinternal.LocalityID
 	for i, addr := range addrs {
-		newAddrs[i] = xds.SetXDSHandshakeClusterName(addr, clusterName)
+		newAddrs[i] = internal.SetXDSHandshakeClusterName(addr, clusterName)
 		lID = xdsinternal.GetLocalityID(newAddrs[i])
 	}
 	if scw, ok := sc.(*scWrapper); ok {
@@ -450,10 +504,7 @@ func (b *clusterImplBalancer) run() {
 	defer b.done.Fire()
 	for {
 		select {
-		case update, ok := <-b.pickerUpdateCh.Get():
-			if !ok {
-				return
-			}
+		case update := <-b.pickerUpdateCh.Get():
 			b.pickerUpdateCh.Load()
 			b.mu.Lock()
 			if b.closed.HasFired() {

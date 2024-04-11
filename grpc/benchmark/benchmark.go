@@ -26,12 +26,9 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net"
-	"strconv"
-	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
@@ -80,38 +77,12 @@ func (s *testServer) UnaryCall(ctx context.Context, in *testpb.SimpleRequest) (*
 // of ping-pong.
 const UnconstrainedStreamingHeader = "unconstrained-streaming"
 
-// UnconstrainedStreamingDelayHeader is used to pass the maximum amount of time
-// the server should sleep between consecutive RPC responses.
-const UnconstrainedStreamingDelayHeader = "unconstrained-streaming-delay"
-
-// PreloadMsgSizeHeader indicates that the client is going to ask for
-// a fixed response size and passes this size to the server.
-// The server is expected to preload the response on startup.
-const PreloadMsgSizeHeader = "preload-msg-size"
-
 func (s *testServer) StreamingCall(stream testgrpc.BenchmarkService_StreamingCallServer) error {
-	preloadMsgSize := 0
-	if md, ok := metadata.FromIncomingContext(stream.Context()); ok && len(md[PreloadMsgSizeHeader]) != 0 {
-		val := md[PreloadMsgSizeHeader][0]
-		var err error
-		preloadMsgSize, err = strconv.Atoi(val)
-		if err != nil {
-			return fmt.Errorf("%q header value is not an integer: %s", PreloadMsgSizeHeader, err)
-		}
-	}
-
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok && len(md[UnconstrainedStreamingHeader]) != 0 {
-		return s.UnconstrainedStreamingCall(stream, preloadMsgSize)
+		return s.UnconstrainedStreamingCall(stream)
 	}
 	response := &testpb.SimpleResponse{
 		Payload: new(testpb.Payload),
-	}
-	preloadedResponse := &grpc.PreparedMsg{}
-	if preloadMsgSize > 0 {
-		setPayload(response.Payload, testpb.PayloadType_COMPRESSABLE, preloadMsgSize)
-		if err := preloadedResponse.Encode(stream, response); err != nil {
-			return err
-		}
 	}
 	in := new(testpb.SimpleRequest)
 	for {
@@ -124,29 +95,14 @@ func (s *testServer) StreamingCall(stream testgrpc.BenchmarkService_StreamingCal
 		if err != nil {
 			return err
 		}
-		if preloadMsgSize > 0 {
-			err = stream.SendMsg(preloadedResponse)
-		} else {
-			setPayload(response.Payload, in.ResponseType, int(in.ResponseSize))
-			err = stream.Send(response)
-		}
-		if err != nil {
+		setPayload(response.Payload, in.ResponseType, int(in.ResponseSize))
+		if err := stream.Send(response); err != nil {
 			return err
 		}
 	}
 }
 
-func (s *testServer) UnconstrainedStreamingCall(stream testgrpc.BenchmarkService_StreamingCallServer, preloadMsgSize int) error {
-	maxSleep := 0
-	if md, ok := metadata.FromIncomingContext(stream.Context()); ok && len(md[UnconstrainedStreamingDelayHeader]) != 0 {
-		val := md[UnconstrainedStreamingDelayHeader][0]
-		d, err := time.ParseDuration(val)
-		if err != nil {
-			return fmt.Errorf("can't parse %q header: %s", UnconstrainedStreamingDelayHeader, err)
-		}
-		maxSleep = int(d)
-	}
-
+func (s *testServer) UnconstrainedStreamingCall(stream testgrpc.BenchmarkService_StreamingCallServer) error {
 	in := new(testpb.SimpleRequest)
 	// Receive a message to learn response type and size.
 	err := stream.RecvMsg(in)
@@ -162,13 +118,6 @@ func (s *testServer) UnconstrainedStreamingCall(stream testgrpc.BenchmarkService
 		Payload: new(testpb.Payload),
 	}
 	setPayload(response.Payload, in.ResponseType, int(in.ResponseSize))
-
-	preloadedResponse := &grpc.PreparedMsg{}
-	if preloadMsgSize > 0 {
-		if err := preloadedResponse.Encode(stream, response); err != nil {
-			return err
-		}
-	}
 
 	go func() {
 		for {
@@ -186,17 +135,9 @@ func (s *testServer) UnconstrainedStreamingCall(stream testgrpc.BenchmarkService
 
 	go func() {
 		for {
-			if maxSleep > 0 {
-				time.Sleep(time.Duration(rand.Intn(maxSleep)))
-			}
-			var err error
-			if preloadMsgSize > 0 {
-				err = stream.SendMsg(preloadedResponse)
-			} else {
-				err = stream.Send(response)
-			}
+			err := stream.Send(response)
 			switch status.Code(err) {
-			case codes.Unavailable, codes.Canceled:
+			case codes.Unavailable:
 				return
 			case codes.OK:
 			default:
@@ -248,7 +189,7 @@ type ServerInfo struct {
 	// Metadata is an optional configuration.
 	// For "protobuf", it's ignored.
 	// For "bytebuf", it should be an int representing response size.
-	Metadata any
+	Metadata interface{}
 
 	// Listener is the network listener for the server to use
 	Listener net.Listener
@@ -257,6 +198,8 @@ type ServerInfo struct {
 // StartServer starts a gRPC server serving a benchmark service according to info.
 // It returns a function to stop the server.
 func StartServer(info ServerInfo, opts ...grpc.ServerOption) func() {
+	opts = append(opts, grpc.WriteBufferSize(128*1024))
+	opts = append(opts, grpc.ReadBufferSize(128*1024))
 	s := grpc.NewServer(opts...)
 	switch info.Type {
 	case "protobuf":
@@ -298,13 +241,7 @@ func DoStreamingRoundTrip(stream testgrpc.BenchmarkService_StreamingCallClient, 
 		ResponseSize: int32(respSize),
 		Payload:      pl,
 	}
-	return DoStreamingRoundTripPreloaded(stream, req)
-}
-
-// DoStreamingRoundTripPreloaded performs a round trip for a single streaming rpc with preloaded payload.
-func DoStreamingRoundTripPreloaded(stream testgrpc.BenchmarkService_StreamingCallClient, req any) error {
-	// req could be either *testpb.SimpleRequest or *grpc.PreparedMsg
-	if err := stream.SendMsg(req); err != nil {
+	if err := stream.Send(req); err != nil {
 		return fmt.Errorf("/BenchmarkService/StreamingCall.Send(_) = %v, want <nil>", err)
 	}
 	if _, err := stream.Recv(); err != nil {
@@ -341,9 +278,11 @@ func NewClientConn(addr string, opts ...grpc.DialOption) *grpc.ClientConn {
 
 // NewClientConnWithContext creates a gRPC client connection to addr using ctx.
 func NewClientConnWithContext(ctx context.Context, addr string, opts ...grpc.DialOption) *grpc.ClientConn {
+	opts = append(opts, grpc.WithWriteBufferSize(128*1024))
+	opts = append(opts, grpc.WithReadBufferSize(128*1024))
 	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
-		logger.Fatalf("NewClientConn(%q) failed to create a ClientConn: %v", addr, err)
+		logger.Fatalf("NewClientConn(%q) failed to create a ClientConn %v", addr, err)
 	}
 	return conn
 }

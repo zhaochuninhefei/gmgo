@@ -24,7 +24,8 @@ import (
 
 	iresolver "gitee.com/zhaochuninhefei/gmgo/grpc/internal/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
-	"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	pb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/http/router/v3"
@@ -59,7 +60,7 @@ func (builder) ParseFilterConfig(cfg proto.Message) (httpfilter.FilterConfig, er
 		return nil, fmt.Errorf("router: error parsing config %v: unknown type %T", cfg, cfg)
 	}
 	msg := new(pb.Router)
-	if err := any.UnmarshalTo(msg); err != nil {
+	if err := ptypes.UnmarshalAny(any, msg); err != nil {
 		return nil, fmt.Errorf("router: error parsing config %v: %v", cfg, err)
 	}
 	return config{}, nil

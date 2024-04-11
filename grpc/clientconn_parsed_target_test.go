@@ -21,172 +21,119 @@ package grpc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
+	"net/url"
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"github.com/google/go-cmp/cmp"
+
+	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 )
 
-func generateTarget(target string) resolver.Target {
-	return resolver.Target{URL: *testutils.MustParseURL(target)}
-}
-
-// Resets the default scheme as though it was never set by the user.
-func resetInitialResolverState() {
-	resolver.SetDefaultScheme("passthrough")
-	internal.UserSetDefaultScheme = false
-}
-
-type testResolverForParser struct {
-	resolver.Resolver
-}
-
-func (testResolverForParser) Build(resolver.Target, resolver.ClientConn, resolver.BuildOptions) (resolver.Resolver, error) {
-	return testResolverForParser{}, nil
-}
-
-func (testResolverForParser) Close() {}
-
-func (testResolverForParser) Scheme() string {
-	return "testresolverforparser"
-}
-
-func init() { resolver.Register(testResolverForParser{}) }
-
 func (s) TestParsedTarget_Success_WithoutCustomDialer(t *testing.T) {
+	defScheme := resolver.GetDefaultScheme()
 	tests := []struct {
-		target             string
-		wantDialParse      resolver.Target
-		wantNewClientParse resolver.Target
-		wantCustomParse    resolver.Target
+		target     string
+		wantParsed resolver.Target
 	}{
+		// Target.Scheme、Target.Authority、Target.Endpoint are deprecated, use URL.Scheme、URL.Host、URL.Path instead.
 		// No scheme is specified.
-		{
-			target:             "://a/b",
-			wantDialParse:      generateTarget("passthrough:///://a/b"),
-			wantNewClientParse: generateTarget("dns:///://a/b"),
-			wantCustomParse:    generateTarget("testresolverforparser:///://a/b"),
-		},
-		{
-			target:             "a//b",
-			wantDialParse:      generateTarget("passthrough:///a//b"),
-			wantNewClientParse: generateTarget("dns:///a//b"),
-			wantCustomParse:    generateTarget("testresolverforparser:///a//b"),
-		},
+		//{target: "", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "", URL: url.URL{Scheme: defScheme, Path: "/"}}},
+		{target: "", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Host: "", Path: "/"}}},
+		//{target: "://", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "://", URL: url.URL{Scheme: defScheme, Path: "/://"}}},
+		{target: "://", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Host: "", Path: "/://"}}},
+		//{target: ":///", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: ":///", URL: url.URL{Scheme: defScheme, Path: "/:///"}}},
+		{target: ":///", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Host: "", Path: "/:///"}}},
+		//{target: "://a/", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "://a/", URL: url.URL{Scheme: defScheme, Path: "/://a/"}}},
+		{target: "://a/", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/://a/"}}},
+		//{target: ":///a", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: ":///a", URL: url.URL{Scheme: defScheme, Path: "/:///a"}}},
+		{target: ":///a", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/:///a"}}},
+		//{target: "://a/b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "://a/b", URL: url.URL{Scheme: defScheme, Path: "/://a/b"}}},
+		{target: "://a/b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/://a/b"}}},
+		//{target: "/", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "/", URL: url.URL{Scheme: defScheme, Path: "//"}}},
+		{target: "/", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "//"}}},
+		//{target: "a/b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a/b", URL: url.URL{Scheme: defScheme, Path: "/a/b"}}},
+		{target: "a/b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a/b"}}},
+		//{target: "a//b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a//b", URL: url.URL{Scheme: defScheme, Path: "/a//b"}}},
+		{target: "a//b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a//b"}}},
+		//{target: "google.com", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "google.com", URL: url.URL{Scheme: defScheme, Path: "/google.com"}}},
+		{target: "google.com", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/google.com"}}},
+		//{target: "google.com/?a=b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "google.com/", URL: url.URL{Scheme: defScheme, Path: "/google.com/", RawQuery: "a=b"}}},
+		{target: "google.com/?a=b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/google.com/", RawQuery: "a=b"}}},
+		//{target: "/unix/socket/address", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "/unix/socket/address", URL: url.URL{Scheme: defScheme, Path: "//unix/socket/address"}}},
+		{target: "/unix/socket/address", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "//unix/socket/address"}}},
 
 		// An unregistered scheme is specified.
-		{
-			target:             "a:///",
-			wantDialParse:      generateTarget("passthrough:///a:///"),
-			wantNewClientParse: generateTarget("dns:///a:///"),
-			wantCustomParse:    generateTarget("testresolverforparser:///a:///"),
-		},
-		{
-			target:             "a:b",
-			wantDialParse:      generateTarget("passthrough:///a:b"),
-			wantNewClientParse: generateTarget("dns:///a:b"),
-			wantCustomParse:    generateTarget("testresolverforparser:///a:b"),
-		},
+		//{target: "a:///", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a:///", URL: url.URL{Scheme: defScheme, Path: "/a:///"}}},
+		{target: "a:///", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a:///"}}},
+		//{target: "a://b/", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a://b/", URL: url.URL{Scheme: defScheme, Path: "/a://b/"}}},
+		{target: "a://b/", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a://b/"}}},
+		//{target: "a:///b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a:///b", URL: url.URL{Scheme: defScheme, Path: "/a:///b"}}},
+		{target: "a:///b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a:///b"}}},
+		//{target: "a://b/c", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a://b/c", URL: url.URL{Scheme: defScheme, Path: "/a://b/c"}}},
+		{target: "a://b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a://b/c"}}},
+		//{target: "a:b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a:b", URL: url.URL{Scheme: defScheme, Path: "/a:b"}}},
+		{target: "a:b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a:b"}}},
+		//{target: "a:/b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a:/b", URL: url.URL{Scheme: defScheme, Path: "/a:/b"}}},
+		{target: "a:/b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a:/b"}}},
+		//{target: "a://b", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "a://b", URL: url.URL{Scheme: defScheme, Path: "/a://b"}}},
+		{target: "a://b", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/a://b"}}},
 
 		// A registered scheme is specified.
-		{
-			target:             "dns://a.server.com/google.com",
-			wantDialParse:      generateTarget("dns://a.server.com/google.com"),
-			wantNewClientParse: generateTarget("dns://a.server.com/google.com"),
-			wantCustomParse:    generateTarget("dns://a.server.com/google.com"),
-		},
-		{
-			target:             "unix-abstract:/ a///://::!@#$%25^&*()b",
-			wantDialParse:      generateTarget("unix-abstract:/ a///://::!@#$%25^&*()b"),
-			wantNewClientParse: generateTarget("unix-abstract:/ a///://::!@#$%25^&*()b"),
-			wantCustomParse:    generateTarget("unix-abstract:/ a///://::!@#$%25^&*()b"),
-		},
-		{
-			target:             "unix-abstract:passthrough:abc",
-			wantDialParse:      generateTarget("unix-abstract:passthrough:abc"),
-			wantNewClientParse: generateTarget("unix-abstract:passthrough:abc"),
-			wantCustomParse:    generateTarget("unix-abstract:passthrough:abc"),
-		},
-		{
-			target:             "passthrough:///unix:///a/b/c",
-			wantDialParse:      generateTarget("passthrough:///unix:///a/b/c"),
-			wantNewClientParse: generateTarget("passthrough:///unix:///a/b/c"),
-			wantCustomParse:    generateTarget("passthrough:///unix:///a/b/c"),
-		},
+		//{target: "dns:///google.com", wantParsed: resolver.Target{Scheme: "dns", Authority: "", Endpoint: "google.com", URL: url.URL{Scheme: "dns", Path: "/google.com"}}},
+		{target: "dns:///google.com", wantParsed: resolver.Target{URL: url.URL{Scheme: "dns", Path: "/google.com"}}},
+		//{target: "dns://a.server.com/google.com", wantParsed: resolver.Target{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com", URL: url.URL{Scheme: "dns", Host: "a.server.com", Path: "/google.com"}}},
+		{target: "dns://a.server.com/google.com", wantParsed: resolver.Target{URL: url.URL{Scheme: "dns", Host: "a.server.com", Path: "/google.com"}}},
+		//{target: "dns://a.server.com/google.com/?a=b", wantParsed: resolver.Target{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com/", URL: url.URL{Scheme: "dns", Host: "a.server.com", Path: "/google.com/", RawQuery: "a=b"}}},
+		{target: "dns://a.server.com/google.com/?a=b", wantParsed: resolver.Target{URL: url.URL{Scheme: "dns", Host: "a.server.com", Path: "/google.com/", RawQuery: "a=b"}}},
+		//{target: "unix:///a/b/c", wantParsed: resolver.Target{Scheme: "unix", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "unix", Path: "/a/b/c"}}},
+		{target: "unix:///a/b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix", Path: "/a/b/c"}}},
+		//{target: "unix-abstract:a/b/c", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a/b/c"}}},
+		{target: "unix-abstract:a/b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a/b/c"}}},
+		//{target: "unix-abstract:a b", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "a b", URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a b"}}},
+		{target: "unix-abstract:a b", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a b"}}},
+		//{target: "unix-abstract:a:b", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "a:b", URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a:b"}}},
+		{target: "unix-abstract:a:b", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a:b"}}},
+		//{target: "unix-abstract:a-b", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "a-b", URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a-b"}}},
+		{target: "unix-abstract:a-b", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "a-b"}}},
+		//{target: "unix-abstract:/ a///://::!@#$%25^&*()b", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: " a///://::!@", URL: url.URL{Scheme: "unix-abstract", Path: "/ a///://::!@", RawPath: "/ a///://::!@", Fragment: "$%^&*()b", RawFragment: "$%25^&*()b"}}},
+		{target: "unix-abstract:/ a///://::!@#$%25^&*()b", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "/ a///://::!@", RawPath: "/ a///://::!@", Fragment: "$%^&*()b", RawFragment: "$%25^&*()b"}}},
+		//{target: "unix-abstract:passthrough:abc", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "passthrough:abc", URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "passthrough:abc"}}},
+		{target: "unix-abstract:passthrough:abc", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "passthrough:abc"}}},
+		//{target: "unix-abstract:unix:///abc", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "unix:///abc", URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "unix:///abc"}}},
+		{target: "unix-abstract:unix:///abc", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "", Opaque: "unix:///abc"}}},
+		//{target: "unix-abstract:///a/b/c", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "unix-abstract", Path: "/a/b/c"}}},
+		{target: "unix-abstract:///a/b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "/a/b/c"}}},
+		//{target: "unix-abstract:///", wantParsed: resolver.Target{Scheme: "unix-abstract", Authority: "", Endpoint: "", URL: url.URL{Scheme: "unix-abstract", Path: "/"}}},
+		{target: "unix-abstract:///", wantParsed: resolver.Target{URL: url.URL{Scheme: "unix-abstract", Path: "/"}}},
+		//{target: "passthrough:///unix:///a/b/c", wantParsed: resolver.Target{Scheme: "passthrough", Authority: "", Endpoint: "unix:///a/b/c", URL: url.URL{Scheme: "passthrough", Path: "/unix:///a/b/c"}}},
+		{target: "passthrough:///unix:///a/b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: "passthrough", Path: "/unix:///a/b/c"}}},
 
 		// Cases for `scheme:absolute-path`.
-		{
-			target:             "dns:/a/b/c",
-			wantDialParse:      generateTarget("dns:/a/b/c"),
-			wantNewClientParse: generateTarget("dns:/a/b/c"),
-			wantCustomParse:    generateTarget("dns:/a/b/c"),
-		},
-		{
-			target:             "unregistered:/a/b/c",
-			wantDialParse:      generateTarget("passthrough:///unregistered:/a/b/c"),
-			wantNewClientParse: generateTarget("dns:///unregistered:/a/b/c"),
-			wantCustomParse:    generateTarget("testresolverforparser:///unregistered:/a/b/c"),
-		},
+		//{target: "dns:/a/b/c", wantParsed: resolver.Target{Scheme: "dns", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "dns", Path: "/a/b/c"}}},
+		{target: "dns:/a/b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: "dns", Path: "/a/b/c"}}},
+		//{target: "unregistered:/a/b/c", wantParsed: resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "unregistered:/a/b/c", URL: url.URL{Scheme: defScheme, Path: "/unregistered:/a/b/c"}}},
+		{target: "unregistered:/a/b/c", wantParsed: resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/unregistered:/a/b/c"}}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.target, func(t *testing.T) {
-			resetInitialResolverState()
-			cc, err := Dial(test.target, WithTransportCredentials(insecure.NewCredentials()))
+			cc, err := Dial(test.target, WithInsecure())
 			if err != nil {
 				t.Fatalf("Dial(%q) failed: %v", test.target, err)
 			}
-			cc.Close()
+			defer cc.Close()
 
-			if !cmp.Equal(cc.parsedTarget, test.wantDialParse) {
-				t.Errorf("cc.parsedTarget for dial target %q = %+v, want %+v", test.target, cc.parsedTarget, test.wantDialParse)
+			if !cmp.Equal(cc.parsedTarget, test.wantParsed) {
+				t.Errorf("cc.parsedTarget for dial target %q = %+v, want %+v", test.target, cc.parsedTarget, test.wantParsed)
 			}
-
-			cc, err = NewClient(test.target, WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				t.Fatalf("NewClient(%q) failed: %v", test.target, err)
-			}
-			cc.Close()
-
-			if !cmp.Equal(cc.parsedTarget, test.wantNewClientParse) {
-				t.Errorf("cc.parsedTarget for newClient target %q = %+v, want %+v", test.target, cc.parsedTarget, test.wantNewClientParse)
-			}
-
-			resolver.SetDefaultScheme("testresolverforparser")
-			cc, err = Dial(test.target, WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				t.Fatalf("Dial(%q) failed: %v", test.target, err)
-			}
-			cc.Close()
-
-			if !cmp.Equal(cc.parsedTarget, test.wantCustomParse) {
-				t.Errorf("cc.parsedTarget for dial target %q = %+v, want %+v", test.target, cc.parsedTarget, test.wantDialParse)
-			}
-
-			cc, err = NewClient(test.target, WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				t.Fatalf("NewClient(%q) failed: %v", test.target, err)
-			}
-			cc.Close()
-
-			if !cmp.Equal(cc.parsedTarget, test.wantCustomParse) {
-				t.Errorf("cc.parsedTarget for newClient target %q = %+v, want %+v", test.target, cc.parsedTarget, test.wantNewClientParse)
-			}
-
 		})
 	}
-	resetInitialResolverState()
 }
 
 func (s) TestParsedTarget_Failure_WithoutCustomDialer(t *testing.T) {
 	targets := []string{
-		"",
 		"unix://a/b/c",
 		"unix://authority",
 		"unix-abstract://authority/a/b/c",
@@ -195,7 +142,7 @@ func (s) TestParsedTarget_Failure_WithoutCustomDialer(t *testing.T) {
 
 	for _, target := range targets {
 		t.Run(target, func(t *testing.T) {
-			if cc, err := Dial(target, WithTransportCredentials(insecure.NewCredentials())); err == nil {
+			if cc, err := Dial(target, WithInsecure()); err == nil {
 				defer cc.Close()
 				t.Fatalf("Dial(%q) succeeded cc.parsedTarget = %+v, expected to fail", target, cc.parsedTarget)
 			}
@@ -204,63 +151,67 @@ func (s) TestParsedTarget_Failure_WithoutCustomDialer(t *testing.T) {
 }
 
 func (s) TestParsedTarget_WithCustomDialer(t *testing.T) {
-	resetInitialResolverState()
 	defScheme := resolver.GetDefaultScheme()
 	tests := []struct {
 		target            string
 		wantParsed        resolver.Target
 		wantDialerAddress string
 	}{
+		// Target.Scheme、Target.Authority、Target.Endpoint are deprecated, use URL.Scheme、URL.Host、URL.Path instead.
 		// unix:[local_path], unix:[/absolute], and unix://[/absolute] have
 		// different behaviors with a custom dialer.
 		{
-			target:            "unix:a/b/c",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL("unix:a/b/c")},
+			target: "unix:a/b/c",
+			//wantParsed:        resolver.Target{Scheme: "unix", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "unix", Opaque: "a/b/c"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: "unix", Opaque: "a/b/c"}},
 			wantDialerAddress: "unix:a/b/c",
 		},
 		{
-			target:            "unix:/a/b/c",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL("unix:/a/b/c")},
+			target: "unix:/a/b/c",
+			//wantParsed:        resolver.Target{Scheme: "unix", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "unix", Path: "/a/b/c"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: "unix", Path: "/a/b/c"}},
 			wantDialerAddress: "unix:///a/b/c",
 		},
 		{
-			target:            "unix:///a/b/c",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL("unix:///a/b/c")},
+			target: "unix:///a/b/c",
+			//wantParsed:        resolver.Target{Scheme: "unix", Authority: "", Endpoint: "a/b/c", URL: url.URL{Scheme: "unix", Path: "/a/b/c"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: "unix", Path: "/a/b/c"}},
 			wantDialerAddress: "unix:///a/b/c",
 		},
 		{
-			target:            "dns:///127.0.0.1:50051",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL("dns:///127.0.0.1:50051")},
+			target: "dns:///127.0.0.1:50051",
+			//wantParsed:        resolver.Target{Scheme: "dns", Authority: "", Endpoint: "127.0.0.1:50051", URL: url.URL{Scheme: "dns", Path: "/127.0.0.1:50051"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: "dns", Path: "/127.0.0.1:50051"}},
 			wantDialerAddress: "127.0.0.1:50051",
 		},
 		{
-			target:            ":///127.0.0.1:50051",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL(fmt.Sprintf("%s:///%s", defScheme, ":///127.0.0.1:50051"))},
+			target: ":///127.0.0.1:50051",
+			//wantParsed:        resolver.Target{Scheme: defScheme, Authority: "", Endpoint: ":///127.0.0.1:50051", URL: url.URL{Scheme: defScheme, Path: "/:///127.0.0.1:50051"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/:///127.0.0.1:50051"}},
 			wantDialerAddress: ":///127.0.0.1:50051",
 		},
 		{
-			target:            "dns://authority/127.0.0.1:50051",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL("dns://authority/127.0.0.1:50051")},
+			target: "dns://authority/127.0.0.1:50051",
+			//wantParsed:        resolver.Target{Scheme: "dns", Authority: "authority", Endpoint: "127.0.0.1:50051", URL: url.URL{Scheme: "dns", Host: "authority", Path: "/127.0.0.1:50051"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: "dns", Host: "authority", Path: "/127.0.0.1:50051"}},
 			wantDialerAddress: "127.0.0.1:50051",
 		},
 		{
-			target:            "://authority/127.0.0.1:50051",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL(fmt.Sprintf("%s:///%s", defScheme, "://authority/127.0.0.1:50051"))},
+			target: "://authority/127.0.0.1:50051",
+			//wantParsed:        resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "://authority/127.0.0.1:50051", URL: url.URL{Scheme: defScheme, Path: "/://authority/127.0.0.1:50051"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: defScheme, Path: "/://authority/127.0.0.1:50051"}},
 			wantDialerAddress: "://authority/127.0.0.1:50051",
 		},
 		{
-			target:            "/unix/socket/address",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL(fmt.Sprintf("%s:///%s", defScheme, "/unix/socket/address"))},
+			target: "/unix/socket/address",
+			//wantParsed:        resolver.Target{Scheme: defScheme, Authority: "", Endpoint: "/unix/socket/address", URL: url.URL{Scheme: defScheme, Path: "//unix/socket/address"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: defScheme, Path: "//unix/socket/address"}},
 			wantDialerAddress: "/unix/socket/address",
 		},
 		{
-			target:            "",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL(fmt.Sprintf("%s:///%s", defScheme, ""))},
-			wantDialerAddress: "",
-		},
-		{
-			target:            "passthrough://a.server.com/google.com",
-			wantParsed:        resolver.Target{URL: *testutils.MustParseURL("passthrough://a.server.com/google.com")},
+			target: "passthrough://a.server.com/google.com",
+			//wantParsed:        resolver.Target{Scheme: "passthrough", Authority: "a.server.com", Endpoint: "google.com", URL: url.URL{Scheme: "passthrough", Host: "a.server.com", Path: "/google.com"}},
+			wantParsed:        resolver.Target{URL: url.URL{Scheme: "passthrough", Host: "a.server.com", Path: "/google.com"}},
 			wantDialerAddress: "google.com",
 		},
 	}
@@ -273,7 +224,7 @@ func (s) TestParsedTarget_WithCustomDialer(t *testing.T) {
 				return nil, errors.New("dialer error")
 			}
 
-			cc, err := Dial(test.target, WithTransportCredentials(insecure.NewCredentials()), WithContextDialer(dialer))
+			cc, err := Dial(test.target, WithInsecure(), WithContextDialer(dialer))
 			if err != nil {
 				t.Fatalf("Dial(%q) failed: %v", test.target, err)
 			}

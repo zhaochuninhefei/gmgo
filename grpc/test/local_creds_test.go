@@ -26,17 +26,15 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/local"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/stubserver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/peer"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 
-	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 )
 
 func testLocalCredsE2ESucceed(network, address string) error {
@@ -74,7 +72,7 @@ func testLocalCredsE2ESucceed(network, address string) error {
 	s := grpc.NewServer(sopts...)
 	defer s.Stop()
 
-	testgrpc.RegisterTestServiceServer(s, ss)
+	testpb.RegisterTestServiceServer(s, ss)
 
 	lis, err := net.Listen(network, address)
 	if err != nil {
@@ -102,8 +100,8 @@ func testLocalCredsE2ESucceed(network, address string) error {
 	}
 	defer cc.Close()
 
-	c := testgrpc.NewTestServiceClient(cc)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	c := testpb.NewTestServiceClient(cc)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	if _, err = c.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -172,7 +170,7 @@ func testLocalCredsE2EFail(dopts []grpc.DialOption) error {
 	s := grpc.NewServer(sopts...)
 	defer s.Stop()
 
-	testgrpc.RegisterTestServiceServer(s, ss)
+	testpb.RegisterTestServiceServer(s, ss)
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
@@ -197,8 +195,8 @@ func testLocalCredsE2EFail(dopts []grpc.DialOption) error {
 	}
 	defer cc.Close()
 
-	c := testgrpc.NewTestServiceClient(cc)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	c := testpb.NewTestServiceClient(cc)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	_, err = c.EmptyCall(ctx, &testpb.Empty{})
@@ -220,7 +218,7 @@ func (s) TestLocalCredsClientFail(t *testing.T) {
 
 func (s) TestLocalCredsServerFail(t *testing.T) {
 	// Use insecure at client-side which should lead to server-side failure.
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	opts := []grpc.DialOption{grpc.WithInsecure()}
 	if err := testLocalCredsE2EFail(opts); status.Code(err) != codes.Unavailable {
 		t.Fatalf("testLocalCredsE2EFail() = %v; want %v", err, codes.Unavailable)
 	}

@@ -55,6 +55,7 @@ type testingPicker struct {
 	maxCalled int64
 }
 
+//goland:noinspection GoUnusedParameter
 func (p *testingPicker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	if atomic.AddInt64(&p.maxCalled, -1) < 0 {
 		return balancer.PickResult{}, fmt.Errorf("pick called to many times (> goroutineCount)")
@@ -66,7 +67,7 @@ func (p *testingPicker) Pick(info balancer.PickInfo) (balancer.PickResult, error
 }
 
 func (s) TestBlockingPickTimeout(t *testing.T) {
-	bp := newPickerWrapper(nil)
+	bp := newPickerWrapper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 	if _, _, err := bp.pick(ctx, true, balancer.PickInfo{}); status.Code(err) != codes.DeadlineExceeded {
@@ -75,7 +76,7 @@ func (s) TestBlockingPickTimeout(t *testing.T) {
 }
 
 func (s) TestBlockingPick(t *testing.T) {
-	bp := newPickerWrapper(nil)
+	bp := newPickerWrapper()
 	// All goroutines should block because picker is nil in bp.
 	var finishedCount uint64
 	for i := goroutineCount; i > 0; i-- {
@@ -94,10 +95,10 @@ func (s) TestBlockingPick(t *testing.T) {
 }
 
 func (s) TestBlockingPickNoSubAvailable(t *testing.T) {
-	bp := newPickerWrapper(nil)
+	bp := newPickerWrapper()
 	var finishedCount uint64
 	bp.updatePicker(&testingPicker{err: balancer.ErrNoSubConnAvailable, maxCalled: goroutineCount})
-	// All goroutines should block because picker returns no subConn available.
+	// All goroutines should block because picker returns no sc available.
 	for i := goroutineCount; i > 0; i-- {
 		go func() {
 			if tr, _, err := bp.pick(context.Background(), true, balancer.PickInfo{}); err != nil || tr != testT {
@@ -114,7 +115,8 @@ func (s) TestBlockingPickNoSubAvailable(t *testing.T) {
 }
 
 func (s) TestBlockingPickTransientWaitforready(t *testing.T) {
-	bp := newPickerWrapper(nil)
+	bp := newPickerWrapper()
+	//goland:noinspection GoDeprecation
 	bp.updatePicker(&testingPicker{err: balancer.ErrTransientFailure, maxCalled: goroutineCount})
 	var finishedCount uint64
 	// All goroutines should block because picker returns transientFailure and
@@ -135,10 +137,10 @@ func (s) TestBlockingPickTransientWaitforready(t *testing.T) {
 }
 
 func (s) TestBlockingPickSCNotReady(t *testing.T) {
-	bp := newPickerWrapper(nil)
+	bp := newPickerWrapper()
 	bp.updatePicker(&testingPicker{sc: testSCNotReady, maxCalled: goroutineCount})
 	var finishedCount uint64
-	// All goroutines should block because subConn is not ready.
+	// All goroutines should block because sc is not ready.
 	for i := goroutineCount; i > 0; i-- {
 		go func() {
 			if tr, _, err := bp.pick(context.Background(), true, balancer.PickInfo{}); err != nil || tr != testT {

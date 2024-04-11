@@ -35,67 +35,67 @@ func init() {
 
 type glogger struct{}
 
-func (g *glogger) Info(args ...any) {
+func (g *glogger) Info(args ...interface{}) {
 	glog.InfoDepth(d, args...)
 }
 
-func (g *glogger) Infoln(args ...any) {
+func (g *glogger) Infoln(args ...interface{}) {
 	glog.InfoDepth(d, fmt.Sprintln(args...))
 }
 
-func (g *glogger) Infof(format string, args ...any) {
+func (g *glogger) Infof(format string, args ...interface{}) {
 	glog.InfoDepth(d, fmt.Sprintf(format, args...))
 }
 
-func (g *glogger) InfoDepth(depth int, args ...any) {
+func (g *glogger) InfoDepth(depth int, args ...interface{}) {
 	glog.InfoDepth(depth+d, args...)
 }
 
-func (g *glogger) Warning(args ...any) {
+func (g *glogger) Warning(args ...interface{}) {
 	glog.WarningDepth(d, args...)
 }
 
-func (g *glogger) Warningln(args ...any) {
+func (g *glogger) Warningln(args ...interface{}) {
 	glog.WarningDepth(d, fmt.Sprintln(args...))
 }
 
-func (g *glogger) Warningf(format string, args ...any) {
+func (g *glogger) Warningf(format string, args ...interface{}) {
 	glog.WarningDepth(d, fmt.Sprintf(format, args...))
 }
 
-func (g *glogger) WarningDepth(depth int, args ...any) {
+func (g *glogger) WarningDepth(depth int, args ...interface{}) {
 	glog.WarningDepth(depth+d, args...)
 }
 
-func (g *glogger) Error(args ...any) {
+func (g *glogger) Error(args ...interface{}) {
 	glog.ErrorDepth(d, args...)
 }
 
-func (g *glogger) Errorln(args ...any) {
+func (g *glogger) Errorln(args ...interface{}) {
 	glog.ErrorDepth(d, fmt.Sprintln(args...))
 }
 
-func (g *glogger) Errorf(format string, args ...any) {
+func (g *glogger) Errorf(format string, args ...interface{}) {
 	glog.ErrorDepth(d, fmt.Sprintf(format, args...))
 }
 
-func (g *glogger) ErrorDepth(depth int, args ...any) {
+func (g *glogger) ErrorDepth(depth int, args ...interface{}) {
 	glog.ErrorDepth(depth+d, args...)
 }
 
-func (g *glogger) Fatal(args ...any) {
+func (g *glogger) Fatal(args ...interface{}) {
 	glog.FatalDepth(d, args...)
 }
 
-func (g *glogger) Fatalln(args ...any) {
+func (g *glogger) Fatalln(args ...interface{}) {
 	glog.FatalDepth(d, fmt.Sprintln(args...))
 }
 
-func (g *glogger) Fatalf(format string, args ...any) {
+func (g *glogger) Fatalf(format string, args ...interface{}) {
 	glog.FatalDepth(d, fmt.Sprintf(format, args...))
 }
 
-func (g *glogger) FatalDepth(depth int, args ...any) {
+func (g *glogger) FatalDepth(depth int, args ...interface{}) {
 	glog.FatalDepth(depth+d, args...)
 }
 

@@ -25,45 +25,61 @@ import (
 	v3listenerpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v3"
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3httppb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
-	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
-	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
-	"google.golang.org/protobuf/proto"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
+	//v1udpatypepb "github.com/cncf/udpa/go/udpa/type/v1"
+	v3cncftypepb "github.com/cncf/xds/go/xds/type/v3"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func unmarshalListenerResource(r *anypb.Any) (string, ListenerUpdate, error) {
-	r, err := UnwrapResource(r)
-	if err != nil {
-		return "", ListenerUpdate{}, fmt.Errorf("failed to unwrap resource: %v", err)
-	}
+// UnmarshalListener processes resources received in an LDS response, validates
+// them, and transforms them into a native struct which contains only fields we
+// are interested in.
+func UnmarshalListener(opts *UnmarshalOptions) (map[string]ListenerUpdateErrTuple, UpdateMetadata, error) {
+	update := make(map[string]ListenerUpdateErrTuple)
+	md, err := processAllResources(opts, update)
+	return update, md, err
+}
 
+func unmarshalListenerResource(r *anypb.Any, f UpdateValidatorFunc, logger *grpclog.PrefixLogger) (string, ListenerUpdate, error) {
 	if !IsListenerResource(r.GetTypeUrl()) {
 		return "", ListenerUpdate{}, fmt.Errorf("unexpected resource type: %q ", r.GetTypeUrl())
 	}
+	// TODO: Pass version.TransportAPI instead of relying upon the type URL
+	v2 := r.GetTypeUrl() == version.V2ListenerURL
 	lis := &v3listenerpb.Listener{}
 	if err := proto.Unmarshal(r.GetValue(), lis); err != nil {
 		return "", ListenerUpdate{}, fmt.Errorf("failed to unmarshal resource: %v", err)
 	}
+	logger.Infof("Resource with name: %v, type: %T, contains: %v", lis.GetName(), lis, pretty.ToJSON(lis))
 
-	lu, err := processListener(lis)
+	lu, err := processListener(lis, logger, v2)
 	if err != nil {
 		return lis.GetName(), ListenerUpdate{}, err
+	}
+	if f != nil {
+		if err := f(*lu); err != nil {
+			return lis.GetName(), ListenerUpdate{}, err
+		}
 	}
 	lu.Raw = r
 	return lis.GetName(), *lu, nil
 }
 
-func processListener(lis *v3listenerpb.Listener) (*ListenerUpdate, error) {
+func processListener(lis *v3listenerpb.Listener, logger *grpclog.PrefixLogger, v2 bool) (*ListenerUpdate, error) {
 	if lis.GetApiListener() != nil {
-		return processClientSideListener(lis)
+		return processClientSideListener(lis, logger, v2)
 	}
-	return processServerSideListener(lis)
+	return processServerSideListener(lis, logger)
 }
 
 // processClientSideListener checks if the provided Listener proto meets
 // the expected criteria. If so, it returns a non-empty routeConfigName.
-func processClientSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, error) {
+func processClientSideListener(lis *v3listenerpb.Listener, logger *grpclog.PrefixLogger, v2 bool) (*ListenerUpdate, error) {
 	update := &ListenerUpdate{}
 
 	apiLisAny := lis.GetApiListener().GetApiListener()
@@ -86,8 +102,8 @@ func processClientSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, err
 
 	switch apiLis.RouteSpecifier.(type) {
 	case *v3httppb.HttpConnectionManager_Rds:
-		if configsource := apiLis.GetRds().GetConfigSource(); configsource.GetAds() == nil && configsource.GetSelf() == nil {
-			return nil, fmt.Errorf("LDS's RDS configSource is not ADS or Self: %+v", lis)
+		if apiLis.GetRds().GetConfigSource().GetAds() == nil {
+			return nil, fmt.Errorf("ConfigSource is not ADS: %+v", lis)
 		}
 		name := apiLis.GetRds().GetRouteConfigName()
 		if name == "" {
@@ -95,7 +111,7 @@ func processClientSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, err
 		}
 		update.RouteConfigName = name
 	case *v3httppb.HttpConnectionManager_RouteConfig:
-		routeU, err := generateRDSUpdateFromRouteConfiguration(apiLis.GetRouteConfig())
+		routeU, err := generateRDSUpdateFromRouteConfiguration(apiLis.GetRouteConfig(), logger, v2)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse inline RDS resp: %v", err)
 		}
@@ -104,6 +120,10 @@ func processClientSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, err
 		return nil, fmt.Errorf("no RouteSpecifier: %+v", apiLis)
 	default:
 		return nil, fmt.Errorf("unsupported type %T for RouteSpecifier", apiLis.RouteSpecifier)
+	}
+
+	if v2 {
+		return update, nil
 	}
 
 	// The following checks and fields only apply to xDS protocol versions v3+.
@@ -120,20 +140,20 @@ func processClientSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, err
 
 func unwrapHTTPFilterConfig(config *anypb.Any) (proto.Message, string, error) {
 	switch {
-	case config.MessageIs(&v3xdsxdstypepb.TypedStruct{}):
+	case ptypes.Is(config, &v3cncftypepb.TypedStruct{}):
 		// The real type name is inside the new TypedStruct message.
-		s := new(v3xdsxdstypepb.TypedStruct)
-		if err := config.UnmarshalTo(s); err != nil {
+		s := new(v3cncftypepb.TypedStruct)
+		if err := ptypes.UnmarshalAny(config, s); err != nil {
 			return nil, "", fmt.Errorf("error unmarshalling TypedStruct filter config: %v", err)
 		}
 		return s, s.GetTypeUrl(), nil
-	case config.MessageIs(&v1xdsudpatypepb.TypedStruct{}):
-		// The real type name is inside the old TypedStruct message.
-		s := new(v1xdsudpatypepb.TypedStruct)
-		if err := config.UnmarshalTo(s); err != nil {
-			return nil, "", fmt.Errorf("error unmarshalling TypedStruct filter config: %v", err)
-		}
-		return s, s.GetTypeUrl(), nil
+	//case ptypes.Is(config, &v1udpatypepb.TypedStruct{}):
+	//	// The real type name is inside the old TypedStruct message.
+	//	s := new(v1udpatypepb.TypedStruct)
+	//	if err := ptypes.UnmarshalAny(config, s); err != nil {
+	//		return nil, "", fmt.Errorf("error unmarshalling TypedStruct filter config: %v", err)
+	//	}
+	//	return s, s.GetTypeUrl(), nil
 	default:
 		return config, config.GetTypeUrl(), nil
 	}
@@ -170,8 +190,8 @@ func processHTTPFilterOverrides(cfgs map[string]*anypb.Any) (map[string]httpfilt
 	for name, cfg := range cfgs {
 		optional := false
 		s := new(v3routepb.FilterConfig)
-		if cfg.MessageIs(s) {
-			if err := cfg.UnmarshalTo(s); err != nil {
+		if ptypes.Is(cfg, s) {
+			if err := ptypes.UnmarshalAny(cfg, s); err != nil {
 				return nil, fmt.Errorf("filter override %q: error unmarshalling FilterConfig: %v", name, err)
 			}
 			cfg = s.GetConfig()
@@ -246,7 +266,7 @@ func processHTTPFilters(filters []*v3httppb.HttpFilter, server bool) ([]HTTPFilt
 	return ret, nil
 }
 
-func processServerSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, error) {
+func processServerSideListener(lis *v3listenerpb.Listener, logger *grpclog.PrefixLogger) (*ListenerUpdate, error) {
 	if n := len(lis.ListenerFilters); n != 0 {
 		return nil, fmt.Errorf("unsupported field 'listener_filters' contains %d entries", n)
 	}
@@ -268,7 +288,7 @@ func processServerSideListener(lis *v3listenerpb.Listener) (*ListenerUpdate, err
 		},
 	}
 
-	fcMgr, err := NewFilterChainManager(lis)
+	fcMgr, err := NewFilterChainManager(lis, logger)
 	if err != nil {
 		return nil, err
 	}

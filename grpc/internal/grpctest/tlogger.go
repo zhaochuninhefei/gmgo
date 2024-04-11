@@ -90,7 +90,7 @@ func getCallingPrefix(depth int) (string, error) {
 }
 
 // log logs the message with the specified parameters to the tLogger.
-func (g *tLogger) log(ltype logType, depth int, format string, args ...any) {
+func (g *tLogger) log(ltype logType, depth int, format string, args ...interface{}) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	prefix, err := getCallingPrefix(callingFrame + depth)
@@ -98,7 +98,7 @@ func (g *tLogger) log(ltype logType, depth int, format string, args ...any) {
 		g.t.Error(err)
 		return
 	}
-	args = append([]any{ltype.String() + " " + prefix}, args...)
+	args = append([]interface{}{ltype.String() + " " + prefix}, args...)
 	args = append(args, fmt.Sprintf(" (t=+%s)", time.Since(g.start)))
 
 	if format == "" {
@@ -194,67 +194,67 @@ func (g *tLogger) expected(s string) bool {
 	return false
 }
 
-func (g *tLogger) Info(args ...any) {
+func (g *tLogger) Info(args ...interface{}) {
 	g.log(infoLog, 0, "", args...)
 }
 
-func (g *tLogger) Infoln(args ...any) {
+func (g *tLogger) Infoln(args ...interface{}) {
 	g.log(infoLog, 0, "", args...)
 }
 
-func (g *tLogger) Infof(format string, args ...any) {
+func (g *tLogger) Infof(format string, args ...interface{}) {
 	g.log(infoLog, 0, format, args...)
 }
 
-func (g *tLogger) InfoDepth(depth int, args ...any) {
+func (g *tLogger) InfoDepth(depth int, args ...interface{}) {
 	g.log(infoLog, depth, "", args...)
 }
 
-func (g *tLogger) Warning(args ...any) {
+func (g *tLogger) Warning(args ...interface{}) {
 	g.log(warningLog, 0, "", args...)
 }
 
-func (g *tLogger) Warningln(args ...any) {
+func (g *tLogger) Warningln(args ...interface{}) {
 	g.log(warningLog, 0, "", args...)
 }
 
-func (g *tLogger) Warningf(format string, args ...any) {
+func (g *tLogger) Warningf(format string, args ...interface{}) {
 	g.log(warningLog, 0, format, args...)
 }
 
-func (g *tLogger) WarningDepth(depth int, args ...any) {
+func (g *tLogger) WarningDepth(depth int, args ...interface{}) {
 	g.log(warningLog, depth, "", args...)
 }
 
-func (g *tLogger) Error(args ...any) {
+func (g *tLogger) Error(args ...interface{}) {
 	g.log(errorLog, 0, "", args...)
 }
 
-func (g *tLogger) Errorln(args ...any) {
+func (g *tLogger) Errorln(args ...interface{}) {
 	g.log(errorLog, 0, "", args...)
 }
 
-func (g *tLogger) Errorf(format string, args ...any) {
+func (g *tLogger) Errorf(format string, args ...interface{}) {
 	g.log(errorLog, 0, format, args...)
 }
 
-func (g *tLogger) ErrorDepth(depth int, args ...any) {
+func (g *tLogger) ErrorDepth(depth int, args ...interface{}) {
 	g.log(errorLog, depth, "", args...)
 }
 
-func (g *tLogger) Fatal(args ...any) {
+func (g *tLogger) Fatal(args ...interface{}) {
 	g.log(fatalLog, 0, "", args...)
 }
 
-func (g *tLogger) Fatalln(args ...any) {
+func (g *tLogger) Fatalln(args ...interface{}) {
 	g.log(fatalLog, 0, "", args...)
 }
 
-func (g *tLogger) Fatalf(format string, args ...any) {
+func (g *tLogger) Fatalf(format string, args ...interface{}) {
 	g.log(fatalLog, 0, format, args...)
 }
 
-func (g *tLogger) FatalDepth(depth int, args ...any) {
+func (g *tLogger) FatalDepth(depth int, args ...interface{}) {
 	g.log(fatalLog, depth, "", args...)
 }
 

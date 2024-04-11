@@ -24,13 +24,11 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/stubserver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-
-	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 )
 
 func (s) TestStreamCleanup(t *testing.T) {
@@ -48,7 +46,7 @@ func (s) TestStreamCleanup(t *testing.T) {
 			return &testpb.Empty{}, nil
 		},
 	}
-	if err := ss.Start(nil, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(int(callRecvMsgSize))), grpc.WithInitialWindowSize(int32(initialWindowSize))); err != nil {
+	if err := ss.Start([]grpc.ServerOption{grpc.MaxConcurrentStreams(1)}, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(int(callRecvMsgSize))), grpc.WithInitialWindowSize(int32(initialWindowSize))); err != nil {
 		t.Fatalf("Error starting endpoint server: %v", err)
 	}
 	defer ss.Stop()
@@ -70,7 +68,7 @@ func (s) TestStreamCleanupAfterSendStatus(t *testing.T) {
 	serverReturnedStatus := make(chan struct{})
 
 	ss := &stubserver.StubServer{
-		FullDuplexCallF: func(stream testgrpc.TestService_FullDuplexCallServer) error {
+		FullDuplexCallF: func(stream testpb.TestService_FullDuplexCallServer) error {
 			defer func() {
 				close(serverReturnedStatus)
 			}()
@@ -81,7 +79,7 @@ func (s) TestStreamCleanupAfterSendStatus(t *testing.T) {
 			})
 		},
 	}
-	if err := ss.Start(nil, grpc.WithInitialWindowSize(int32(initialWindowSize))); err != nil {
+	if err := ss.Start([]grpc.ServerOption{grpc.MaxConcurrentStreams(1)}, grpc.WithInitialWindowSize(int32(initialWindowSize))); err != nil {
 		t.Fatalf("Error starting endpoint server: %v", err)
 	}
 	defer ss.Stop()
@@ -91,7 +89,7 @@ func (s) TestStreamCleanupAfterSendStatus(t *testing.T) {
 
 	// 1. Make a long living stream RPC. So server's activeStream list is not
 	// empty.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	stream, err := ss.Client.FullDuplexCall(ctx)
 	if err != nil {
@@ -134,6 +132,6 @@ func (s) TestStreamCleanupAfterSendStatus(t *testing.T) {
 	case <-gracefulStopDone:
 		timer.Stop()
 	case <-timer.C:
-		t.Fatalf("s.GracefulStop() didn't finish within 1 second after the last RPC")
+		t.Fatalf("s.GracefulStop() didn't finish without 1 second after the last RPC")
 	}
 }

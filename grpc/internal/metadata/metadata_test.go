@@ -19,8 +19,6 @@
 package metadata
 
 import (
-	"errors"
-	"reflect"
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/attributes"
@@ -84,34 +82,5 @@ func TestSet(t *testing.T) {
 				t.Errorf("md after Set() = %v, want %v", newMD, tt.md)
 			}
 		})
-	}
-}
-
-func TestValidate(t *testing.T) {
-	for _, test := range []struct {
-		md   metadata.MD
-		want error
-	}{
-		{
-			md:   map[string][]string{string(rune(0x19)): {"testVal"}},
-			want: errors.New("header key \"\\x19\" contains illegal characters not in [0-9a-z-_.]"),
-		},
-		{
-			md:   map[string][]string{"test": {string(rune(0x19))}},
-			want: errors.New("header key \"test\" contains value with non-printable ASCII characters"),
-		},
-		{
-			md:   map[string][]string{"": {"valid"}},
-			want: errors.New("there is an empty key in the header"),
-		},
-		{
-			md:   map[string][]string{"test-bin": {string(rune(0x19))}},
-			want: nil,
-		},
-	} {
-		err := Validate(test.md)
-		if !reflect.DeepEqual(err, test.want) {
-			t.Errorf("validating metadata which is %v got err :%v, want err :%v", test.md, err, test.want)
-		}
 	}
 }

@@ -20,7 +20,7 @@ package testutils
 
 import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // StatusErrEqual returns true iff both err1 and err2 wrap status.Status errors

@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/benchmark"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
@@ -80,10 +80,7 @@ func startBenchmarkServer(config *testpb.ServerConfig, serverPort int) (*benchma
 	}
 	runtime.GOMAXPROCS(numOfCores)
 
-	opts := []grpc.ServerOption{
-		grpc.WriteBufferSize(128 * 1024),
-		grpc.ReadBufferSize(128 * 1024),
-	}
+	var opts []grpc.ServerOption
 
 	// Sanity check for server type.
 	switch config.ServerType {
@@ -104,7 +101,7 @@ func startBenchmarkServer(config *testpb.ServerConfig, serverPort int) (*benchma
 		}
 		creds, err := credentials.NewServerTLSFromFile(*certFile, *keyFile)
 		if err != nil {
-			logger.Fatalf("failed to generate credentials: %v", err)
+			logger.Fatalf("failed to generate credentials %v", err)
 		}
 		opts = append(opts, grpc.Creds(creds))
 	}

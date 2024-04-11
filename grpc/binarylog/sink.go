@@ -24,9 +24,9 @@ package binarylog
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 
-	binlogpb "gitee.com/zhaochuninhefei/gmgo/grpc/binarylog/grpc_binarylog_v1"
+	pb "gitee.com/zhaochuninhefei/gmgo/grpc/binarylog/grpc_binarylog_v1"
 	iblog "gitee.com/zhaochuninhefei/gmgo/grpc/internal/binarylog"
 )
 
@@ -48,7 +48,7 @@ type Sink interface {
 	// entry. Some options are: proto bytes, or proto json.
 	//
 	// Note this function needs to be thread-safe.
-	Write(*binlogpb.GrpcLogEntry) error
+	Write(*pb.GrpcLogEntry) error
 	// Close closes this sink and cleans up resources (e.g. the flushing
 	// goroutine).
 	Close() error
@@ -60,7 +60,7 @@ func NewTempFileSink() (Sink, error) {
 	// Two other options to replace this function:
 	// 1. take filename as input.
 	// 2. export NewBufferedSink().
-	tempFile, err := os.CreateTemp("/tmp", "grpcgo_binarylog_*.txt")
+	tempFile, err := ioutil.TempFile("/tmp", "grpcgo_binarylog_*.txt")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %v", err)
 	}

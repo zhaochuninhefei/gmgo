@@ -25,19 +25,14 @@ import (
 	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/roundrobin"
 	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/weightedtarget"
 	internalserviceconfig "gitee.com/zhaochuninhefei/gmgo/grpc/internal/serviceconfig"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/bootstrap"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 const (
 	testJSONConfig = `{
   "cluster": "test_cluster",
   "edsServiceName": "test-eds",
-  "lrsLoadReportingServer": {
-    "server_uri": "trafficdirector.googleapis.com:443",
-    "channel_creds": [ { "type": "google_default" } ]
-  },
+  "lrsLoadReportingServerName": "lrs_server",
   "maxConcurrentRequests": 123,
   "dropCategories": [
     {
@@ -111,10 +106,10 @@ func TestParseConfig(t *testing.T) {
 			name: "OK",
 			js:   testJSONConfig,
 			want: &LBConfig{
-				Cluster:               "test_cluster",
-				EDSServiceName:        "test-eds",
-				LoadReportingServer:   testLRSServerConfig,
-				MaxConcurrentRequests: newUint32(123),
+				Cluster:                 "test_cluster",
+				EDSServiceName:          "test-eds",
+				LoadReportingServerName: newString("lrs_server"),
+				MaxConcurrentRequests:   newUint32(123),
 				DropCategories: []DropConfig{
 					{Category: "drop-1", RequestsPerMillion: 314},
 					{Category: "drop-2", RequestsPerMillion: 159},
@@ -133,11 +128,15 @@ func TestParseConfig(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("parseConfig() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !cmp.Equal(got, tt.want, cmpopts.IgnoreFields(bootstrap.ServerConfig{}, "Creds")) {
+			if !cmp.Equal(got, tt.want) {
 				t.Errorf("parseConfig() got unexpected result, diff: %v", cmp.Diff(got, tt.want))
 			}
 		})
 	}
+}
+
+func newString(s string) *string {
+	return &s
 }
 
 func newUint32(i uint32) *uint32 {
