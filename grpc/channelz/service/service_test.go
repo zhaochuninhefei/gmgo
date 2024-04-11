@@ -32,11 +32,11 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/channelz"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -643,7 +643,8 @@ func (s) TestGetSocket(t *testing.T) {
 		},
 	}),
 	}
-	otherSecVal, err := ptypes.MarshalAny(ss[6].Security.(*credentials.OtherChannelzSecurityValue).Value)
+	//otherSecVal, err := ptypes.MarshalAny(ss[6].Security.(*credentials.OtherChannelzSecurityValue).Value)
+	otherSecVal, err := anypb.New(ss[6].Security.(*credentials.OtherChannelzSecurityValue).Value.(proto.Message))
 	if err != nil {
 		t.Fatal("Error marshalling proto:", err)
 	}
