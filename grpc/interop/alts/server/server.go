@@ -66,7 +66,7 @@ func main() {
 	altsTC := alts.NewServerCreds(opts)
 	grpcServer := grpc.NewServer(grpc.Creds(altsTC), grpc.InTapHandle(authz))
 	testgrpc.RegisterTestServiceServer(grpcServer, interop.NewTestServer())
-	_ = grpcServer.Serve(lis)
+	grpcServer.Serve(lis)
 }
 
 // authz shows how to access client information at the server side to perform

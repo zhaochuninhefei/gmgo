@@ -22,7 +22,6 @@ package grpc_testing
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoiface "google.golang.org/protobuf/runtime/protoiface"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
@@ -74,15 +73,6 @@ func (x *ToBeExtended) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ToBeExtended.ProtoReflect.Descriptor instead.
 func (*ToBeExtended) Descriptor() ([]byte, []int) {
 	return file_reflection_grpc_testing_proto2_proto_rawDescGZIP(), []int{0}
-}
-
-var extRange_ToBeExtended = []protoiface.ExtensionRangeV1{
-	{Start: 10, End: 30},
-}
-
-// Deprecated: Use ToBeExtended.ProtoReflect.Descriptor.ExtensionRanges instead.
-func (*ToBeExtended) ExtensionRangeArray() []protoiface.ExtensionRangeV1 {
-	return extRange_ToBeExtended
 }
 
 func (x *ToBeExtended) GetFoo() int32 {

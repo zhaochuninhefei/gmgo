@@ -18,7 +18,7 @@
 
 // Package profiling exposes methods to manage profiling within gRPC.
 //
-// Experimental
+// # Experimental
 //
 // Notice: This package is EXPERIMENTAL and may be changed or removed in a
 // later release.
@@ -35,7 +35,6 @@ import (
 // exposed profiling package. Everything else (such as retrieving stats) must
 // be done through the profiling service. This is allowed so that users can use
 // heuristics to turn profiling on and off automatically.
-//goland:noinspection GoUnusedExportedFunction
 func Enable(enabled bool) {
 	internal.Enable(enabled)
 }

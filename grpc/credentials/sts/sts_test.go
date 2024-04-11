@@ -24,20 +24,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httputil"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"io"
 	"strings"
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httputil"
+	"github.com/google/go-cmp/cmp"
 
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	icredentials "gitee.com/zhaochuninhefei/gmgo/grpc/internal/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -114,7 +114,7 @@ func (r errReader) Read(b []byte) (n int, err error) {
 }
 
 // We need a function to construct the response instead of simply declaring it
-// as a variable since the the response body will be consumed by the
+// as a variable since the response body will be consumed by the
 // credentials, and therefore we will need a new one everytime.
 func makeGoodResponse() *http.Response {
 	respJSON, _ := json.Marshal(responseParameters{
@@ -123,7 +123,7 @@ func makeGoodResponse() *http.Response {
 		TokenType:       "Bearer",
 		ExpiresIn:       3600,
 	})
-	respBody := ioutil.NopCloser(bytes.NewReader(respJSON))
+	respBody := io.NopCloser(bytes.NewReader(respJSON))
 	return &http.Response{
 		Status:     "200 OK",
 		StatusCode: http.StatusOK,
@@ -330,7 +330,7 @@ func (s) TestGetRequestMetadataCacheExpiry(t *testing.T) {
 			TokenType:       "Bearer",
 			ExpiresIn:       expiresInSecs,
 		})
-		respBody := ioutil.NopCloser(bytes.NewReader(respJSON))
+		respBody := io.NopCloser(bytes.NewReader(respJSON))
 		resp := &http.Response{
 			Status:     "200 OK",
 			StatusCode: http.StatusOK,
@@ -366,7 +366,7 @@ func (s) TestGetRequestMetadataBadResponses(t *testing.T) {
 			response: &http.Response{
 				Status:     "200 OK",
 				StatusCode: http.StatusOK,
-				Body:       ioutil.NopCloser(strings.NewReader("not JSON")),
+				Body:       io.NopCloser(strings.NewReader("not JSON")),
 			},
 		},
 		{
@@ -374,7 +374,7 @@ func (s) TestGetRequestMetadataBadResponses(t *testing.T) {
 			response: &http.Response{
 				Status:     "200 OK",
 				StatusCode: http.StatusOK,
-				Body:       ioutil.NopCloser(strings.NewReader("{}")),
+				Body:       io.NopCloser(strings.NewReader("{}")),
 			},
 		},
 	}
@@ -669,7 +669,7 @@ func (s) TestSendRequest(t *testing.T) {
 			resp: &http.Response{
 				Status:     "200 OK",
 				StatusCode: http.StatusOK,
-				Body:       ioutil.NopCloser(errReader{}),
+				Body:       io.NopCloser(errReader{}),
 			},
 			wantErr: true,
 		},
@@ -678,7 +678,7 @@ func (s) TestSendRequest(t *testing.T) {
 			resp: &http.Response{
 				Status:     "400 BadRequest",
 				StatusCode: http.StatusBadRequest,
-				Body:       ioutil.NopCloser(strings.NewReader("")),
+				Body:       io.NopCloser(strings.NewReader("")),
 			},
 			wantErr: true,
 		},

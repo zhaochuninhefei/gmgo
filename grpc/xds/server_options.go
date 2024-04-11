@@ -21,13 +21,13 @@ package xds
 import (
 	"net"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 )
 
 type serverOptions struct {
-	modeCallback      ServingModeCallbackFunc
-	bootstrapContents []byte
+	modeCallback                ServingModeCallbackFunc
+	bootstrapContentsForTesting []byte
 }
 
 type serverOption struct {
@@ -62,15 +62,15 @@ type ServingModeChangeArgs struct {
 // to inject a bootstrap configuration used by only this server, instead of the
 // global configuration from the environment variables.
 //
-// Testing Only
+// # Testing Only
 //
 // This function should ONLY be used for testing and may not work with some
 // other features, including the CSDS service.
 //
-// Experimental
+// # Experimental
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
 func BootstrapContentsForTesting(contents []byte) grpc.ServerOption {
-	return &serverOption{apply: func(o *serverOptions) { o.bootstrapContents = contents }}
+	return &serverOption{apply: func(o *serverOptions) { o.bootstrapContentsForTesting = contents }}
 }

@@ -18,7 +18,7 @@
 // 	protoc        v4.25.2
 // source: grpc/core/stats.proto
 
-package grpc_core
+package core
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

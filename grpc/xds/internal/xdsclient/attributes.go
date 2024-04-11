@@ -17,35 +17,11 @@
 
 package xdsclient
 
-import (
-	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/bootstrap"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/load"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource"
-)
+import "gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 
 type clientKeyType string
 
 const clientKey = clientKeyType("grpc.xds.internal.client.Client")
-
-// XDSClient is a full fledged gRPC client which queries a set of discovery APIs
-// (collectively termed as xDS) on a remote management server, to discover
-// various dynamic resources.
-type XDSClient interface {
-	WatchListener(string, func(xdsresource.ListenerUpdate, error)) func()
-	WatchRouteConfig(string, func(xdsresource.RouteConfigUpdate, error)) func()
-	WatchCluster(string, func(xdsresource.ClusterUpdate, error)) func()
-	WatchEndpoints(clusterName string, edsCb func(xdsresource.EndpointsUpdate, error)) (cancel func())
-	ReportLoad(server string) (*load.Store, func())
-
-	DumpLDS() map[string]xdsresource.UpdateWithMD
-	DumpRDS() map[string]xdsresource.UpdateWithMD
-	DumpCDS() map[string]xdsresource.UpdateWithMD
-	DumpEDS() map[string]xdsresource.UpdateWithMD
-
-	BootstrapConfig() *bootstrap.Config
-	Close()
-}
 
 // FromResolverState returns the Client from state, or nil if not present.
 func FromResolverState(state resolver.State) XDSClient {

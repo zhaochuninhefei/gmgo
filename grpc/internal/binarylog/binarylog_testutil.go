@@ -29,7 +29,6 @@
 
 package binarylog
 
-//goland:noinspection GoUnusedGlobalVariable
 var (
 	// AllLogger is a logger that logs all headers/messages for all RPCs. It's
 	// for testing only.

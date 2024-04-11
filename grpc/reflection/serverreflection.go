@@ -24,7 +24,7 @@ https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/refle
 
 To register server reflection on a gRPC server:
 
-	import "gitee.com/zhaochuninhefei/gmgo/grpc//reflection"
+	import "gitee.com/zhaochuninhefei/gmgo/grpc/reflection"
 
 	s := grpc.NewServer()
 	pb.RegisterYourOwnServer(s, &server{})
@@ -34,7 +34,7 @@ To register server reflection on a gRPC server:
 
 	s.Serve(lis)
 */
-package reflection // import "gitee.com/zhaochuninhefei/gmgo/grpc//reflection"
+package reflection // import "gitee.com/zhaochuninhefei/gmgo/grpc/reflection"
 
 import (
 	"io"

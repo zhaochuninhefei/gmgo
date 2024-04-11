@@ -26,8 +26,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"gitee.com/zhaochuninhefei/gmgo/net/trace"
 )
 
 // EnableTracing controls whether to trace RPCs using the golang.org/x/net/trace package.
@@ -44,9 +42,31 @@ func methodFamily(m string) string {
 	return m
 }
 
+// traceEventLog mirrors golang.org/x/net/trace.EventLog.
+//
+// It exists in order to avoid importing x/net/trace on grpcnotrace builds.
+type traceEventLog interface {
+	Printf(format string, a ...any)
+	Errorf(format string, a ...any)
+	Finish()
+}
+
+// traceLog mirrors golang.org/x/net/trace.Trace.
+//
+// It exists in order to avoid importing x/net/trace on grpcnotrace builds.
+type traceLog interface {
+	LazyLog(x fmt.Stringer, sensitive bool)
+	LazyPrintf(format string, a ...any)
+	SetError()
+	SetRecycler(f func(any))
+	SetTraceInfo(traceID, spanID uint64)
+	SetMaxEvents(m int)
+	Finish()
+}
+
 // traceInfo contains tracing information for an RPC.
 type traceInfo struct {
-	tr        trace.Trace
+	tr        traceLog
 	firstLine firstLine
 }
 
@@ -71,17 +91,17 @@ func (f *firstLine) String() string {
 	defer f.mu.Unlock()
 
 	var line bytes.Buffer
-	_, _ = io.WriteString(&line, "RPC: ")
+	io.WriteString(&line, "RPC: ")
 	if f.client {
-		_, _ = io.WriteString(&line, "to")
+		io.WriteString(&line, "to")
 	} else {
-		_, _ = io.WriteString(&line, "from")
+		io.WriteString(&line, "from")
 	}
-	_, _ = fmt.Fprintf(&line, " %v deadline:", f.remoteAddr)
+	fmt.Fprintf(&line, " %v deadline:", f.remoteAddr)
 	if f.deadline != 0 {
-		_, _ = fmt.Fprint(&line, f.deadline)
+		fmt.Fprint(&line, f.deadline)
 	} else {
-		_, _ = io.WriteString(&line, "none")
+		io.WriteString(&line, "none")
 	}
 	return line.String()
 }
@@ -97,8 +117,8 @@ func truncate(x string, l int) string {
 
 // payload represents an RPC request or response payload.
 type payload struct {
-	sent bool        // whether this is an outgoing payload
-	msg  interface{} // e.g. a proto.Message
+	sent bool // whether this is an outgoing payload
+	msg  any  // e.g. a proto.Message
 	// TODO(dsymonds): add stringifying info to codec, and limit how much we hold here?
 }
 
@@ -111,7 +131,7 @@ func (p payload) String() string {
 
 type fmtStringer struct {
 	format string
-	a      []interface{}
+	a      []any
 }
 
 func (f *fmtStringer) String() string {

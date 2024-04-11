@@ -52,9 +52,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("gRPC Client: failed to dial the server at %v: %v", *serverAddr, err)
 	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
+	defer conn.Close()
 	grpcClient := testgrpc.NewTestServiceClient(conn)
 
 	// Call the EmptyCall API.

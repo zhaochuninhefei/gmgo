@@ -380,9 +380,7 @@ func streamStatsCatapultJSON(s *snapshot, streamStatsCatapultJSONFileName string
 		logger.Errorf("cannot create file %s: %v", streamStatsCatapultJSONFileName, err)
 		return err
 	}
-	defer func(streamStatsCatapultJSONFile *os.File) {
-		_ = streamStatsCatapultJSONFile.Close()
-	}(streamStatsCatapultJSONFile)
+	defer streamStatsCatapultJSONFile.Close()
 
 	logger.Infof("writing catapult JSON to disk")
 	_, err = streamStatsCatapultJSONFile.Write(b)

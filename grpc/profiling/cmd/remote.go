@@ -22,11 +22,11 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"os"
 	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	ppb "gitee.com/zhaochuninhefei/gmgo/grpc/profiling/proto"
 )
 
@@ -56,9 +56,7 @@ func retrieveSnapshot(ctx context.Context, c ppb.ProfilingClient, f string) erro
 		logger.Errorf("cannot create %s: %v", f, err)
 		return err
 	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
+	defer file.Close()
 
 	logger.Infof("encoding data and writing to snapshot file %s", f)
 	encoder := gob.NewEncoder(file)
@@ -81,16 +79,12 @@ func remoteCommand() error {
 	}
 
 	logger.Infof("dialing %s", *flagAddress)
-	// grpc.WithInsecure() is deprecated, use WithTransportCredentials and insecure.NewCredentials() instead.
-	//cc, err := grpc.Dial(*flagAddress, grpc.WithInsecure())
 	cc, err := grpc.Dial(*flagAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Errorf("cannot dial %s: %v", *flagAddress, err)
 		return err
 	}
-	defer func(cc *grpc.ClientConn) {
-		_ = cc.Close()
-	}(cc)
+	defer cc.Close()
 
 	c := ppb.NewProfilingClient(cc)
 
@@ -99,7 +93,6 @@ func remoteCommand() error {
 	} else if *flagRetrieveSnapshot {
 		return retrieveSnapshot(ctx, c, *flagSnapshot)
 	} else {
-		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("what should I do with the remote target?")
 	}
 }

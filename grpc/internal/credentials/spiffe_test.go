@@ -20,13 +20,11 @@ package credentials
 
 import (
 	"encoding/pem"
-	"io/ioutil"
-	"net/url"
-	"testing"
-
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"net/url"
+	"os"
+	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
@@ -211,9 +209,9 @@ func (s) TestSPIFFEIDFromCert(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data, err := ioutil.ReadFile(testdata.Path(tt.dataPath))
+			data, err := os.ReadFile(testdata.Path(tt.dataPath))
 			if err != nil {
-				t.Fatalf("ioutil.ReadFile(%s) failed: %v", testdata.Path(tt.dataPath), err)
+				t.Fatalf("os.ReadFile(%s) failed: %v", testdata.Path(tt.dataPath), err)
 			}
 			block, _ := pem.Decode(data)
 			if block == nil {

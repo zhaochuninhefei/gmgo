@@ -27,18 +27,21 @@ import (
 	"testing"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver/manual"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/tap"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
+
+	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 )
 
 const (
@@ -68,7 +71,7 @@ func (c *testCredsBundle) PerRPCCredentials() credentials.PerRPCCredentials {
 	if c.mode == bundleTLSOnly {
 		return nil
 	}
-	return testPerRPCCredentials{}
+	return testPerRPCCredentials{authdata: authdata}
 }
 
 func (c *testCredsBundle) NewWithMode(mode string) (credentials.Bundle, error) {
@@ -92,7 +95,7 @@ func (s) TestCredsBundleBoth(t *testing.T) {
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -116,7 +119,7 @@ func (s) TestCredsBundleTransportCredentials(t *testing.T) {
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -134,7 +137,7 @@ func (s) TestCredsBundlePerRPCCredentials(t *testing.T) {
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -170,7 +173,7 @@ func (s) TestNonFailFastRPCSucceedOnTimeoutCreds(t *testing.T) {
 	defer te.tearDown()
 
 	cc := te.clientConn(grpc.WithTransportCredentials(&clientTimeoutCreds{}))
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	// This unary call should succeed, because ClientHandshake will succeed for the second time.
@@ -196,9 +199,9 @@ func (s) TestGRPCMethodAccessibleToCredsViaContextRequestInfo(t *testing.T) {
 	defer te.tearDown()
 
 	cc := te.clientConn(grpc.WithPerRPCCredentials(&methodTestCreds{}))
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); status.Convert(err).Message() != wantMethod {
 		t.Fatalf("ss.client.EmptyCall(_, _) = _, %v; want _, _.Message()=%q", err, wantMethod)
@@ -231,7 +234,7 @@ func (s) TestFailFastRPCErrorOnBadCertificates(t *testing.T) {
 	defer te.tearDown()
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(clientAlwaysFailCred{})}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	cc, err := grpc.DialContext(ctx, te.srvAddr, opts...)
 	if err != nil {
@@ -239,7 +242,7 @@ func (s) TestFailFastRPCErrorOnBadCertificates(t *testing.T) {
 	}
 	defer cc.Close()
 
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	for i := 0; i < 1000; i++ {
 		// This loop runs for at most 1 second. The first several RPCs will fail
 		// with Unavailable because the connection hasn't started. When the
@@ -259,21 +262,20 @@ func (s) TestWaitForReadyRPCErrorOnBadCertificates(t *testing.T) {
 	defer te.tearDown()
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(clientAlwaysFailCred{})}
-	dctx, dcancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer dcancel()
-	cc, err := grpc.DialContext(dctx, te.srvAddr, opts...)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	defer cancel()
+	cc, err := grpc.DialContext(ctx, te.srvAddr, opts...)
 	if err != nil {
 		t.Fatalf("Dial(_) = %v, want %v", err, nil)
 	}
 	defer cc.Close()
 
-	tc := testpb.NewTestServiceClient(cc)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	tc := testgrpc.NewTestServiceClient(cc)
+	ctx, cancel = context.WithTimeout(context.Background(), defaultTestShortTimeout)
 	defer cancel()
-	if _, err = tc.EmptyCall(ctx, &testpb.Empty{}, grpc.WaitForReady(true)); strings.Contains(err.Error(), clientAlwaysFailCredErrorMsg) {
-		return
+	if _, err = tc.EmptyCall(ctx, &testpb.Empty{}, grpc.WaitForReady(true)); !strings.Contains(err.Error(), clientAlwaysFailCredErrorMsg) {
+		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want err.Error() contains %q", err, clientAlwaysFailCredErrorMsg)
 	}
-	te.t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want err.Error() contains %q", err, clientAlwaysFailCredErrorMsg)
 }
 
 var (
@@ -284,10 +286,17 @@ var (
 	}
 )
 
-type testPerRPCCredentials struct{}
+type testPerRPCCredentials struct {
+	authdata map[string]string
+	errChan  chan error
+}
 
 func (cr testPerRPCCredentials) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
-	return authdata, nil
+	var err error
+	if cr.errChan != nil {
+		err = <-cr.errChan
+	}
+	return cr.authdata, err
 }
 
 func (cr testPerRPCCredentials) RequireTransportSecurity() bool {
@@ -320,12 +329,12 @@ func (s) TestPerRPCCredentialsViaDialOptions(t *testing.T) {
 func testPerRPCCredentialsViaDialOptions(t *testing.T, e env) {
 	te := newTest(t, e)
 	te.tapHandle = authHandle
-	te.perRPCCreds = testPerRPCCredentials{}
+	te.perRPCCreds = testPerRPCCredentials{authdata: authdata}
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -346,10 +355,10 @@ func testPerRPCCredentialsViaCallOptions(t *testing.T, e env) {
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.PerRPCCredentials(testPerRPCCredentials{})); err != nil {
+	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.PerRPCCredentials(testPerRPCCredentials{authdata: authdata})); err != nil {
 		t.Fatalf("Test failed. Reason: %v", err)
 	}
 }
@@ -362,7 +371,7 @@ func (s) TestPerRPCCredentialsViaDialOptionsAndCallOptions(t *testing.T) {
 
 func testPerRPCCredentialsViaDialOptionsAndCallOptions(t *testing.T, e env) {
 	te := newTest(t, e)
-	te.perRPCCreds = testPerRPCCredentials{}
+	te.perRPCCreds = testPerRPCCredentials{authdata: authdata}
 	// When credentials are provided via both dial options and call options,
 	// we apply both sets.
 	te.tapHandle = func(ctx context.Context, _ *tap.Info) (context.Context, error) {
@@ -388,10 +397,10 @@ func testPerRPCCredentialsViaDialOptionsAndCallOptions(t *testing.T, e env) {
 	defer te.tearDown()
 
 	cc := te.clientConn()
-	tc := testpb.NewTestServiceClient(cc)
+	tc := testgrpc.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.PerRPCCredentials(testPerRPCCredentials{})); err != nil {
+	if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.PerRPCCredentials(testPerRPCCredentials{authdata: authdata})); err != nil {
 		t.Fatalf("Test failed. Reason: %v", err)
 	}
 }
@@ -435,17 +444,9 @@ func (s) TestCredsHandshakeAuthority(t *testing.T) {
 	defer cc.Close()
 	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: lis.Addr().String()}}})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	for {
-		s := cc.GetState()
-		if s == connectivity.Ready {
-			break
-		}
-		if !cc.WaitForStateChange(ctx, s) {
-			t.Fatalf("ClientConn is not ready after 100 ms")
-		}
-	}
+	testutils.AwaitState(ctx, t, cc, connectivity.Ready)
 
 	if cred.got != testAuthority {
 		t.Fatalf("client creds got authority: %q, want: %q", cred.got, testAuthority)
@@ -475,17 +476,9 @@ func (s) TestCredsHandshakeServerNameAuthority(t *testing.T) {
 	defer cc.Close()
 	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: lis.Addr().String(), ServerName: testServerName}}})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	for {
-		s := cc.GetState()
-		if s == connectivity.Ready {
-			break
-		}
-		if !cc.WaitForStateChange(ctx, s) {
-			t.Fatalf("ClientConn is not ready after 100 ms")
-		}
-	}
+	testutils.AwaitState(ctx, t, cc, connectivity.Ready)
 
 	if cred.got != testServerName {
 		t.Fatalf("client creds got authority: %q, want: %q", cred.got, testAuthority)

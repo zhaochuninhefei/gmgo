@@ -34,8 +34,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	cpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/common/fault/v3"
@@ -87,7 +86,7 @@ func parseConfig(cfg proto.Message) (httpfilter.FilterConfig, error) {
 		return nil, fmt.Errorf("fault: error parsing config %v: unknown type %T", cfg, cfg)
 	}
 	msg := new(fpb.HTTPFault)
-	if err := ptypes.UnmarshalAny(any, msg); err != nil {
+	if err := any.UnmarshalTo(msg); err != nil {
 		return nil, fmt.Errorf("fault: error parsing config %v: %v", cfg, err)
 	}
 	return config{config: msg}, nil
@@ -297,5 +296,5 @@ func (*okStream) Header() (metadata.MD, error) { return nil, nil }
 func (*okStream) Trailer() metadata.MD         { return nil }
 func (*okStream) CloseSend() error             { return nil }
 func (o *okStream) Context() context.Context   { return o.ctx }
-func (*okStream) SendMsg(m interface{}) error  { return io.EOF }
-func (*okStream) RecvMsg(m interface{}) error  { return io.EOF }
+func (*okStream) SendMsg(m any) error          { return io.EOF }
+func (*okStream) RecvMsg(m any) error          { return io.EOF }

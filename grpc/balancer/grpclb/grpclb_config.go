@@ -21,7 +21,7 @@ package grpclb
 import (
 	"encoding/json"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer/roundrobin"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/serviceconfig"
 )
@@ -34,7 +34,7 @@ const (
 type grpclbServiceConfig struct {
 	serviceconfig.LoadBalancingConfig
 	ChildPolicy *[]map[string]json.RawMessage
-	TargetName  string
+	ServiceName string
 }
 
 func (b *lbBuilder) ParseConfig(lbConfig json.RawMessage) (serviceconfig.LoadBalancingConfig, error) {

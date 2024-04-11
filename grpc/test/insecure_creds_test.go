@@ -23,9 +23,8 @@ import (
 	"net"
 	"strings"
 	"testing"
-	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
@@ -33,10 +32,9 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/peer"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
+	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 )
-
-const defaultTestTimeout = 5 * time.Second
 
 // testLegacyPerRPCCredentials is a PerRPCCredentials that has yet incorporated security level.
 type testLegacyPerRPCCredentials struct{}
@@ -114,7 +112,7 @@ func (s) TestInsecureCreds(t *testing.T) {
 			s := grpc.NewServer(sOpts...)
 			defer s.Stop()
 
-			testpb.RegisterTestServiceServer(s, ss)
+			testgrpc.RegisterTestServiceServer(s, ss)
 
 			lis, err := net.Listen("tcp", "localhost:0")
 			if err != nil {
@@ -124,7 +122,7 @@ func (s) TestInsecureCreds(t *testing.T) {
 			go s.Serve(lis)
 
 			addr := lis.Addr().String()
-			opts := []grpc.DialOption{grpc.WithInsecure()}
+			opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 			if test.clientInsecureCreds {
 				opts = []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 			}
@@ -134,7 +132,7 @@ func (s) TestInsecureCreds(t *testing.T) {
 			}
 			defer cc.Close()
 
-			c := testpb.NewTestServiceClient(cc)
+			c := testgrpc.NewTestServiceClient(cc)
 			ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 			defer cancel()
 			if _, err = c.EmptyCall(ctx, &testpb.Empty{}); err != nil {
@@ -153,7 +151,7 @@ func (s) TestInsecureCreds_WithPerRPCCredentials_AsCallOption(t *testing.T) {
 
 	s := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 	defer s.Stop()
-	testpb.RegisterTestServiceServer(s, ss)
+	testgrpc.RegisterTestServiceServer(s, ss)
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
@@ -174,7 +172,7 @@ func (s) TestInsecureCreds_WithPerRPCCredentials_AsCallOption(t *testing.T) {
 	defer cc.Close()
 
 	const wantErr = "transport: cannot send secure credentials on an insecure connection"
-	c := testpb.NewTestServiceClient(cc)
+	c := testgrpc.NewTestServiceClient(cc)
 	if _, err = c.EmptyCall(ctx, &testpb.Empty{}, copts...); err == nil || !strings.Contains(err.Error(), wantErr) {
 		t.Fatalf("insecure credentials with per-RPC credentials requiring transport security returned error: %v; want %s", err, wantErr)
 	}
@@ -189,7 +187,7 @@ func (s) TestInsecureCreds_WithPerRPCCredentials_AsDialOption(t *testing.T) {
 
 	s := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 	defer s.Stop()
-	testpb.RegisterTestServiceServer(s, ss)
+	testgrpc.RegisterTestServiceServer(s, ss)
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
