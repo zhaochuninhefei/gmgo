@@ -11,7 +11,7 @@ require (
 	github.com/golang/glog v1.2.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
-	github.com/matttproud/golang_protobuf_extensions v1.0.3
+	github.com/matttproud/golang_protobuf_extensions v1.0.3 // 这里不要将v1.0.3升级到v1.0.4，否则会间接依赖`github.com/golang/protobuf`(老版的protobuf,与新版`google.golang.org/protobuf`互不兼容)
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/prometheus/client_golang v1.19.0
