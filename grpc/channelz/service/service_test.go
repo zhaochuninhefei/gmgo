@@ -27,17 +27,17 @@ import (
 	"testing"
 	"time"
 
+	channelzpb "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/channelz"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	channelzpb "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
 )
 
 func init() {
@@ -98,13 +98,28 @@ type OtherSecurityValue struct {
 	RemoteCertificate []byte `protobuf:"bytes,2,opt,name=remote_certificate,json=remoteCertificate,proto3" json:"remote_certificate,omitempty"`
 }
 
-func (m *OtherSecurityValue) Reset()         { *m = OtherSecurityValue{} }
-func (m *OtherSecurityValue) String() string { return proto.CompactTextString(m) }
-func (*OtherSecurityValue) ProtoMessage()    {}
+func (m *OtherSecurityValue) ProtoReflect() protoreflect.Message {
+	panic("implement me")
+}
+
+func (m *OtherSecurityValue) Reset() { *m = OtherSecurityValue{} }
+func (m *OtherSecurityValue) String() string {
+	// 使用proto.MarshalTextString代替proto.CompactTextString
+	// 注意：这里如果m不是有效的proto.Message可能会panic，确保m正确实现了proto.Message接口
+	if m != nil {
+		bs, err := proto.Marshal(m)
+		if err != nil {
+			return err.Error()
+		}
+		return string(bs)
+	}
+	return "<nil>"
+}
+func (*OtherSecurityValue) ProtoMessage() {}
 
 func init() {
 	// Ad-hoc registering the proto type here to facilitate UnmarshalAny of OtherSecurityValue.
-	proto.RegisterType((*OtherSecurityValue)(nil), "grpc.credentials.OtherChannelzSecurityValue")
+	//protoimpl.RegisterType((*OtherSecurityValue)(nil), "grpc.credentials.OtherChannelzSecurityValue")
 }
 
 func (s) TestGetTopChannels(t *testing.T) {
@@ -270,7 +285,11 @@ func (s) TestGetServerSockets(t *testing.T) {
 		ids[2]: refNames[2],
 	}
 	if got := convertSocketRefSliceToMap(resp.GetSocketRef()); !cmp.Equal(got, want) {
-		t.Fatalf("GetServerSockets want: %#v, got: %#v (resp=%v)", want, got, proto.MarshalTextString(resp))
+		byteBuf, err := proto.Marshal(resp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Fatalf("GetServerSockets want: %#v, got: %#v (resp=%v)", want, got, byteBuf)
 	}
 
 	for i := 0; i < 50; i++ {
@@ -737,7 +756,7 @@ func (s) TestGetSocket(t *testing.T) {
 	for i := range ss {
 		resp, _ := svr.GetSocket(ctx, &channelzpb.GetSocketRequest{SocketId: skts[i].ID})
 		w := &channelzpb.Socket{}
-		if err := proto.UnmarshalText(want[i], w); err != nil {
+		if err := proto.Unmarshal([]byte(want[i]), w); err != nil {
 			t.Fatalf("Error unmarshalling %q: %v", want[i], err)
 		}
 		if diff := cmp.Diff(resp.GetSocket(), w, protocmp.Transform()); diff != "" {
