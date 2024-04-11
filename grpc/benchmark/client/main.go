@@ -48,9 +48,10 @@ import (
 	"sync"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/benchmark"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/benchmark/stats"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/syscall"
 
@@ -85,7 +86,7 @@ var (
 func main() {
 	flag.Parse()
 	if *testName == "" {
-		logger.Fatalf("test_name not set")
+		logger.Fatal("-test_name not set")
 	}
 	req := &testpb.SimpleRequest{
 		ResponseType: testpb.PayloadType_COMPRESSABLE,
@@ -135,7 +136,12 @@ func main() {
 func buildConnections(ctx context.Context) []*grpc.ClientConn {
 	ccs := make([]*grpc.ClientConn, *numConn)
 	for i := range ccs {
-		ccs[i] = benchmark.NewClientConnWithContext(ctx, "localhost:"+*port, grpc.WithInsecure(), grpc.WithBlock())
+		ccs[i] = benchmark.NewClientConnWithContext(ctx, "localhost:"+*port,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithBlock(),
+			grpc.WithWriteBufferSize(128*1024),
+			grpc.WithReadBufferSize(128*1024),
+		)
 	}
 	return ccs
 }

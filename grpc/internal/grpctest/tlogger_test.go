@@ -33,47 +33,38 @@ func Test(t *testing.T) {
 	RunSubTests(t, s{})
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestInfo(t *testing.T) {
 	grpclog.Info("Info", "message.")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestInfoln(t *testing.T) {
 	grpclog.Infoln("Info", "message.")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestInfof(t *testing.T) {
 	grpclog.Infof("%v %v.", "Info", "message")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestInfoDepth(t *testing.T) {
 	grpclogi.InfoDepth(0, "Info", "depth", "message.")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestWarning(t *testing.T) {
 	grpclog.Warning("Warning", "message.")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestWarningln(t *testing.T) {
 	grpclog.Warningln("Warning", "message.")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestWarningf(t *testing.T) {
 	grpclog.Warningf("%v %v.", "Warning", "message")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestWarningDepth(t *testing.T) {
 	grpclogi.WarningDepth(0, "Warning", "depth", "message.")
 }
 
-//goland:noinspection GoUnusedParameter
 func (s) TestError(t *testing.T) {
 	const numErrors = 10
 	TLogger.ExpectError("Expected error")

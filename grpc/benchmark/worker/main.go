@@ -24,17 +24,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	_ "gitee.com/zhaochuninhefei/gmgo/gmhttp/pprof"
 	"io"
 	"net"
 	"runtime"
 	"strconv"
 	"time"
 
-	_ "gitee.com/zhaochuninhefei/gmgo/gmhttp/pprof"
-
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
@@ -55,7 +53,7 @@ var (
 type byteBufCodec struct {
 }
 
-func (byteBufCodec) Marshal(v interface{}) ([]byte, error) {
+func (byteBufCodec) Marshal(v any) ([]byte, error) {
 	b, ok := v.(*[]byte)
 	if !ok {
 		return nil, fmt.Errorf("failed to marshal: %v is not type of *[]byte", v)
@@ -63,7 +61,7 @@ func (byteBufCodec) Marshal(v interface{}) ([]byte, error) {
 	return *b, nil
 }
 
-func (byteBufCodec) Unmarshal(data []byte, v interface{}) error {
+func (byteBufCodec) Unmarshal(data []byte, v any) error {
 	b, ok := v.(*[]byte)
 	if !ok {
 		return fmt.Errorf("failed to marshal: %v is not type of *[]byte", v)

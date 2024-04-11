@@ -27,11 +27,12 @@ import (
 	"testing"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/e2e"
+
 	v3clusterpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	channelzpb "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/testutils/e2e"
 )
 
 var (
@@ -122,6 +123,7 @@ func TestPingPong(t *testing.T) {
 // - verify that
 //   - all RPCs with the same metadata value are sent to the same backend
 //   - only one backend is Ready
+//
 // - send more RPCs with different metadata values until a new backend is picked, and verify that
 //   - only two backends are in Ready
 func TestAffinity(t *testing.T) {

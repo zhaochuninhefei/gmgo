@@ -19,7 +19,7 @@
 // Package sts implements call credentials using STS (Security Token Service) as
 // defined in https://tools.ietf.org/html/rfc8693.
 //
-// Experimental
+// # Experimental
 //
 // Notice: All APIs in this package are experimental and may be changed or
 // removed in a later release.
@@ -31,14 +31,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/url"
-	"sync"
-	"time"
-
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"io"
+	"net/url"
+	"os"
+	"sync"
+	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
@@ -59,8 +59,8 @@ const (
 var (
 	loadSystemCertPool   = x509.SystemCertPool
 	makeHTTPDoer         = makeHTTPClient
-	readSubjectTokenFrom = ioutil.ReadFile
-	readActorTokenFrom   = ioutil.ReadFile
+	readSubjectTokenFrom = os.ReadFile
+	readActorTokenFrom   = os.ReadFile
 	logger               = grpclog.Component("credentials")
 )
 
@@ -106,7 +106,7 @@ type Options struct {
 
 	// ActorTokenType is an identifier, as described in
 	// https://tools.ietf.org/html/rfc8693#section-3, that indicates the type of
-	// the the security token in the "actor_token_path" parameter.
+	// the security token in the "actor_token_path" parameter.
 	ActorTokenType string // Optional.
 }
 
@@ -246,12 +246,12 @@ func (c *callCreds) cachedMetadata() map[string]string {
 
 // constructRequest creates the STS request body in JSON based on the provided
 // options.
-// - Contents of the subjectToken are read from the file specified in
-//   options. If we encounter an error here, we bail out.
-// - Contents of the actorToken are read from the file specified in options.
-//   If we encounter an error here, we ignore this field because this is
-//   optional.
-// - Most of the other fields in the request come directly from options.
+//   - Contents of the subjectToken are read from the file specified in
+//     options. If we encounter an error here, we bail out.
+//   - Contents of the actorToken are read from the file specified in options.
+//     If we encounter an error here, we ignore this field because this is
+//     optional.
+//   - Most of the other fields in the request come directly from options.
 //
 // A new HTTP request is created by calling http.NewRequestWithContext() and
 // passing the provided context, thereby enforcing any timeouts specified in
@@ -307,7 +307,7 @@ func sendRequest(client httpDoer, req *http.Request) ([]byte, error) {
 	// When the http.Client returns a non-nil error, it is the
 	// responsibility of the caller to read the response body till an EOF is
 	// encountered and to close it.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		return nil, err

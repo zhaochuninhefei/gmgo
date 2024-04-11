@@ -26,13 +26,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 	"io"
 	"net"
 	"net/url"
 	"testing"
 	"time"
-
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 )
 
 const (
@@ -73,8 +72,8 @@ func (p *proxyServer) run() {
 	}
 	if err := p.requestCheck(req); err != nil {
 		resp := http.Response{StatusCode: http.StatusMethodNotAllowed}
-		_ = resp.Write(p.in)
-		_ = p.in.Close()
+		resp.Write(p.in)
+		p.in.Close()
 		p.t.Errorf("get wrong CONNECT req: %+v, error: %v", req, err)
 		return
 	}
@@ -85,23 +84,19 @@ func (p *proxyServer) run() {
 		return
 	}
 	resp := http.Response{StatusCode: http.StatusOK, Proto: "HTTP/1.0"}
-	_ = resp.Write(p.in)
+	resp.Write(p.in)
 	p.out = out
-	go func() {
-		_, _ = io.Copy(p.in, p.out)
-	}()
-	go func() {
-		_, _ = io.Copy(p.out, p.in)
-	}()
+	go io.Copy(p.in, p.out)
+	go io.Copy(p.out, p.in)
 }
 
 func (p *proxyServer) stop() {
-	_ = p.lis.Close()
+	p.lis.Close()
 	if p.in != nil {
-		_ = p.in.Close()
+		p.in.Close()
 	}
 	if p.out != nil {
-		_ = p.out.Close()
+		p.out.Close()
 	}
 }
 
@@ -132,10 +127,8 @@ func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxy
 			done <- err
 			return
 		}
-		defer func(in net.Conn) {
-			_ = in.Close()
-		}(in)
-		_, _ = in.Read(recvBuf)
+		defer in.Close()
+		in.Read(recvBuf)
 		done <- nil
 	}()
 
@@ -152,12 +145,10 @@ func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxy
 	if err != nil {
 		t.Fatalf("http connect Dial failed: %v", err)
 	}
-	defer func(c net.Conn) {
-		_ = c.Close()
-	}(c)
+	defer c.Close()
 
 	// Send msg on the connection.
-	_, _ = c.Write(msg)
+	c.Write(msg)
 	if err := <-done; err != nil {
 		t.Fatalf("failed to accept: %v", err)
 	}

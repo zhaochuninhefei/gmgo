@@ -23,74 +23,54 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/rbac"
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/router"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/testutils/e2e"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
-	"github.com/golang/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/types/known/durationpb"
-
 	v2xdspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2"
-	v2corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/e2e"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
-	v2httppb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	v2listenerpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v2"
 	v3listenerpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v3"
 	rpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v3"
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3rbacpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	v3httppb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	v3tlspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	v3discoverypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
-	//v1udpatypepb "github.com/cncf/udpa/go/udpa/type/v1"
-	v3cncftypepb "github.com/cncf/xds/go/xds/type/v3"
-	anypb "github.com/golang/protobuf/ptypes/any"
-	spb "github.com/golang/protobuf/ptypes/struct"
-	wrapperspb "github.com/golang/protobuf/ptypes/wrappers"
+	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
+	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
+
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/rbac"   // Register the RBAC HTTP filter.
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/router" // Register the router filter.
 )
 
 func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 	const (
-		v2LDSTarget       = "lds.target.good:2222"
 		v3LDSTarget       = "lds.target.good:3333"
-		v2RouteConfigName = "v2RouteConfig"
 		v3RouteConfigName = "v3RouteConfig"
 		routeName         = "routeName"
-		testVersion       = "test-version-lds-client"
 	)
 
 	var (
-		v2Lis = testutils.MarshalAny(&v2xdspb.Listener{
-			Name: v2LDSTarget,
-			ApiListener: &v2listenerpb.ApiListener{
-				ApiListener: testutils.MarshalAny(&v2httppb.HttpConnectionManager{
-					RouteSpecifier: &v2httppb.HttpConnectionManager_Rds{
-						Rds: &v2httppb.Rds{
-							ConfigSource: &v2corepb.ConfigSource{
-								ConfigSourceSpecifier: &v2corepb.ConfigSource_Ads{Ads: &v2corepb.AggregatedConfigSource{}},
-							},
-							RouteConfigName: v2RouteConfigName,
-						},
-					},
-				}),
-			},
-		})
 		customFilter = &v3httppb.HttpFilter{
 			Name:       "customFilter",
 			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: customFilterConfig},
 		}
-		//oldTypedStructFilter = &v3httppb.HttpFilter{
-		//	Name:       "customFilter",
-		//	ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: wrappedCustomFilterOldTypedStructConfig},
-		//}
+		oldTypedStructFilter = &v3httppb.HttpFilter{
+			Name:       "customFilter",
+			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: testutils.MarshalAny(t, customFilterOldTypedStructConfig)},
+		}
 		newTypedStructFilter = &v3httppb.HttpFilter{
 			Name:       "customFilter",
-			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: wrappedCustomFilterNewTypedStructConfig},
+			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: testutils.MarshalAny(t, customFilterNewTypedStructConfig)},
 		}
 		customOptionalFilter = &v3httppb.HttpFilter{
 			Name:       "customFilter",
@@ -132,10 +112,10 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 			ConfigType: &v3httppb.HttpFilter_TypedConfig{TypedConfig: unknownFilterConfig},
 			IsOptional: true,
 		}
-		v3LisWithInlineRoute = testutils.MarshalAny(&v3listenerpb.Listener{
+		v3LisWithInlineRoute = testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name: v3LDSTarget,
 			ApiListener: &v3listenerpb.ApiListener{
-				ApiListener: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+				ApiListener: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 					RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 						RouteConfig: &v3routepb.RouteConfiguration{
 							Name: routeName,
@@ -159,10 +139,10 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 		})
 		v3LisWithFilters = func(fs ...*v3httppb.HttpFilter) *anypb.Any {
 			fs = append(fs, emptyRouterFilter)
-			return testutils.MarshalAny(&v3listenerpb.Listener{
+			return testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(
+					ApiListener: testutils.MarshalAny(t,
 						&v3httppb.HttpConnectionManager{
 							RouteSpecifier: &v3httppb.HttpConnectionManager_Rds{
 								Rds: &v3httppb.Rds{
@@ -181,10 +161,10 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 			})
 		}
 		v3LisToTestRBAC = func(xffNumTrustedHops uint32, originalIpDetectionExtensions []*v3corepb.TypedExtensionConfig) *anypb.Any {
-			return testutils.MarshalAny(&v3listenerpb.Listener{
+			return testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(
+					ApiListener: testutils.MarshalAny(t,
 						&v3httppb.HttpConnectionManager{
 							RouteSpecifier: &v3httppb.HttpConnectionManager_Rds{
 								Rds: &v3httppb.Rds{
@@ -204,101 +184,114 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 				},
 			})
 		}
-		errMD = UpdateMetadata{
-			Status:  ServiceStatusNACKed,
-			Version: testVersion,
-			ErrState: &UpdateErrorMetadata{
-				Version: testVersion,
-				Err:     cmpopts.AnyError,
+
+		v3ListenerWithCDSConfigSourceSelf = testutils.MarshalAny(t, &v3listenerpb.Listener{
+			Name: v3LDSTarget,
+			ApiListener: &v3listenerpb.ApiListener{
+				ApiListener: testutils.MarshalAny(t,
+					&v3httppb.HttpConnectionManager{
+						RouteSpecifier: &v3httppb.HttpConnectionManager_Rds{
+							Rds: &v3httppb.Rds{
+								ConfigSource: &v3corepb.ConfigSource{
+									ConfigSourceSpecifier: &v3corepb.ConfigSource_Self{},
+								},
+								RouteConfigName: v3RouteConfigName,
+							},
+						},
+						HttpFilters: []*v3httppb.HttpFilter{emptyRouterFilter},
+					}),
 			},
-		}
+		})
 	)
 
 	tests := []struct {
 		name       string
-		resources  []*anypb.Any
-		wantUpdate map[string]ListenerUpdateErrTuple
-		wantMD     UpdateMetadata
+		resource   *anypb.Any
+		wantName   string
+		wantUpdate ListenerUpdate
 		wantErr    bool
 	}{
 		{
-			name:      "non-listener resource",
-			resources: []*anypb.Any{{TypeUrl: version.V3HTTPConnManagerURL}},
-			wantMD:    errMD,
-			wantErr:   true,
+			name:     "non-listener resource",
+			resource: &anypb.Any{TypeUrl: version.V3HTTPConnManagerURL},
+			wantErr:  true,
 		},
 		{
 			name: "badly marshaled listener resource",
-			resources: []*anypb.Any{
-				{
-					TypeUrl: version.V3ListenerURL,
-					Value: func() []byte {
-						lis := &v3listenerpb.Listener{
-							Name: v3LDSTarget,
-							ApiListener: &v3listenerpb.ApiListener{
-								ApiListener: &anypb.Any{
-									TypeUrl: version.V3HTTPConnManagerURL,
-									Value:   []byte{1, 2, 3, 4},
-								},
+			resource: &anypb.Any{
+				TypeUrl: version.V3ListenerURL,
+				Value: func() []byte {
+					lis := &v3listenerpb.Listener{
+						Name: v3LDSTarget,
+						ApiListener: &v3listenerpb.ApiListener{
+							ApiListener: &anypb.Any{
+								TypeUrl: version.V3HTTPConnManagerURL,
+								Value:   []byte{1, 2, 3, 4},
 							},
-						}
-						mLis, _ := proto.Marshal(lis)
-						return mLis
-					}(),
-				},
+						},
+					}
+					mLis, _ := proto.Marshal(lis)
+					return mLis
+				}(),
 			},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
 			name: "wrong type in apiListener",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(&v2xdspb.Listener{}),
+					ApiListener: testutils.MarshalAny(t, &v2xdspb.Listener{}),
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
 			name: "empty httpConnMgr in apiListener",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+					ApiListener: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 						RouteSpecifier: &v3httppb.HttpConnectionManager_Rds{
 							Rds: &v3httppb.Rds{},
 						},
 					}),
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
 			name: "scopedRoutes routeConfig in apiListener",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+					ApiListener: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 						RouteSpecifier: &v3httppb.HttpConnectionManager_ScopedRoutes{},
 					}),
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
-			name: "rds.ConfigSource in apiListener is not ADS",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			name:     "rds.ConfigSource in apiListener is Self",
+			resource: v3ListenerWithCDSConfigSourceSelf,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName,
+				HTTPFilters:     []HTTPFilter{makeRouterFilter(t)},
+				Raw:             v3ListenerWithCDSConfigSourceSelf,
+			},
+		},
+		{
+			name: "rds.ConfigSource in apiListener is not ADS or Self",
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+					ApiListener: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 						RouteSpecifier: &v3httppb.HttpConnectionManager_Rds{
 							Rds: &v3httppb.Rds{
 								ConfigSource: &v3corepb.ConfigSource{
@@ -311,35 +304,27 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 						},
 					}),
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
-			name: "empty resource list",
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		{
-			name:      "v3 with no filters",
-			resources: []*anypb.Any{v3LisWithFilters()},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second, HTTPFilters: routerFilterList, Raw: v3LisWithFilters()}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+			name:     "v3 with no filters",
+			resource: v3LisWithFilters(),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName:   v3RouteConfigName,
+				MaxStreamDuration: time.Second,
+				HTTPFilters:       makeRouterFilterList(t),
+				Raw:               v3LisWithFilters(),
 			},
 		},
 		{
 			name: "v3 no terminal filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ApiListener: &v3listenerpb.ApiListener{
-					ApiListener: testutils.MarshalAny(
+					ApiListener: testutils.MarshalAny(t,
 						&v3httppb.HttpConnectionManager{
 							RouteSpecifier: &v3httppb.HttpConnectionManager_Rds{
 								Rds: &v3httppb.Rds{
@@ -354,232 +339,186 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 							},
 						}),
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
-			name:      "v3 with custom filter",
-			resources: []*anypb.Any{v3LisWithFilters(customFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-					HTTPFilters: []HTTPFilter{
-						{
-							Name:   "customFilter",
-							Filter: httpFilter{},
-							Config: filterConfig{Cfg: customFilterConfig},
-						},
-						routerFilter,
-					},
-					Raw: v3LisWithFilters(customFilter),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		//{
-		//	name:      "v3 with custom filter in old typed struct",
-		//	resources: []*anypb.Any{v3LisWithFilters(oldTypedStructFilter)},
-		//	wantUpdate: map[string]ListenerUpdateErrTuple{
-		//		v3LDSTarget: {Update: ListenerUpdate{
-		//			RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-		//			HTTPFilters: []HTTPFilter{
-		//				{
-		//					Name:   "customFilter",
-		//					Filter: httpFilter{},
-		//					Config: filterConfig{Cfg: customFilterOldTypedStructConfig},
-		//				},
-		//				routerFilter,
-		//			},
-		//			Raw: v3LisWithFilters(oldTypedStructFilter),
-		//		}},
-		//	},
-		//	wantMD: UpdateMetadata{
-		//		Status:  ServiceStatusACKed,
-		//		Version: testVersion,
-		//	},
-		//},
-		{
-			name:      "v3 with custom filter in new typed struct",
-			resources: []*anypb.Any{v3LisWithFilters(newTypedStructFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-					HTTPFilters: []HTTPFilter{
-						{
-							Name:   "customFilter",
-							Filter: httpFilter{},
-							Config: filterConfig{Cfg: customFilterNewTypedStructConfig},
-						},
-						routerFilter,
-					},
-					Raw: v3LisWithFilters(newTypedStructFilter),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		{
-			name:      "v3 with optional custom filter",
-			resources: []*anypb.Any{v3LisWithFilters(customOptionalFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-					HTTPFilters: []HTTPFilter{
-						{
-							Name:   "customFilter",
-							Filter: httpFilter{},
-							Config: filterConfig{Cfg: customFilterConfig},
-						},
-						routerFilter,
-					},
-					Raw: v3LisWithFilters(customOptionalFilter),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		{
-			name:       "v3 with two filters with same name",
-			resources:  []*anypb.Any{v3LisWithFilters(customFilter, customFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
-		},
-		{
-			name:      "v3 with two filters - same type different name",
-			resources: []*anypb.Any{v3LisWithFilters(customFilter, customFilter2)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-					HTTPFilters: []HTTPFilter{{
+			name:     "v3 with custom filter",
+			resource: v3LisWithFilters(customFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+				HTTPFilters: []HTTPFilter{
+					{
 						Name:   "customFilter",
 						Filter: httpFilter{},
 						Config: filterConfig{Cfg: customFilterConfig},
-					}, {
-						Name:   "customFilter2",
+					},
+					makeRouterFilter(t),
+				},
+				Raw: v3LisWithFilters(customFilter),
+			},
+		},
+		{
+			name:     "v3 with custom filter in old typed struct",
+			resource: v3LisWithFilters(oldTypedStructFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+				HTTPFilters: []HTTPFilter{
+					{
+						Name:   "customFilter",
+						Filter: httpFilter{},
+						Config: filterConfig{Cfg: customFilterOldTypedStructConfig},
+					},
+					makeRouterFilter(t),
+				},
+				Raw: v3LisWithFilters(oldTypedStructFilter),
+			},
+		},
+		{
+			name:     "v3 with custom filter in new typed struct",
+			resource: v3LisWithFilters(newTypedStructFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+				HTTPFilters: []HTTPFilter{
+					{
+						Name:   "customFilter",
+						Filter: httpFilter{},
+						Config: filterConfig{Cfg: customFilterNewTypedStructConfig},
+					},
+					makeRouterFilter(t),
+				},
+				Raw: v3LisWithFilters(newTypedStructFilter),
+			},
+		},
+		{
+			name:     "v3 with optional custom filter",
+			resource: v3LisWithFilters(customOptionalFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+				HTTPFilters: []HTTPFilter{
+					{
+						Name:   "customFilter",
 						Filter: httpFilter{},
 						Config: filterConfig{Cfg: customFilterConfig},
 					},
-						routerFilter,
+					makeRouterFilter(t),
+				},
+				Raw: v3LisWithFilters(customOptionalFilter),
+			},
+		},
+		{
+			name:     "v3 with two filters with same name",
+			resource: v3LisWithFilters(customFilter, customFilter),
+			wantName: v3LDSTarget,
+			wantErr:  true,
+		},
+		{
+			name:     "v3 with two filters - same type different name",
+			resource: v3LisWithFilters(customFilter, customFilter2),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+				HTTPFilters: []HTTPFilter{{
+					Name:   "customFilter",
+					Filter: httpFilter{},
+					Config: filterConfig{Cfg: customFilterConfig},
+				}, {
+					Name:   "customFilter2",
+					Filter: httpFilter{},
+					Config: filterConfig{Cfg: customFilterConfig},
+				},
+					makeRouterFilter(t),
+				},
+				Raw: v3LisWithFilters(customFilter, customFilter2),
+			},
+		},
+		{
+			name:     "v3 with server-only filter",
+			resource: v3LisWithFilters(serverOnlyCustomFilter),
+			wantName: v3LDSTarget,
+			wantErr:  true,
+		},
+		{
+			name:     "v3 with optional server-only filter",
+			resource: v3LisWithFilters(serverOnlyOptionalCustomFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName:   v3RouteConfigName,
+				MaxStreamDuration: time.Second,
+				Raw:               v3LisWithFilters(serverOnlyOptionalCustomFilter),
+				HTTPFilters:       makeRouterFilterList(t),
+			},
+		},
+		{
+			name:     "v3 with client-only filter",
+			resource: v3LisWithFilters(clientOnlyCustomFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
+				HTTPFilters: []HTTPFilter{
+					{
+						Name:   "clientOnlyCustomFilter",
+						Filter: clientOnlyHTTPFilter{},
+						Config: filterConfig{Cfg: clientOnlyCustomFilterConfig},
 					},
-					Raw: v3LisWithFilters(customFilter, customFilter2),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+					makeRouterFilter(t)},
+				Raw: v3LisWithFilters(clientOnlyCustomFilter),
 			},
 		},
 		{
-			name:       "v3 with server-only filter",
-			resources:  []*anypb.Any{v3LisWithFilters(serverOnlyCustomFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			name:     "v3 with err filter",
+			resource: v3LisWithFilters(errFilter),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
-			name:      "v3 with optional server-only filter",
-			resources: []*anypb.Any{v3LisWithFilters(serverOnlyOptionalCustomFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName:   v3RouteConfigName,
-					MaxStreamDuration: time.Second,
-					Raw:               v3LisWithFilters(serverOnlyOptionalCustomFilter),
-					HTTPFilters:       routerFilterList,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
+			name:     "v3 with optional err filter",
+			resource: v3LisWithFilters(errOptionalFilter),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
-			name:      "v3 with client-only filter",
-			resources: []*anypb.Any{v3LisWithFilters(clientOnlyCustomFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second,
-					HTTPFilters: []HTTPFilter{
-						{
-							Name:   "clientOnlyCustomFilter",
-							Filter: clientOnlyHTTPFilter{},
-							Config: filterConfig{Cfg: clientOnlyCustomFilterConfig},
-						},
-						routerFilter},
-					Raw: v3LisWithFilters(clientOnlyCustomFilter),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+			name:     "v3 with unknown filter",
+			resource: v3LisWithFilters(unknownFilter),
+			wantName: v3LDSTarget,
+			wantErr:  true,
+		},
+		{
+			name:     "v3 with unknown filter (optional)",
+			resource: v3LisWithFilters(unknownOptionalFilter),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName:   v3RouteConfigName,
+				MaxStreamDuration: time.Second,
+				HTTPFilters:       makeRouterFilterList(t),
+				Raw:               v3LisWithFilters(unknownOptionalFilter),
 			},
 		},
 		{
-			name:       "v3 with err filter",
-			resources:  []*anypb.Any{v3LisWithFilters(errFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
-		},
-		{
-			name:       "v3 with optional err filter",
-			resources:  []*anypb.Any{v3LisWithFilters(errOptionalFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
-		},
-		{
-			name:       "v3 with unknown filter",
-			resources:  []*anypb.Any{v3LisWithFilters(unknownFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
-		},
-		{
-			name:      "v3 with unknown filter (optional)",
-			resources: []*anypb.Any{v3LisWithFilters(unknownOptionalFilter)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName:   v3RouteConfigName,
-					MaxStreamDuration: time.Second,
-					HTTPFilters:       routerFilterList,
-					Raw:               v3LisWithFilters(unknownOptionalFilter),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+			name:     "v3 listener resource",
+			resource: v3LisWithFilters(),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName:   v3RouteConfigName,
+				MaxStreamDuration: time.Second,
+				HTTPFilters:       makeRouterFilterList(t),
+				Raw:               v3LisWithFilters(),
 			},
 		},
 		{
-			name:      "v2 listener resource",
-			resources: []*anypb.Any{v2Lis},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v2LDSTarget: {Update: ListenerUpdate{RouteConfigName: v2RouteConfigName, Raw: v2Lis}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		{
-			name:      "v3 listener resource",
-			resources: []*anypb.Any{v3LisWithFilters()},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second, HTTPFilters: routerFilterList, Raw: v3LisWithFilters()}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+			name:     "v3 listener resource wrapped",
+			resource: testutils.MarshalAny(t, &v3discoverypb.Resource{Resource: v3LisWithFilters()}),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName:   v3RouteConfigName,
+				MaxStreamDuration: time.Second,
+				HTTPFilters:       makeRouterFilterList(t),
+				Raw:               v3LisWithFilters(),
 			},
 		},
 		// "To allow equating RBAC's direct_remote_ip and
@@ -587,19 +526,14 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 		// or zero and HttpConnectionManager.original_ip_detection_extensions
 		// must be empty." - A41
 		{
-			name:      "rbac-allow-equating-direct-remote-ip-and-remote-ip-valid",
-			resources: []*anypb.Any{v3LisToTestRBAC(0, nil)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					RouteConfigName:   v3RouteConfigName,
-					MaxStreamDuration: time.Second,
-					HTTPFilters:       []HTTPFilter{routerFilter},
-					Raw:               v3LisToTestRBAC(0, nil),
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+			name:     "rbac-allow-equating-direct-remote-ip-and-remote-ip-valid",
+			resource: v3LisToTestRBAC(0, nil),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				RouteConfigName:   v3RouteConfigName,
+				MaxStreamDuration: time.Second,
+				HTTPFilters:       []HTTPFilter{makeRouterFilter(t)},
+				Raw:               v3LisToTestRBAC(0, nil),
 			},
 		},
 		// In order to support xDS Configured RBAC HTTPFilter equating direct
@@ -608,105 +542,55 @@ func (s) TestUnmarshalListener_ClientSide(t *testing.T) {
 		// determining an origin clients ip address, direct remote ip != remote
 		// ip.
 		{
-			name:       "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-num-untrusted-hops",
-			resources:  []*anypb.Any{v3LisToTestRBAC(1, nil)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			name:     "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-num-untrusted-hops",
+			resource: v3LisToTestRBAC(1, nil),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		// In order to support xDS Configured RBAC HTTPFilter equating direct
 		// remote ip and remote ip, originalIpDetectionExtensions must be empty.
 		// This is because if you have to ask ip-detection-extension for the
 		// original ip, direct remote ip might not equal remote ip.
 		{
-			name:       "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-original-ip-detection-extension",
-			resources:  []*anypb.Any{v3LisToTestRBAC(0, []*v3corepb.TypedExtensionConfig{{Name: "something"}})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    true,
+			name:     "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-original-ip-detection-extension",
+			resource: v3LisToTestRBAC(0, []*v3corepb.TypedExtensionConfig{{Name: "something"}}),
+			wantName: v3LDSTarget,
+			wantErr:  true,
 		},
 		{
-			name:      "v3 listener with inline route configuration",
-			resources: []*anypb.Any{v3LisWithInlineRoute},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InlineRouteConfig: &RouteConfigUpdate{
-						VirtualHosts: []*VirtualHost{{
-							Domains: []string{v3LDSTarget},
-							Routes:  []*Route{{Prefix: newStringP("/"), WeightedClusters: map[string]WeightedCluster{clusterName: {Weight: 1}}, ActionType: RouteActionRoute}},
-						}}},
-					MaxStreamDuration: time.Second,
-					Raw:               v3LisWithInlineRoute,
-					HTTPFilters:       routerFilterList,
-				}},
+			name:     "v3 listener with inline route configuration",
+			resource: v3LisWithInlineRoute,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InlineRouteConfig: &RouteConfigUpdate{
+					VirtualHosts: []*VirtualHost{{
+						Domains: []string{v3LDSTarget},
+						Routes:  []*Route{{Prefix: newStringP("/"), WeightedClusters: map[string]WeightedCluster{clusterName: {Weight: 1}}, ActionType: RouteActionRoute}},
+					}}},
+				MaxStreamDuration: time.Second,
+				Raw:               v3LisWithInlineRoute,
+				HTTPFilters:       makeRouterFilterList(t),
 			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		{
-			name:      "multiple listener resources",
-			resources: []*anypb.Any{v2Lis, v3LisWithFilters()},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v2LDSTarget: {Update: ListenerUpdate{RouteConfigName: v2RouteConfigName, Raw: v2Lis}},
-				v3LDSTarget: {Update: ListenerUpdate{RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second, Raw: v3LisWithFilters(), HTTPFilters: routerFilterList}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
-			},
-		},
-		{
-			// To test that unmarshal keeps processing on errors.
-			name: "good and bad listener resources",
-			resources: []*anypb.Any{
-				v2Lis,
-				testutils.MarshalAny(&v3listenerpb.Listener{
-					Name: "bad",
-					ApiListener: &v3listenerpb.ApiListener{
-						ApiListener: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
-							RouteSpecifier: &v3httppb.HttpConnectionManager_ScopedRoutes{},
-						}),
-					}}),
-				v3LisWithFilters(),
-			},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v2LDSTarget: {Update: ListenerUpdate{RouteConfigName: v2RouteConfigName, Raw: v2Lis}},
-				v3LDSTarget: {Update: ListenerUpdate{RouteConfigName: v3RouteConfigName, MaxStreamDuration: time.Second, Raw: v3LisWithFilters(), HTTPFilters: routerFilterList}},
-				"bad":       {Err: cmpopts.AnyError},
-			},
-			wantMD:  errMD,
-			wantErr: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			opts := &UnmarshalOptions{
-				Version:   testVersion,
-				Resources: test.resources,
-			}
-			update, md, err := UnmarshalListener(opts)
+			name, update, err := unmarshalListenerResource(test.resource)
 			if (err != nil) != test.wantErr {
-				t.Fatalf("UnmarshalListener(%+v), got err: %v, wantErr: %v", opts, err, test.wantErr)
+				t.Errorf("unmarshalListenerResource(%s), got err: %v, wantErr: %v", pretty.ToJSON(test.resource), err, test.wantErr)
+			}
+			if name != test.wantName {
+				t.Errorf("unmarshalListenerResource(%s), got name: %s, want: %s", pretty.ToJSON(test.resource), name, test.wantName)
 			}
 			if diff := cmp.Diff(update, test.wantUpdate, cmpOpts); diff != "" {
-				t.Errorf("got unexpected update, diff (-got +want): %v", diff)
-			}
-			if diff := cmp.Diff(md, test.wantMD, cmpOptsIgnoreDetails); diff != "" {
-				t.Errorf("got unexpected metadata, diff (-got +want): %v", diff)
+				t.Errorf("unmarshalListenerResource(%s), got unexpected update, diff (-got +want): %v", pretty.ToJSON(test.resource), diff)
 			}
 		})
 	}
 }
 
 func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
-	oldRBAC := envconfig.XDSRBAC
-	envconfig.XDSRBAC = true
-	defer func() {
-		envconfig.XDSRBAC = oldRBAC
-	}()
 	const (
 		v3LDSTarget = "grpc/server?xds.resource.listening_address=0.0.0.0:9999"
 		testVersion = "test-version-lds-server"
@@ -736,7 +620,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 			{
 				Name: "filter-1",
 				ConfigType: &v3listenerpb.Filter_TypedConfig{
-					TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+					TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 						RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 							RouteConfig: routeConfig,
 						},
@@ -755,7 +639,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				},
 			},
 		}
-		listenerEmptyTransportSocket = testutils.MarshalAny(&v3listenerpb.Listener{
+		listenerEmptyTransportSocket = testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -765,7 +649,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				},
 			},
 		})
-		listenerNoValidationContextDeprecatedFields = testutils.MarshalAny(&v3listenerpb.Listener{
+		listenerNoValidationContextDeprecatedFields = testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -775,7 +659,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 					TransportSocket: &v3corepb.TransportSocket{
 						Name: "envoy.transport_sockets.tls",
 						ConfigType: &v3corepb.TransportSocket_TypedConfig{
-							TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+							TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 								CommonTlsContext: &v3tlspb.CommonTlsContext{
 									TlsCertificateCertificateProviderInstance: &v3tlspb.CommonTlsContext_CertificateProviderInstance{
 										InstanceName:    "identityPluginInstance",
@@ -793,7 +677,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				TransportSocket: &v3corepb.TransportSocket{
 					Name: "envoy.transport_sockets.tls",
 					ConfigType: &v3corepb.TransportSocket_TypedConfig{
-						TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+						TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 							CommonTlsContext: &v3tlspb.CommonTlsContext{
 								TlsCertificateCertificateProviderInstance: &v3tlspb.CommonTlsContext_CertificateProviderInstance{
 									InstanceName:    "defaultIdentityPluginInstance",
@@ -805,7 +689,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				},
 			},
 		})
-		listenerNoValidationContextNewFields = testutils.MarshalAny(&v3listenerpb.Listener{
+		listenerNoValidationContextNewFields = testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -815,7 +699,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 					TransportSocket: &v3corepb.TransportSocket{
 						Name: "envoy.transport_sockets.tls",
 						ConfigType: &v3corepb.TransportSocket_TypedConfig{
-							TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+							TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 								CommonTlsContext: &v3tlspb.CommonTlsContext{
 									TlsCertificateProviderInstance: &v3tlspb.CertificateProviderPluginInstance{
 										InstanceName:    "identityPluginInstance",
@@ -833,7 +717,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				TransportSocket: &v3corepb.TransportSocket{
 					Name: "envoy.transport_sockets.tls",
 					ConfigType: &v3corepb.TransportSocket_TypedConfig{
-						TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+						TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 							CommonTlsContext: &v3tlspb.CommonTlsContext{
 								TlsCertificateProviderInstance: &v3tlspb.CertificateProviderPluginInstance{
 									InstanceName:    "defaultIdentityPluginInstance",
@@ -845,7 +729,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				},
 			},
 		})
-		listenerWithValidationContextDeprecatedFields = testutils.MarshalAny(&v3listenerpb.Listener{
+		listenerWithValidationContextDeprecatedFields = testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -855,7 +739,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 					TransportSocket: &v3corepb.TransportSocket{
 						Name: "envoy.transport_sockets.tls",
 						ConfigType: &v3corepb.TransportSocket_TypedConfig{
-							TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+							TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 								RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 								CommonTlsContext: &v3tlspb.CommonTlsContext{
 									TlsCertificateCertificateProviderInstance: &v3tlspb.CommonTlsContext_CertificateProviderInstance{
@@ -880,7 +764,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				TransportSocket: &v3corepb.TransportSocket{
 					Name: "envoy.transport_sockets.tls",
 					ConfigType: &v3corepb.TransportSocket_TypedConfig{
-						TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+						TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 							RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 							CommonTlsContext: &v3tlspb.CommonTlsContext{
 								TlsCertificateCertificateProviderInstance: &v3tlspb.CommonTlsContext_CertificateProviderInstance{
@@ -899,7 +783,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				},
 			},
 		})
-		listenerWithValidationContextNewFields = testutils.MarshalAny(&v3listenerpb.Listener{
+		listenerWithValidationContextNewFields = testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -909,7 +793,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 					TransportSocket: &v3corepb.TransportSocket{
 						Name: "envoy.transport_sockets.tls",
 						ConfigType: &v3corepb.TransportSocket_TypedConfig{
-							TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+							TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 								RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 								CommonTlsContext: &v3tlspb.CommonTlsContext{
 									TlsCertificateProviderInstance: &v3tlspb.CertificateProviderPluginInstance{
@@ -936,7 +820,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				TransportSocket: &v3corepb.TransportSocket{
 					Name: "envoy.transport_sockets.tls",
 					ConfigType: &v3corepb.TransportSocket_TypedConfig{
-						TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+						TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 							RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 							CommonTlsContext: &v3tlspb.CommonTlsContext{
 								TlsCertificateProviderInstance: &v3tlspb.CertificateProviderPluginInstance{
@@ -959,17 +843,9 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 				},
 			},
 		})
-		errMD = UpdateMetadata{
-			Status:  ServiceStatusNACKed,
-			Version: testVersion,
-			ErrState: &UpdateErrorMetadata{
-				Version: testVersion,
-				Err:     cmpopts.AnyError,
-			},
-		}
 	)
 	v3LisToTestRBAC := func(xffNumTrustedHops uint32, originalIpDetectionExtensions []*v3corepb.TypedExtensionConfig) *anypb.Any {
-		return testutils.MarshalAny(&v3listenerpb.Listener{
+		return testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -979,7 +855,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						{
 							Name: "filter-1",
 							ConfigType: &v3listenerpb.Filter_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+								TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 									RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 										RouteConfig: routeConfig,
 									},
@@ -995,7 +871,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 		})
 	}
 	v3LisWithBadRBACConfiguration := func(rbacCfg *v3rbacpb.RBAC) *anypb.Any {
-		return testutils.MarshalAny(&v3listenerpb.Listener{
+		return testutils.MarshalAny(t, &v3listenerpb.Listener{
 			Name:    v3LDSTarget,
 			Address: localSocketAddress,
 			FilterChains: []*v3listenerpb.FilterChain{
@@ -1005,7 +881,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						{
 							Name: "filter-1",
 							ConfigType: &v3listenerpb.Filter_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+								TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 									RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 										RouteConfig: routeConfig,
 									},
@@ -1051,53 +927,49 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		resources  []*anypb.Any
-		wantUpdate map[string]ListenerUpdateErrTuple
-		wantMD     UpdateMetadata
+		resource   *anypb.Any
+		wantName   string
+		wantUpdate ListenerUpdate
 		wantErr    string
 	}{
 		{
 			name: "non-empty listener filters",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name: v3LDSTarget,
 				ListenerFilters: []*v3listenerpb.ListenerFilter{
 					{Name: "listener-filter-1"},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "unsupported field 'listener_filters'",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "unsupported field 'listener_filters'",
 		},
 		{
 			name: "use_original_dst is set",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:           v3LDSTarget,
 				UseOriginalDst: &wrapperspb.BoolValue{Value: true},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "unsupported field 'use_original_dst'",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "unsupported field 'use_original_dst'",
 		},
 		{
-			name:       "no address field",
-			resources:  []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{Name: v3LDSTarget})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "no address field in LDS response",
+			name:     "no address field",
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{Name: v3LDSTarget}),
+			wantName: v3LDSTarget,
+			wantErr:  "no address field in LDS response",
 		},
 		{
 			name: "no socket address field",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: &v3corepb.Address{},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "no socket_address field in LDS response",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "no socket_address field in LDS response",
 		},
 		{
 			name: "no filter chains and no default filter chain",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1106,14 +978,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						Filters:          emptyValidNetworkFilters,
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "no supported filter chains and no default filter chain",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "no supported filter chains and no default filter chain",
 		},
 		{
 			name: "missing http connection manager network filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1121,14 +992,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						Name: "filter-chain-1",
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "missing HttpConnectionManager filter",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "missing HttpConnectionManager filter",
 		},
 		{
 			name: "missing filter name in http filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1137,20 +1007,19 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						Filters: []*v3listenerpb.Filter{
 							{
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{}),
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{}),
 								},
 							},
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "missing name field in filter",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "missing name field in filter",
 		},
 		{
 			name: "duplicate filter names in http filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1160,7 +1029,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							{
 								Name: "name",
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 										RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 											RouteConfig: routeConfig,
 										},
@@ -1171,7 +1040,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							{
 								Name: "name",
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 										RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 											RouteConfig: routeConfig,
 										},
@@ -1182,14 +1051,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "duplicate filter name",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "duplicate filter name",
 		},
 		{
 			name: "no terminal filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1199,7 +1067,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							{
 								Name: "name",
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 										RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 											RouteConfig: routeConfig,
 										},
@@ -1209,14 +1077,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "http filters list is empty",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "http filters list is empty",
 		},
 		{
 			name: "terminal filter not last",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1226,7 +1093,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							{
 								Name: "name",
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 										RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 											RouteConfig: routeConfig,
 										},
@@ -1237,14 +1104,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "is a terminal filter but it is not last in the filter chain",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "is a terminal filter but it is not last in the filter chain",
 		},
 		{
 			name: "last not terminal filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1254,7 +1120,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							{
 								Name: "name",
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.HttpConnectionManager{
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.HttpConnectionManager{
 										RouteSpecifier: &v3httppb.HttpConnectionManager_RouteConfig{
 											RouteConfig: routeConfig,
 										},
@@ -1265,14 +1131,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "is not a terminal filter",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "is not a terminal filter",
 		},
 		{
 			name: "unsupported oneof in typed config of http filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1286,14 +1151,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "unsupported config_type",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "unsupported config_type",
 		},
 		{
 			name: "overlapping filter chain match criteria",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1310,14 +1174,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						Filters:          emptyValidNetworkFilters,
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "multiple filter chains with overlapping matching rules are defined",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "multiple filter chains with overlapping matching rules are defined",
 		},
 		{
 			name: "unsupported network filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1327,20 +1190,19 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							{
 								Name: "name",
 								ConfigType: &v3listenerpb.Filter_TypedConfig{
-									TypedConfig: testutils.MarshalAny(&v3httppb.LocalReplyConfig{}),
+									TypedConfig: testutils.MarshalAny(t, &v3httppb.LocalReplyConfig{}),
 								},
 							},
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "unsupported network filter",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "unsupported network filter",
 		},
 		{
 			name: "badly marshaled network filter",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1359,14 +1221,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "failed unmarshaling of network filter",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "failed unmarshaling of network filter",
 		},
 		{
 			name: "unexpected transport socket name",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1378,14 +1239,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "transport_socket field has unexpected name",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "transport_socket field has unexpected name",
 		},
 		{
 			name: "unexpected transport socket typedConfig URL",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1395,19 +1255,18 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						TransportSocket: &v3corepb.TransportSocket{
 							Name: "envoy.transport_sockets.tls",
 							ConfigType: &v3corepb.TransportSocket_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3tlspb.UpstreamTlsContext{}),
+								TypedConfig: testutils.MarshalAny(t, &v3tlspb.UpstreamTlsContext{}),
 							},
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "transport_socket field has unexpected typeURL",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "transport_socket field has unexpected typeURL",
 		},
 		{
 			name: "badly marshaled transport socket",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1425,14 +1284,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "failed to unmarshal DownstreamTlsContext in LDS response",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "failed to unmarshal DownstreamTlsContext in LDS response",
 		},
 		{
 			name: "missing CommonTlsContext",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1442,36 +1300,34 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						TransportSocket: &v3corepb.TransportSocket{
 							Name: "envoy.transport_sockets.tls",
 							ConfigType: &v3corepb.TransportSocket_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{}),
+								TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{}),
 							},
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "DownstreamTlsContext in LDS response does not contain a CommonTlsContext",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "DownstreamTlsContext in LDS response does not contain a CommonTlsContext",
 		},
 		{
-			name:      "rbac-allow-equating-direct-remote-ip-and-remote-ip-valid",
-			resources: []*anypb.Any{v3LisToTestRBAC(0, nil)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InboundListenerCfg: &InboundListenerConfig{
-						Address: "0.0.0.0",
-						Port:    "9999",
-						FilterChains: &FilterChainManager{
-							dstPrefixMap: map[string]*destPrefixEntry{
-								unspecifiedPrefixMapKey: {
-									srcTypeArr: [3]*sourcePrefixes{
-										{
-											srcPrefixMap: map[string]*sourcePrefixEntry{
-												unspecifiedPrefixMapKey: {
-													srcPortMap: map[int]*FilterChain{
-														0: {
-															InlineRouteConfig: inlineRouteConfig,
-															HTTPFilters:       routerFilterList,
-														},
+			name:     "rbac-allow-equating-direct-remote-ip-and-remote-ip-valid",
+			resource: v3LisToTestRBAC(0, nil),
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InboundListenerCfg: &InboundListenerConfig{
+					Address: "0.0.0.0",
+					Port:    "9999",
+					FilterChains: &FilterChainManager{
+						dstPrefixMap: map[string]*destPrefixEntry{
+							unspecifiedPrefixMapKey: {
+								srcTypeArr: [3]*sourcePrefixes{
+									{
+										srcPrefixMap: map[string]*sourcePrefixEntry{
+											unspecifiedPrefixMapKey: {
+												srcPortMap: map[int]*FilterChain{
+													0: {
+														InlineRouteConfig: inlineRouteConfig,
+														HTTPFilters:       makeRouterFilterList(t),
 													},
 												},
 											},
@@ -1481,45 +1337,37 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							},
 						},
 					},
-					Raw: listenerEmptyTransportSocket,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+				},
+				Raw: listenerEmptyTransportSocket,
 			},
 		},
 		{
-			name:       "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-num-untrusted-hops",
-			resources:  []*anypb.Any{v3LisToTestRBAC(1, nil)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "xff_num_trusted_hops must be unset or zero",
+			name:     "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-num-untrusted-hops",
+			resource: v3LisToTestRBAC(1, nil),
+			wantName: v3LDSTarget,
+			wantErr:  "xff_num_trusted_hops must be unset or zero",
 		},
 		{
-			name:       "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-original-ip-detection-extension",
-			resources:  []*anypb.Any{v3LisToTestRBAC(0, []*v3corepb.TypedExtensionConfig{{Name: "something"}})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "original_ip_detection_extensions must be empty",
+			name:     "rbac-allow-equating-direct-remote-ip-and-remote-ip-invalid-original-ip-detection-extension",
+			resource: v3LisToTestRBAC(0, []*v3corepb.TypedExtensionConfig{{Name: "something"}}),
+			wantName: v3LDSTarget,
+			wantErr:  "original_ip_detection_extensions must be empty",
 		},
 		{
-			name:       "rbac-with-invalid-regex",
-			resources:  []*anypb.Any{v3LisWithBadRBACConfiguration(badRBACCfgRegex)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "error parsing config for filter",
+			name:     "rbac-with-invalid-regex",
+			resource: v3LisWithBadRBACConfiguration(badRBACCfgRegex),
+			wantName: v3LDSTarget,
+			wantErr:  "error parsing config for filter",
 		},
 		{
-			name:       "rbac-with-invalid-destination-ip-matcher",
-			resources:  []*anypb.Any{v3LisWithBadRBACConfiguration(badRBACCfgDestIP)},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "error parsing config for filter",
+			name:     "rbac-with-invalid-destination-ip-matcher",
+			resource: v3LisWithBadRBACConfiguration(badRBACCfgDestIP),
+			wantName: v3LDSTarget,
+			wantErr:  "error parsing config for filter",
 		},
 		{
 			name: "unsupported validation context in transport socket",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1529,7 +1377,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						TransportSocket: &v3corepb.TransportSocket{
 							Name: "envoy.transport_sockets.tls",
 							ConfigType: &v3corepb.TransportSocket_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+								TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 									CommonTlsContext: &v3tlspb.CommonTlsContext{
 										ValidationContextType: &v3tlspb.CommonTlsContext_ValidationContextSdsSecretConfig{
 											ValidationContextSdsSecretConfig: &v3tlspb.SdsSecretConfig{
@@ -1542,31 +1390,29 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "validation context contains unexpected type",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "validation context contains unexpected type",
 		},
 		{
-			name:      "empty transport socket",
-			resources: []*anypb.Any{listenerEmptyTransportSocket},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InboundListenerCfg: &InboundListenerConfig{
-						Address: "0.0.0.0",
-						Port:    "9999",
-						FilterChains: &FilterChainManager{
-							dstPrefixMap: map[string]*destPrefixEntry{
-								unspecifiedPrefixMapKey: {
-									srcTypeArr: [3]*sourcePrefixes{
-										{
-											srcPrefixMap: map[string]*sourcePrefixEntry{
-												unspecifiedPrefixMapKey: {
-													srcPortMap: map[int]*FilterChain{
-														0: {
-															InlineRouteConfig: inlineRouteConfig,
-															HTTPFilters:       routerFilterList,
-														},
+			name:     "empty transport socket",
+			resource: listenerEmptyTransportSocket,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InboundListenerCfg: &InboundListenerConfig{
+					Address: "0.0.0.0",
+					Port:    "9999",
+					FilterChains: &FilterChainManager{
+						dstPrefixMap: map[string]*destPrefixEntry{
+							unspecifiedPrefixMapKey: {
+								srcTypeArr: [3]*sourcePrefixes{
+									{
+										srcPrefixMap: map[string]*sourcePrefixEntry{
+											unspecifiedPrefixMapKey: {
+												srcPortMap: map[int]*FilterChain{
+													0: {
+														InlineRouteConfig: inlineRouteConfig,
+														HTTPFilters:       makeRouterFilterList(t),
 													},
 												},
 											},
@@ -1576,17 +1422,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 							},
 						},
 					},
-					Raw: listenerEmptyTransportSocket,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+				},
+				Raw: listenerEmptyTransportSocket,
 			},
 		},
 		{
 			name: "no identity and root certificate providers using deprecated fields",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1596,7 +1438,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						TransportSocket: &v3corepb.TransportSocket{
 							Name: "envoy.transport_sockets.tls",
 							ConfigType: &v3corepb.TransportSocket_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+								TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 									RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 									CommonTlsContext: &v3tlspb.CommonTlsContext{
 										TlsCertificateCertificateProviderInstance: &v3tlspb.CommonTlsContext_CertificateProviderInstance{
@@ -1609,14 +1451,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "security configuration on the server-side does not contain root certificate provider instance name, but require_client_cert field is set",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "security configuration on the server-side does not contain root certificate provider instance name, but require_client_cert field is set",
 		},
 		{
 			name: "no identity and root certificate providers using new fields",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1626,7 +1467,7 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						TransportSocket: &v3corepb.TransportSocket{
 							Name: "envoy.transport_sockets.tls",
 							ConfigType: &v3corepb.TransportSocket_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+								TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 									RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 									CommonTlsContext: &v3tlspb.CommonTlsContext{
 										TlsCertificateProviderInstance: &v3tlspb.CertificateProviderPluginInstance{
@@ -1639,14 +1480,13 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "security configuration on the server-side does not contain root certificate provider instance name, but require_client_cert field is set",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "security configuration on the server-side does not contain root certificate provider instance name, but require_client_cert field is set",
 		},
 		{
 			name: "no identity certificate provider with require_client_cert",
-			resources: []*anypb.Any{testutils.MarshalAny(&v3listenerpb.Listener{
+			resource: testutils.MarshalAny(t, &v3listenerpb.Listener{
 				Name:    v3LDSTarget,
 				Address: localSocketAddress,
 				FilterChains: []*v3listenerpb.FilterChain{
@@ -1656,42 +1496,40 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 						TransportSocket: &v3corepb.TransportSocket{
 							Name: "envoy.transport_sockets.tls",
 							ConfigType: &v3corepb.TransportSocket_TypedConfig{
-								TypedConfig: testutils.MarshalAny(&v3tlspb.DownstreamTlsContext{
+								TypedConfig: testutils.MarshalAny(t, &v3tlspb.DownstreamTlsContext{
 									CommonTlsContext: &v3tlspb.CommonTlsContext{},
 								}),
 							},
 						},
 					},
 				},
-			})},
-			wantUpdate: map[string]ListenerUpdateErrTuple{v3LDSTarget: {Err: cmpopts.AnyError}},
-			wantMD:     errMD,
-			wantErr:    "security configuration on the server-side does not contain identity certificate provider instance name",
+			}),
+			wantName: v3LDSTarget,
+			wantErr:  "security configuration on the server-side does not contain identity certificate provider instance name",
 		},
 		{
-			name:      "happy case with no validation context using deprecated fields",
-			resources: []*anypb.Any{listenerNoValidationContextDeprecatedFields},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InboundListenerCfg: &InboundListenerConfig{
-						Address: "0.0.0.0",
-						Port:    "9999",
-						FilterChains: &FilterChainManager{
-							dstPrefixMap: map[string]*destPrefixEntry{
-								unspecifiedPrefixMapKey: {
-									srcTypeArr: [3]*sourcePrefixes{
-										{
-											srcPrefixMap: map[string]*sourcePrefixEntry{
-												unspecifiedPrefixMapKey: {
-													srcPortMap: map[int]*FilterChain{
-														0: {
-															SecurityCfg: &SecurityConfig{
-																IdentityInstanceName: "identityPluginInstance",
-																IdentityCertName:     "identityCertName",
-															},
-															InlineRouteConfig: inlineRouteConfig,
-															HTTPFilters:       routerFilterList,
+			name:     "happy case with no validation context using deprecated fields",
+			resource: listenerNoValidationContextDeprecatedFields,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InboundListenerCfg: &InboundListenerConfig{
+					Address: "0.0.0.0",
+					Port:    "9999",
+					FilterChains: &FilterChainManager{
+						dstPrefixMap: map[string]*destPrefixEntry{
+							unspecifiedPrefixMapKey: {
+								srcTypeArr: [3]*sourcePrefixes{
+									{
+										srcPrefixMap: map[string]*sourcePrefixEntry{
+											unspecifiedPrefixMapKey: {
+												srcPortMap: map[int]*FilterChain{
+													0: {
+														SecurityCfg: &SecurityConfig{
+															IdentityInstanceName: "identityPluginInstance",
+															IdentityCertName:     "identityCertName",
 														},
+														InlineRouteConfig: inlineRouteConfig,
+														HTTPFilters:       makeRouterFilterList(t),
 													},
 												},
 											},
@@ -1699,48 +1537,43 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 									},
 								},
 							},
-							def: &FilterChain{
-								SecurityCfg: &SecurityConfig{
-									IdentityInstanceName: "defaultIdentityPluginInstance",
-									IdentityCertName:     "defaultIdentityCertName",
-								},
-								InlineRouteConfig: inlineRouteConfig,
-								HTTPFilters:       routerFilterList,
+						},
+						def: &FilterChain{
+							SecurityCfg: &SecurityConfig{
+								IdentityInstanceName: "defaultIdentityPluginInstance",
+								IdentityCertName:     "defaultIdentityCertName",
 							},
+							InlineRouteConfig: inlineRouteConfig,
+							HTTPFilters:       makeRouterFilterList(t),
 						},
 					},
-					Raw: listenerNoValidationContextDeprecatedFields,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+				},
+				Raw: listenerNoValidationContextDeprecatedFields,
 			},
 		},
 		{
-			name:      "happy case with no validation context using new fields",
-			resources: []*anypb.Any{listenerNoValidationContextNewFields},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InboundListenerCfg: &InboundListenerConfig{
-						Address: "0.0.0.0",
-						Port:    "9999",
-						FilterChains: &FilterChainManager{
-							dstPrefixMap: map[string]*destPrefixEntry{
-								unspecifiedPrefixMapKey: {
-									srcTypeArr: [3]*sourcePrefixes{
-										{
-											srcPrefixMap: map[string]*sourcePrefixEntry{
-												unspecifiedPrefixMapKey: {
-													srcPortMap: map[int]*FilterChain{
-														0: {
-															SecurityCfg: &SecurityConfig{
-																IdentityInstanceName: "identityPluginInstance",
-																IdentityCertName:     "identityCertName",
-															},
-															InlineRouteConfig: inlineRouteConfig,
-															HTTPFilters:       routerFilterList,
+			name:     "happy case with no validation context using new fields",
+			resource: listenerNoValidationContextNewFields,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InboundListenerCfg: &InboundListenerConfig{
+					Address: "0.0.0.0",
+					Port:    "9999",
+					FilterChains: &FilterChainManager{
+						dstPrefixMap: map[string]*destPrefixEntry{
+							unspecifiedPrefixMapKey: {
+								srcTypeArr: [3]*sourcePrefixes{
+									{
+										srcPrefixMap: map[string]*sourcePrefixEntry{
+											unspecifiedPrefixMapKey: {
+												srcPortMap: map[int]*FilterChain{
+													0: {
+														SecurityCfg: &SecurityConfig{
+															IdentityInstanceName: "identityPluginInstance",
+															IdentityCertName:     "identityCertName",
 														},
+														InlineRouteConfig: inlineRouteConfig,
+														HTTPFilters:       makeRouterFilterList(t),
 													},
 												},
 											},
@@ -1748,51 +1581,46 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 									},
 								},
 							},
-							def: &FilterChain{
-								SecurityCfg: &SecurityConfig{
-									IdentityInstanceName: "defaultIdentityPluginInstance",
-									IdentityCertName:     "defaultIdentityCertName",
-								},
-								InlineRouteConfig: inlineRouteConfig,
-								HTTPFilters:       routerFilterList,
+						},
+						def: &FilterChain{
+							SecurityCfg: &SecurityConfig{
+								IdentityInstanceName: "defaultIdentityPluginInstance",
+								IdentityCertName:     "defaultIdentityCertName",
 							},
+							InlineRouteConfig: inlineRouteConfig,
+							HTTPFilters:       makeRouterFilterList(t),
 						},
 					},
-					Raw: listenerNoValidationContextNewFields,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+				},
+				Raw: listenerNoValidationContextNewFields,
 			},
 		},
 		{
-			name:      "happy case with validation context provider instance with deprecated fields",
-			resources: []*anypb.Any{listenerWithValidationContextDeprecatedFields},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InboundListenerCfg: &InboundListenerConfig{
-						Address: "0.0.0.0",
-						Port:    "9999",
-						FilterChains: &FilterChainManager{
-							dstPrefixMap: map[string]*destPrefixEntry{
-								unspecifiedPrefixMapKey: {
-									srcTypeArr: [3]*sourcePrefixes{
-										{
-											srcPrefixMap: map[string]*sourcePrefixEntry{
-												unspecifiedPrefixMapKey: {
-													srcPortMap: map[int]*FilterChain{
-														0: {
-															SecurityCfg: &SecurityConfig{
-																RootInstanceName:     "rootPluginInstance",
-																RootCertName:         "rootCertName",
-																IdentityInstanceName: "identityPluginInstance",
-																IdentityCertName:     "identityCertName",
-																RequireClientCert:    true,
-															},
-															InlineRouteConfig: inlineRouteConfig,
-															HTTPFilters:       routerFilterList,
+			name:     "happy case with validation context provider instance with deprecated fields",
+			resource: listenerWithValidationContextDeprecatedFields,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InboundListenerCfg: &InboundListenerConfig{
+					Address: "0.0.0.0",
+					Port:    "9999",
+					FilterChains: &FilterChainManager{
+						dstPrefixMap: map[string]*destPrefixEntry{
+							unspecifiedPrefixMapKey: {
+								srcTypeArr: [3]*sourcePrefixes{
+									{
+										srcPrefixMap: map[string]*sourcePrefixEntry{
+											unspecifiedPrefixMapKey: {
+												srcPortMap: map[int]*FilterChain{
+													0: {
+														SecurityCfg: &SecurityConfig{
+															RootInstanceName:     "rootPluginInstance",
+															RootCertName:         "rootCertName",
+															IdentityInstanceName: "identityPluginInstance",
+															IdentityCertName:     "identityCertName",
+															RequireClientCert:    true,
 														},
+														InlineRouteConfig: inlineRouteConfig,
+														HTTPFilters:       makeRouterFilterList(t),
 													},
 												},
 											},
@@ -1800,54 +1628,49 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 									},
 								},
 							},
-							def: &FilterChain{
-								SecurityCfg: &SecurityConfig{
-									RootInstanceName:     "defaultRootPluginInstance",
-									RootCertName:         "defaultRootCertName",
-									IdentityInstanceName: "defaultIdentityPluginInstance",
-									IdentityCertName:     "defaultIdentityCertName",
-									RequireClientCert:    true,
-								},
-								InlineRouteConfig: inlineRouteConfig,
-								HTTPFilters:       routerFilterList,
+						},
+						def: &FilterChain{
+							SecurityCfg: &SecurityConfig{
+								RootInstanceName:     "defaultRootPluginInstance",
+								RootCertName:         "defaultRootCertName",
+								IdentityInstanceName: "defaultIdentityPluginInstance",
+								IdentityCertName:     "defaultIdentityCertName",
+								RequireClientCert:    true,
 							},
+							InlineRouteConfig: inlineRouteConfig,
+							HTTPFilters:       makeRouterFilterList(t),
 						},
 					},
-					Raw: listenerWithValidationContextDeprecatedFields,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+				},
+				Raw: listenerWithValidationContextDeprecatedFields,
 			},
 		},
 		{
-			name:      "happy case with validation context provider instance with new fields",
-			resources: []*anypb.Any{listenerWithValidationContextNewFields},
-			wantUpdate: map[string]ListenerUpdateErrTuple{
-				v3LDSTarget: {Update: ListenerUpdate{
-					InboundListenerCfg: &InboundListenerConfig{
-						Address: "0.0.0.0",
-						Port:    "9999",
-						FilterChains: &FilterChainManager{
-							dstPrefixMap: map[string]*destPrefixEntry{
-								unspecifiedPrefixMapKey: {
-									srcTypeArr: [3]*sourcePrefixes{
-										{
-											srcPrefixMap: map[string]*sourcePrefixEntry{
-												unspecifiedPrefixMapKey: {
-													srcPortMap: map[int]*FilterChain{
-														0: {
-															SecurityCfg: &SecurityConfig{
-																RootInstanceName:     "rootPluginInstance",
-																RootCertName:         "rootCertName",
-																IdentityInstanceName: "identityPluginInstance",
-																IdentityCertName:     "identityCertName",
-																RequireClientCert:    true,
-															},
-															InlineRouteConfig: inlineRouteConfig,
-															HTTPFilters:       routerFilterList,
+			name:     "happy case with validation context provider instance with new fields",
+			resource: listenerWithValidationContextNewFields,
+			wantName: v3LDSTarget,
+			wantUpdate: ListenerUpdate{
+				InboundListenerCfg: &InboundListenerConfig{
+					Address: "0.0.0.0",
+					Port:    "9999",
+					FilterChains: &FilterChainManager{
+						dstPrefixMap: map[string]*destPrefixEntry{
+							unspecifiedPrefixMapKey: {
+								srcTypeArr: [3]*sourcePrefixes{
+									{
+										srcPrefixMap: map[string]*sourcePrefixEntry{
+											unspecifiedPrefixMapKey: {
+												srcPortMap: map[int]*FilterChain{
+													0: {
+														SecurityCfg: &SecurityConfig{
+															RootInstanceName:     "rootPluginInstance",
+															RootCertName:         "rootCertName",
+															IdentityInstanceName: "identityPluginInstance",
+															IdentityCertName:     "identityCertName",
+															RequireClientCert:    true,
 														},
+														InlineRouteConfig: inlineRouteConfig,
+														HTTPFilters:       makeRouterFilterList(t),
 													},
 												},
 											},
@@ -1855,47 +1678,36 @@ func (s) TestUnmarshalListener_ServerSide(t *testing.T) {
 									},
 								},
 							},
-							def: &FilterChain{
-								SecurityCfg: &SecurityConfig{
-									RootInstanceName:     "defaultRootPluginInstance",
-									RootCertName:         "defaultRootCertName",
-									IdentityInstanceName: "defaultIdentityPluginInstance",
-									IdentityCertName:     "defaultIdentityCertName",
-									RequireClientCert:    true,
-								},
-								InlineRouteConfig: inlineRouteConfig,
-								HTTPFilters:       routerFilterList,
+						},
+						def: &FilterChain{
+							SecurityCfg: &SecurityConfig{
+								RootInstanceName:     "defaultRootPluginInstance",
+								RootCertName:         "defaultRootCertName",
+								IdentityInstanceName: "defaultIdentityPluginInstance",
+								IdentityCertName:     "defaultIdentityCertName",
+								RequireClientCert:    true,
 							},
+							InlineRouteConfig: inlineRouteConfig,
+							HTTPFilters:       makeRouterFilterList(t),
 						},
 					},
-					Raw: listenerWithValidationContextNewFields,
-				}},
-			},
-			wantMD: UpdateMetadata{
-				Status:  ServiceStatusACKed,
-				Version: testVersion,
+				},
+				Raw: listenerWithValidationContextNewFields,
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			opts := &UnmarshalOptions{
-				Version:   testVersion,
-				Resources: test.resources,
-			}
-			gotUpdate, md, err := UnmarshalListener(opts)
-			if (err != nil) != (test.wantErr != "") {
-				t.Fatalf("UnmarshalListener(%+v), got err: %v, wantErr: %v", opts, err, test.wantErr)
-			}
+			name, update, err := unmarshalListenerResource(test.resource)
 			if err != nil && !strings.Contains(err.Error(), test.wantErr) {
-				t.Fatalf("UnmarshalListener(%+v) = %v wantErr: %q", opts, err, test.wantErr)
+				t.Errorf("unmarshalListenerResource(%s) = %v wantErr: %q", pretty.ToJSON(test.resource), err, test.wantErr)
 			}
-			if diff := cmp.Diff(gotUpdate, test.wantUpdate, cmpOpts); diff != "" {
-				t.Errorf("got unexpected update, diff (-got +want): %v", diff)
+			if name != test.wantName {
+				t.Errorf("unmarshalListenerResource(%s), got name: %s, want: %s", pretty.ToJSON(test.resource), name, test.wantName)
 			}
-			if diff := cmp.Diff(md, test.wantMD, cmpOptsIgnoreDetails); diff != "" {
-				t.Errorf("got unexpected metadata, diff (-got +want): %v", diff)
+			if diff := cmp.Diff(update, test.wantUpdate, cmpOpts); diff != "" {
+				t.Errorf("unmarshalListenerResource(%s), got unexpected update, diff (-got +want): %v", pretty.ToJSON(test.resource), diff)
 			}
 		})
 	}
@@ -2012,31 +1824,23 @@ var clientOnlyCustomFilterConfig = &anypb.Any{
 }
 
 // This custom filter uses the old TypedStruct message from the cncf/udpa repo.
-//
-//	var customFilterOldTypedStructConfig = &v1udpatypepb.TypedStruct{
-//		TypeUrl: "custom.filter",
-//		Value: &spb.Struct{
-//			Fields: map[string]*spb.Value{
-//				"foo": {Kind: &spb.Value_StringValue{StringValue: "bar"}},
-//			},
-//		},
-//	}
-var wrappedCustomFilterOldTypedStructConfig *anypb.Any
-
-// This custom filter uses the new TypedStruct message from the cncf/xds repo.
-var customFilterNewTypedStructConfig = &v3cncftypepb.TypedStruct{
+var customFilterOldTypedStructConfig = &v1xdsudpatypepb.TypedStruct{
 	TypeUrl: "custom.filter",
-	Value: &spb.Struct{
-		Fields: map[string]*spb.Value{
-			"foo": {Kind: &spb.Value_StringValue{StringValue: "bar"}},
+	Value: &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"foo": {Kind: &structpb.Value_StringValue{StringValue: "bar"}},
 		},
 	},
 }
-var wrappedCustomFilterNewTypedStructConfig *anypb.Any
 
-func init() {
-	//wrappedCustomFilterOldTypedStructConfig = testutils.MarshalAny(customFilterOldTypedStructConfig)
-	wrappedCustomFilterNewTypedStructConfig = testutils.MarshalAny(customFilterNewTypedStructConfig)
+// This custom filter uses the new TypedStruct message from the cncf/xds repo.
+var customFilterNewTypedStructConfig = &v3xdsxdstypepb.TypedStruct{
+	TypeUrl: "custom.filter",
+	Value: &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"foo": {Kind: &structpb.Value_StringValue{StringValue: "bar"}},
+		},
+	},
 }
 
 var unknownFilterConfig = &anypb.Any{
@@ -2044,8 +1848,8 @@ var unknownFilterConfig = &anypb.Any{
 	Value:   []byte{1, 2, 3},
 }
 
-func wrappedOptionalFilter(name string) *anypb.Any {
-	return testutils.MarshalAny(&v3routepb.FilterConfig{
+func wrappedOptionalFilter(t *testing.T, name string) *anypb.Any {
+	return testutils.MarshalAny(t, &v3routepb.FilterConfig{
 		IsOptional: true,
 		Config: &anypb.Any{
 			TypeUrl: name,

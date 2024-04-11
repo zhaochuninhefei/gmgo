@@ -21,9 +21,10 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
 )
+
+// FederationScheme is the scheme of a federation resource name.
+const FederationScheme = "xdstp"
 
 // Name contains the parsed component of an xDS resource name.
 //
@@ -53,10 +54,6 @@ type Name struct {
 // The caller can tell if the parsing is successful by checking the returned
 // Scheme.
 func ParseName(name string) *Name {
-	if !envconfig.XDSFederation {
-		// Return "" scheme to use the default authority for the server.
-		return &Name{ID: name}
-	}
 	if !strings.Contains(name, "://") {
 		// Only the long form URL, with ://, is valid.
 		return &Name{ID: name}
@@ -116,7 +113,7 @@ func (n *Name) String() string {
 
 	path := n.Type
 	if n.ID != "" {
-		path = path + "/" + n.ID
+		path = "/" + path + "/" + n.ID
 	}
 
 	tempURL := &url.URL{

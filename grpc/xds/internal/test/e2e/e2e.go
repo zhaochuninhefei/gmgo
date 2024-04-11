@@ -25,9 +25,10 @@ import (
 	"os"
 	"os/exec"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	channelzgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
 	channelzpb "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 )
@@ -70,7 +71,7 @@ func newClient(target, binaryPath, bootstrap string, logger io.Writer, flags ...
 	)
 	cmd.Start()
 
-	cc, err := grpc.Dial(fmt.Sprintf("localhost:%d", clientStatsPort), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+	cc, err := grpc.Dial(fmt.Sprintf("localhost:%d", clientStatsPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	if err != nil {
 		return nil, err
 	}
