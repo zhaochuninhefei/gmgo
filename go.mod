@@ -11,7 +11,7 @@ require (
 	github.com/golang/glog v1.2.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
-	github.com/matttproud/golang_protobuf_extensions v1.0.4
+	github.com/matttproud/golang_protobuf_extensions v1.0.3
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/prometheus/client_golang v1.19.0
@@ -42,7 +42,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
