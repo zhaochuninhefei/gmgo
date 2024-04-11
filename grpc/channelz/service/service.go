@@ -24,12 +24,9 @@ import (
 	"net"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	channelzgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
 	channelzpb "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/grpc_channelz_v1"
-	"github.com/golang/protobuf/ptypes"
-	wrpb "github.com/golang/protobuf/ptypes/wrappers"
-
-	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/connectivity"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
@@ -38,6 +35,8 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"google.golang.org/protobuf/protoadapt"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	wrpb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func init() {
@@ -89,18 +88,18 @@ func channelTraceToProto(ct *channelz.ChannelTrace) *channelzpb.ChannelTrace {
 		return pbt
 	}
 	pbt.NumEventsLogged = ct.EventNum
-	if ts, err := ptypes.TimestampProto(ct.CreationTime); err == nil {
-		pbt.CreationTimestamp = ts
-	}
+	//if ts, err := ptypes.TimestampProto(ct.CreationTime); err == nil {
+	pbt.CreationTimestamp = timestamppb.New(ct.CreationTime)
+	//}
 	events := make([]*channelzpb.ChannelTraceEvent, 0, len(ct.Events))
 	for _, e := range ct.Events {
 		cte := &channelzpb.ChannelTraceEvent{
 			Description: e.Desc,
 			Severity:    channelzpb.ChannelTraceEvent_Severity(e.Severity),
 		}
-		if ts, err := ptypes.TimestampProto(e.Timestamp); err == nil {
-			cte.Timestamp = ts
-		}
+		//if ts, err := ptypes.TimestampProto(e.Timestamp); err == nil {
+		cte.Timestamp = timestamppb.New(e.Timestamp)
+		//}
 		if e.RefID != 0 {
 			switch e.RefType {
 			case channelz.RefChannel:
@@ -133,9 +132,9 @@ func channelMetricToProto(cm *channelz.Channel) *channelzpb.Channel {
 		CallsSucceeded: cm.ChannelMetrics.CallsSucceeded.Load(),
 		CallsFailed:    cm.ChannelMetrics.CallsFailed.Load(),
 	}
-	if ts, err := ptypes.TimestampProto(time.Unix(0, cm.ChannelMetrics.LastCallStartedTimestamp.Load())); err == nil {
-		c.Data.LastCallStartedTimestamp = ts
-	}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, cm.ChannelMetrics.LastCallStartedTimestamp.Load())); err == nil {
+	c.Data.LastCallStartedTimestamp = timestamppb.New(time.Unix(0, cm.ChannelMetrics.LastCallStartedTimestamp.Load()))
+	//}
 	ncs := cm.NestedChans()
 	nestedChans := make([]*channelzpb.ChannelRef, 0, len(ncs))
 	for id, ref := range ncs {
@@ -165,9 +164,9 @@ func subChannelMetricToProto(cm *channelz.SubChannel) *channelzpb.Subchannel {
 		CallsSucceeded: cm.ChannelMetrics.CallsSucceeded.Load(),
 		CallsFailed:    cm.ChannelMetrics.CallsFailed.Load(),
 	}
-	if ts, err := ptypes.TimestampProto(time.Unix(0, cm.ChannelMetrics.LastCallStartedTimestamp.Load())); err == nil {
-		sc.Data.LastCallStartedTimestamp = ts
-	}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, cm.ChannelMetrics.LastCallStartedTimestamp.Load())); err == nil {
+	sc.Data.LastCallStartedTimestamp = timestamppb.New(time.Unix(0, cm.ChannelMetrics.LastCallStartedTimestamp.Load()))
+	//}
 
 	skts := cm.Sockets()
 	sockets := make([]*channelzpb.SocketRef, 0, len(skts))
@@ -234,18 +233,18 @@ func socketMetricToProto(skt *channelz.Socket) *channelzpb.Socket {
 		MessagesReceived: skt.SocketMetrics.MessagesReceived.Load(),
 		KeepAlivesSent:   skt.SocketMetrics.KeepAlivesSent.Load(),
 	}
-	if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastLocalStreamCreatedTimestamp.Load())); err == nil {
-		s.Data.LastLocalStreamCreatedTimestamp = ts
-	}
-	if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastRemoteStreamCreatedTimestamp.Load())); err == nil {
-		s.Data.LastRemoteStreamCreatedTimestamp = ts
-	}
-	if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastMessageSentTimestamp.Load())); err == nil {
-		s.Data.LastMessageSentTimestamp = ts
-	}
-	if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastMessageReceivedTimestamp.Load())); err == nil {
-		s.Data.LastMessageReceivedTimestamp = ts
-	}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastLocalStreamCreatedTimestamp.Load())); err == nil {
+	s.Data.LastLocalStreamCreatedTimestamp = timestamppb.New(time.Unix(0, skt.SocketMetrics.LastLocalStreamCreatedTimestamp.Load()))
+	//}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastRemoteStreamCreatedTimestamp.Load())); err == nil {
+	s.Data.LastRemoteStreamCreatedTimestamp = timestamppb.New(time.Unix(0, skt.SocketMetrics.LastRemoteStreamCreatedTimestamp.Load()))
+	//}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastMessageSentTimestamp.Load())); err == nil {
+	s.Data.LastMessageSentTimestamp = timestamppb.New(time.Unix(0, skt.SocketMetrics.LastMessageSentTimestamp.Load()))
+	//}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, skt.SocketMetrics.LastMessageReceivedTimestamp.Load())); err == nil {
+	s.Data.LastMessageReceivedTimestamp = timestamppb.New(time.Unix(0, skt.SocketMetrics.LastMessageReceivedTimestamp.Load()))
+	//}
 	if skt.EphemeralMetrics != nil {
 		e := skt.EphemeralMetrics()
 		s.Data.LocalFlowControlWindow = &wrpb.Int64Value{Value: e.LocalFlowControlWindow}
@@ -280,9 +279,9 @@ func serverMetricToProto(sm *channelz.Server) *channelzpb.Server {
 		CallsFailed:    sm.ServerMetrics.CallsFailed.Load(),
 	}
 
-	if ts, err := ptypes.TimestampProto(time.Unix(0, sm.ServerMetrics.LastCallStartedTimestamp.Load())); err == nil {
-		s.Data.LastCallStartedTimestamp = ts
-	}
+	//if ts, err := ptypes.TimestampProto(time.Unix(0, sm.ServerMetrics.LastCallStartedTimestamp.Load())); err == nil {
+	s.Data.LastCallStartedTimestamp = timestamppb.New(time.Unix(0, sm.ServerMetrics.LastCallStartedTimestamp.Load()))
+	//}
 	lss := sm.ListenSockets()
 	sockets := make([]*channelzpb.SocketRef, 0, len(lss))
 	for id, ref := range lss {
