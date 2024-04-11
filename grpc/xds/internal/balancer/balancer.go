@@ -20,10 +20,12 @@
 package balancer
 
 import (
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/weightedtarget"               // Register the weighted_target balancer
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/cdsbalancer"     // Register the CDS balancer
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clusterimpl"     // Register the xds_cluster_impl balancer
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clustermanager"  // Register the xds_cluster_manager balancer
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clusterresolver" // Register the xds_cluster_resolver balancer
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/priority"        // Register the priority balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/leastrequest"                  // Register the least_request_experimental balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/balancer/weightedtarget"                // Register the weighted_target balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/cdsbalancer"      // Register the CDS balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clusterimpl"      // Register the xds_cluster_impl balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clustermanager"   // Register the xds_cluster_manager balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/clusterresolver"  // Register the xds_cluster_resolver balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/outlierdetection" // Register the outlier_detection balancer
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer/priority"         // Register the priority balancer
 )

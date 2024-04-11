@@ -23,13 +23,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httputil"
 	"io"
 	"net"
 	"net/url"
 
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httputil"
-
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal"
 )
 
 const proxyAuthHeaderKey = "Proxy-Authorization"
@@ -46,11 +46,11 @@ func mapAddress(address string) (*url.URL, error) {
 			Host:   address,
 		},
 	}
-	proxyUrl, err := httpProxyFromEnvironment(req)
+	url, err := httpProxyFromEnvironment(req)
 	if err != nil {
 		return nil, err
 	}
-	return proxyUrl, nil
+	return url, nil
 }
 
 // To read a response from a net.Conn, http.ReadResponse() takes a bufio.Reader.
@@ -75,7 +75,7 @@ func basicAuth(username, password string) string {
 func doHTTPConnectHandshake(ctx context.Context, conn net.Conn, backendAddr string, proxyURL *url.URL, grpcUA string) (_ net.Conn, err error) {
 	defer func() {
 		if err != nil {
-			_ = conn.Close()
+			conn.Close()
 		}
 	}()
 
@@ -99,9 +99,7 @@ func doHTTPConnectHandshake(ctx context.Context, conn net.Conn, backendAddr stri
 	if err != nil {
 		return nil, fmt.Errorf("reading server HTTP response: %v", err)
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		dump, err := httputil.DumpResponse(resp, true)
 		if err != nil {
@@ -116,7 +114,7 @@ func doHTTPConnectHandshake(ctx context.Context, conn net.Conn, backendAddr stri
 // proxyDial dials, connecting to a proxy first if necessary. Checks if a proxy
 // is necessary, dials, does the HTTP CONNECT handshake, and returns the
 // connection.
-func proxyDial(ctx context.Context, addr string, grpcUA string) (conn net.Conn, err error) {
+func proxyDial(ctx context.Context, addr string, grpcUA string) (net.Conn, error) {
 	newAddr := addr
 	proxyURL, err := mapAddress(addr)
 	if err != nil {
@@ -126,15 +124,15 @@ func proxyDial(ctx context.Context, addr string, grpcUA string) (conn net.Conn, 
 		newAddr = proxyURL.Host
 	}
 
-	conn, err = (&net.Dialer{}).DialContext(ctx, "tcp", newAddr)
+	conn, err := internal.NetDialerWithTCPKeepalive().DialContext(ctx, "tcp", newAddr)
 	if err != nil {
-		return
+		return nil, err
 	}
-	if proxyURL != nil {
+	if proxyURL == nil {
 		// proxy is disabled if proxyURL is nil.
-		conn, err = doHTTPConnectHandshake(ctx, conn, addr, proxyURL, grpcUA)
+		return conn, err
 	}
-	return
+	return doHTTPConnectHandshake(ctx, conn, addr, proxyURL, grpcUA)
 }
 
 func sendHTTPRequest(ctx context.Context, req *http.Request, conn net.Conn) error {

@@ -20,8 +20,8 @@ package e2e
 import (
 	"fmt"
 
-	xdsinternal "gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/testutils/e2e"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/bootstrap"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/e2e"
 	"github.com/google/uuid"
 )
 
@@ -33,14 +33,13 @@ type controlPlane struct {
 
 func newControlPlane() (*controlPlane, error) {
 	// Spin up an xDS management server on a local port.
-	server, err := e2e.StartManagementServer()
+	server, err := e2e.StartManagementServer(e2e.ManagementServerOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to spin up the xDS management server: %v", err)
 	}
 
 	nodeID := uuid.New().String()
-	bootstrapContentBytes, err := xdsinternal.BootstrapContents(xdsinternal.BootstrapOptions{
-		Version:                            xdsinternal.TransportV3,
+	bootstrapContentBytes, err := bootstrap.Contents(bootstrap.Options{
 		NodeID:                             nodeID,
 		ServerURI:                          server.Address,
 		ServerListenerResourceNameTemplate: e2e.ServerListenerResourceNameTemplate,

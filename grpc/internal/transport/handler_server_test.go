@@ -22,6 +22,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
+	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
 	"io"
 	"net/url"
 	"reflect"
@@ -29,35 +31,25 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/gmhttp/httptest"
-
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	"github.com/golang/protobuf/proto"
-	dpb "github.com/golang/protobuf/ptypes/duration"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/protoadapt"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 	type testCase struct {
-		name    string
-		req     *http.Request
-		wantErr string
-		modrw   func(http.ResponseWriter) http.ResponseWriter
-		check   func(*serverHandlerTransport, *testCase) error
+		name        string
+		req         *http.Request
+		wantErr     string
+		wantErrCode int
+		modrw       func(http.ResponseWriter) http.ResponseWriter
+		check       func(*serverHandlerTransport, *testCase) error
 	}
 	tests := []testCase{
-		{
-			name: "http/1.1",
-			req: &http.Request{
-				ProtoMajor: 1,
-				ProtoMinor: 1,
-			},
-			wantErr: "gRPC requires HTTP/2",
-		},
 		{
 			name: "bad method",
 			req: &http.Request{
@@ -65,7 +57,8 @@ func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 				Method:     "GET",
 				Header:     http.Header{},
 			},
-			wantErr: "invalid gRPC request method",
+			wantErr:     `invalid gRPC request method "GET"`,
+			wantErrCode: http.StatusMethodNotAllowed,
 		},
 		{
 			name: "bad content type",
@@ -76,7 +69,19 @@ func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 					"Content-Type": {"application/foo"},
 				},
 			},
-			wantErr: "invalid gRPC request content-type",
+			wantErr:     `invalid gRPC request content-type "application/foo"`,
+			wantErrCode: http.StatusUnsupportedMediaType,
+		},
+		{
+			name: "http/1.1",
+			req: &http.Request{
+				ProtoMajor: 1,
+				ProtoMinor: 1,
+				Method:     "POST",
+				Header:     http.Header{"Content-Type": []string{"application/grpc"}},
+			},
+			wantErr:     "gRPC requires HTTP/2",
+			wantErrCode: http.StatusHTTPVersionNotSupported,
 		},
 		{
 			name: "not flusher",
@@ -91,11 +96,11 @@ func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 				// Return w without its Flush method
 				type onlyCloseNotifier interface {
 					http.ResponseWriter
-					http.CloseNotifier
 				}
 				return struct{ onlyCloseNotifier }{w.(onlyCloseNotifier)}
 			},
-			wantErr: "gRPC requires a ResponseWriter supporting http.Flusher",
+			wantErr:     "gRPC requires a ResponseWriter supporting http.Flusher",
+			wantErrCode: http.StatusInternalServerError,
 		},
 		{
 			name: "valid",
@@ -155,7 +160,8 @@ func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 					Path: "/service/foo.bar",
 				},
 			},
-			wantErr: `rpc error: code = Internal desc = malformed time-out: transport: timeout unit is not recognized: "tomorrow"`,
+			wantErr:     `rpc error: code = Internal desc = malformed grpc-timeout: transport: timeout unit is not recognized: "tomorrow"`,
+			wantErrCode: http.StatusBadRequest,
 		},
 		{
 			name: "with metadata",
@@ -189,13 +195,24 @@ func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		rw := newTestHandlerResponseWriter()
+		rrec := httptest.NewRecorder()
+		rw := http.ResponseWriter(testHandlerResponseWriter{
+			ResponseRecorder: rrec,
+		})
+
 		if tt.modrw != nil {
 			rw = tt.modrw(rw)
 		}
 		got, gotErr := NewServerHandlerTransport(rw, tt.req, nil)
 		if (gotErr != nil) != (tt.wantErr != "") || (gotErr != nil && gotErr.Error() != tt.wantErr) {
 			t.Errorf("%s: error = %q; want %q", tt.name, gotErr.Error(), tt.wantErr)
+			continue
+		}
+		if tt.wantErrCode == 0 {
+			tt.wantErrCode = http.StatusOK
+		}
+		if rrec.Code != tt.wantErrCode {
+			t.Errorf("%s: code = %d; want %d", tt.name, rrec.Code, tt.wantErrCode)
 			continue
 		}
 		if gotErr != nil {
@@ -211,16 +228,13 @@ func (s) TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 
 type testHandlerResponseWriter struct {
 	*httptest.ResponseRecorder
-	closeNotify chan bool
 }
 
-func (w testHandlerResponseWriter) CloseNotify() <-chan bool { return w.closeNotify }
-func (w testHandlerResponseWriter) Flush()                   {}
+func (w testHandlerResponseWriter) Flush() {}
 
 func newTestHandlerResponseWriter() http.ResponseWriter {
 	return testHandlerResponseWriter{
 		ResponseRecorder: httptest.NewRecorder(),
-		closeNotify:      make(chan bool, 1),
 	}
 }
 
@@ -264,43 +278,48 @@ func (s) TestHandlerTransport_HandleStreams(t *testing.T) {
 			t.Errorf("stream method = %q; want %q", s.method, want)
 		}
 
-		err := s.SetHeader(metadata.Pairs("custom-header", "Custom header value"))
-		if err != nil {
+		if err := s.SetHeader(metadata.Pairs("custom-header", "Custom header value")); err != nil {
 			t.Error(err)
 		}
-		err = s.SetTrailer(metadata.Pairs("custom-trailer", "Custom trailer value"))
-		if err != nil {
+
+		if err := s.SetTrailer(metadata.Pairs("custom-trailer", "Custom trailer value")); err != nil {
+			t.Error(err)
+		}
+
+		if err := s.SetSendCompress("gzip"); err != nil {
 			t.Error(err)
 		}
 
 		md := metadata.Pairs("custom-header", "Another custom header value")
-		err = s.SendHeader(md)
-		delete(md, "custom-header")
-		if err != nil {
+		if err := s.SendHeader(md); err != nil {
 			t.Error(err)
 		}
+		delete(md, "custom-header")
 
-		err = s.SetHeader(metadata.Pairs("too-late", "Header value that should be ignored"))
-		if err == nil {
+		if err := s.SetHeader(metadata.Pairs("too-late", "Header value that should be ignored")); err == nil {
 			t.Error("expected SetHeader call after SendHeader to fail")
 		}
-		err = s.SendHeader(metadata.Pairs("too-late", "This header value should be ignored as well"))
-		if err == nil {
+
+		if err := s.SendHeader(metadata.Pairs("too-late", "This header value should be ignored as well")); err == nil {
 			t.Error("expected second SendHeader call to fail")
 		}
 
-		_ = st.bodyw.Close() // no body
-		_ = st.ht.WriteStatus(s, status.New(codes.OK, ""))
+		if err := s.SetSendCompress("snappy"); err == nil {
+			t.Error("expected second SetSendCompress call to fail")
+		}
+
+		st.bodyw.Close() // no body
+		st.ht.WriteStatus(s, status.New(codes.OK, ""))
 	}
 	st.ht.HandleStreams(
-		func(s *Stream) { go handleStream(s) },
-		func(ctx context.Context, method string) context.Context { return ctx },
+		context.Background(), func(s *Stream) { go handleStream(s) },
 	)
 	wantHeader := http.Header{
-		"Date":          {},
+		"Date":          nil,
 		"Content-Type":  {"application/grpc"},
 		"Trailer":       {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 		"Custom-Header": {"Custom header value", "Another custom header value"},
+		"Grpc-Encoding": {"gzip"},
 	}
 	wantTrailer := http.Header{
 		"Grpc-Status":    {"0"},
@@ -323,14 +342,13 @@ func handleStreamCloseBodyTest(t *testing.T, statusCode codes.Code, msg string) 
 	st := newHandleStreamTest(t)
 
 	handleStream := func(s *Stream) {
-		_ = st.ht.WriteStatus(s, status.New(statusCode, msg))
+		st.ht.WriteStatus(s, status.New(statusCode, msg))
 	}
 	st.ht.HandleStreams(
-		func(s *Stream) { go handleStream(s) },
-		func(ctx context.Context, method string) context.Context { return ctx },
+		context.Background(), func(s *Stream) { go handleStream(s) },
 	)
 	wantHeader := http.Header{
-		"Date":         {},
+		"Date":         nil,
 		"Content-Type": {"application/grpc"},
 		"Trailer":      {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 	}
@@ -361,9 +379,7 @@ func (s) TestHandlerTransport_HandleStreams_Timeout(t *testing.T) {
 		t.Fatal(err)
 	}
 	runStream := func(s *Stream) {
-		defer func(bodyw *io.PipeWriter) {
-			_ = bodyw.Close()
-		}(bodyw)
+		defer bodyw.Close()
 		select {
 		case <-s.ctx.Done():
 		case <-time.After(5 * time.Second):
@@ -375,14 +391,13 @@ func (s) TestHandlerTransport_HandleStreams_Timeout(t *testing.T) {
 			t.Errorf("ctx.Err = %v; want %v", err, context.DeadlineExceeded)
 			return
 		}
-		_ = ht.WriteStatus(s, status.New(codes.DeadlineExceeded, "too slow"))
+		ht.WriteStatus(s, status.New(codes.DeadlineExceeded, "too slow"))
 	}
 	ht.HandleStreams(
-		func(s *Stream) { go runStream(s) },
-		func(ctx context.Context, method string) context.Context { return ctx },
+		context.Background(), func(s *Stream) { go runStream(s) },
 	)
 	wantHeader := http.Header{
-		"Date":         {},
+		"Date":         nil,
 		"Content-Type": {"application/grpc"},
 		"Trailer":      {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 	}
@@ -400,14 +415,14 @@ func (s) TestHandlerTransport_HandleStreams_MultiWriteStatus(t *testing.T) {
 		if want := "/service/foo.bar"; s.method != want {
 			t.Errorf("stream method = %q; want %q", s.method, want)
 		}
-		_ = st.bodyw.Close() // no body
+		st.bodyw.Close() // no body
 
 		var wg sync.WaitGroup
 		wg.Add(5)
 		for i := 0; i < 5; i++ {
 			go func() {
 				defer wg.Done()
-				_ = st.ht.WriteStatus(s, status.New(codes.OK, ""))
+				st.ht.WriteStatus(s, status.New(codes.OK, ""))
 			}()
 		}
 		wg.Wait()
@@ -421,25 +436,24 @@ func (s) TestHandlerTransport_HandleStreams_WriteStatusWrite(t *testing.T) {
 		if want := "/service/foo.bar"; s.method != want {
 			t.Errorf("stream method = %q; want %q", s.method, want)
 		}
-		_ = st.bodyw.Close() // no body
+		st.bodyw.Close() // no body
 
-		_ = st.ht.WriteStatus(s, status.New(codes.OK, ""))
-		_ = st.ht.Write(s, []byte("hdr"), []byte("data"), &Options{})
+		st.ht.WriteStatus(s, status.New(codes.OK, ""))
+		st.ht.Write(s, []byte("hdr"), []byte("data"), &Options{})
 	})
 }
 
 func testHandlerTransportHandleStreams(t *testing.T, handleStream func(st *handleStreamTest, s *Stream)) {
 	st := newHandleStreamTest(t)
 	st.ht.HandleStreams(
-		func(s *Stream) { go handleStream(st, s) },
-		func(ctx context.Context, method string) context.Context { return ctx },
+		context.Background(), func(s *Stream) { go handleStream(st, s) },
 	)
 }
 
 func (s) TestHandlerTransport_HandleStreams_ErrDetails(t *testing.T) {
-	errDetails := []proto.Message{
+	errDetails := []protoadapt.MessageV1{
 		&epb.RetryInfo{
-			RetryDelay: &dpb.Duration{Seconds: 60},
+			RetryDelay: &durationpb.Duration{Seconds: 60},
 		},
 		&epb.ResourceInfo{
 			ResourceType: "foo bar",
@@ -462,14 +476,13 @@ func (s) TestHandlerTransport_HandleStreams_ErrDetails(t *testing.T) {
 
 	hst := newHandleStreamTest(t)
 	handleStream := func(s *Stream) {
-		_ = hst.ht.WriteStatus(s, st)
+		hst.ht.WriteStatus(s, st)
 	}
 	hst.ht.HandleStreams(
-		func(s *Stream) { go handleStream(s) },
-		func(ctx context.Context, method string) context.Context { return ctx },
+		context.Background(), func(s *Stream) { go handleStream(s) },
 	)
 	wantHeader := http.Header{
-		"Date":         {},
+		"Date":         nil,
 		"Content-Type": {"application/grpc"},
 		"Trailer":      {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 	}
@@ -482,11 +495,20 @@ func (s) TestHandlerTransport_HandleStreams_ErrDetails(t *testing.T) {
 	checkHeaderAndTrailer(t, hst.rw, wantHeader, wantTrailer)
 }
 
+// TestHandlerTransport_Drain verifies that Drain() is not implemented
+// by `serverHandlerTransport`.
+func (s) TestHandlerTransport_Drain(t *testing.T) {
+	defer func() { recover() }()
+	st := newHandleStreamTest(t)
+	st.ht.Drain("whatever")
+	t.Errorf("serverHandlerTransport.Drain() should have panicked")
+}
+
 // checkHeaderAndTrailer checks that the resulting header and trailer matches the expectation.
 func checkHeaderAndTrailer(t *testing.T, rw testHandlerResponseWriter, wantHeader, wantTrailer http.Header) {
 	// For trailer-only responses, the trailer values might be reported as part of the Header. They will however
 	// be present in Trailer in either case. Hence, normalize the header by removing all trailer values.
-	actualHeader := cloneHeader(rw.Result().Header)
+	actualHeader := rw.Result().Header.Clone()
 	for _, trailerKey := range actualHeader["Trailer"] {
 		actualHeader.Del(trailerKey)
 	}
@@ -497,22 +519,4 @@ func checkHeaderAndTrailer(t *testing.T, rw testHandlerResponseWriter, wantHeade
 	if actualTrailer := rw.Result().Trailer; !reflect.DeepEqual(actualTrailer, wantTrailer) {
 		t.Errorf("Trailer mismatch.\n got: %#v\n want: %#v", actualTrailer, wantTrailer)
 	}
-}
-
-// cloneHeader performs a deep clone of an http.Header, since the (http.Header).Clone() method was only added in
-// Go 1.13.
-func cloneHeader(hdr http.Header) http.Header {
-	if hdr == nil {
-		return nil
-	}
-
-	hdrClone := make(http.Header, len(hdr))
-
-	for k, vv := range hdr {
-		vvClone := make([]string, len(vv))
-		copy(vvClone, vv)
-		hdrClone[k] = vvClone
-	}
-
-	return hdrClone
 }

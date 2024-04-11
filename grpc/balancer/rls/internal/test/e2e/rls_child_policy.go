@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/balancer"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcsync"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"

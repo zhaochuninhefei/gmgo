@@ -19,16 +19,18 @@
 package googledirectpath
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/bootstrap"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -58,38 +60,43 @@ var (
 )
 
 func replaceResolvers() func() {
-	var registerForTesting bool
-	if resolver.Get(c2pScheme) == nil {
-		// If env var to enable c2p is not set, the resolver isn't registered.
-		// Need to register and unregister in defer.
-		registerForTesting = true
-		resolver.Register(&c2pResolverBuilder{})
-	}
 	oldDNS := resolver.Get("dns")
 	resolver.Register(testDNSResolver)
 	oldXDS := resolver.Get("xds")
 	resolver.Register(testXDSResolver)
 	return func() {
-		if oldDNS != nil {
-			resolver.Register(oldDNS)
-		} else {
-			resolver.UnregisterForTesting("dns")
-		}
-		if oldXDS != nil {
-			resolver.Register(oldXDS)
-		} else {
-			resolver.UnregisterForTesting("xds")
-		}
-		if registerForTesting {
-			resolver.UnregisterForTesting(c2pScheme)
-		}
+		resolver.Register(oldDNS)
+		resolver.Register(oldXDS)
 	}
 }
 
-// Test that when bootstrap env is set, fallback to DNS.
+type testXDSClient struct {
+	xdsclient.XDSClient
+	closed chan struct{}
+}
+
+func (c *testXDSClient) Close() {
+	c.closed <- struct{}{}
+}
+
+// Test that when bootstrap env is set and we're running on GCE, don't fallback to DNS (because
+// federation is enabled by default).
 func TestBuildWithBootstrapEnvSet(t *testing.T) {
 	defer replaceResolvers()()
 	builder := resolver.Get(c2pScheme)
+
+	// make the test behave the ~same whether it's running on or off GCE
+	oldOnGCE := onGCE
+	onGCE = func() bool { return true }
+	defer func() { onGCE = oldOnGCE }()
+
+	// don't actually read the bootstrap file contents
+	xdsClient := &testXDSClient{closed: make(chan struct{}, 1)}
+	oldNewClient := newClientWithConfig
+	newClientWithConfig = func(config *bootstrap.Config) (xdsclient.XDSClient, func(), error) {
+		return xdsClient, func() { xdsClient.Close() }, nil
+	}
+	defer func() { newClientWithConfig = oldNewClient }()
 
 	for i, envP := range []*string{&envconfig.XDSBootstrapFileName, &envconfig.XDSBootstrapFileContent} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
@@ -98,13 +105,14 @@ func TestBuildWithBootstrapEnvSet(t *testing.T) {
 			*envP = "does not matter"
 			defer func() { *envP = oldEnv }()
 
-			// Build should return DNS, not xDS.
+			// Build should return xDS, not DNS.
 			r, err := builder.Build(resolver.Target{}, nil, resolver.BuildOptions{})
 			if err != nil {
 				t.Fatalf("failed to build resolver: %v", err)
 			}
-			if r != testDNSResolver {
-				t.Fatalf("want dns resolver, got %#v", r)
+			rr := r.(*c2pResolver)
+			if rrr := rr.Resolver; rrr != testXDSResolver {
+				t.Fatalf("want xds resolver, got %#v", rrr)
 			}
 		})
 	}
@@ -127,15 +135,6 @@ func TestBuildNotOnGCE(t *testing.T) {
 	if r != testDNSResolver {
 		t.Fatalf("want dns resolver, got %#v", r)
 	}
-}
-
-type testXDSClient struct {
-	xdsclient.XDSClient
-	closed chan struct{}
-}
-
-func (c *testXDSClient) Close() {
-	c.closed <- struct{}{}
 }
 
 // Test that when xDS is built, the client is built with the correct config.
@@ -178,9 +177,9 @@ func TestBuildXDS(t *testing.T) {
 
 			configCh := make(chan *bootstrap.Config, 1)
 			oldNewClient := newClientWithConfig
-			newClientWithConfig = func(config *bootstrap.Config) (xdsclient.XDSClient, error) {
+			newClientWithConfig = func(config *bootstrap.Config) (xdsclient.XDSClient, func(), error) {
 				configCh <- config
-				return tXDSClient, nil
+				return tXDSClient, func() { tXDSClient.Close() }, nil
 			}
 			defer func() { newClientWithConfig = oldNewClient }()
 
@@ -211,13 +210,24 @@ func TestBuildXDS(t *testing.T) {
 					},
 				}
 			}
+			wantServerConfig, err := bootstrap.ServerConfigFromJSON([]byte(fmt.Sprintf(`{
+				"server_uri": "%s",
+				"channel_creds": [{"type": "google_default"}],
+				"server_features": ["xds_v3", "ignore_resource_deletion", "xds.config.resource-in-sotw"]
+			}`, tdURL)))
+			if err != nil {
+				t.Fatalf("Failed to build server bootstrap config: %v", err)
+			}
 			wantConfig := &bootstrap.Config{
-				XDSServer: &bootstrap.ServerConfig{
-					ServerURI:    tdURL,
-					TransportAPI: version.TransportV3,
-					NodeProto:    wantNode,
-				},
+				XDSServer: wantServerConfig,
 				ClientDefaultListenerResourceNameTemplate: "%s",
+				Authorities: map[string]*bootstrap.Authority{
+					"traffic-director-c2p.xds.googleapis.com": {
+						XDSServer:                          wantServerConfig,
+						ClientListenerResourceNameTemplate: "xdstp://traffic-director-c2p.xds.googleapis.com/envoy.config.listener.v3.Listener/%s",
+					},
+				},
+				NodeProto: wantNode,
 			}
 			if tt.tdURI != "" {
 				wantConfig.XDSServer.ServerURI = tt.tdURI
@@ -228,9 +238,9 @@ func TestBuildXDS(t *testing.T) {
 				protocmp.Transform(),
 			}
 			select {
-			case c := <-configCh:
-				if diff := cmp.Diff(c, wantConfig, cmpOpts); diff != "" {
-					t.Fatalf("%v", diff)
+			case gotConfig := <-configCh:
+				if diff := cmp.Diff(wantConfig, gotConfig, cmpOpts); diff != "" {
+					t.Fatalf("Unexpected diff in bootstrap config (-want +got):\n%s", diff)
 				}
 			case <-time.After(time.Second):
 				t.Fatalf("timeout waiting for client config")
@@ -243,5 +253,22 @@ func TestBuildXDS(t *testing.T) {
 				t.Fatalf("timeout waiting for client close")
 			}
 		})
+	}
+}
+
+// TestDialFailsWhenTargetContainsAuthority attempts to Dial a target URI of
+// google-c2p scheme with a non-empty authority and verifies that it fails with
+// an expected error.
+func TestBuildFailsWhenCalledWithAuthority(t *testing.T) {
+	uri := "google-c2p://an-authority/resource"
+	cc, err := grpc.Dial(uri, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	defer func() {
+		if cc != nil {
+			cc.Close()
+		}
+	}()
+	wantErr := "google-c2p URI scheme does not support authorities"
+	if err == nil || !strings.Contains(err.Error(), wantErr) {
+		t.Fatalf("grpc.Dial(%s) returned error: %v, want: %v", uri, err, wantErr)
 	}
 }

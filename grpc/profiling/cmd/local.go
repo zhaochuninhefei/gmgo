@@ -31,9 +31,7 @@ func loadSnapshot(snapshotFileName string) (*snapshot, error) {
 		logger.Errorf("cannot open %s: %v", snapshotFileName, err)
 		return nil, err
 	}
-	defer func(snapshotFile *os.File) {
-		_ = snapshotFile.Close()
-	}(snapshotFile)
+	defer snapshotFile.Close()
 
 	logger.Infof("decoding snapshot file %s", snapshotFileName)
 	s := &snapshot{}

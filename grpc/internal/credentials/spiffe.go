@@ -22,11 +22,9 @@
 package credentials
 
 import (
-	"net/url"
-
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"net/url"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 )

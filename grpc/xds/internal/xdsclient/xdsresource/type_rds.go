@@ -80,7 +80,7 @@ const (
 	// HashPolicyTypeHeader specifies to hash a Header in the incoming request.
 	HashPolicyTypeHeader HashPolicyType = iota
 	// HashPolicyTypeChannelID specifies to hash a unique Identifier of the
-	// Channel. In grpc-go, this will be done using the ClientConn pointer.
+	// Channel. This is a 64-bit random int computed at initialization time.
 	HashPolicyTypeChannelID
 )
 
@@ -171,6 +171,7 @@ type HeaderMatcher struct {
 	SuffixMatch  *string
 	RangeMatch   *Int64Range
 	PresentMatch *bool
+	StringMatch  *matcher.StringMatcher
 }
 
 // Int64Range is a range for header range match.
@@ -244,12 +245,4 @@ func (sc *SecurityConfig) Equal(other *SecurityConfig) bool {
 		}
 	}
 	return true
-}
-
-// RouteConfigUpdateErrTuple is a tuple with the update and error. It contains
-// the results from unmarshal functions. It's used to pass unmarshal results of
-// multiple resources together, e.g. in maps like `map[string]{Update,error}`.
-type RouteConfigUpdateErrTuple struct {
-	Update RouteConfigUpdate
-	Err    error
 }

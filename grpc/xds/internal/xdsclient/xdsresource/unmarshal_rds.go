@@ -19,33 +19,27 @@ package xdsresource
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds/matcher"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/clusterspecifier"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3typepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/clusterspecifier"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
-	"github.com/golang/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
-// UnmarshalRouteConfig processes resources received in an RDS response,
-// validates them, and transforms them into a native struct which contains only
-// fields we are interested in. The provided hostname determines the route
-// configuration resources of interest.
-func UnmarshalRouteConfig(opts *UnmarshalOptions) (map[string]RouteConfigUpdateErrTuple, UpdateMetadata, error) {
-	update := make(map[string]RouteConfigUpdateErrTuple)
-	md, err := processAllResources(opts, update)
-	return update, md, err
-}
+func unmarshalRouteConfigResource(r *anypb.Any) (string, RouteConfigUpdate, error) {
+	r, err := UnwrapResource(r)
+	if err != nil {
+		return "", RouteConfigUpdate{}, fmt.Errorf("failed to unwrap resource: %v", err)
+	}
 
-func unmarshalRouteConfigResource(r *anypb.Any, logger *grpclog.PrefixLogger) (string, RouteConfigUpdate, error) {
 	if !IsRouteConfigResource(r.GetTypeUrl()) {
 		return "", RouteConfigUpdate{}, fmt.Errorf("unexpected resource type: %q ", r.GetTypeUrl())
 	}
@@ -53,11 +47,8 @@ func unmarshalRouteConfigResource(r *anypb.Any, logger *grpclog.PrefixLogger) (s
 	if err := proto.Unmarshal(r.GetValue(), rc); err != nil {
 		return "", RouteConfigUpdate{}, fmt.Errorf("failed to unmarshal resource: %v", err)
 	}
-	logger.Infof("Resource with name: %v, type: %T, contains: %v.", rc.GetName(), rc, pretty.ToJSON(rc))
 
-	// TODO: Pass version.TransportAPI instead of relying upon the type URL
-	v2 := r.GetTypeUrl() == version.V2RouteConfigURL
-	u, err := generateRDSUpdateFromRouteConfiguration(rc, logger, v2)
+	u, err := generateRDSUpdateFromRouteConfiguration(rc)
 	if err != nil {
 		return rc.GetName(), RouteConfigUpdate{}, err
 	}
@@ -81,22 +72,18 @@ func unmarshalRouteConfigResource(r *anypb.Any, logger *grpclog.PrefixLogger) (s
 // field must be empty and whose route field must be set.  Inside that route
 // message, the cluster field will contain the clusterName or weighted clusters
 // we are looking for.
-func generateRDSUpdateFromRouteConfiguration(rc *v3routepb.RouteConfiguration, logger *grpclog.PrefixLogger, v2 bool) (RouteConfigUpdate, error) {
+func generateRDSUpdateFromRouteConfiguration(rc *v3routepb.RouteConfiguration) (RouteConfigUpdate, error) {
 	vhs := make([]*VirtualHost, 0, len(rc.GetVirtualHosts()))
-	csps := make(map[string]clusterspecifier.BalancerConfig)
-	if envconfig.XDSRLS {
-		var err error
-		csps, err = processClusterSpecifierPlugins(rc.ClusterSpecifierPlugins)
-		if err != nil {
-			return RouteConfigUpdate{}, fmt.Errorf("received route is invalid %v", err)
-		}
+	csps, err := processClusterSpecifierPlugins(rc.ClusterSpecifierPlugins)
+	if err != nil {
+		return RouteConfigUpdate{}, fmt.Errorf("received route is invalid: %v", err)
 	}
 	// cspNames represents all the cluster specifiers referenced by Route
 	// Actions - any cluster specifiers not referenced by a Route Action can be
 	// ignored and not emitted by the xdsclient.
 	var cspNames = make(map[string]bool)
 	for _, vh := range rc.GetVirtualHosts() {
-		routes, cspNs, err := routesProtoToSlice(vh.Routes, csps, logger, v2)
+		routes, cspNs, err := routesProtoToSlice(vh.Routes, csps)
 		if err != nil {
 			return RouteConfigUpdate{}, fmt.Errorf("received route is invalid: %v", err)
 		}
@@ -112,13 +99,11 @@ func generateRDSUpdateFromRouteConfiguration(rc *v3routepb.RouteConfiguration, l
 			Routes:      routes,
 			RetryConfig: rc,
 		}
-		if !v2 {
-			cfgs, err := processHTTPFilterOverrides(vh.GetTypedPerFilterConfig())
-			if err != nil {
-				return RouteConfigUpdate{}, fmt.Errorf("virtual host %+v: %v", vh, err)
-			}
-			vhOut.HTTPFilterConfigOverride = cfgs
+		cfgs, err := processHTTPFilterOverrides(vh.GetTypedPerFilterConfig())
+		if err != nil {
+			return RouteConfigUpdate{}, fmt.Errorf("virtual host %+v: %v", vh, err)
 		}
+		vhOut.HTTPFilterConfigOverride = cfgs
 		vhs = append(vhs, vhOut)
 	}
 
@@ -142,6 +127,12 @@ func processClusterSpecifierPlugins(csps []*v3routepb.ClusterSpecifierPlugin) (m
 	for _, csp := range csps {
 		cs := clusterspecifier.Get(csp.GetExtension().GetTypedConfig().GetTypeUrl())
 		if cs == nil {
+			if csp.GetIsOptional() {
+				// "If a plugin is not supported but has is_optional set, then
+				// we will ignore any routes that point to that plugin"
+				cspCfgs[csp.GetExtension().GetName()] = nil
+				continue
+			}
 			// "If no plugin is registered for it, the resource will be NACKed."
 			// - RLS in xDS design
 			return nil, fmt.Errorf("cluster specifier %q of type %q was not found", csp.GetExtension().GetName(), csp.GetExtension().GetTypedConfig().GetTypeUrl())
@@ -215,7 +206,7 @@ func generateRetryConfig(rp *v3routepb.RetryPolicy) (*RetryConfig, error) {
 	return cfg, nil
 }
 
-func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecifier.BalancerConfig, logger *grpclog.PrefixLogger, v2 bool) ([]*Route, map[string]bool, error) {
+func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecifier.BalancerConfig) ([]*Route, map[string]bool, error) {
 	var routesRet []*Route
 	var cspNames = make(map[string]bool)
 	for _, r := range routes {
@@ -226,7 +217,7 @@ func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecif
 
 		if len(match.GetQueryParameters()) != 0 {
 			// Ignore route with query parameters.
-			logger.Warningf("route %+v has query parameter matchers, the route will be ignored", r)
+			logger.Warningf("Ignoring route %+v with query parameter matchers", r)
 			continue
 		}
 
@@ -279,6 +270,12 @@ func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecif
 				header.PrefixMatch = &ht.PrefixMatch
 			case *v3routepb.HeaderMatcher_SuffixMatch:
 				header.SuffixMatch = &ht.SuffixMatch
+			case *v3routepb.HeaderMatcher_StringMatch:
+				sm, err := matcher.StringMatcherFromProto(ht.StringMatch)
+				if err != nil {
+					return nil, nil, fmt.Errorf("route %+v has an invalid string matcher: %v", err, ht.StringMatch)
+				}
+				header.StringMatch = &sm
 			default:
 				return nil, nil, fmt.Errorf("route %+v has an unrecognized header matcher: %+v", r, ht)
 			}
@@ -307,54 +304,51 @@ func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecif
 			action := r.GetRoute()
 
 			// Hash Policies are only applicable for a Ring Hash LB.
-			if envconfig.XDSRingHash {
-				hp, err := hashPoliciesProtoToSlice(action.HashPolicy, logger)
-				if err != nil {
-					return nil, nil, err
-				}
-				route.HashPolicies = hp
+			hp, err := hashPoliciesProtoToSlice(action.HashPolicy)
+			if err != nil {
+				return nil, nil, err
 			}
+			route.HashPolicies = hp
 
 			switch a := action.GetClusterSpecifier().(type) {
 			case *v3routepb.RouteAction_Cluster:
 				route.WeightedClusters[a.Cluster] = WeightedCluster{Weight: 1}
 			case *v3routepb.RouteAction_WeightedClusters:
 				wcs := a.WeightedClusters
-				var totalWeight uint32
+				var totalWeight uint64
 				for _, c := range wcs.Clusters {
 					w := c.GetWeight().GetValue()
 					if w == 0 {
 						continue
 					}
-					wc := WeightedCluster{Weight: w}
-					if !v2 {
-						cfgs, err := processHTTPFilterOverrides(c.GetTypedPerFilterConfig())
-						if err != nil {
-							return nil, nil, fmt.Errorf("route %+v, action %+v: %v", r, a, err)
-						}
-						wc.HTTPFilterConfigOverride = cfgs
+					totalWeight += uint64(w)
+					if totalWeight > math.MaxUint32 {
+						return nil, nil, fmt.Errorf("xds: total weight of clusters exceeds MaxUint32")
 					}
+					wc := WeightedCluster{Weight: w}
+					cfgs, err := processHTTPFilterOverrides(c.GetTypedPerFilterConfig())
+					if err != nil {
+						return nil, nil, fmt.Errorf("route %+v, action %+v: %v", r, a, err)
+					}
+					wc.HTTPFilterConfigOverride = cfgs
 					route.WeightedClusters[c.GetName()] = wc
-					totalWeight += w
-				}
-				// envoy xds doc
-				// default TotalWeight https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto.html#envoy-v3-api-field-config-route-v3-weightedcluster-total-weight
-				wantTotalWeight := uint32(100)
-				if tw := wcs.GetTotalWeight(); tw != nil {
-					wantTotalWeight = tw.GetValue()
-				}
-				if totalWeight != wantTotalWeight {
-					return nil, nil, fmt.Errorf("route %+v, action %+v, weights of clusters do not add up to total total weight, got: %v, expected total weight from response: %v", r, a, totalWeight, wantTotalWeight)
 				}
 				if totalWeight == 0 {
 					return nil, nil, fmt.Errorf("route %+v, action %+v, has no valid cluster in WeightedCluster action", r, a)
 				}
-			case *v3routepb.RouteAction_ClusterHeader:
-				continue
 			case *v3routepb.RouteAction_ClusterSpecifierPlugin:
-				if !envconfig.XDSRLS {
-					return nil, nil, fmt.Errorf("route %+v, has an unknown ClusterSpecifier: %+v", r, a)
-				}
+				// gRFC A28 was updated to say the following:
+				//
+				// The route’s action field must be route, and its
+				// cluster_specifier:
+				// - Can be Cluster
+				// - Can be Weighted_clusters
+				// - Can be unset or an unsupported field. The route containing
+				//   this action will be ignored.
+				//
+				// This means that if this env var is not set, we should treat
+				// it as if it we didn't know about the cluster_specifier_plugin
+				// at all.
 				if _, ok := csps[a.ClusterSpecifierPlugin]; !ok {
 					// "When processing RouteActions, if any action includes a
 					// cluster_specifier_plugin value that is not in
@@ -362,10 +356,15 @@ func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecif
 					// resource will be NACKed." - RLS in xDS design
 					return nil, nil, fmt.Errorf("route %+v, action %+v, specifies a cluster specifier plugin %+v that is not in Route Configuration", r, a, a.ClusterSpecifierPlugin)
 				}
+				if csps[a.ClusterSpecifierPlugin] == nil {
+					logger.Warningf("Ignoring route %+v with optional and unsupported cluster specifier plugin %+v", r, a.ClusterSpecifierPlugin)
+					continue
+				}
 				cspNames[a.ClusterSpecifierPlugin] = true
 				route.ClusterSpecifierPlugin = a.ClusterSpecifierPlugin
 			default:
-				return nil, nil, fmt.Errorf("route %+v, has an unknown ClusterSpecifier: %+v", r, a)
+				logger.Warningf("Ignoring route %+v with unknown ClusterSpecifier %+v", r, a)
+				continue
 			}
 
 			msd := action.GetMaxStreamDuration()
@@ -379,7 +378,6 @@ func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecif
 				route.MaxStreamDuration = &d
 			}
 
-			var err error
 			route.RetryConfig, err = generateRetryConfig(action.GetRetryPolicy())
 			if err != nil {
 				return nil, nil, fmt.Errorf("route %+v, action %+v: %v", r, action, err)
@@ -394,19 +392,17 @@ func routesProtoToSlice(routes []*v3routepb.Route, csps map[string]clusterspecif
 			route.ActionType = RouteActionUnsupported
 		}
 
-		if !v2 {
-			cfgs, err := processHTTPFilterOverrides(r.GetTypedPerFilterConfig())
-			if err != nil {
-				return nil, nil, fmt.Errorf("route %+v: %v", r, err)
-			}
-			route.HTTPFilterConfigOverride = cfgs
+		cfgs, err := processHTTPFilterOverrides(r.GetTypedPerFilterConfig())
+		if err != nil {
+			return nil, nil, fmt.Errorf("route %+v: %v", r, err)
 		}
+		route.HTTPFilterConfigOverride = cfgs
 		routesRet = append(routesRet, &route)
 	}
 	return routesRet, cspNames, nil
 }
 
-func hashPoliciesProtoToSlice(policies []*v3routepb.RouteAction_HashPolicy, logger *grpclog.PrefixLogger) ([]*HashPolicy, error) {
+func hashPoliciesProtoToSlice(policies []*v3routepb.RouteAction_HashPolicy) ([]*HashPolicy, error) {
 	var hashPoliciesRet []*HashPolicy
 	for _, p := range policies {
 		policy := HashPolicy{Terminal: p.Terminal}
@@ -425,12 +421,12 @@ func hashPoliciesProtoToSlice(policies []*v3routepb.RouteAction_HashPolicy, logg
 			}
 		case *v3routepb.RouteAction_HashPolicy_FilterState_:
 			if p.GetFilterState().GetKey() != "io.grpc.channel_id" {
-				logger.Infof("hash policy %+v contains an invalid key for filter state policy %q", p, p.GetFilterState().GetKey())
+				logger.Warningf("Ignoring hash policy %+v with invalid key for filter state policy %q", p, p.GetFilterState().GetKey())
 				continue
 			}
 			policy.HashPolicyType = HashPolicyTypeChannelID
 		default:
-			logger.Infof("hash policy %T is an unsupported hash policy", p.GetPolicySpecifier())
+			logger.Warningf("Ignoring unsupported hash policy %T", p.GetPolicySpecifier())
 			continue
 		}
 

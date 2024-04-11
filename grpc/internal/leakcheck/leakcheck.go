@@ -42,6 +42,12 @@ var goroutinesToIgnore = []string{
 	"runtime_mcall",
 	"(*loggingT).flushDaemon",
 	"goroutine in C code",
+	// Ignore the http read/write goroutines. gce metadata.OnGCE() was leaking
+	// these, root cause unknown.
+	//
+	// https://github.com/grpc/grpc-go/issues/5171
+	// https://github.com/grpc/grpc-go/issues/5173
+	"created by net/http.(*Transport).dialConn",
 }
 
 // RegisterIgnoreGoroutine appends s into the ignore goroutine list. The
@@ -91,7 +97,7 @@ func interestingGoroutines() (gs []string) {
 // Errorfer is the interface that wraps the Errorf method. It's a subset of
 // testing.TB to make it easy to use Check.
 type Errorfer interface {
-	Errorf(format string, args ...interface{})
+	Errorf(format string, args ...any)
 }
 
 func check(efer Errorfer, timeout time.Duration) {

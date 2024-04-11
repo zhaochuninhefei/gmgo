@@ -71,7 +71,7 @@ go test
 
 ```
 
-注意，`x509_test`的`TestCreateCertFromCA`测试函数生成的sm2系列密钥文件与证书将会用于`gmtls`与`gmgrpc`的测试案例。
+注意，`x509/x509_test.go`的`TestCreateCertFromCA`系列测试函数生成的sm2系列密钥文件与证书(`x509/testdata`目录下)将会用于`gmtls`与`gmgrpc`的测试案例。
 
 
 ## gmtls
@@ -82,7 +82,7 @@ go test
 
 ```
 
-执行之前请确认`certs`目录下的sm2系列文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
+执行之前请确认`certs`目录下的sm2系列文件是否最新。可以在该目录下执行`copyCerts.sh`直接从`x509/testdata`拷贝。
 
 ## gmgrpc
 测试案例代码: `grpc/grpc_test/grpc_test.go`
@@ -92,7 +92,7 @@ go test
 
 ```
 
-执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从x509的对应目录下拷贝。
+执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从`x509/testdata`拷贝。
 
 # 关于版权声明
 本项目自身采用木兰宽松许可证(第2版)，具体参考`LICENSE`文件。

@@ -19,7 +19,7 @@
 // Package pemfile provides a file watching certificate provider plugin
 // implementation which works for files with PEM contents.
 //
-// Experimental
+// # Experimental
 //
 // Notice: All APIs in this package are experimental and may be removed in a
 // later release.
@@ -30,13 +30,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"os"
 	"path/filepath"
 	"time"
-
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-
-	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/tls/certprovider"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
@@ -156,12 +154,12 @@ func (w *watcher) updateIdentityDistributor() {
 		return
 	}
 
-	certFileContents, err := ioutil.ReadFile(w.opts.CertFile)
+	certFileContents, err := os.ReadFile(w.opts.CertFile)
 	if err != nil {
 		logger.Warningf("certFile (%s) read failed: %v", w.opts.CertFile, err)
 		return
 	}
-	keyFileContents, err := ioutil.ReadFile(w.opts.KeyFile)
+	keyFileContents, err := os.ReadFile(w.opts.KeyFile)
 	if err != nil {
 		logger.Warningf("keyFile (%s) read failed: %v", w.opts.KeyFile, err)
 		return
@@ -193,7 +191,7 @@ func (w *watcher) updateRootDistributor() {
 		return
 	}
 
-	rootFileContents, err := ioutil.ReadFile(w.opts.RootFile)
+	rootFileContents, err := os.ReadFile(w.opts.RootFile)
 	if err != nil {
 		logger.Warningf("rootFile (%s) read failed: %v", w.opts.RootFile, err)
 		return
