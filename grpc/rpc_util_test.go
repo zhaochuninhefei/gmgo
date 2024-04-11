@@ -21,7 +21,6 @@ package grpc
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"io"
 	"math"
 	"reflect"
@@ -34,7 +33,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/transport"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	perfpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/codec_perf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type fullReader struct {
@@ -66,9 +65,9 @@ func (s) TestSimpleParsing(t *testing.T) {
 		{append([]byte{0, 1, 0, 0, 0}, bigMsg...), nil, bigMsg, compressionNone},
 	} {
 		buf := fullReader{bytes.NewReader(test.p)}
-		parser := &parser{r: buf}
+		parser := &parser{r: buf, recvBufferPool: nopBufferPool{}}
 		pt, b, err := parser.recvMsg(math.MaxInt32)
-		if !errors.Is(err, test.err) || !bytes.Equal(b, test.b) || pt != test.pt {
+		if err != test.err || !bytes.Equal(b, test.b) || pt != test.pt {
 			t.Fatalf("parser{%v}.recvMsg(_) = %v, %v, %v\nwant %v, %v, %v", test.p, pt, b, err, test.pt, test.b, test.err)
 		}
 	}
@@ -78,7 +77,7 @@ func (s) TestMultipleParsing(t *testing.T) {
 	// Set a byte stream consists of 3 messages with their headers.
 	p := []byte{0, 0, 0, 0, 1, 'a', 0, 0, 0, 0, 2, 'b', 'c', 0, 0, 0, 0, 1, 'd'}
 	b := fullReader{bytes.NewReader(p)}
-	parser := &parser{r: b}
+	parser := &parser{r: b, recvBufferPool: nopBufferPool{}}
 
 	wantRecvs := []struct {
 		pt   payloadFormat
@@ -115,7 +114,7 @@ func (s) TestEncode(t *testing.T) {
 		{nil, []byte{0, 0, 0, 0, 0}, []byte{}, nil},
 	} {
 		data, err := encode(encoding.GetCodec(protoenc.Name), test.msg)
-		if !errors.Is(err, test.err) || !bytes.Equal(data, test.data) {
+		if err != test.err || !bytes.Equal(data, test.data) {
 			t.Errorf("encode(_, %v) = %v, %v; want %v, %v", test.msg, data, err, test.data, test.err)
 			continue
 		}
@@ -160,7 +159,7 @@ func (s) TestCompress(t *testing.T) {
 		{make([]byte, 1024), level5, NewGZIPDecompressor(), nil},
 	} {
 		b := new(bytes.Buffer)
-		if err := test.cp.Do(b, test.data); !errors.Is(err, test.err) {
+		if err := test.cp.Do(b, test.data); err != test.err {
 			t.Fatalf("Compressor.Do(_, %v) = %v, want %v", test.data, err, test.err)
 		}
 		if b.Len() >= len(test.data) {
@@ -202,7 +201,7 @@ func bmEncode(b *testing.B, mSize int) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = encode(cdc, msg)
+		encode(cdc, msg)
 	}
 	b.SetBytes(encodedSz)
 }
@@ -239,7 +238,7 @@ func bmCompressor(b *testing.B, mSize int, cp Compressor) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = cp.Do(cBuf, payload)
+		cp.Do(cBuf, payload)
 		cBuf.Reset()
 	}
 }

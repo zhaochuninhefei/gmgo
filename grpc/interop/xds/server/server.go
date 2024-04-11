@@ -26,17 +26,23 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/admin"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/health"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/status"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/reflection"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds"
 
 	xdscreds "gitee.com/zhaochuninhefei/gmgo/grpc/credentials/xds"
+	healthgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
 	healthpb "gitee.com/zhaochuninhefei/gmgo/grpc/health/grpc_health_v1"
 	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
@@ -50,6 +56,16 @@ var (
 	hostNameOverride = flag.String("host_name_override", "", "If set, use this as the hostname instead of the real hostname")
 
 	logger = grpclog.Component("interop")
+)
+
+const (
+	rpcBehaviorMDKey             = "rpc-behavior"
+	grpcPreviousRPCAttemptsMDKey = "grpc-previous-rpc-attempts"
+	sleepPfx                     = "sleep-"
+	keepOpenVal                  = "keep-open"
+	errorCodePfx                 = "error-code-"
+	succeedOnRetryPfx            = "succeed-on-retry-attempt-"
+	hostnamePfx                  = "hostname="
 )
 
 func getHostname() string {
@@ -72,14 +88,106 @@ type testServiceImpl struct {
 }
 
 func (s *testServiceImpl) EmptyCall(ctx context.Context, _ *testpb.Empty) (*testpb.Empty, error) {
-	_ = grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
+	grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
 	return &testpb.Empty{}, nil
 }
 
-//goland:noinspection GoUnusedParameter
 func (s *testServiceImpl) UnaryCall(ctx context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
-	_ = grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
-	return &testpb.SimpleResponse{ServerId: s.serverID, Hostname: s.hostname}, nil
+	response := &testpb.SimpleResponse{ServerId: s.serverID, Hostname: s.hostname}
+
+forLoop:
+	for _, headerVal := range getRPCBehaviorMetadata(ctx) {
+		// A value can have a prefix "hostname=<string>" followed by a space.
+		// In that case, the rest of the value should only be applied
+		// if the specified hostname matches the server's hostname.
+		if strings.HasPrefix(headerVal, hostnamePfx) {
+			splitVal := strings.Split(headerVal, " ")
+			if len(splitVal) <= 1 {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid format for rpc-behavior header %v, must be 'hostname=<string> <header>=<value>' instead", headerVal)
+			}
+
+			if s.hostname != splitVal[0][len(hostnamePfx):] {
+				continue forLoop
+			}
+			headerVal = splitVal[1]
+		}
+
+		switch {
+		// If the value matches "sleep-<int>", the server should wait
+		// the specified number of seconds before resuming
+		// behavior matching and RPC processing.
+		case strings.HasPrefix(headerVal, sleepPfx):
+			sleep, err := strconv.Atoi(headerVal[len(sleepPfx):])
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid format for rpc-behavior header %v, must be 'sleep-<int>' instead", headerVal)
+			}
+			time.Sleep(time.Duration(sleep) * time.Second)
+
+		// If the value matches "keep-open", the server should
+		// never respond to the request and behavior matching ends.
+		case strings.HasPrefix(headerVal, keepOpenVal):
+			<-ctx.Done()
+			return nil, nil
+
+		// If the value matches "error-code-<int>", the server should
+		// respond with the specified status code and behavior matching ends.
+		case strings.HasPrefix(headerVal, errorCodePfx):
+			code, err := strconv.Atoi(headerVal[len(errorCodePfx):])
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid format for rpc-behavior header %v, must be 'error-code-<int>' instead", headerVal)
+			}
+			return nil, status.Errorf(codes.Code(code), "rpc failed as per the rpc-behavior header value: %v", headerVal)
+
+		// If the value matches "success-on-retry-attempt-<int>", and the
+		// value of the "grpc-previous-rpc-attempts" metadata field is equal to
+		// the specified number, the normal RPC processing should resume
+		// and behavior matching ends.
+		case strings.HasPrefix(headerVal, succeedOnRetryPfx):
+			wantRetry, err := strconv.Atoi(headerVal[len(succeedOnRetryPfx):])
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid format for rpc-behavior header %v, must be 'success-on-retry-attempt-<int>' instead", headerVal)
+			}
+
+			mdRetry := getMetadataValues(ctx, grpcPreviousRPCAttemptsMDKey)
+			curRetry, err := strconv.Atoi(mdRetry[0])
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid format for grpc-previous-rpc-attempts header: %v", mdRetry[0])
+			}
+
+			if curRetry == wantRetry {
+				break forLoop
+			}
+		}
+	}
+
+	grpc.SetHeader(ctx, metadata.Pairs("hostname", s.hostname))
+	return response, status.Err(codes.OK, "")
+}
+
+func getRPCBehaviorMetadata(ctx context.Context) []string {
+	mdRPCBehavior := getMetadataValues(ctx, rpcBehaviorMDKey)
+	var rpcBehaviorMetadata []string
+	for _, mdVal := range mdRPCBehavior {
+		splitVals := strings.Split(mdVal, ",")
+
+		for _, val := range splitVals {
+			headerVal := strings.TrimSpace(val)
+			if headerVal == "" {
+				continue
+			}
+			rpcBehaviorMetadata = append(rpcBehaviorMetadata, headerVal)
+		}
+	}
+	return rpcBehaviorMetadata
+}
+
+func getMetadataValues(ctx context.Context, metadataKey string) []string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		logger.Error("Failed to retrieve metadata from incoming RPC context")
+		return nil
+	}
+	return md.Get(metadataKey)
 }
 
 // xdsUpdateHealthServiceImpl provides an implementation of the
@@ -101,10 +209,7 @@ func (x *xdsUpdateHealthServiceImpl) SetNotServing(_ context.Context, _ *testpb.
 }
 
 func xdsServingModeCallback(addr net.Addr, args xds.ServingModeChangeArgs) {
-	logger.Infof("Serving mode for xDS server at %s changed to %s", addr.String(), args.Mode)
-	if args.Err != nil {
-		logger.Infof("ServingModeCallback returned error: %v", args.Err)
-	}
+	logger.Infof("Serving mode callback for xDS server at %q invoked with mode: %q, err: %v", addr.String(), args.Mode, args.Err)
 }
 
 func main() {
@@ -121,15 +226,16 @@ func main() {
 	// If -secure_mode is not set, expose all services on -port with a regular
 	// gRPC server.
 	if !*secureMode {
-		lis, err := net.Listen("tcp4", fmt.Sprintf(":%d", *port))
+		addr := fmt.Sprintf(":%d", *port)
+		lis, err := net.Listen("tcp4", addr)
 		if err != nil {
-			logger.Fatalf("net.Listen(%s) failed: %v", fmt.Sprintf(":%d", *port), err)
+			logger.Fatalf("net.Listen(%s) failed: %v", addr, err)
 		}
 
 		server := grpc.NewServer()
 		testgrpc.RegisterTestServiceServer(server, testService)
 		healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
-		healthpb.RegisterHealthServer(server, healthServer)
+		healthgrpc.RegisterHealthServer(server, healthServer)
 		testgrpc.RegisterXdsUpdateHealthServiceServer(server, updateHealthService)
 		reflection.Register(server)
 		cleanup, err := admin.Register(server)
@@ -144,9 +250,10 @@ func main() {
 	}
 
 	// Create a listener on -port to expose the test service.
-	testLis, err := net.Listen("tcp4", fmt.Sprintf(":%d", *port))
+	addr := fmt.Sprintf(":%d", *port)
+	testLis, err := net.Listen("tcp4", addr)
 	if err != nil {
-		logger.Fatalf("net.Listen(%s) failed: %v", fmt.Sprintf(":%d", *port), err)
+		logger.Fatalf("net.Listen(%s) failed: %v", addr, err)
 	}
 
 	// Create server-side xDS credentials with a plaintext fallback.
@@ -157,7 +264,10 @@ func main() {
 
 	// Create an xDS enabled gRPC server, register the test service
 	// implementation and start serving.
-	testServer := xds.NewGRPCServer(grpc.Creds(creds), xds.ServingModeCallback(xdsServingModeCallback))
+	testServer, err := xds.NewGRPCServer(grpc.Creds(creds), xds.ServingModeCallback(xdsServingModeCallback))
+	if err != nil {
+		logger.Fatal("Failed to create an xDS enabled gRPC server: %v", err)
+	}
 	testgrpc.RegisterTestServiceServer(testServer, testService)
 	go func() {
 		if err := testServer.Serve(testLis); err != nil {
@@ -167,16 +277,17 @@ func main() {
 	defer testServer.Stop()
 
 	// Create a listener on -maintenance_port to expose other services.
-	maintenanceLis, err := net.Listen("tcp4", fmt.Sprintf(":%d", *maintenancePort))
+	addr = fmt.Sprintf(":%d", *maintenancePort)
+	maintenanceLis, err := net.Listen("tcp4", addr)
 	if err != nil {
-		logger.Fatalf("net.Listen(%s) failed: %v", fmt.Sprintf(":%d", *maintenancePort), err)
+		logger.Fatalf("net.Listen(%s) failed: %v", addr, err)
 	}
 
 	// Create a regular gRPC server and register the maintenance services on
 	// it and start serving.
 	maintenanceServer := grpc.NewServer()
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
-	healthpb.RegisterHealthServer(maintenanceServer, healthServer)
+	healthgrpc.RegisterHealthServer(maintenanceServer, healthServer)
 	testgrpc.RegisterXdsUpdateHealthServiceServer(maintenanceServer, updateHealthService)
 	reflection.Register(maintenanceServer)
 	cleanup, err := admin.Register(maintenanceServer)

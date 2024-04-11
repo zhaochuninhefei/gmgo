@@ -28,16 +28,19 @@ import (
 	"testing"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/binarylog"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	iblog "gitee.com/zhaochuninhefei/gmgo/grpc/internal/binarylog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/stubserver"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 
-	pb "gitee.com/zhaochuninhefei/gmgo/grpc/binarylog/grpc_binarylog_v1"
+	binlogpb "gitee.com/zhaochuninhefei/gmgo/grpc/binarylog/grpc_binarylog_v1"
 	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 )
@@ -63,10 +66,10 @@ var testSink = &testBinLogSink{}
 
 type testBinLogSink struct {
 	mu  sync.Mutex
-	buf []*pb.GrpcLogEntry
+	buf []*binlogpb.GrpcLogEntry
 }
 
-func (s *testBinLogSink) Write(e *pb.GrpcLogEntry) error {
+func (s *testBinLogSink) Write(e *binlogpb.GrpcLogEntry) error {
 	s.mu.Lock()
 	s.buf = append(s.buf, e)
 	s.mu.Unlock()
@@ -77,12 +80,12 @@ func (s *testBinLogSink) Close() error { return nil }
 
 // Returns all client entris if client is true, otherwise return all server
 // entries.
-func (s *testBinLogSink) logEntries(client bool) []*pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_SERVER
+func (s *testBinLogSink) logEntries(client bool) []*binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_SERVER
 	if client {
-		logger = pb.GrpcLogEntry_LOGGER_CLIENT
+		logger = binlogpb.GrpcLogEntry_LOGGER_CLIENT
 	}
-	var ret []*pb.GrpcLogEntry
+	var ret []*binlogpb.GrpcLogEntry
 	s.mu.Lock()
 	for _, e := range s.buf {
 		if e.Logger == logger {
@@ -310,7 +313,7 @@ func (te *test) clientConn() *grpc.ClientConn {
 	if te.cc != nil {
 		return te.cc
 	}
-	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock()}
 
 	var err error
 	te.cc, err = grpc.Dial(te.srvAddr, opts...)
@@ -480,31 +483,31 @@ type expectedData struct {
 	err       error
 }
 
-func (ed *expectedData) newClientHeaderEntry(client bool, rpcID, inRPCID uint64) *pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_CLIENT
-	var peer *pb.Address
+func (ed *expectedData) newClientHeaderEntry(client bool, rpcID, inRPCID uint64) *binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_CLIENT
+	var peer *binlogpb.Address
 	if !client {
-		logger = pb.GrpcLogEntry_LOGGER_SERVER
+		logger = binlogpb.GrpcLogEntry_LOGGER_SERVER
 		ed.te.clientAddrMu.Lock()
-		peer = &pb.Address{
+		peer = &binlogpb.Address{
 			Address: ed.te.clientIP.String(),
 			IpPort:  uint32(ed.te.clientPort),
 		}
 		if ed.te.clientIP.To4() != nil {
-			peer.Type = pb.Address_TYPE_IPV4
+			peer.Type = binlogpb.Address_TYPE_IPV4
 		} else {
-			peer.Type = pb.Address_TYPE_IPV6
+			peer.Type = binlogpb.Address_TYPE_IPV6
 		}
 		ed.te.clientAddrMu.Unlock()
 	}
-	return &pb.GrpcLogEntry{
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_CLIENT_HEADER,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_CLIENT_HEADER,
 		Logger:               logger,
-		Payload: &pb.GrpcLogEntry_ClientHeader{
-			ClientHeader: &pb.ClientHeader{
+		Payload: &binlogpb.GrpcLogEntry_ClientHeader{
+			ClientHeader: &binlogpb.ClientHeader{
 				Metadata:   iblog.MdToMetadataProto(testMetadata),
 				MethodName: ed.method,
 				Authority:  ed.te.srvAddr,
@@ -514,29 +517,29 @@ func (ed *expectedData) newClientHeaderEntry(client bool, rpcID, inRPCID uint64)
 	}
 }
 
-func (ed *expectedData) newServerHeaderEntry(client bool, rpcID, inRPCID uint64) *pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_SERVER
-	var peer *pb.Address
+func (ed *expectedData) newServerHeaderEntry(client bool, rpcID, inRPCID uint64) *binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_SERVER
+	var peer *binlogpb.Address
 	if client {
-		logger = pb.GrpcLogEntry_LOGGER_CLIENT
-		peer = &pb.Address{
+		logger = binlogpb.GrpcLogEntry_LOGGER_CLIENT
+		peer = &binlogpb.Address{
 			Address: ed.te.srvIP.String(),
 			IpPort:  uint32(ed.te.srvPort),
 		}
 		if ed.te.srvIP.To4() != nil {
-			peer.Type = pb.Address_TYPE_IPV4
+			peer.Type = binlogpb.Address_TYPE_IPV4
 		} else {
-			peer.Type = pb.Address_TYPE_IPV6
+			peer.Type = binlogpb.Address_TYPE_IPV6
 		}
 	}
-	return &pb.GrpcLogEntry{
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_SERVER_HEADER,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_SERVER_HEADER,
 		Logger:               logger,
-		Payload: &pb.GrpcLogEntry_ServerHeader{
-			ServerHeader: &pb.ServerHeader{
+		Payload: &binlogpb.GrpcLogEntry_ServerHeader{
+			ServerHeader: &binlogpb.ServerHeader{
 				Metadata: iblog.MdToMetadataProto(testMetadata),
 			},
 		},
@@ -544,23 +547,23 @@ func (ed *expectedData) newServerHeaderEntry(client bool, rpcID, inRPCID uint64)
 	}
 }
 
-func (ed *expectedData) newClientMessageEntry(client bool, rpcID, inRPCID uint64, msg proto.Message) *pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_CLIENT
+func (ed *expectedData) newClientMessageEntry(client bool, rpcID, inRPCID uint64, msg proto.Message) *binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_CLIENT
 	if !client {
-		logger = pb.GrpcLogEntry_LOGGER_SERVER
+		logger = binlogpb.GrpcLogEntry_LOGGER_SERVER
 	}
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		grpclogLogger.Infof("binarylogging_testing: failed to marshal proto message: %v", err)
 	}
-	return &pb.GrpcLogEntry{
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_CLIENT_MESSAGE,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_CLIENT_MESSAGE,
 		Logger:               logger,
-		Payload: &pb.GrpcLogEntry_Message{
-			Message: &pb.Message{
+		Payload: &binlogpb.GrpcLogEntry_Message{
+			Message: &binlogpb.Message{
 				Length: uint32(len(data)),
 				Data:   data,
 			},
@@ -568,23 +571,23 @@ func (ed *expectedData) newClientMessageEntry(client bool, rpcID, inRPCID uint64
 	}
 }
 
-func (ed *expectedData) newServerMessageEntry(client bool, rpcID, inRPCID uint64, msg proto.Message) *pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_CLIENT
+func (ed *expectedData) newServerMessageEntry(client bool, rpcID, inRPCID uint64, msg proto.Message) *binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_CLIENT
 	if !client {
-		logger = pb.GrpcLogEntry_LOGGER_SERVER
+		logger = binlogpb.GrpcLogEntry_LOGGER_SERVER
 	}
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		grpclogLogger.Infof("binarylogging_testing: failed to marshal proto message: %v", err)
 	}
-	return &pb.GrpcLogEntry{
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_SERVER_MESSAGE,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_SERVER_MESSAGE,
 		Logger:               logger,
-		Payload: &pb.GrpcLogEntry_Message{
-			Message: &pb.Message{
+		Payload: &binlogpb.GrpcLogEntry_Message{
+			Message: &binlogpb.Message{
 				Length: uint32(len(data)),
 				Data:   data,
 			},
@@ -592,34 +595,34 @@ func (ed *expectedData) newServerMessageEntry(client bool, rpcID, inRPCID uint64
 	}
 }
 
-func (ed *expectedData) newHalfCloseEntry(client bool, rpcID, inRPCID uint64) *pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_CLIENT
+func (ed *expectedData) newHalfCloseEntry(client bool, rpcID, inRPCID uint64) *binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_CLIENT
 	if !client {
-		logger = pb.GrpcLogEntry_LOGGER_SERVER
+		logger = binlogpb.GrpcLogEntry_LOGGER_SERVER
 	}
-	return &pb.GrpcLogEntry{
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_CLIENT_HALF_CLOSE,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_CLIENT_HALF_CLOSE,
 		Payload:              nil, // No payload here.
 		Logger:               logger,
 	}
 }
 
-func (ed *expectedData) newServerTrailerEntry(client bool, rpcID, inRPCID uint64, stErr error) *pb.GrpcLogEntry {
-	logger := pb.GrpcLogEntry_LOGGER_SERVER
-	var peer *pb.Address
+func (ed *expectedData) newServerTrailerEntry(client bool, rpcID, inRPCID uint64, stErr error) *binlogpb.GrpcLogEntry {
+	logger := binlogpb.GrpcLogEntry_LOGGER_SERVER
+	var peer *binlogpb.Address
 	if client {
-		logger = pb.GrpcLogEntry_LOGGER_CLIENT
-		peer = &pb.Address{
+		logger = binlogpb.GrpcLogEntry_LOGGER_CLIENT
+		peer = &binlogpb.Address{
 			Address: ed.te.srvIP.String(),
 			IpPort:  uint32(ed.te.srvPort),
 		}
 		if ed.te.srvIP.To4() != nil {
-			peer.Type = pb.Address_TYPE_IPV4
+			peer.Type = binlogpb.Address_TYPE_IPV4
 		} else {
-			peer.Type = pb.Address_TYPE_IPV6
+			peer.Type = binlogpb.Address_TYPE_IPV6
 		}
 	}
 	st, ok := status.FromError(stErr)
@@ -637,14 +640,14 @@ func (ed *expectedData) newServerTrailerEntry(client bool, rpcID, inRPCID uint64
 			grpclogLogger.Infof("binarylogging: failed to marshal status proto: %v", err)
 		}
 	}
-	return &pb.GrpcLogEntry{
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_SERVER_TRAILER,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_SERVER_TRAILER,
 		Logger:               logger,
-		Payload: &pb.GrpcLogEntry_Trailer{
-			Trailer: &pb.Trailer{
+		Payload: &binlogpb.GrpcLogEntry_Trailer{
+			Trailer: &binlogpb.Trailer{
 				Metadata: iblog.MdToMetadataProto(testTrailerMetadata),
 				// st will be nil if err was not a status error, but nil is ok.
 				StatusCode:    uint32(st.Code()),
@@ -656,20 +659,20 @@ func (ed *expectedData) newServerTrailerEntry(client bool, rpcID, inRPCID uint64
 	}
 }
 
-func (ed *expectedData) newCancelEntry(rpcID, inRPCID uint64) *pb.GrpcLogEntry {
-	return &pb.GrpcLogEntry{
+func (ed *expectedData) newCancelEntry(rpcID, inRPCID uint64) *binlogpb.GrpcLogEntry {
+	return &binlogpb.GrpcLogEntry{
 		Timestamp:            nil,
 		CallId:               rpcID,
 		SequenceIdWithinCall: inRPCID,
-		Type:                 pb.GrpcLogEntry_EVENT_TYPE_CANCEL,
-		Logger:               pb.GrpcLogEntry_LOGGER_CLIENT,
+		Type:                 binlogpb.GrpcLogEntry_EVENT_TYPE_CANCEL,
+		Logger:               binlogpb.GrpcLogEntry_LOGGER_CLIENT,
 		Payload:              nil,
 	}
 }
 
-func (ed *expectedData) toClientLogEntries() []*pb.GrpcLogEntry {
+func (ed *expectedData) toClientLogEntries() []*binlogpb.GrpcLogEntry {
 	var (
-		ret     []*pb.GrpcLogEntry
+		ret     []*binlogpb.GrpcLogEntry
 		idInRPC uint64 = 1
 	)
 	ret = append(ret, ed.newClientHeaderEntry(true, globalRPCID, idInRPC))
@@ -725,9 +728,9 @@ func (ed *expectedData) toClientLogEntries() []*pb.GrpcLogEntry {
 	return ret
 }
 
-func (ed *expectedData) toServerLogEntries() []*pb.GrpcLogEntry {
+func (ed *expectedData) toServerLogEntries() []*binlogpb.GrpcLogEntry {
 	var (
-		ret     []*pb.GrpcLogEntry
+		ret     []*binlogpb.GrpcLogEntry
 		idInRPC uint64 = 1
 	)
 	ret = append(ret, ed.newClientHeaderEntry(false, globalRPCID, idInRPC))
@@ -837,7 +840,7 @@ func runRPCs(t *testing.T, cc *rpcConfig) *expectedData {
 //
 // This function is typically called with only two entries. It's written in this
 // way so the code can be put in a for loop instead of copied twice.
-func equalLogEntry(entries ...*pb.GrpcLogEntry) (equal bool) {
+func equalLogEntry(entries ...*binlogpb.GrpcLogEntry) (equal bool) {
 	for i, e := range entries {
 		// Clear out some fields we don't compare.
 		e.Timestamp = nil
@@ -868,7 +871,7 @@ func testClientBinaryLog(t *testing.T, c *rpcConfig) error {
 	defer testSink.clear()
 	expect := runRPCs(t, c)
 	want := expect.toClientLogEntries()
-	var got []*pb.GrpcLogEntry
+	var got []*binlogpb.GrpcLogEntry
 	// In racy cases, some entries are not logged when the RPC is finished (e.g.
 	// context.Cancel).
 	//
@@ -968,7 +971,7 @@ func testServerBinaryLog(t *testing.T, c *rpcConfig) error {
 	defer testSink.clear()
 	expect := runRPCs(t, c)
 	want := expect.toServerLogEntries()
-	var got []*pb.GrpcLogEntry
+	var got []*binlogpb.GrpcLogEntry
 	// In racy cases, some entries are not logged when the RPC is finished (e.g.
 	// context.Cancel). This is unlikely to happen on server side, but it does
 	// no harm to retry.
@@ -1056,5 +1059,41 @@ func (s) TestServerBinaryLogFullDuplexError(t *testing.T) {
 	count := 5
 	if err := testServerBinaryLog(t, &rpcConfig{count: count, success: false, callType: fullDuplexStreamRPC}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestCanceledStatus ensures a server that responds with a Canceled status has
+// its trailers logged appropriately and is not treated as a canceled RPC.
+func (s) TestCanceledStatus(t *testing.T) {
+	defer testSink.clear()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	const statusMsgWant = "server returned Canceled"
+	ss := &stubserver.StubServer{
+		UnaryCallF: func(ctx context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
+			grpc.SetTrailer(ctx, metadata.Pairs("key", "value"))
+			return nil, status.Error(codes.Canceled, statusMsgWant)
+		},
+	}
+	if err := ss.Start(nil); err != nil {
+		t.Fatalf("Error starting endpoint server: %v", err)
+	}
+	defer ss.Stop()
+
+	if _, err := ss.Client.UnaryCall(ctx, &testpb.SimpleRequest{}); status.Code(err) != codes.Canceled {
+		t.Fatalf("Received unexpected error from UnaryCall: %v; want Canceled", err)
+	}
+
+	got := testSink.logEntries(true)
+	last := got[len(got)-1]
+	if last.Type != binlogpb.GrpcLogEntry_EVENT_TYPE_SERVER_TRAILER ||
+		last.GetTrailer().GetStatusCode() != uint32(codes.Canceled) ||
+		last.GetTrailer().GetStatusMessage() != statusMsgWant ||
+		len(last.GetTrailer().GetMetadata().GetEntry()) != 1 ||
+		last.GetTrailer().GetMetadata().GetEntry()[0].GetKey() != "key" ||
+		string(last.GetTrailer().GetMetadata().GetEntry()[0].GetValue()) != "value" {
+		t.Fatalf("Got binary log: %+v; want last entry is server trailing with status Canceled", got)
 	}
 }

@@ -23,7 +23,7 @@
 // reported. If local credentials is not used in local connections
 // (local TCP or UDS), it will fail.
 //
-// Experimental
+// # Experimental
 //
 // Notice: This package is EXPERIMENTAL and may be changed or removed in a
 // later release.
@@ -64,6 +64,9 @@ func getSecurityLevel(network, addr string) (credentials.SecurityLevel, error) {
 	switch {
 	// Local TCP connection
 	case strings.HasPrefix(addr, "127."), strings.HasPrefix(addr, "[::1]:"):
+		return credentials.NoSecurity, nil
+	// Windows named pipe connection
+	case network == "pipe" && strings.HasPrefix(addr, `\\.\pipe\`):
 		return credentials.NoSecurity, nil
 	// UDS connection
 	case network == "unix":

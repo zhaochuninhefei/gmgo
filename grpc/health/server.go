@@ -51,7 +51,6 @@ func NewServer() *Server {
 }
 
 // Check implements `service Health`.
-//goland:noinspection GoUnusedParameter
 func (s *Server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

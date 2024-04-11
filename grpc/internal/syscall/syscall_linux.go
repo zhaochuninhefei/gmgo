@@ -47,7 +47,7 @@ type Rusage = syscall.Rusage
 // GetRusage returns the resource usage of current process.
 func GetRusage() *Rusage {
 	rusage := new(Rusage)
-	_ = syscall.Getrusage(syscall.RUSAGE_SELF, rusage)
+	syscall.Getrusage(syscall.RUSAGE_SELF, rusage)
 	return rusage
 }
 

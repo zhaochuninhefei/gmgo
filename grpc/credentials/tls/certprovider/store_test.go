@@ -22,19 +22,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"os"
 	"testing"
 	"time"
-
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-
-	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 const (
@@ -75,7 +71,7 @@ type fakeProviderBuilder struct {
 	providerChan *testutils.Channel
 }
 
-func (b *fakeProviderBuilder) ParseConfig(config interface{}) (*BuildableConfig, error) {
+func (b *fakeProviderBuilder) ParseConfig(config any) (*BuildableConfig, error) {
 	s, ok := config.(string)
 	if !ok {
 		return nil, fmt.Errorf("providerBuilder %s received config of type %T, want string", b.name, config)
@@ -128,7 +124,7 @@ func loadKeyMaterials(t *testing.T, cert, key, ca string) *KeyMaterial {
 		t.Fatalf("Failed to load keyPair: %v", err)
 	}
 
-	pemData, err := ioutil.ReadFile(testdata.Path(ca))
+	pemData, err := os.ReadFile(testdata.Path(ca))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,15 +160,10 @@ func compareKeyMaterial(got, want *KeyMaterial) error {
 		}
 	}
 
-	// x509.CertPool contains only unexported fields some of which contain other
-	// unexported fields. So usage of cmp.AllowUnexported() or
-	// cmpopts.IgnoreUnexported() does not help us much here. Also, the standard
-	// library does not provide a way to compare CertPool values. Comparing the
-	// subjects field of the certs in the CertPool seems like a reasonable
-	// approach.
-	if gotR, wantR := got.Roots.Subjects(), want.Roots.Subjects(); !cmp.Equal(gotR, wantR, cmpopts.EquateEmpty()) {
+	if gotR, wantR := got.Roots, want.Roots; !gotR.Equal(wantR) {
 		return fmt.Errorf("keyMaterial roots = %v, want %v", gotR, wantR)
 	}
+
 	return nil
 }
 
@@ -344,7 +335,7 @@ func (s) TestStoreSingleProviderDifferentConfigs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Push new key material into only one of the fake providers and and verify
+	// Push new key material into only one of the fake providers and verify
 	// that the providers returned by the store return the appropriate key
 	// material.
 	km2 := loadKeyMaterials(t, "x509/server2_cert.pem", "x509/server2_key.pem", "x509/client_ca_cert.pem")

@@ -27,27 +27,28 @@ package googledirectpath
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/google"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/googlecloud"
 	internalgrpclog "gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcrand"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/resolver"
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds" // To register xds resolvers and balancers.
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/bootstrap"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
+
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds" // To register xds resolvers and balancers.
 )
 
 const (
-	c2pScheme = "google-c2p-experimental"
+	c2pScheme    = "google-c2p"
+	c2pAuthority = "traffic-director-c2p.xds.googleapis.com"
 
 	tdURL          = "dns:///directpath-pa.googleapis.com"
 	httpReqTimeout = 10 * time.Second
@@ -67,7 +68,7 @@ const (
 var (
 	onGCE = googlecloud.OnGCE
 
-	newClientWithConfig = func(config *bootstrap.Config) (xdsclient.XDSClient, error) {
+	newClientWithConfig = func(config *bootstrap.Config) (xdsclient.XDSClient, func(), error) {
 		return xdsclient.NewWithConfig(config)
 	}
 
@@ -81,10 +82,12 @@ func init() {
 type c2pResolverBuilder struct{}
 
 func (c2pResolverBuilder) Build(t resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
+	if t.URL.Host != "" {
+		return nil, fmt.Errorf("google-c2p URI scheme does not support authorities")
+	}
+
 	if !runDirectPath() {
 		// If not xDS, fallback to DNS.
-		// t.Scheme is deprecated, use URL.Scheme instead.
-		//t.Scheme = dnsName
 		t.URL.Scheme = dnsName
 		return resolver.Get(dnsName).Build(t, cc, opts)
 	}
@@ -103,50 +106,64 @@ func (c2pResolverBuilder) Build(t resolver.Target, cc resolver.ClientConn, opts 
 	if balancerName == "" {
 		balancerName = tdURL
 	}
+	serverConfig, err := bootstrap.ServerConfigFromJSON([]byte(fmt.Sprintf(`
+	{
+		"server_uri": "%s",
+		"channel_creds": [{"type": "google_default"}],
+		"server_features": ["xds_v3", "ignore_resource_deletion", "xds.config.resource-in-sotw"]
+	}`, balancerName)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to build bootstrap configuration: %v", err)
+	}
 	config := &bootstrap.Config{
-		XDSServer: &bootstrap.ServerConfig{
-			ServerURI:    balancerName,
-			Creds:        grpc.WithCredentialsBundle(google.NewDefaultCredentials()),
-			TransportAPI: version.TransportV3,
-			NodeProto:    newNode(<-zoneCh, <-ipv6CapableCh),
-		},
+		XDSServer: serverConfig,
 		ClientDefaultListenerResourceNameTemplate: "%s",
+		Authorities: map[string]*bootstrap.Authority{
+			c2pAuthority: {
+				XDSServer:                          serverConfig,
+				ClientListenerResourceNameTemplate: fmt.Sprintf("xdstp://%s/envoy.config.listener.v3.Listener/%%s", c2pAuthority),
+			},
+		},
+		NodeProto: newNode(<-zoneCh, <-ipv6CapableCh),
 	}
 
 	// Create singleton xds client with this config. The xds client will be
 	// used by the xds resolver later.
-	xdsC, err := newClientWithConfig(config)
+	_, close, err := newClientWithConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start xDS client: %v", err)
 	}
 
-	// Create and return an xDS resolver.
-	// t.Scheme is deprecated, use URL.Scheme instead.
-	//t.Scheme = xdsName
-	t.URL.Scheme = xdsName
+	t = resolver.Target{
+		URL: url.URL{
+			Scheme: xdsName,
+			Host:   c2pAuthority,
+			Path:   t.URL.Path,
+		},
+	}
 	xdsR, err := resolver.Get(xdsName).Build(t, cc, opts)
 	if err != nil {
-		xdsC.Close()
+		close()
 		return nil, err
 	}
 	return &c2pResolver{
-		Resolver: xdsR,
-		client:   xdsC,
+		Resolver:        xdsR,
+		clientCloseFunc: close,
 	}, nil
 }
 
-func (c2pResolverBuilder) Scheme() string {
+func (b c2pResolverBuilder) Scheme() string {
 	return c2pScheme
 }
 
 type c2pResolver struct {
 	resolver.Resolver
-	client xdsclient.XDSClient
+	clientCloseFunc func()
 }
 
 func (r *c2pResolver) Close() {
 	r.Resolver.Close()
-	r.client.Close()
+	r.clientCloseFunc()
 }
 
 var ipv6EnabledMetadata = &structpb.Struct{
@@ -177,8 +194,7 @@ func newNode(zone string, ipv6Capable bool) *v3corepb.Node {
 
 // runDirectPath returns whether this resolver should use direct path.
 //
-// direct path is enabled if this client is running on GCE, and the normal xDS
-// is not used (bootstrap env vars are not set).
+// direct path is enabled if this client is running on GCE.
 func runDirectPath() bool {
-	return envconfig.XDSBootstrapFileName == "" && envconfig.XDSBootstrapFileContent == "" && onGCE()
+	return onGCE()
 }

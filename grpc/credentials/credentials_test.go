@@ -20,12 +20,11 @@ package credentials
 
 import (
 	"context"
+	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	"net"
 	"strings"
 	"testing"
 	"time"
-
-	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/testdata"

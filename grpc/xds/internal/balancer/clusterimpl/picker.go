@@ -26,7 +26,8 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/load"
-	orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
+
+	v3orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
 )
 
 // NewRandomWRR is used when calculating drops. It's exported so that tests can
@@ -66,11 +67,6 @@ func newDropper(c DropConfig) *dropper {
 func (d *dropper) drop() (ret bool) {
 	return d.w.Next().(bool)
 }
-
-const (
-	serverLoadCPUName    = "cpu_utilization"
-	serverLoadMemoryName = "mem_utilization"
-)
 
 // loadReporter wraps the methods from the loadStore that are used here.
 type loadReporter interface {
@@ -158,16 +154,11 @@ func (d *picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 			}
 			d.loadStore.CallFinished(lIDStr, info.Err)
 
-			load, ok := info.ServerLoad.(*orcapb.OrcaLoadReport)
-			if !ok {
+			load, ok := info.ServerLoad.(*v3orcapb.OrcaLoadReport)
+			if !ok || load == nil {
 				return
 			}
-			d.loadStore.CallServerLoad(lIDStr, serverLoadCPUName, load.CpuUtilization)
-			d.loadStore.CallServerLoad(lIDStr, serverLoadMemoryName, load.MemUtilization)
-			for n, c := range load.RequestCost {
-				d.loadStore.CallServerLoad(lIDStr, n, c)
-			}
-			for n, c := range load.Utilization {
+			for n, c := range load.NamedMetrics {
 				d.loadStore.CallServerLoad(lIDStr, n, c)
 			}
 		}

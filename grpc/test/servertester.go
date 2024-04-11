@@ -138,19 +138,46 @@ func (st *serverTester) writeSettingsAck() {
 	}
 }
 
+func (st *serverTester) wantGoAway(errCode http2.ErrCode) *http2.GoAwayFrame {
+	f, err := st.readFrame()
+	if err != nil {
+		st.t.Fatalf("Error while expecting an RST frame: %v", err)
+	}
+	gaf, ok := f.(*http2.GoAwayFrame)
+	if !ok {
+		st.t.Fatalf("got a %T; want *http2.GoAwayFrame", f)
+	}
+	if gaf.ErrCode != errCode {
+		st.t.Fatalf("expected GOAWAY error code '%v', got '%v'", errCode.String(), gaf.ErrCode.String())
+	}
+	return gaf
+}
+
+func (st *serverTester) wantPing() *http2.PingFrame {
+	f, err := st.readFrame()
+	if err != nil {
+		st.t.Fatalf("Error while expecting an RST frame: %v", err)
+	}
+	pf, ok := f.(*http2.PingFrame)
+	if !ok {
+		st.t.Fatalf("got a %T; want *http2.GoAwayFrame", f)
+	}
+	return pf
+}
+
 func (st *serverTester) wantRSTStream(errCode http2.ErrCode) *http2.RSTStreamFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting an RST frame: %v", err)
 	}
-	sf, ok := f.(*http2.RSTStreamFrame)
+	rf, ok := f.(*http2.RSTStreamFrame)
 	if !ok {
 		st.t.Fatalf("got a %T; want *http2.RSTStreamFrame", f)
 	}
-	if sf.ErrCode != errCode {
-		st.t.Fatalf("expected RST error code '%v', got '%v'", errCode.String(), sf.ErrCode.String())
+	if rf.ErrCode != errCode {
+		st.t.Fatalf("expected RST error code '%v', got '%v'", errCode.String(), rf.ErrCode.String())
 	}
-	return sf
+	return rf
 }
 
 func (st *serverTester) wantSettings() *http2.SettingsFrame {
@@ -271,5 +298,11 @@ func (st *serverTester) writeData(streamID uint32, endStream bool, data []byte) 
 func (st *serverTester) writeRSTStream(streamID uint32, code http2.ErrCode) {
 	if err := st.fr.WriteRSTStream(streamID, code); err != nil {
 		st.t.Fatalf("Error writing RST_STREAM: %v", err)
+	}
+}
+
+func (st *serverTester) writePing(ack bool, data [8]byte) {
+	if err := st.fr.WritePing(ack, data); err != nil {
+		st.t.Fatalf("Error writing PING: %v", err)
 	}
 }

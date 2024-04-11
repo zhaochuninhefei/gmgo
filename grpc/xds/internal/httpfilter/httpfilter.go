@@ -22,7 +22,7 @@ package httpfilter
 
 import (
 	iresolver "gitee.com/zhaochuninhefei/gmgo/grpc/internal/resolver"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // FilterConfig represents an opaque data structure holding configuration for a

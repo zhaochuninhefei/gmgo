@@ -23,14 +23,14 @@
 //
 // - CSDS: https://github.com/grpc/proposal/blob/master/A40-csds-support.md
 //
-// Experimental
+// # Experimental
 //
 // Notice: All APIs in this package are experimental and may be removed in a
 // later release.
 package admin
 
 import (
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	channelzservice "gitee.com/zhaochuninhefei/gmgo/grpc/channelz/service"
 	internaladmin "gitee.com/zhaochuninhefei/gmgo/grpc/internal/admin"
 )

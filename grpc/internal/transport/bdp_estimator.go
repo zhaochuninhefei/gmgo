@@ -114,13 +114,11 @@ func (b *bdpEstimator) calculate(d [8]byte) {
 		b.rtt += (rttSample - b.rtt) / float64(b.sampleCount)
 	} else {
 		// Heed to the recent past more.
-		//goland:noinspection GoRedundantConversion
 		b.rtt += (rttSample - b.rtt) * float64(alpha)
 	}
 	b.isSent = false
 	// The number of bytes accumulated so far in the sample is smaller
 	// than or equal to 1.5 times the real BDP on a saturated connection.
-	//goland:noinspection GoRedundantConversion
 	bwCurrent := float64(b.sample) / (b.rtt * float64(1.5))
 	if bwCurrent > b.bwMax {
 		b.bwMax = bwCurrent

@@ -18,38 +18,43 @@
 package xdsresource
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
+	"time"
 
 	v3clusterpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3aggregateclusterpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	v3tlspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/envconfig"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpclog"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/pretty"
+	iserviceconfig "gitee.com/zhaochuninhefei/gmgo/grpc/internal/serviceconfig"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds/matcher"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdslbregistry"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/xdsresource/version"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
+
+// ValidateClusterAndConstructClusterUpdateForTesting exports the
+// validateClusterAndConstructClusterUpdate function for testing purposes.
+var ValidateClusterAndConstructClusterUpdateForTesting = validateClusterAndConstructClusterUpdate
 
 // TransportSocket proto message has a `name` field which is expected to be set
 // to this value by the management server.
 const transportSocketName = "envoy.transport_sockets.tls"
 
-// UnmarshalCluster processes resources received in an CDS response, validates
-// them, and transforms them into a native struct which contains only fields we
-// are interested in.
-func UnmarshalCluster(opts *UnmarshalOptions) (map[string]ClusterUpdateErrTuple, UpdateMetadata, error) {
-	update := make(map[string]ClusterUpdateErrTuple)
-	md, err := processAllResources(opts, update)
-	return update, md, err
-}
+func unmarshalClusterResource(r *anypb.Any) (string, ClusterUpdate, error) {
+	r, err := UnwrapResource(r)
+	if err != nil {
+		return "", ClusterUpdate{}, fmt.Errorf("failed to unwrap resource: %v", err)
+	}
 
-func unmarshalClusterResource(r *anypb.Any, f UpdateValidatorFunc, logger *grpclog.PrefixLogger) (string, ClusterUpdate, error) {
 	if !IsClusterResource(r.GetTypeUrl()) {
 		return "", ClusterUpdate{}, fmt.Errorf("unexpected resource type: %q ", r.GetTypeUrl())
 	}
@@ -58,17 +63,11 @@ func unmarshalClusterResource(r *anypb.Any, f UpdateValidatorFunc, logger *grpcl
 	if err := proto.Unmarshal(r.GetValue(), cluster); err != nil {
 		return "", ClusterUpdate{}, fmt.Errorf("failed to unmarshal resource: %v", err)
 	}
-	logger.Infof("Resource with name: %v, type: %T, contains: %v", cluster.GetName(), cluster, pretty.ToJSON(cluster))
 	cu, err := validateClusterAndConstructClusterUpdate(cluster)
 	if err != nil {
 		return cluster.GetName(), ClusterUpdate{}, err
 	}
 	cu.Raw = r
-	if f != nil {
-		if err := f(cu); err != nil {
-			return "", ClusterUpdate{}, err
-		}
-	}
 
 	return cluster.GetName(), cu, nil
 }
@@ -77,17 +76,17 @@ const (
 	defaultRingHashMinSize = 1024
 	defaultRingHashMaxSize = 8 * 1024 * 1024 // 8M
 	ringHashSizeUpperBound = 8 * 1024 * 1024 // 8M
+
+	defaultLeastRequestChoiceCount = 2
 )
 
 func validateClusterAndConstructClusterUpdate(cluster *v3clusterpb.Cluster) (ClusterUpdate, error) {
-	var lbPolicy *ClusterLBPolicyRingHash
+	var lbPolicy json.RawMessage
+	var err error
 	switch cluster.GetLbPolicy() {
 	case v3clusterpb.Cluster_ROUND_ROBIN:
-		lbPolicy = nil // The default is round_robin, and there's no config to set.
+		lbPolicy = []byte(`[{"xds_wrr_locality_experimental": {"childPolicy": [{"round_robin": {}}]}}]`)
 	case v3clusterpb.Cluster_RING_HASH:
-		if !envconfig.XDSRingHash {
-			return ClusterUpdate{}, fmt.Errorf("unexpected lbPolicy %v in response: %+v", cluster.GetLbPolicy(), cluster)
-		}
 		rhc := cluster.GetRingHashLbConfig()
 		if rhc.GetHashFunction() != v3clusterpb.Cluster_RingHashLbConfig_XX_HASH {
 			return ClusterUpdate{}, fmt.Errorf("unsupported ring_hash hash function %v in response: %+v", rhc.GetHashFunction(), cluster)
@@ -96,56 +95,103 @@ func validateClusterAndConstructClusterUpdate(cluster *v3clusterpb.Cluster) (Clu
 		// defaults to 8M entries, and limited to 8M entries
 		var minSize, maxSize uint64 = defaultRingHashMinSize, defaultRingHashMaxSize
 		if min := rhc.GetMinimumRingSize(); min != nil {
-			if min.GetValue() > ringHashSizeUpperBound {
-				return ClusterUpdate{}, fmt.Errorf("unexpected ring_hash mininum ring size %v in response: %+v", min.GetValue(), cluster)
-			}
 			minSize = min.GetValue()
 		}
 		if max := rhc.GetMaximumRingSize(); max != nil {
-			if max.GetValue() > ringHashSizeUpperBound {
-				return ClusterUpdate{}, fmt.Errorf("unexpected ring_hash maxinum ring size %v in response: %+v", max.GetValue(), cluster)
-			}
 			maxSize = max.GetValue()
 		}
-		if minSize > maxSize {
-			return ClusterUpdate{}, fmt.Errorf("ring_hash config min size %v is greater than max %v", minSize, maxSize)
+
+		rhLBCfg := []byte(fmt.Sprintf("{\"minRingSize\": %d, \"maxRingSize\": %d}", minSize, maxSize))
+		lbPolicy = []byte(fmt.Sprintf(`[{"ring_hash_experimental": %s}]`, rhLBCfg))
+	case v3clusterpb.Cluster_LEAST_REQUEST:
+		if !envconfig.LeastRequestLB {
+			return ClusterUpdate{}, fmt.Errorf("unexpected lbPolicy %v in response: %+v", cluster.GetLbPolicy(), cluster)
 		}
-		lbPolicy = &ClusterLBPolicyRingHash{MinimumRingSize: minSize, MaximumRingSize: maxSize}
+
+		// "The configuration for the Least Request LB policy is the
+		// least_request_lb_config field. The field is optional; if not present,
+		// defaults will be assumed for all of its values." - A48
+		lr := cluster.GetLeastRequestLbConfig()
+		var choiceCount uint32 = defaultLeastRequestChoiceCount
+		if cc := lr.GetChoiceCount(); cc != nil {
+			choiceCount = cc.GetValue()
+		}
+		// "If choice_count < 2, the config will be rejected." - A48
+		if choiceCount < 2 {
+			return ClusterUpdate{}, fmt.Errorf("Cluster_LeastRequestLbConfig.ChoiceCount must be >= 2, got: %v", choiceCount)
+		}
+
+		lrLBCfg := []byte(fmt.Sprintf("{\"choiceCount\": %d}", choiceCount))
+		lbPolicy = []byte(fmt.Sprintf(`[{"least_request_experimental": %s}]`, lrLBCfg))
 	default:
 		return ClusterUpdate{}, fmt.Errorf("unexpected lbPolicy %v in response: %+v", cluster.GetLbPolicy(), cluster)
 	}
-
 	// Process security configuration received from the control plane iff the
 	// corresponding environment variable is set.
 	var sc *SecurityConfig
-	if envconfig.XDSClientSideSecurity {
-		var err error
-		if sc, err = securityConfigFromCluster(cluster); err != nil {
-			return ClusterUpdate{}, err
+	if sc, err = securityConfigFromCluster(cluster); err != nil {
+		return ClusterUpdate{}, err
+	}
+
+	// Process outlier detection received from the control plane iff the
+	// corresponding environment variable is set.
+	var od json.RawMessage
+	if od, err = outlierConfigFromCluster(cluster); err != nil {
+		return ClusterUpdate{}, err
+	}
+
+	if cluster.GetLoadBalancingPolicy() != nil {
+		lbPolicy, err = xdslbregistry.ConvertToServiceConfig(cluster.GetLoadBalancingPolicy(), 0)
+		if err != nil {
+			return ClusterUpdate{}, fmt.Errorf("error converting LoadBalancingPolicy %v in response: %+v: %v", cluster.GetLoadBalancingPolicy(), cluster, err)
+		}
+		// "It will be the responsibility of the XdsClient to validate the
+		// converted configuration. It will do this by having the gRPC LB policy
+		// registry parse the configuration." - A52
+		bc := &iserviceconfig.BalancerConfig{}
+		if err := json.Unmarshal(lbPolicy, bc); err != nil {
+			return ClusterUpdate{}, fmt.Errorf("JSON generated from xDS LB policy registry: %s is invalid: %v", pretty.FormatJSON(lbPolicy), err)
 		}
 	}
 
 	ret := ClusterUpdate{
-		ClusterName: cluster.GetName(),
-		EnableLRS:   cluster.GetLrsServer().GetSelf() != nil,
-		SecurityCfg: sc,
-		MaxRequests: circuitBreakersFromCluster(cluster),
-		LBPolicy:    lbPolicy,
+		ClusterName:      cluster.GetName(),
+		SecurityCfg:      sc,
+		MaxRequests:      circuitBreakersFromCluster(cluster),
+		LBPolicy:         lbPolicy,
+		OutlierDetection: od,
+	}
+
+	// Note that this is different from the gRFC (gRFC A47 says to include the
+	// full ServerConfig{URL,creds,server feature} here). This information is
+	// not available here, because this function doesn't have access to the
+	// xdsclient bootstrap information now (can be added if necessary). The
+	// ServerConfig will be read and populated by the CDS balancer when
+	// processing this field.
+	// According to A27:
+	// If the `lrs_server` field is set, it must have its `self` field set, in
+	// which case the client should use LRS for load reporting. Otherwise
+	// (the `lrs_server` field is not set), LRS load reporting will be disabled.
+	if lrs := cluster.GetLrsServer(); lrs != nil {
+		if lrs.GetSelf() == nil {
+			return ClusterUpdate{}, fmt.Errorf("unsupported config_source_specifier %T in lrs_server field", lrs.ConfigSourceSpecifier)
+		}
+		ret.LRSServerConfig = ClusterLRSServerSelf
 	}
 
 	// Validate and set cluster type from the response.
 	switch {
 	case cluster.GetType() == v3clusterpb.Cluster_EDS:
-		if cluster.GetEdsClusterConfig().GetEdsConfig().GetAds() == nil {
-			return ClusterUpdate{}, fmt.Errorf("unexpected edsConfig in response: %+v", cluster)
+		if configsource := cluster.GetEdsClusterConfig().GetEdsConfig(); configsource.GetAds() == nil && configsource.GetSelf() == nil {
+			return ClusterUpdate{}, fmt.Errorf("CDS's EDS config source is not ADS or Self: %+v", cluster)
 		}
 		ret.ClusterType = ClusterTypeEDS
 		ret.EDSServiceName = cluster.GetEdsClusterConfig().GetServiceName()
+		if strings.HasPrefix(ret.ClusterName, "xdstp:") && ret.EDSServiceName == "" {
+			return ClusterUpdate{}, fmt.Errorf("CDS's EDS service name is not set with a new-style cluster name: %+v", cluster)
+		}
 		return ret, nil
 	case cluster.GetType() == v3clusterpb.Cluster_LOGICAL_DNS:
-		if !envconfig.XDSAggregateAndDNS {
-			return ClusterUpdate{}, fmt.Errorf("unsupported cluster type (%v, %v) in response: %+v", cluster.GetType(), cluster.GetClusterType(), cluster)
-		}
 		ret.ClusterType = ClusterTypeLogicalDNS
 		dnsHN, err := dnsHostNameFromCluster(cluster)
 		if err != nil {
@@ -154,12 +200,12 @@ func validateClusterAndConstructClusterUpdate(cluster *v3clusterpb.Cluster) (Clu
 		ret.DNSHostName = dnsHN
 		return ret, nil
 	case cluster.GetClusterType() != nil && cluster.GetClusterType().Name == "envoy.clusters.aggregate":
-		if !envconfig.XDSAggregateAndDNS {
-			return ClusterUpdate{}, fmt.Errorf("unsupported cluster type (%v, %v) in response: %+v", cluster.GetType(), cluster.GetClusterType(), cluster)
-		}
 		clusters := &v3aggregateclusterpb.ClusterConfig{}
 		if err := proto.Unmarshal(cluster.GetClusterType().GetTypedConfig().GetValue(), clusters); err != nil {
 			return ClusterUpdate{}, fmt.Errorf("failed to unmarshal resource: %v", err)
+		}
+		if len(clusters.Clusters) == 0 {
+			return ClusterUpdate{}, fmt.Errorf("xds: aggregate cluster has empty clusters field in response: %+v", cluster)
 		}
 		ret.ClusterType = ClusterTypeAggregate
 		ret.PrioritizedClusterNames = clusters.Clusters
@@ -453,4 +499,181 @@ func circuitBreakersFromCluster(cluster *v3clusterpb.Cluster) *uint32 {
 		return &maxRequests
 	}
 	return nil
+}
+
+// idurationp takes a time.Duration and converts it to an internal duration, and
+// returns a pointer to that internal duration.
+func idurationp(d time.Duration) *iserviceconfig.Duration {
+	id := iserviceconfig.Duration(d)
+	return &id
+}
+
+func uint32p(i uint32) *uint32 {
+	return &i
+}
+
+// Helper types to prepare Outlier Detection JSON. Pointer types to distinguish
+// between unset and a zero value.
+type successRateEjection struct {
+	StdevFactor           *uint32 `json:"stdevFactor,omitempty"`
+	EnforcementPercentage *uint32 `json:"enforcementPercentage,omitempty"`
+	MinimumHosts          *uint32 `json:"minimumHosts,omitempty"`
+	RequestVolume         *uint32 `json:"requestVolume,omitempty"`
+}
+
+type failurePercentageEjection struct {
+	Threshold             *uint32 `json:"threshold,omitempty"`
+	EnforcementPercentage *uint32 `json:"enforcementPercentage,omitempty"`
+	MinimumHosts          *uint32 `json:"minimumHosts,omitempty"`
+	RequestVolume         *uint32 `json:"requestVolume,omitempty"`
+}
+
+type odLBConfig struct {
+	Interval                  *iserviceconfig.Duration   `json:"interval,omitempty"`
+	BaseEjectionTime          *iserviceconfig.Duration   `json:"baseEjectionTime,omitempty"`
+	MaxEjectionTime           *iserviceconfig.Duration   `json:"maxEjectionTime,omitempty"`
+	MaxEjectionPercent        *uint32                    `json:"maxEjectionPercent,omitempty"`
+	SuccessRateEjection       *successRateEjection       `json:"successRateEjection,omitempty"`
+	FailurePercentageEjection *failurePercentageEjection `json:"failurePercentageEjection,omitempty"`
+}
+
+// outlierConfigFromCluster converts the received Outlier Detection
+// configuration into JSON configuration for Outlier Detection, taking into
+// account xDS Defaults. Returns nil if no OutlierDetection field set in the
+// cluster resource.
+func outlierConfigFromCluster(cluster *v3clusterpb.Cluster) (json.RawMessage, error) {
+	od := cluster.GetOutlierDetection()
+	if od == nil {
+		return nil, nil
+	}
+
+	// "The outlier_detection field of the Cluster resource should have its fields
+	//	validated according to the rules for the corresponding LB policy config
+	//	fields in the above "Validation" section. If any of these requirements is
+	//	violated, the Cluster resource should be NACKed." - A50
+	// "The google.protobuf.Duration fields interval, base_ejection_time, and
+	// max_ejection_time must obey the restrictions in the
+	// google.protobuf.Duration documentation and they must have non-negative
+	// values." - A50
+	var interval *iserviceconfig.Duration
+	if i := od.GetInterval(); i != nil {
+		if err := i.CheckValid(); err != nil {
+			return nil, fmt.Errorf("outlier_detection.interval is invalid with error: %v", err)
+		}
+		if interval = idurationp(i.AsDuration()); *interval < 0 {
+			return nil, fmt.Errorf("outlier_detection.interval = %v; must be a valid duration and >= 0", *interval)
+		}
+	}
+
+	var baseEjectionTime *iserviceconfig.Duration
+	if bet := od.GetBaseEjectionTime(); bet != nil {
+		if err := bet.CheckValid(); err != nil {
+			return nil, fmt.Errorf("outlier_detection.base_ejection_time is invalid with error: %v", err)
+		}
+		if baseEjectionTime = idurationp(bet.AsDuration()); *baseEjectionTime < 0 {
+			return nil, fmt.Errorf("outlier_detection.base_ejection_time = %v; must be >= 0", *baseEjectionTime)
+		}
+	}
+
+	var maxEjectionTime *iserviceconfig.Duration
+	if met := od.GetMaxEjectionTime(); met != nil {
+		if err := met.CheckValid(); err != nil {
+			return nil, fmt.Errorf("outlier_detection.max_ejection_time is invalid: %v", err)
+		}
+		if maxEjectionTime = idurationp(met.AsDuration()); *maxEjectionTime < 0 {
+			return nil, fmt.Errorf("outlier_detection.max_ejection_time = %v; must be >= 0", *maxEjectionTime)
+		}
+	}
+
+	// "The fields max_ejection_percent, enforcing_success_rate,
+	// failure_percentage_threshold, and enforcing_failure_percentage must have
+	// values less than or equal to 100. If any of these requirements is
+	// violated, the Cluster resource should be NACKed." - A50
+	var maxEjectionPercent *uint32
+	if mep := od.GetMaxEjectionPercent(); mep != nil {
+		if maxEjectionPercent = uint32p(mep.GetValue()); *maxEjectionPercent > 100 {
+			return nil, fmt.Errorf("outlier_detection.max_ejection_percent = %v; must be <= 100", *maxEjectionPercent)
+		}
+	}
+	// "if the enforcing_success_rate field is set to 0, the config
+	// success_rate_ejection field will be null and all success_rate_* fields
+	// will be ignored." - A50
+	var enforcingSuccessRate *uint32
+	if esr := od.GetEnforcingSuccessRate(); esr != nil {
+		if enforcingSuccessRate = uint32p(esr.GetValue()); *enforcingSuccessRate > 100 {
+			return nil, fmt.Errorf("outlier_detection.enforcing_success_rate = %v; must be <= 100", *enforcingSuccessRate)
+		}
+	}
+	var failurePercentageThreshold *uint32
+	if fpt := od.GetFailurePercentageThreshold(); fpt != nil {
+		if failurePercentageThreshold = uint32p(fpt.GetValue()); *failurePercentageThreshold > 100 {
+			return nil, fmt.Errorf("outlier_detection.failure_percentage_threshold = %v; must be <= 100", *failurePercentageThreshold)
+		}
+	}
+	// "If the enforcing_failure_percent field is set to 0 or null, the config
+	// failure_percent_ejection field will be null and all failure_percent_*
+	// fields will be ignored." - A50
+	var enforcingFailurePercentage *uint32
+	if efp := od.GetEnforcingFailurePercentage(); efp != nil {
+		if enforcingFailurePercentage = uint32p(efp.GetValue()); *enforcingFailurePercentage > 100 {
+			return nil, fmt.Errorf("outlier_detection.enforcing_failure_percentage = %v; must be <= 100", *enforcingFailurePercentage)
+		}
+	}
+
+	var successRateStdevFactor *uint32
+	if srsf := od.GetSuccessRateStdevFactor(); srsf != nil {
+		successRateStdevFactor = uint32p(srsf.GetValue())
+	}
+	var successRateMinimumHosts *uint32
+	if srmh := od.GetSuccessRateMinimumHosts(); srmh != nil {
+		successRateMinimumHosts = uint32p(srmh.GetValue())
+	}
+	var successRateRequestVolume *uint32
+	if srrv := od.GetSuccessRateRequestVolume(); srrv != nil {
+		successRateRequestVolume = uint32p(srrv.GetValue())
+	}
+	var failurePercentageMinimumHosts *uint32
+	if fpmh := od.GetFailurePercentageMinimumHosts(); fpmh != nil {
+		failurePercentageMinimumHosts = uint32p(fpmh.GetValue())
+	}
+	var failurePercentageRequestVolume *uint32
+	if fprv := od.GetFailurePercentageRequestVolume(); fprv != nil {
+		failurePercentageRequestVolume = uint32p(fprv.GetValue())
+	}
+
+	// "if the enforcing_success_rate field is set to 0, the config
+	// success_rate_ejection field will be null and all success_rate_* fields
+	// will be ignored." - A50
+	var sre *successRateEjection
+	if enforcingSuccessRate == nil || *enforcingSuccessRate != 0 {
+		sre = &successRateEjection{
+			StdevFactor:           successRateStdevFactor,
+			EnforcementPercentage: enforcingSuccessRate,
+			MinimumHosts:          successRateMinimumHosts,
+			RequestVolume:         successRateRequestVolume,
+		}
+	}
+
+	// "If the enforcing_failure_percent field is set to 0 or null, the config
+	// failure_percent_ejection field will be null and all failure_percent_*
+	// fields will be ignored." - A50
+	var fpe *failurePercentageEjection
+	if enforcingFailurePercentage != nil && *enforcingFailurePercentage != 0 {
+		fpe = &failurePercentageEjection{
+			Threshold:             failurePercentageThreshold,
+			EnforcementPercentage: enforcingFailurePercentage,
+			MinimumHosts:          failurePercentageMinimumHosts,
+			RequestVolume:         failurePercentageRequestVolume,
+		}
+	}
+
+	odLBCfg := &odLBConfig{
+		Interval:                  interval,
+		BaseEjectionTime:          baseEjectionTime,
+		MaxEjectionTime:           maxEjectionTime,
+		MaxEjectionPercent:        maxEjectionPercent,
+		SuccessRateEjection:       sre,
+		FailurePercentageEjection: fpe,
+	}
+	return json.Marshal(odLBCfg)
 }

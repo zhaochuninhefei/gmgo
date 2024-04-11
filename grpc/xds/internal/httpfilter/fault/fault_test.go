@@ -31,18 +31,18 @@ import (
 	"testing"
 	"time"
 
-	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpcrand"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/grpctest"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/xds"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/bootstrap"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/e2e"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/testutils/e2e"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	v3listenerpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v3"
@@ -50,11 +50,12 @@ import (
 	fpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	v3httppb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/test/grpc_testing"
+	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
+	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer"                        // Register the balancers.
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/resolver"                        // Register the xds_resolver.
-	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/controller/version/v3" // Register the v3 xDS API client.
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/balancer"          // Register the balancers.
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/router" // Register the router filter.
+	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/resolver"          // Register the xds_resolver.
 )
 
 const defaultTestTimeout = 10 * time.Second
@@ -68,14 +69,14 @@ func Test(t *testing.T) {
 }
 
 type testService struct {
-	testpb.TestServiceServer
+	testgrpc.TestServiceServer
 }
 
 func (*testService) EmptyCall(context.Context, *testpb.Empty) (*testpb.Empty, error) {
 	return &testpb.Empty{}, nil
 }
 
-func (*testService) FullDuplexCall(stream testpb.TestService_FullDuplexCallServer) error {
+func (*testService) FullDuplexCall(stream testgrpc.TestService_FullDuplexCallServer) error {
 	// End RPC after client does a CloseSend.
 	for {
 		if _, err := stream.Recv(); err == io.EOF {
@@ -92,22 +93,21 @@ func (*testService) FullDuplexCall(stream testpb.TestService_FullDuplexCallServe
 // - create a local TCP listener and start serving on it
 //
 // Returns the following:
-// - the management server: tests use this to configure resources
-// - nodeID expected by the management server: this is set in the Node proto
-//   sent by the xdsClient for queries.
-// - the port the server is listening on
-// - cleanup function to be invoked by the tests when done
+//   - the management server: tests use this to configure resources
+//   - nodeID expected by the management server: this is set in the Node proto
+//     sent by the xdsClient for queries.
+//   - the port the server is listening on
+//   - cleanup function to be invoked by the tests when done
 func clientSetup(t *testing.T) (*e2e.ManagementServer, string, uint32, func()) {
 	// Spin up a xDS management server on a local port.
 	nodeID := uuid.New().String()
-	fs, err := e2e.StartManagementServer()
+	fs, err := e2e.StartManagementServer(e2e.ManagementServerOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Create a bootstrap file in a temporary directory.
-	bootstrapCleanup, err := xds.SetupBootstrapFile(xds.BootstrapOptions{
-		Version:                            xds.TransportV3,
+	bootstrapCleanup, err := bootstrap.CreateFile(bootstrap.Options{
 		NodeID:                             nodeID,
 		ServerURI:                          fs.Address,
 		ServerListenerResourceNameTemplate: "grpc/server",
@@ -118,7 +118,7 @@ func clientSetup(t *testing.T) (*e2e.ManagementServer, string, uint32, func()) {
 
 	// Initialize a gRPC server and register the stubServer on it.
 	server := grpc.NewServer()
-	testpb.RegisterTestServiceServer(server, &testService{})
+	testgrpc.RegisterTestServiceServer(server, &testService{})
 
 	// Create a local listener and pass it to Serve().
 	lis, err := testutils.LocalTCPListener()
@@ -219,7 +219,7 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 		cfgs: []*fpb.HTTPFault{{
 			Delay: &cpb.FaultDelay{
 				Percentage:         &tpb.FractionalPercent{Numerator: 100, Denominator: tpb.FractionalPercent_HUNDRED},
-				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: ptypes.DurationProto(time.Second)},
+				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: durationpb.New(time.Second)},
 			},
 		}},
 		randOutInc: 5,
@@ -233,7 +233,7 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 		cfgs: []*fpb.HTTPFault{{
 			Delay: &cpb.FaultDelay{
 				Percentage:         &tpb.FractionalPercent{Numerator: 1000, Denominator: tpb.FractionalPercent_TEN_THOUSAND},
-				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: ptypes.DurationProto(time.Second)},
+				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: durationpb.New(time.Second)},
 			},
 		}},
 		randOutInc: 500,
@@ -257,7 +257,7 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 		cfgs: []*fpb.HTTPFault{{
 			Delay: &cpb.FaultDelay{
 				Percentage:         &tpb.FractionalPercent{Numerator: 80, Denominator: tpb.FractionalPercent_HUNDRED},
-				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: ptypes.DurationProto(3 * time.Second)},
+				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: durationpb.New(3 * time.Second)},
 			},
 			Abort: &fpb.FaultAbort{
 				Percentage: &tpb.FractionalPercent{Numerator: 50, Denominator: tpb.FractionalPercent_HUNDRED},
@@ -457,7 +457,7 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 		}, {
 			Delay: &cpb.FaultDelay{
 				Percentage:         &tpb.FractionalPercent{Numerator: 80, Denominator: tpb.FractionalPercent_HUNDRED},
-				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: ptypes.DurationProto(time.Second)},
+				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: durationpb.New(time.Second)},
 			},
 		}},
 		randOutInc: 10,
@@ -506,7 +506,8 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 				SecLevel:   e2e.SecurityLevelNone,
 			})
 			hcm := new(v3httppb.HttpConnectionManager)
-			err := ptypes.UnmarshalAny(resources.Listeners[0].GetApiListener().GetApiListener(), hcm)
+			lis := resources.Listeners[0].GetApiListener().GetApiListener()
+			err := lis.UnmarshalTo(hcm)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -517,7 +518,7 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 				hcm.HttpFilters = append(hcm.HttpFilters, e2e.HTTPFilter(fmt.Sprintf("fault%d", i), cfg))
 			}
 			hcm.HttpFilters = append(hcm.HttpFilters, routerFilter)
-			hcmAny := testutils.MarshalAny(hcm)
+			hcmAny := testutils.MarshalAny(t, hcm)
 			resources.Listeners[0].ApiListener.ApiListener = hcmAny
 			resources.Listeners[0].FilterChains[0].Filters[0].ConfigType = &v3listenerpb.Filter_TypedConfig{TypedConfig: hcmAny}
 
@@ -534,7 +535,7 @@ func (s) TestFaultInjection_Unary(t *testing.T) {
 			}
 			defer cc.Close()
 
-			client := testpb.NewTestServiceClient(cc)
+			client := testgrpc.NewTestServiceClient(cc)
 			count := 0
 			for _, want := range tc.want {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -570,7 +571,8 @@ func (s) TestFaultInjection_MaxActiveFaults(t *testing.T) {
 		SecLevel:   e2e.SecurityLevelNone,
 	})
 	hcm := new(v3httppb.HttpConnectionManager)
-	err := ptypes.UnmarshalAny(resources.Listeners[0].GetApiListener().GetApiListener(), hcm)
+	lis := resources.Listeners[0].GetApiListener().GetApiListener()
+	err := lis.UnmarshalTo(hcm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -588,11 +590,11 @@ func (s) TestFaultInjection_MaxActiveFaults(t *testing.T) {
 			MaxActiveFaults: wrapperspb.UInt32(2),
 			Delay: &cpb.FaultDelay{
 				Percentage:         &tpb.FractionalPercent{Numerator: 100, Denominator: tpb.FractionalPercent_HUNDRED},
-				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: ptypes.DurationProto(time.Second)},
+				FaultDelaySecifier: &cpb.FaultDelay_FixedDelay{FixedDelay: durationpb.New(time.Second)},
 			},
 		})},
 		hcm.HttpFilters...)
-	hcmAny := testutils.MarshalAny(hcm)
+	hcmAny := testutils.MarshalAny(t, hcm)
 	resources.Listeners[0].ApiListener.ApiListener = hcmAny
 	resources.Listeners[0].FilterChains[0].Filters[0].ConfigType = &v3listenerpb.Filter_TypedConfig{TypedConfig: hcmAny}
 
@@ -609,9 +611,9 @@ func (s) TestFaultInjection_MaxActiveFaults(t *testing.T) {
 	}
 	defer cc.Close()
 
-	client := testpb.NewTestServiceClient(cc)
+	client := testgrpc.NewTestServiceClient(cc)
 
-	streams := make(chan testpb.TestService_FullDuplexCallClient, 5) // startStream() is called 5 times
+	streams := make(chan testgrpc.TestService_FullDuplexCallClient, 5) // startStream() is called 5 times
 	startStream := func() {
 		str, err := client.FullDuplexCall(ctx)
 		if err != nil {
