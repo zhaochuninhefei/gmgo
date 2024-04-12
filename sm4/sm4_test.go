@@ -13,10 +13,10 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"runtime"
 	"testing"
 
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"golang.org/x/sys/cpu"
 )
