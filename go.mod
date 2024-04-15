@@ -11,7 +11,7 @@ require (
 	github.com/golang/glog v1.2.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
-	github.com/matttproud/golang_protobuf_extensions v1.0.3 // 这里不要将v1.0.3升级到v1.0.4，否则会间接依赖`github.com/golang/protobuf`(老版的protobuf,与新版`google.golang.org/protobuf`互不兼容)
+	github.com/matttproud/golang_protobuf_extensions v1.0.4
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/prometheus/client_golang v1.19.0
@@ -47,3 +47,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// 这里不要将golang_protobuf_extensions的版本从v1.0.3升级到v1.0.4，
+// 否则会间接依赖`github.com/golang/protobuf`(老版的protobuf,与新版`google.golang.org/protobuf`互不兼容)
+replace github.com/matttproud/golang_protobuf_extensions => github.com/matttproud/golang_protobuf_extensions v1.0.3
