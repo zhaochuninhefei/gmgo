@@ -1,6 +1,6 @@
 # Makefile
-#EXCLUDE_MODULES := $(shell cat .buildignore | grep -v '^#' | paste -sd '|' -)
-EXCLUDE_MODULES := $(shell cat .buildignore | paste -sd '|' -)
+EXCLUDE_MODULES := $(shell cat buildignore.ini | grep -v '^;' | paste -sd '|' -)
+#EXCLUDE_MODULES := $(shell cat .buildignore | paste -sd '|' -)
 #EXCLUDE_MODULES_TEMP := $(shell cat .buildignore | grep -v '^#')
 #EXCLUDE_MODULES := $(shell echo $(EXCLUDE_MODULES_TEMP) | paste -sd '|' -)
 #EXCLUDE_MODULES := $(shell awk '!/^#/' .buildignore | paste -sd '|' -)
