@@ -33,11 +33,11 @@ go package： `gitee.com/zhaochuninhefei/gmgo`
 - GB/T 32905-2016 SM3密码杂凑算法
 - GB/T 32907-2016 SM4分组密码算法
 
-# 测试案例
-从测试案例入手快速了解gmgo的使用。
+# 测试用例
+从测试用例入手快速了解gmgo的使用。
 
 ## sm2
-测试案例代码: `sm2test/sm2_test.go`
+测试用例代码: `sm2test/sm2_test.go`
 ```sh
 cd sm2test
 go test
@@ -45,7 +45,7 @@ go test
 ```
 
 ## sm3
-测试案例代码: `sm3/sm3_test.go`
+测试用例代码: `sm3/sm3_test.go`
 ```sh
 cd sm3
 go test
@@ -53,7 +53,7 @@ go test
 ```
 
 ## sm4
-测试案例代码: `sm4/sm4_test.go`、`sm4/sm4_gcm_test.go`
+测试用例代码: `sm4/sm4_test.go`、`sm4/sm4_gcm_test.go`
 ```sh
 cd sm4
 go test
@@ -61,7 +61,7 @@ go test
 ```
 
 ## x509
-测试案例代码: `x509test/x509_test.go`
+测试用例代码: `x509test/x509_test.go`
 ```sh
 cd x509
 go test
@@ -71,11 +71,11 @@ go test
 
 ```
 
-注意，`x509/x509_test.go`的`TestCreateCertFromCA`系列测试函数生成的sm2系列密钥文件与证书(`x509/testdata`目录下)将会用于`gmtls`与`gmgrpc`的测试案例。
+注意，`x509/x509_test.go`的`TestCreateCertFromCA`系列测试函数生成的sm2系列密钥文件与证书(`x509/testdata`目录下)将会用于`gmtls`与`gmgrpc`的测试用例。
 
 
 ## gmtls
-测试案例代码: `gmtls/tls_test/tls_test.go`
+测试用例代码: `gmtls/tls_test/tls_test.go`
 ```sh
 cd gmtls/tls_test
 go test
@@ -85,7 +85,7 @@ go test
 执行之前请确认`certs`目录下的sm2系列文件是否最新。可以在该目录下执行`copyCerts.sh`直接从`x509/testdata`拷贝。
 
 ## gmgrpc
-测试案例代码: `grpc/grpc_test/grpc_test.go`
+测试用例代码: `grpc/grpc_test/grpc_test.go`
 ```sh
 cd grpc/grpc_test
 go test
@@ -93,6 +93,12 @@ go test
 ```
 
 执行之前请确认`testdata`目录下的文件是否最新。可以在该目录下执行`copyCerts.sh`直接从`x509/testdata`拷贝。
+
+## 测试脚本
+本工程根目录测试脚本`run_test.sh`可运行上述测试用例。
+
+# 关于编译
+gmgo本身不提供入口程序，仅仅作为其他golang项目的依赖包。但依然提供了Makefile用于编译检查代码,一般直接用`make`命令编译即可。
 
 # 关于版权声明
 本项目自身采用木兰宽松许可证(第2版)，具体参考`LICENSE`文件。

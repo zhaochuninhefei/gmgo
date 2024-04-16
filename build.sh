@@ -4,7 +4,7 @@ set -e
 
 # 读取.buildignore文件中的每一行，组合成一个大的正则表达式
 # shellcheck disable=SC2002
-exclude_patterns=$(cat .buildignore | paste -sd '|' -)
+exclude_patterns=$(cat buildignore.ini | paste -sd '|' -)
 
 echo
 echo '编译范围 :'
