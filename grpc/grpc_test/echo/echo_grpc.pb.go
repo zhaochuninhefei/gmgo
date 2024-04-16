@@ -9,8 +9,8 @@ package echo
 import (
 	context "context"
 	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	codes "gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	status "gitee.com/zhaochuninhefei/gmgo/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
