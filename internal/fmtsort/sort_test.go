@@ -106,7 +106,7 @@ var sortTests = []sortTest{
 		"NaN:nan -3:foo 7:bar +Inf:inf",
 	},
 	{
-		map[complex128]string{7 + 2i: "bar2", 7 + 1i: "bar", -3: "foo", complex(math.NaN(), 0i): "nan", complex(math.Inf(0), 0i): "inf"},
+		map[complex128]string{7 + 2i: "bar2", 7 + 1i: "bar", -3: "foo", complex(math.NaN(), float64(0i)): "nan", complex(math.Inf(0), float64(0i)): "inf"},
 		"(NaN+0i):nan (-3+0i):foo (7+1i):bar (7+2i):bar2 (+Inf+0i):inf",
 	},
 	{
