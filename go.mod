@@ -3,10 +3,10 @@ module gitee.com/zhaochuninhefei/gmgo
 go 1.22
 
 require (
+	cel.dev/expr v0.15.0
 	gitee.com/zhaochuninhefei/zcgolog v0.0.23
 	github.com/census-instrumentation/opencensus-proto v0.4.1
 	github.com/cespare/xxhash/v2 v2.3.0
-	github.com/cncf/xds/go v0.0.0-20240329184929-0c46c01016dc
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/golang/glog v1.2.1
 	github.com/google/go-cmp v0.6.0
@@ -37,7 +37,6 @@ require (
 )
 
 require (
-	cel.dev/expr v0.15.0 // indirect
 	cloud.google.com/go/compute v1.25.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
