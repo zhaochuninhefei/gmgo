@@ -8,8 +8,8 @@ package discoveryv3
 
 import (
 	context "context"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
 	_ "github.com/cncf/xds/go/udpa/annotations"
-	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

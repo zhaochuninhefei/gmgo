@@ -29,16 +29,15 @@ import (
 	"net"
 	"time"
 
+	v3discoverygrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	v3discoverypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	v3lrsgrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/load_stats/v3"
+	v3lrspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/load_stats/v3"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"google.golang.org/protobuf/proto"
-
-	v3discoverygrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
-	v3discoverypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
-	v3lrsgrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/load_stats/v3"
-	v3lrspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/load_stats/v3"
 )
 
 const (
