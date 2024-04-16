@@ -36,6 +36,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	v1xdsudpatypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/type/v1"
+	v3xdsxdstypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/v3"
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3listenerpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/listener/v3"
 	rpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v3"
@@ -45,8 +47,6 @@ import (
 	v3tlspb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	v3discoverypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
-	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
-	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
 
 	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/rbac"   // Register the RBAC HTTP filter.
 	_ "gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/httpfilter/router" // Register the router filter.

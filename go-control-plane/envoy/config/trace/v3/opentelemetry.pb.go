@@ -7,7 +7,7 @@
 package tracev3
 
 import (
-	_ "github.com/cncf/xds/go/udpa/annotations"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

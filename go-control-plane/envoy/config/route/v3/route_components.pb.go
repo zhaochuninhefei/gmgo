@@ -7,15 +7,15 @@
 package routev3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/annotations/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/matcher/v3"
 	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
 	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
 	v35 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/metadata/v3"
 	v34 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/tracing/v3"
 	v33 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/cncf/xds/go/xds/annotations/v3"
-	v3 "github.com/cncf/xds/go/xds/type/matcher/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

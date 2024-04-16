@@ -7,9 +7,9 @@
 package cachev3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	v31 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
-	_ "github.com/cncf/xds/go/udpa/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"

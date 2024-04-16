@@ -7,8 +7,8 @@
 package v3alpha
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	v3alpha "gitee.com/zhaochuninhefei/gmgo/go-control-plane/contrib/envoy/extensions/filters/network/sip_proxy/tra/v3alpha"
-	_ "github.com/cncf/xds/go/udpa/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

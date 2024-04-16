@@ -1,8 +1,8 @@
 package sotw
 
 import (
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/cache/types"

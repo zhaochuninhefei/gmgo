@@ -45,9 +45,9 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/protobuf/proto"
 
+	v3orcapb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/data/orca/v3"
 	testgrpc "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
 	testpb "gitee.com/zhaochuninhefei/gmgo/grpc/interop/grpc_testing"
-	v3orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
 )
 
 var (

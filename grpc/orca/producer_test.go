@@ -37,9 +37,9 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	v3orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
-	v3orcaservicegrpc "github.com/cncf/xds/go/xds/service/orca/v3"
-	v3orcaservicepb "github.com/cncf/xds/go/xds/service/orca/v3"
+	v3orcapb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/data/orca/v3"
+	v3orcaservicegrpc "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/service/orca/v3"
+	v3orcaservicepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/service/orca/v3"
 )
 
 // customLBB wraps a round robin LB policy but provides a ClientConn wrapper to

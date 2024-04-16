@@ -28,8 +28,8 @@ import (
 	ointernal "gitee.com/zhaochuninhefei/gmgo/grpc/orca/internal"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 
-	v3orcaservicegrpc "github.com/cncf/xds/go/xds/service/orca/v3"
-	v3orcaservicepb "github.com/cncf/xds/go/xds/service/orca/v3"
+	v3orcaservicegrpc "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/service/orca/v3"
+	v3orcaservicepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/service/orca/v3"
 )
 
 func init() {

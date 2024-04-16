@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"strings"
 
+	pbmatcher "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/matcher/v3"
 	pblegacymatcher "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/common/matcher/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/xdsmatcher/pkg/matcher/registry"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/xdsmatcher/pkg/matcher/types"
-	pbmatcher "github.com/cncf/xds/go/xds/type/matcher/v3"
 	"google.golang.org/protobuf/proto"
 )
 

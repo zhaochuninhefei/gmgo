@@ -8,13 +8,13 @@ package rate_limit_quotav3
 
 import (
 	context "context"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/annotations/v3"
 	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/cncf/xds/go/xds/annotations/v3"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	codes "gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	status "gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"

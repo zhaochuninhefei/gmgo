@@ -8,12 +8,12 @@ package load_statsv2
 
 import (
 	context "context"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
 	endpoint "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/endpoint"
-	_ "github.com/cncf/xds/go/udpa/annotations"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	codes "gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	status "gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"

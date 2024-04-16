@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
+	v1xdsudpatypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/type/v1"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"

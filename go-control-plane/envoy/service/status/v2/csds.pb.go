@@ -8,14 +8,14 @@ package statusv2
 
 import (
 	context "context"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	v2alpha "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/admin/v2alpha"
 	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
 	matcher "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher"
-	_ "github.com/cncf/xds/go/udpa/annotations"
+	grpc "gitee.com/zhaochuninhefei/gmgo/grpc"
+	codes "gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	status "gitee.com/zhaochuninhefei/gmgo/grpc/status"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

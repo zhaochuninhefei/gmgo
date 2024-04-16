@@ -21,14 +21,13 @@ import (
 	"io"
 	"sync"
 
-	status "google.golang.org/genproto/googleapis/rpc/status"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	grpcStatus "google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	grpcStatus "gitee.com/zhaochuninhefei/gmgo/grpc/status"
+	status "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (

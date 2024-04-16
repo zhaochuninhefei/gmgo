@@ -7,10 +7,10 @@
 package v2alpha1
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/route"
 	_type "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type"
 	matcher "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher"
-	_ "github.com/cncf/xds/go/udpa/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

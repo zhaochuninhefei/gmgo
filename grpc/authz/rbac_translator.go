@@ -28,11 +28,11 @@ import (
 	"fmt"
 	"strings"
 
+	v1xdsudpatypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/type/v1"
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3rbacpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/rbac/v3"
 	v3routepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/route/v3"
 	v3matcherpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/matcher/v3"
-	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )

@@ -40,13 +40,13 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	v1xdsudpatypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/type/v1"
+	v3xdsxdstypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/v3"
 	v3clientsideweightedroundrobinpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/client_side_weighted_round_robin/v3"
 	v3leastrequestpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/least_request/v3"
 	v3pickfirstpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/pick_first/v3"
 	v3ringhashpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/ring_hash/v3"
 	v3wrrlocalitypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/wrr_locality/v3"
-	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
-	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
 )
 
 func init() {

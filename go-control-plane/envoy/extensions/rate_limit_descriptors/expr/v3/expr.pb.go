@@ -7,7 +7,7 @@
 package exprv3
 
 import (
-	_ "github.com/cncf/xds/go/udpa/annotations"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

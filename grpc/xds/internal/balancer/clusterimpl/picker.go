@@ -27,7 +27,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/xds/internal/xdsclient/load"
 
-	v3orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
+	v3orcapb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/data/orca/v3"
 )
 
 // NewRandomWRR is used when calculating drops. It's exported so that tests can

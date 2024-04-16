@@ -7,9 +7,9 @@
 package generic_proxyv3
 
 import (
-	_ "github.com/cncf/xds/go/udpa/annotations"
-	_ "github.com/cncf/xds/go/xds/annotations/v3"
-	v3 "github.com/cncf/xds/go/xds/type/matcher/v3"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/annotations/v3"
+	v3 "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/matcher/v3"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

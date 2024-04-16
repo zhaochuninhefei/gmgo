@@ -27,6 +27,7 @@ import (
 	"strings"
 	"testing"
 
+	v3xdsxdstypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/v3"
 	v3routerpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/filters/http/router/v3"
 	"gitee.com/zhaochuninhefei/gmgo/grpc"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/authz/audit"
@@ -36,7 +37,6 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/internal/testutils/xds/e2e"
 	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
-	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"

@@ -21,7 +21,7 @@ package orca
 import (
 	"sync/atomic"
 
-	v3orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
+	v3orcapb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/data/orca/v3"
 )
 
 // ServerMetrics is the data returned from a server to a client to describe the

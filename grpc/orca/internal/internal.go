@@ -28,7 +28,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
-	v3orcapb "github.com/cncf/xds/go/xds/data/orca/v3"
+	v3orcapb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/data/orca/v3"
 )
 
 // AllowAnyMinReportingInterval prevents clamping of the MinReportingInterval

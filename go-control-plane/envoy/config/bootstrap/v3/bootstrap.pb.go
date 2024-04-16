@@ -7,6 +7,7 @@
 package bootstrapv3
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/annotations"
 	v34 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/accesslog/v3"
 	v37 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
@@ -17,7 +18,6 @@ import (
 	v32 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/trace/v3"
 	v38 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	v35 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type/v3"
-	_ "github.com/cncf/xds/go/udpa/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

@@ -18,8 +18,8 @@ package server
 import (
 	"context"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/config"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/pkg/server/delta/v3"

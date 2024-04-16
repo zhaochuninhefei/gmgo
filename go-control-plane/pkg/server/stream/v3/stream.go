@@ -1,9 +1,8 @@
 package stream
 
 import (
-	"google.golang.org/grpc"
-
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 )
 
 // Generic RPC stream for state of the world.

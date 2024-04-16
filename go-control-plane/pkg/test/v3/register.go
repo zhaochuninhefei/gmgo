@@ -16,7 +16,7 @@
 package test
 
 import (
-	"google.golang.org/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
 
 	accessloggrpc "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/accesslog/v3"
 	clusterservice "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/cluster/v3"

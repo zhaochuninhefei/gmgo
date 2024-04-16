@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 
 	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	discovery "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/service/discovery/v3"

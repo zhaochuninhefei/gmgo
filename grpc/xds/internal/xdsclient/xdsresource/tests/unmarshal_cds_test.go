@@ -40,6 +40,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	v3xdsxdstypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/v3"
 	v3clusterpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3endpointpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/endpoint/v3"
@@ -47,7 +48,6 @@ import (
 	v3ringhashpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/ring_hash/v3"
 	v3roundrobinpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/round_robin/v3"
 	v3wrrlocalitypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/wrr_locality/v3"
-	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"

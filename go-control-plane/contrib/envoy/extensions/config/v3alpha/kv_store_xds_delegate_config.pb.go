@@ -7,8 +7,8 @@
 package v3alpha
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	v3 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/common/key_value/v3"
-	_ "github.com/cncf/xds/go/udpa/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

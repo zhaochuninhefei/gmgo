@@ -40,6 +40,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	v1xdsudpatypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/type/v1"
+	v3xdsxdstypepb "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/v3"
 	v3clusterpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/cluster/v3"
 	v3corepb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/core/v3"
 	v3leastrequestpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/least_request/v3"
@@ -47,8 +49,6 @@ import (
 	v3ringhashpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/ring_hash/v3"
 	v3roundrobinpb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/round_robin/v3"
 	v3wrrlocalitypb "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/extensions/load_balancing_policies/wrr_locality/v3"
-	v1xdsudpatypepb "github.com/cncf/xds/go/udpa/type/v1"
-	v3xdsxdstypepb "github.com/cncf/xds/go/xds/type/v3"
 )
 
 type s struct {

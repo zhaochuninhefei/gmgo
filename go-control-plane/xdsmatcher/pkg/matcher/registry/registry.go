@@ -6,8 +6,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	pbcore "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/core/v3"
 	"gitee.com/zhaochuninhefei/gmgo/go-control-plane/xdsmatcher/pkg/matcher/types"
-	pbcore "github.com/cncf/xds/go/xds/core/v3"
 )
 
 type RegistryType map[string]func(proto.Message) (interface{}, error)

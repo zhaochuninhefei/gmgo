@@ -7,10 +7,10 @@
 package faultv2
 
 import (
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	route "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/route"
 	v2 "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/filter/fault/v2"
 	_type "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type"
-	_ "github.com/cncf/xds/go/udpa/annotations"
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

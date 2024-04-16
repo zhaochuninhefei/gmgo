@@ -7,7 +7,7 @@
 package listener
 
 import (
-	_ "github.com/cncf/xds/go/udpa/annotations"
+	_ "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/udpa/annotations"
 	auth "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/auth"
 	core "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/api/v2/core"
 	_type "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/type"

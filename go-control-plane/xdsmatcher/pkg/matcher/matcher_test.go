@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	pbmatcher "gitee.com/zhaochuninhefei/gmgo/cncf_xds_go/xds/type/matcher/v3"
 	pblegacymatcher "gitee.com/zhaochuninhefei/gmgo/go-control-plane/envoy/config/common/matcher/v3"
 	iproto "gitee.com/zhaochuninhefei/gmgo/go-control-plane/xdsmatcher/internal/proto"
 	_ "gitee.com/zhaochuninhefei/gmgo/go-control-plane/xdsmatcher/test"
 	pbtest "gitee.com/zhaochuninhefei/gmgo/go-control-plane/xdsmatcher/test/proto"
-	pbmatcher "github.com/cncf/xds/go/xds/type/matcher/v3"
 )
 
 func TestSimple(t *testing.T) {
