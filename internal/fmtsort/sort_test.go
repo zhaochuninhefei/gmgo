@@ -31,7 +31,7 @@ var compareTests = [][]reflect.Value{
 	ct(reflect.TypeOf(float32(0)), math.NaN(), math.Inf(-1), -1e10, 0, 1e10, math.Inf(1)),
 	ct(reflect.TypeOf(float64(0)), math.NaN(), math.Inf(-1), -1e10, 0, 1e10, math.Inf(1)),
 	ct(reflect.TypeOf(complex64(0+1i)), -1-1i, -1+0i, -1+1i, 0-1i, 0+0i, 0+1i, 1-1i, 1+0i, 1+1i),
-	ct(reflect.TypeOf(complex128(0+1i)), -1-1i, -1+0i, -1+1i, 0-1i, 0+0i, 0+1i, 1-1i, 1+0i, 1+1i),
+	ct(reflect.TypeOf(0+1i), -1-1i, -1+0i, -1+1i, 0-1i, 0+0i, 0+1i, 1-1i, 1+0i, 1+1i),
 	ct(reflect.TypeOf(false), false, true),
 	ct(reflect.TypeOf(&ints[0]), &ints[0], &ints[1], &ints[2]),
 	ct(reflect.TypeOf(unsafe.Pointer(&ints[0])), unsafe.Pointer(&ints[0]), unsafe.Pointer(&ints[1]), unsafe.Pointer(&ints[2])),
