@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build amd64 || arm64 || s390x || ppc64le || ppc64
-// +build amd64 arm64 s390x ppc64le ppc64
 
 package bytealg
 
@@ -11,6 +10,7 @@ package bytealg
 
 // Index returns the index of the first instance of b in a, or -1 if b is not present in a.
 // Requires 2 <= len(b) <= MaxLen.
+//
 //goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func Index(a, b []byte) int
 
@@ -18,5 +18,6 @@ func Index(a, b []byte) int
 
 // IndexString returns the index of the first instance of b in a, or -1 if b is not present in a.
 // Requires 2 <= len(b) <= MaxLen.
+//
 //goland:noinspection GoUnusedExportedFunction,GoUnusedParameter
 func IndexString(a, b string) int

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build amd64 || arm || arm64 || ppc64le || ppc64 || riscv64 || s390x
-// +build amd64 arm arm64 ppc64le ppc64 riscv64 s390x
 
 package bytealg
 
@@ -16,6 +15,7 @@ func Count(b []byte, c byte) int
 func CountString(s string, c byte) int
 
 // A backup implementation to use by assembly.
+//
 //goland:noinspection GoUnusedFunction
 func countGeneric(b []byte, c byte) int {
 	n := 0
