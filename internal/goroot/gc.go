@@ -17,6 +17,8 @@ import (
 
 // IsStandardPackage reports whether path is a standard package,
 // given goroot and compiler.
+//
+//goland:noinspection GoUnusedExportedFunction
 func IsStandardPackage(goroot, compiler, path string) bool {
 	switch compiler {
 	case "gc":
