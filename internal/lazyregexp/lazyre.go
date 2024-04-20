@@ -68,6 +68,8 @@ var inTest = len(os.Args) > 0 && strings.HasSuffix(strings.TrimSuffix(os.Args[0]
 // New creates a new lazy regexp, delaying the compiling work until it is first
 // needed. If the code is being run as part of tests, the regexp compiling will
 // happen immediately.
+//
+//goland:noinspection GoUnusedExportedFunction
 func New(str string) *Regexp {
 	lr := &Regexp{str: str}
 	if inTest {
