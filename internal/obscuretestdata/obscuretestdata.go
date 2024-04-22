@@ -21,19 +21,21 @@ func DecodeToTempFile(name string) (path string, err error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
 
 	tmp, err := os.CreateTemp("", "obscuretestdata-decoded-")
 	if err != nil {
 		return "", err
 	}
 	if _, err := io.Copy(tmp, base64.NewDecoder(base64.StdEncoding, f)); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
 		return "", err
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmp.Name())
+		_ = os.Remove(tmp.Name())
 		return "", err
 	}
 	return tmp.Name(), nil
@@ -45,6 +47,8 @@ func ReadFile(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
 	return io.ReadAll(base64.NewDecoder(base64.StdEncoding, f))
 }
