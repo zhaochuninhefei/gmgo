@@ -42,6 +42,8 @@ var inTest = len(os.Args) > 0 && strings.HasSuffix(strings.TrimSuffix(os.Args[0]
 // New creates a new lazy template, delaying the parsing work until it is first
 // needed. If the code is being run as part of tests, the template parsing will
 // happen immediately.
+//
+//goland:noinspection GoUnusedExportedFunction
 func New(name, text string) *Template {
 	lt := &Template{name: name, text: text}
 	if inTest {
