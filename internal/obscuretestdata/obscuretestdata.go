@@ -16,6 +16,8 @@ import (
 // DecodeToTempFile decodes the named file to a temporary location.
 // If successful, it returns the path of the decoded file.
 // The caller is responsible for ensuring that the temporary file is removed.
+//
+//goland:noinspection GoUnusedExportedFunction
 func DecodeToTempFile(name string) (path string, err error) {
 	f, err := os.Open(name)
 	if err != nil {
@@ -42,6 +44,8 @@ func DecodeToTempFile(name string) (path string, err error) {
 }
 
 // ReadFile reads the named file and returns its decoded contents.
+//
+//goland:noinspection GoUnusedExportedFunction
 func ReadFile(name string) ([]byte, error) {
 	f, err := os.Open(name)
 	if err != nil {
