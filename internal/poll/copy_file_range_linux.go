@@ -52,6 +52,8 @@ func kernelVersion() (major int, minor int) {
 
 // CopyFileRange copies at most remain bytes of data from src to dst, using
 // the copy_file_range system call. dst and src must refer to regular files.
+//
+//goland:noinspection GoUnusedExportedFunction
 func CopyFileRange(dst, src *FD, remain int64) (written int64, handled bool, err error) {
 	if supported := atomic.LoadInt32(&copyFileRangeSupported); supported == 0 {
 		return 0, false, nil
