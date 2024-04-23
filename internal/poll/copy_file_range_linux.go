@@ -5,6 +5,7 @@
 package poll
 
 import (
+	"errors"
 	"sync/atomic"
 	"syscall"
 
@@ -75,8 +76,8 @@ func CopyFileRange(dst, src *FD, remain int64) (written int64, handled bool, err
 			maxVal = maxCopyFileRangeRound
 		}
 		n, err := copyFileRange(dst, src, int(maxVal))
-		switch err {
-		case syscall.ENOSYS:
+		switch {
+		case errors.Is(err, syscall.ENOSYS):
 			// copy_file_range(2) was introduced in Linux 4.5.
 			// Go supports Linux >= 2.6.33, so the system call
 			// may not be present.
@@ -90,7 +91,7 @@ func CopyFileRange(dst, src *FD, remain int64) (written int64, handled bool, err
 			// use copy_file_range(2) again.
 			atomic.StoreInt32(&copyFileRangeSupported, 0)
 			return 0, false, nil
-		case syscall.EXDEV, syscall.EINVAL, syscall.EIO, syscall.EOPNOTSUPP, syscall.EPERM:
+		case errors.Is(err, syscall.EXDEV), errors.Is(err, syscall.EINVAL), errors.Is(err, syscall.EIO), errors.Is(err, syscall.EOPNOTSUPP), errors.Is(err, syscall.EPERM):
 			// Prior to Linux 5.3, it was not possible to
 			// copy_file_range across file systems. Similarly to
 			// the ENOSYS case above, if we see EXDEV, we have
@@ -113,7 +114,7 @@ func CopyFileRange(dst, src *FD, remain int64) (written int64, handled bool, err
 			// #40893. Since EPERM might also be a legitimate error,
 			// don't mark copy_file_range(2) as unsupported.
 			return 0, false, nil
-		case nil:
+		case err == nil:
 			if n == 0 {
 				// If we did not read any bytes at all,
 				// then this file may be in a file system
@@ -159,7 +160,7 @@ func copyFileRange(dst, src *FD, max int) (written int64, err error) {
 	var n int
 	for {
 		n, err = unix.CopyFileRange(src.Sysfd, nil, dst.Sysfd, nil, max, 0)
-		if err != syscall.EINTR {
+		if !errors.Is(err, syscall.EINTR) {
 			break
 		}
 	}
