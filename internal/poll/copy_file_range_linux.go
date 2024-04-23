@@ -70,11 +70,11 @@ func CopyFileRange(dst, src *FD, remain int64) (written int64, handled bool, err
 		}
 	}
 	for remain > 0 {
-		max := remain
-		if max > maxCopyFileRangeRound {
-			max = maxCopyFileRangeRound
+		maxVal := remain
+		if maxVal > maxCopyFileRangeRound {
+			maxVal = maxCopyFileRangeRound
 		}
-		n, err := copyFileRange(dst, src, int(max))
+		n, err := copyFileRange(dst, src, int(maxVal))
 		switch err {
 		case syscall.ENOSYS:
 			// copy_file_range(2) was introduced in Linux 4.5.
