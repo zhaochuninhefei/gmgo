@@ -9,6 +9,7 @@ package oserror
 
 import "errors"
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	ErrInvalid    = errors.New("invalid argument")
 	ErrPermission = errors.New("permission denied")
