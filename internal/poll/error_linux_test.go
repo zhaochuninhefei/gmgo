@@ -23,8 +23,8 @@ func badStateFile() (*os.File, error) {
 }
 
 func isBadStateFileError(err error) (string, bool) {
-	switch err {
-	case poll.ErrNotPollable, syscall.EBADFD:
+	switch {
+	case errors.Is(err, poll.ErrNotPollable), errors.Is(err, syscall.EBADFD):
 		return "", true
 	default:
 		return "not pollable or file in bad state error", false
