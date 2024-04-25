@@ -19,7 +19,9 @@ func TestReadError(t *testing.T) {
 		if err != nil {
 			t.Skip(err)
 		}
-		defer f.Close()
+		defer func(f *os.File) {
+			_ = f.Close()
+		}(f)
 
 		// Give scheduler a chance to have two separated
 		// goroutines: an event poller and an event waiter.
