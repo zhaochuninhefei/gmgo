@@ -5,6 +5,7 @@
 package poll_test
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"net"
@@ -37,14 +38,17 @@ func TestReadError(t *testing.T) {
 
 func parseReadError(nestedErr error, verify func(error) (string, bool)) error {
 	err := nestedErr
-	if nerr, ok := err.(*net.OpError); ok {
-		err = nerr.Err
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		err = opErr.Err
 	}
-	if nerr, ok := err.(*fs.PathError); ok {
-		err = nerr.Err
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		err = pathErr.Err
 	}
-	if nerr, ok := err.(*os.SyscallError); ok {
-		err = nerr.Err
+	var scErr *os.SyscallError
+	if errors.As(err, &scErr) {
+		err = scErr.Err
 	}
 	if s, ok := verify(err); !ok {
 		return fmt.Errorf("got %v; want %s", nestedErr, s)
