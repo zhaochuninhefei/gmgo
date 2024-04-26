@@ -13,7 +13,9 @@ func (fd *FD) Fsync() error {
 	if err := fd.incref(); err != nil {
 		return err
 	}
-	defer fd.decref()
+	defer func(fd *FD) {
+		_ = fd.decref()
+	}(fd)
 	return ignoringEINTR(func() error {
 		return syscall.Fsync(fd.Sysfd)
 	})
