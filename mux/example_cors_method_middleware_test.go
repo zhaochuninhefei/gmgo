@@ -15,6 +15,7 @@ func ExampleCORSMethodMiddleware() {
 		// Handle the request
 	}).Methods(http.MethodGet, http.MethodPut, http.MethodPatch)
 	r.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
+		//goland:noinspection HttpUrlsUsage
 		w.Header().Set("Access-Control-Allow-Origin", "http://example.com")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 	}).Methods(http.MethodOptions)
@@ -25,7 +26,8 @@ func ExampleCORSMethodMiddleware() {
 	req, _ := http.NewRequest("OPTIONS", "/foo", nil)                 // needs to be OPTIONS
 	req.Header.Set("Access-Control-Request-Method", "POST")           // needs to be non-empty
 	req.Header.Set("Access-Control-Request-Headers", "Authorization") // needs to be non-empty
-	req.Header.Set("Origin", "http://example.com")                    // needs to be non-empty
+	//goland:noinspection HttpUrlsUsage
+	req.Header.Set("Origin", "http://example.com") // needs to be non-empty
 
 	r.ServeHTTP(rw, req)
 
