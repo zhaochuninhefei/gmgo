@@ -1,6 +1,7 @@
 package mux
 
 import (
+	"errors"
 	"strings"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
@@ -61,7 +62,7 @@ func getAllMethodsForRoute(r *Router, req *http.Request) ([]string, error) {
 
 	for _, route := range r.routes {
 		var match RouteMatch
-		if route.Match(req, &match) || match.MatchErr == ErrMethodMismatch {
+		if route.Match(req, &match) || errors.Is(match.MatchErr, ErrMethodMismatch) {
 			methods, err := route.GetMethods()
 			if err != nil {
 				return nil, err
