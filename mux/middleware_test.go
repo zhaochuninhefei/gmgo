@@ -510,7 +510,7 @@ func TestMiddlewareOnMultiSubrouter(t *testing.T) {
 	secondSubRouter := router.PathPrefix("/").Subrouter()
 
 	router.NotFoundHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte(notFound))
+		_, _ = rw.Write([]byte(notFound))
 	})
 
 	firstSubRouter.HandleFunc("/first", func(w http.ResponseWriter, r *http.Request) {
@@ -523,14 +523,14 @@ func TestMiddlewareOnMultiSubrouter(t *testing.T) {
 
 	firstSubRouter.Use(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(first))
+			_, _ = w.Write([]byte(first))
 			h.ServeHTTP(w, r)
 		})
 	})
 
 	secondSubRouter.Use(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(second))
+			_, _ = w.Write([]byte(second))
 			h.ServeHTTP(w, r)
 		})
 	})
