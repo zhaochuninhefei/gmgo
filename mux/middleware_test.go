@@ -180,7 +180,7 @@ func TestMiddlewareExecution(t *testing.T) {
 
 		router.Use(func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write(mwStr)
+				_, _ = w.Write(mwStr)
 				h.ServeHTTP(w, r)
 			})
 		})
