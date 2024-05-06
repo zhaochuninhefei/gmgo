@@ -198,11 +198,11 @@ func TestMiddlewareNotFound(t *testing.T) {
 
 	router := NewRouter()
 	router.HandleFunc("/", func(w http.ResponseWriter, e *http.Request) {
-		w.Write(handlerStr)
+		_, _ = w.Write(handlerStr)
 	})
 	router.Use(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write(mwStr)
+			_, _ = w.Write(mwStr)
 			h.ServeHTTP(w, r)
 		})
 	})
