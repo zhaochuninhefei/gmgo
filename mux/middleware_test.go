@@ -356,7 +356,7 @@ func TestMiddlewareMethodMismatchSubrouter(t *testing.T) {
 		req := newRequest("POST", "/sub/")
 
 		router.MethodNotAllowedHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			rw.Write([]byte("Method not allowed"))
+			_, _ = rw.Write([]byte("Method not allowed"))
 		})
 		router.ServeHTTP(rw, req)
 
