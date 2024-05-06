@@ -367,6 +367,7 @@ func TestMiddlewareMethodMismatchSubrouter(t *testing.T) {
 }
 
 func TestCORSMethodMiddleware(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	testCases := []struct {
 		name                                    string
 		registerRoutes                          func(r *Router)
