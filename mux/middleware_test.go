@@ -18,6 +18,7 @@ func (tm *testMiddleware) Middleware(h http.Handler) http.Handler {
 	})
 }
 
+//goland:noinspection GoUnusedParameter
 func dummyHandler(w http.ResponseWriter, r *http.Request) {}
 
 func TestMiddlewareAdd(t *testing.T) {
