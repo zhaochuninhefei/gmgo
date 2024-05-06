@@ -160,7 +160,7 @@ func TestMiddlewareExecution(t *testing.T) {
 
 	router := NewRouter()
 	router.HandleFunc("/", func(w http.ResponseWriter, e *http.Request) {
-		w.Write(handlerStr)
+		_, _ = w.Write(handlerStr)
 	})
 
 	t.Run("responds normally without middleware", func(t *testing.T) {
