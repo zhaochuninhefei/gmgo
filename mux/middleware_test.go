@@ -223,7 +223,7 @@ func TestMiddlewareNotFound(t *testing.T) {
 		req := newRequest("GET", "/notfound")
 
 		router.NotFoundHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			rw.Write([]byte("Custom 404 handler"))
+			_, _ = rw.Write([]byte("Custom 404 handler"))
 		})
 		router.ServeHTTP(rw, req)
 
@@ -239,12 +239,12 @@ func TestMiddlewareMethodMismatch(t *testing.T) {
 
 	router := NewRouter()
 	router.HandleFunc("/", func(w http.ResponseWriter, e *http.Request) {
-		w.Write(handlerStr)
+		_, _ = w.Write(handlerStr)
 	}).Methods("GET")
 
 	router.Use(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write(mwStr)
+			_, _ = w.Write(mwStr)
 			h.ServeHTTP(w, r)
 		})
 	})
@@ -264,7 +264,7 @@ func TestMiddlewareMethodMismatch(t *testing.T) {
 		req := newRequest("POST", "/")
 
 		router.MethodNotAllowedHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			rw.Write([]byte("Method not allowed"))
+			_, _ = rw.Write([]byte("Method not allowed"))
 		})
 		router.ServeHTTP(rw, req)
 
