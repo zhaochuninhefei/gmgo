@@ -147,7 +147,7 @@ func (r *Router) Match(req *http.Request, match *RouteMatch) bool {
 		}
 	}
 
-	if match.MatchErr == ErrMethodMismatch {
+	if errors.Is(match.MatchErr, ErrMethodMismatch) {
 		if r.MethodNotAllowedHandler != nil {
 			match.Handler = r.MethodNotAllowedHandler
 			return true
@@ -200,7 +200,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		req = requestWithRoute(req, match.Route)
 	}
 
-	if handler == nil && match.MatchErr == ErrMethodMismatch {
+	if handler == nil && errors.Is(match.MatchErr, ErrMethodMismatch) {
 		handler = methodNotAllowedHandler()
 	}
 
@@ -374,7 +374,7 @@ type WalkFunc func(route *Route, router *Router, ancestors []*Route) error
 func (r *Router) walk(walkFn WalkFunc, ancestors []*Route) error {
 	for _, t := range r.routes {
 		err := walkFn(t, r, ancestors)
-		if err == SkipRouter {
+		if errors.Is(err, SkipRouter) {
 			continue
 		}
 		if err != nil {
