@@ -437,6 +437,8 @@ func Vars(r *http.Request) map[string]string {
 // This only works when called inside the handler of the matched route
 // because the matched route is stored in the request context which is cleared
 // after the handler returns.
+//
+//goland:noinspection GoUnusedExportedFunction
 func CurrentRoute(r *http.Request) *Route {
 	if rv := r.Context().Value(routeKey); rv != nil {
 		return rv.(*Route)
