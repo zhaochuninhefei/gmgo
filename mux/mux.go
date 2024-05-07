@@ -32,17 +32,17 @@ func NewRouter() *Router {
 // It implements the http.Handler interface, so it can be registered to serve
 // requests:
 //
-//     var router = mux.NewRouter()
+//	var router = mux.NewRouter()
 //
-//     func main() {
-//         http.Handle("/", router)
-//     }
+//	func main() {
+//	    http.Handle("/", router)
+//	}
 //
 // Or, for Google App Engine, register it in a init() function:
 //
-//     func init() {
-//         http.Handle("/", router)
-//     }
+//	func init() {
+//	    http.Handle("/", router)
+//	}
 //
 // This will send all incoming requests to the router.
 type Router struct {
@@ -173,12 +173,12 @@ func (r *Router) Match(req *http.Request, match *RouteMatch) bool {
 // mux.Vars(request).
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.skipClean {
-		path := req.URL.Path
+		tmpPath := req.URL.Path
 		if r.useEncodedPath {
-			path = req.URL.EscapedPath()
+			tmpPath = req.URL.EscapedPath()
 		}
 		// Clean path to canonical form and redirect.
-		if p := cleanPath(path); p != path {
+		if p := cleanPath(tmpPath); p != tmpPath {
 
 			// Added 3 lines (Philip Schlump) - It was dropping the query string and #whatever from query.
 			// This matches with fix in go 1.2 r.c. 4 for same problem.  Go Issue:
