@@ -2742,7 +2742,7 @@ type customMethodNotAllowedHandler struct {
 //goland:noinspection GoUnusedParameter
 func (h customMethodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
-	fmt.Fprint(w, h.msg)
+	_, _ = fmt.Fprint(w, h.msg)
 }
 
 func TestSubrouterCustomMethodNotAllowed(t *testing.T) {
