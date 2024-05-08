@@ -2895,7 +2895,7 @@ func newRequest(method, url string) *http.Request {
 
 	// Simulate writing to wire
 	var buff bytes.Buffer
-	req.Write(&buff)
+	_ = req.Write(&buff)
 	ioreader := bufio.NewReader(&buff)
 
 	// Parse request off of 'wire'
