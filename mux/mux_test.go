@@ -1951,6 +1951,7 @@ func (ho *TestA301ResponseWriter) Header() http.Header {
 	return ho.hh
 }
 
+//goland:noinspection GoUnusedParameter
 func (ho *TestA301ResponseWriter) Write(b []byte) (int, error) {
 	return 0, nil
 }
@@ -2738,6 +2739,7 @@ type customMethodNotAllowedHandler struct {
 	msg string
 }
 
+//goland:noinspection GoUnusedParameter
 func (h customMethodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	fmt.Fprint(w, h.msg)
