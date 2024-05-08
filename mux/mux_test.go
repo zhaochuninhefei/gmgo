@@ -1707,7 +1707,7 @@ func TestWalkErrorRoute(t *testing.T) {
 	err := router.Walk(func(route *Route, router *Router, ancestors []*Route) error {
 		return expectedError
 	})
-	if err != expectedError {
+	if !errors.Is(err, expectedError) {
 		t.Errorf("Expected %v routes, found %v", expectedError, err)
 	}
 }
@@ -1718,7 +1718,7 @@ func TestWalkErrorMatcher(t *testing.T) {
 	err := router.Walk(func(route *Route, router *Router, ancestors []*Route) error {
 		return route.GetError()
 	})
-	if err != expectedError {
+	if !errors.Is(err, expectedError) {
 		t.Errorf("Expected %v routes, found %v", expectedError, err)
 	}
 }
@@ -1731,7 +1731,7 @@ func TestWalkErrorHandler(t *testing.T) {
 	err := router.Walk(func(route *Route, router *Router, ancestors []*Route) error {
 		return route.GetError()
 	})
-	if err != expectedError {
+	if !errors.Is(err, expectedError) {
 		t.Errorf("Expected %v routes, found %v", expectedError, err)
 	}
 }
@@ -2047,7 +2047,7 @@ func TestNoMatchMethodErrorHandler(t *testing.T) {
 		t.Error("Should not have matched route for methods")
 	}
 
-	if match.MatchErr != ErrMethodMismatch {
+	if !errors.Is(match.MatchErr, ErrMethodMismatch) {
 		t.Error("Should get ErrMethodMismatch error")
 	}
 
@@ -2089,7 +2089,7 @@ func TestErrMatchNotFound(t *testing.T) {
 		t.Errorf("Subrouter should not have matched that, got %v", match.Route)
 	}
 	// Even without a custom handler, MatchErr is set to ErrNotFound
-	if match.MatchErr != ErrNotFound {
+	if !errors.Is(match.MatchErr, ErrNotFound) {
 		t.Errorf("Expected ErrNotFound MatchErr, but was %v", match.MatchErr)
 	}
 
@@ -2105,7 +2105,7 @@ func TestErrMatchNotFound(t *testing.T) {
 		t.Errorf("Subrouter should have matched %s", req.RequestURI)
 	}
 	// But MatchErr should be set to ErrNotFound anyway
-	if match.MatchErr != ErrNotFound {
+	if !errors.Is(match.MatchErr, ErrNotFound) {
 		t.Errorf("Expected ErrNotFound MatchErr, but was %v", match.MatchErr)
 	}
 
@@ -2118,7 +2118,7 @@ func TestErrMatchNotFound(t *testing.T) {
 		t.Errorf("Router should have matched %s via subrouter", req.RequestURI)
 	}
 	// But MatchErr should be set to ErrNotFound anyway
-	if match.MatchErr != ErrNotFound {
+	if !errors.Is(match.MatchErr, ErrNotFound) {
 		t.Errorf("Expected ErrNotFound MatchErr, but was %v", match.MatchErr)
 	}
 }
