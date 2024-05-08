@@ -15,10 +15,10 @@ import (
 func TestSchemeMatchers(t *testing.T) {
 	router := NewRouter()
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte("hello http world"))
+		_, _ = rw.Write([]byte("hello http world"))
 	}).Schemes("http")
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte("hello https world"))
+		_, _ = rw.Write([]byte("hello https world"))
 	}).Schemes("https")
 
 	assertResponseBody := func(t *testing.T, s *httptest.Server, expectedBody string) {
