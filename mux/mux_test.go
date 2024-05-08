@@ -2005,7 +2005,7 @@ func TestSkipClean(t *testing.T) {
 func TestSubrouterHeader(t *testing.T) {
 	expected := "func1 response"
 	func1 := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, expected)
+		_, _ = fmt.Fprint(w, expected)
 	}
 	func2 := func(http.ResponseWriter, *http.Request) {}
 
