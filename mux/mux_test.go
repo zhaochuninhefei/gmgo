@@ -2138,7 +2138,7 @@ type methodsSubrouterTest struct {
 // methodHandler writes the method string in response.
 func methodHandler(method string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(method))
+		_, _ = w.Write([]byte(method))
 	}
 }
 
