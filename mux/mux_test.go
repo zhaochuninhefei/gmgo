@@ -764,6 +764,7 @@ func TestMethods(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestQueries(t *testing.T) {
 	tests := []routeTest{
 		{
@@ -1198,6 +1199,7 @@ func TestBuildVarsFunc(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestSubRouter(t *testing.T) {
 	subrouter1 := new(Route).Host("{v1:[a-z]+}.google.com").Subrouter()
 	subrouter2 := new(Route).PathPrefix("/foo/{v1}").Subrouter()
@@ -2452,6 +2454,7 @@ func testMethodsSubrouter(t *testing.T, test methodsSubrouterTest) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestSubrouterMatching(t *testing.T) {
 	const (
 		none, stdOnly, subOnly uint8 = 0, 1 << 0, 1 << 1
