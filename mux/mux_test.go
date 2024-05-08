@@ -2862,7 +2862,7 @@ func stringMapEqual(m1, m2 map[string]string) bool {
 // http.ResponseWriter.
 func stringHandler(s string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(s))
+		_, _ = w.Write([]byte(s))
 	}
 }
 
