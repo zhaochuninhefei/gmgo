@@ -367,6 +367,7 @@ type urlBuildingTest struct {
 	url   string
 }
 
+//goland:noinspection HttpUrlsUsage
 var urlBuildingTests = []urlBuildingTest{
 	{
 		route: new(Route).Host("foo.domain.com"),
@@ -545,6 +546,7 @@ func TestUrlBuilding(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestMatchedRouteName(t *testing.T) {
 	routeName := "stock"
 	router := NewRouter()
@@ -565,6 +567,7 @@ func TestMatchedRouteName(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func TestSubRouting(t *testing.T) {
 	// Example from docs.
 	router := NewRouter()
