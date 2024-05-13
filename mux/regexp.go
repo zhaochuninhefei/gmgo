@@ -87,10 +87,10 @@ func newRouteRegexp(tpl string, typ regexpType, options routeRegexpOptions) (*ro
 				tpl[idxs[i]:end])
 		}
 		// Build the regexp pattern.
-		fmt.Fprintf(pattern, "%s(?P<%s>%s)", regexp.QuoteMeta(raw), varGroupName(i/2), patt)
+		_, _ = fmt.Fprintf(pattern, "%s(?P<%s>%s)", regexp.QuoteMeta(raw), varGroupName(i/2), patt)
 
 		// Build the reverse template.
-		fmt.Fprintf(reverse, "%s%%s", raw)
+		_, _ = fmt.Fprintf(reverse, "%s%%s", raw)
 
 		// Append variable name and compiled pattern.
 		varsN[i/2] = name
