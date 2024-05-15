@@ -61,7 +61,7 @@ func (r *Route) Match(req *http.Request, match *RouteMatch) bool {
 			// run middleware. If not ignored, the middleware would see a
 			// non-nil MatchErr and be skipped, even when there was a
 			// matching route.
-			if match.MatchErr == ErrNotFound {
+			if errors.Is(match.MatchErr, ErrNotFound) {
 				match.MatchErr = nil
 			}
 
@@ -75,7 +75,7 @@ func (r *Route) Match(req *http.Request, match *RouteMatch) bool {
 		return false
 	}
 
-	if match.MatchErr == ErrMethodMismatch && r.handler != nil {
+	if errors.Is(match.MatchErr, ErrMethodMismatch) && r.handler != nil {
 		// We found a route which matches request method, clear MatchErr
 		match.MatchErr = nil
 		// Then override the mis-matched handler
