@@ -698,7 +698,7 @@ func (r *Route) GetMethods() ([]string, error) {
 	}
 	for _, m := range r.matchers {
 		if methods, ok := m.(methodMatcher); ok {
-			return []string(methods), nil
+			return methods, nil
 		}
 	}
 	return nil, errors.New("mux: route doesn't have methods")
