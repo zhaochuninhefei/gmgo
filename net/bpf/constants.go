@@ -40,21 +40,21 @@ type JumpTest uint16
 // Supported operators for conditional jumps.
 // K can be RegX for JumpIfX
 const (
-	// K == A
+	// JumpEqual K == A
 	JumpEqual JumpTest = iota
-	// K != A
+	// JumpNotEqual K != A
 	JumpNotEqual
-	// K > A
+	// JumpGreaterThan K > A
 	JumpGreaterThan
-	// K < A
+	// JumpLessThan K < A
 	JumpLessThan
-	// K >= A
+	// JumpGreaterOrEqual K >= A
 	JumpGreaterOrEqual
-	// K <= A
+	// JumpLessOrEqual K <= A
 	JumpLessOrEqual
-	// K & A != 0
+	// JumpBitsSet K & A != 0
 	JumpBitsSet
-	// K & A == 0
+	// JumpBitsNotSet K & A == 0
 	JumpBitsNotSet
 )
 
