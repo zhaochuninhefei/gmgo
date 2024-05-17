@@ -162,6 +162,8 @@ func jumpOpToTest(op jumpOp, skipTrue uint8, skipFalse uint8) (JumpTest, uint8, 
 			test = JumpLessThan
 		case opJumpSet:
 			test = JumpBitsNotSet
+		default:
+			panic("unhandled default case")
 		}
 
 		return test, skipFalse, 0
@@ -176,6 +178,8 @@ func jumpOpToTest(op jumpOp, skipTrue uint8, skipFalse uint8) (JumpTest, uint8, 
 		test = JumpGreaterOrEqual
 	case opJumpSet:
 		test = JumpBitsSet
+	default:
+		panic("unhandled default case")
 	}
 
 	return test, skipTrue, skipFalse
