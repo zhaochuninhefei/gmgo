@@ -185,6 +185,7 @@ func TestAsmDisasm(t *testing.T) {
 type InvalidInstruction struct{}
 
 func (a InvalidInstruction) Assemble() (RawInstruction, error) {
+	//goland:noinspection GoErrorStringFormat
 	return RawInstruction{}, fmt.Errorf("Invalid Instruction")
 }
 
