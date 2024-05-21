@@ -51,6 +51,8 @@ func NewVM(filter []Instruction) (*VM, error) {
 			switch ins.Op {
 			case ALUOpDiv, ALUOpMod:
 				return nil, errors.New("cannot divide by zero using ALUOpConstant")
+			default:
+				panic("unhandled default case")
 			}
 		// Check for unknown extensions
 		case LoadExtension:
