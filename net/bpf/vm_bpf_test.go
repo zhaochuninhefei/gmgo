@@ -181,7 +181,7 @@ func (vm *osVirtualMachine) Run(in []byte) (int, error) {
 		_, _ = vm.s.Write(in)
 	}()
 
-	vm.l.SetDeadline(time.Now().Add(50 * time.Millisecond))
+	_ = vm.l.SetDeadline(time.Now().Add(50 * time.Millisecond))
 
 	var b [512]byte
 	n, _, err := vm.l.ReadFrom(b[:])
