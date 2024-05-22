@@ -5,6 +5,7 @@
 package bpf_test
 
 import (
+	"errors"
 	"net"
 	"runtime"
 	"testing"
@@ -188,7 +189,8 @@ func (vm *osVirtualMachine) Run(in []byte) (int, error) {
 	if err != nil {
 		// A timeout indicates that BPF filtered out the packet, and thus,
 		// no input should be returned.
-		if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+		var nerr net.Error
+		if errors.As(err, &nerr) && nerr.Timeout() {
 			return n, nil
 		}
 
