@@ -20,6 +20,8 @@ func aluOpX(ins ALUOpX, regA uint32, regX uint32) (uint32, bool) {
 		switch ins.Op {
 		case ALUOpDiv, ALUOpMod:
 			return 0, false
+		default:
+			panic("unhandled default case")
 		}
 	}
 
