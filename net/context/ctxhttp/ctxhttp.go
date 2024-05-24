@@ -48,6 +48,8 @@ func Get(ctx context.Context, client *http.Client, url string) (*http.Response, 
 }
 
 // Head issues a HEAD request via the Do function.
+//
+//goland:noinspection GoUnusedExportedFunction
 func Head(ctx context.Context, client *http.Client, url string) (*http.Response, error) {
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
@@ -67,6 +69,8 @@ func Post(ctx context.Context, client *http.Client, url string, bodyType string,
 }
 
 // PostForm issues a POST request via the Do function.
+//
+//goland:noinspection GoUnusedExportedFunction
 func PostForm(ctx context.Context, client *http.Client, url string, data url.Values) (*http.Response, error) {
 	return Post(ctx, client, url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
