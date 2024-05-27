@@ -8,6 +8,7 @@ package ctxhttp
 
 import (
 	"context"
+	"errors"
 	"io"
 	"testing"
 	"time"
@@ -79,7 +80,7 @@ func TestCancelBeforeHeaders(t *testing.T) {
 		_ = res.Body.Close()
 		t.Fatal("Get returned unexpected nil error")
 	}
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("err = %v; want %v", err, context.Canceled)
 	}
 }
