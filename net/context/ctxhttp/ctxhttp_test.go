@@ -37,6 +37,7 @@ const (
 	requestBody     = "ok"
 )
 
+//goland:noinspection GoUnusedParameter
 func okHandler(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(requestDuration)
 	_, _ = io.WriteString(w, requestBody)
