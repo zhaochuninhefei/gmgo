@@ -10,7 +10,6 @@ package ctxhttp
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -55,7 +54,7 @@ func TestNoTimeout(t *testing.T) {
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(res.Body)
-	slurp, err := ioutil.ReadAll(res.Body)
+	slurp, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +107,7 @@ func TestCancelAfterHangingRequest(t *testing.T) {
 	done := make(chan struct{})
 
 	go func() {
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if len(b) != 0 || err == nil {
 			t.Errorf(`Read got (%q, %v); want ("", error)`, b, err)
 		}
