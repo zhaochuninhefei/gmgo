@@ -21,7 +21,7 @@ import (
 
 func TestGo17Context(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "ok")
+		_, _ = io.WriteString(w, "ok")
 	}))
 	defer ts.Close()
 	ctx := context.Background()
@@ -29,7 +29,7 @@ func TestGo17Context(t *testing.T) {
 	if resp == nil || err != nil {
 		t.Fatalf("error received from client: %v %v", err, resp)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 const (
@@ -39,7 +39,7 @@ const (
 
 func okHandler(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(requestDuration)
-	io.WriteString(w, requestBody)
+	_, _ = io.WriteString(w, requestBody)
 }
 
 func TestNoTimeout(t *testing.T) {
@@ -51,7 +51,9 @@ func TestNoTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	slurp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -68,14 +70,14 @@ func TestCancelBeforeHeaders(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cancel()
 		<-blockServer
-		io.WriteString(w, requestBody)
+		_, _ = io.WriteString(w, requestBody)
 	}))
 	defer ts.Close()
 	defer close(blockServer)
 
 	res, err := Get(ctx, nil, ts.URL)
 	if err == nil {
-		res.Body.Close()
+		_ = res.Body.Close()
 		t.Fatal("Get returned unexpected nil error")
 	}
 	if err != context.Canceled {
