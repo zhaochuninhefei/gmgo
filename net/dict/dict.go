@@ -30,7 +30,7 @@ func Dial(network, addr string) (*Client, error) {
 	}
 	_, _, err = text.ReadCodeLine(220)
 	if err != nil {
-		text.Close()
+		_ = text.Close()
 		return nil, err
 	}
 	return &Client{text: text}, nil
