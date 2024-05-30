@@ -5,6 +5,7 @@
 package dnsmessage_test
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -69,7 +70,7 @@ func ExampleParser() {
 
 	for {
 		q, err := p.Question()
-		if err == dnsmessage.ErrSectionDone {
+		if errors.Is(err, dnsmessage.ErrSectionDone) {
 			break
 		}
 		if err != nil {
@@ -90,7 +91,7 @@ func ExampleParser() {
 	var gotIPs []net.IP
 	for {
 		h, err := p.AnswerHeader()
-		if err == dnsmessage.ErrSectionDone {
+		if errors.Is(err, dnsmessage.ErrSectionDone) {
 			break
 		}
 		if err != nil {
