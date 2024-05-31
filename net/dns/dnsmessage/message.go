@@ -1911,11 +1911,15 @@ func MustNewName(name string) Name {
 }
 
 // String implements fmt.Stringer.String.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (n Name) String() string {
 	return string(n.Data[:n.Length])
 }
 
 // GoString implements fmt.GoStringer.GoString.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (n *Name) GoString() string {
 	return `dnsmessage.MustNewName("` + printString(n.Data[:n.Length]) + `")`
 }
@@ -1927,6 +1931,8 @@ func (n *Name) GoString() string {
 //
 // The compression map will be updated with new domain suffixes. If compression
 // is nil, compression will not be used.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (n *Name) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
 	oldMsg := msg
 
@@ -1987,10 +1993,13 @@ func (n *Name) pack(msg []byte, compression map[string]int, compressionOff int) 
 }
 
 // unpack unpacks a domain name.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (n *Name) unpack(msg []byte, off int) (int, error) {
 	return n.unpackCompressed(msg, off, true /* allowCompression */)
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (n *Name) unpackCompressed(msg []byte, off int, allowCompression bool) (int, error) {
 	// currOff is the current working offset.
 	currOff := off
