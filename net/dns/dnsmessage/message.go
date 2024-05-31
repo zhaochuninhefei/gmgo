@@ -2407,7 +2407,7 @@ func (r *TXTResource) realType() Type {
 }
 
 // pack appends the wire format of the TXTResource to msg.
-func (r *TXTResource) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
+func (r *TXTResource) pack(msg []byte, _ map[string]int, _ int) ([]byte, error) {
 	oldMsg := msg
 	for _, s := range r.TXT {
 		var err error
@@ -2463,7 +2463,7 @@ func (r *SRVResource) realType() Type {
 }
 
 // pack appends the wire format of the SRVResource to msg.
-func (r *SRVResource) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
+func (r *SRVResource) pack(msg []byte, _ map[string]int, compressionOff int) ([]byte, error) {
 	oldMsg := msg
 	msg = packUint16(msg, r.Priority)
 	msg = packUint16(msg, r.Weight)
@@ -2514,7 +2514,7 @@ func (r *AResource) realType() Type {
 }
 
 // pack appends the wire format of the AResource to msg.
-func (r *AResource) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
+func (r *AResource) pack(msg []byte, _ map[string]int, _ int) ([]byte, error) {
 	return packBytes(msg, r.A[:]), nil
 }
 
@@ -2548,7 +2548,7 @@ func (r *AAAAResource) GoString() string {
 }
 
 // pack appends the wire format of the AAAAResource to msg.
-func (r *AAAAResource) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
+func (r *AAAAResource) pack(msg []byte, _ map[string]int, _ int) ([]byte, error) {
 	return packBytes(msg, r.AAAA[:]), nil
 }
 
@@ -2588,7 +2588,7 @@ func (r *OPTResource) realType() Type {
 	return TypeOPT
 }
 
-func (r *OPTResource) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
+func (r *OPTResource) pack(msg []byte, _ map[string]int, _ int) ([]byte, error) {
 	for _, opt := range r.Options {
 		msg = packUint16(msg, opt.Code)
 		l := uint16(len(opt.Data))
@@ -2646,7 +2646,7 @@ func (r *UnknownResource) realType() Type {
 }
 
 // pack appends the wire format of the UnknownResource to msg.
-func (r *UnknownResource) pack(msg []byte, compression map[string]int, compressionOff int) ([]byte, error) {
+func (r *UnknownResource) pack(msg []byte, _ map[string]int, _ int) ([]byte, error) {
 	return packBytes(msg, r.Data[:]), nil
 }
 
