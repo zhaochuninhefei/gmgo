@@ -21,6 +21,7 @@ import (
 // A Type is a type of DNS request and response.
 type Type uint16
 
+//goland:noinspection GoCommentStart
 const (
 	// ResourceHeader.Type and Question.Type
 	TypeA     Type = 1
@@ -79,6 +80,7 @@ func (t Type) GoString() string {
 // A Class is a type of network.
 type Class uint16
 
+//goland:noinspection GoCommentStart
 const (
 	// ResourceHeader.Class and Question.Class
 	ClassINET   Class = 1
