@@ -409,6 +409,8 @@ func (h *header) count(sec section) uint16 {
 		return h.authorities
 	case sectionAdditionals:
 		return h.additionals
+	default:
+		panic("unhandled default case")
 	}
 	return 0
 }
@@ -1173,6 +1175,7 @@ func (m *Message) GoString() string {
 // A Builder allows incrementally packing a DNS message.
 //
 // Example usage:
+//
 //	buf := make([]byte, 2, 514)
 //	b := NewBuilder(buf, Header{...})
 //	b.EnableCompression()
@@ -1298,6 +1301,8 @@ func (b *Builder) incrementSectionCount() error {
 	case sectionAdditionals:
 		count = &b.header.additionals
 		err = errTooManyAdditionals
+	default:
+		panic("unhandled default case")
 	}
 	if *count == ^uint16(0) {
 		return err
