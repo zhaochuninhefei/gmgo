@@ -163,7 +163,7 @@ func (r RCode) GoString() string {
 }
 
 func printPaddedUint8(i uint8) string {
-	b := byte(i)
+	b := i
 	return string([]byte{
 		b/100 + '0',
 		b/10%10 + '0',
@@ -172,7 +172,7 @@ func printPaddedUint8(i uint8) string {
 }
 
 func printUint8Bytes(buf []byte, i uint8) []byte {
-	b := byte(i)
+	b := i
 	if i >= 100 {
 		buf = append(buf, b/100+'0')
 	}
@@ -187,10 +187,10 @@ func printByteSlice(b []byte) string {
 		return ""
 	}
 	buf := make([]byte, 0, 5*len(b))
-	buf = printUint8Bytes(buf, uint8(b[0]))
+	buf = printUint8Bytes(buf, b[0])
 	for _, n := range b[1:] {
 		buf = append(buf, ',', ' ')
-		buf = printUint8Bytes(buf, uint8(n))
+		buf = printUint8Bytes(buf, n)
 	}
 	return string(buf)
 }
@@ -1897,7 +1897,7 @@ func NewName(name string) (Name, error) {
 		return Name{}, errCalcLen
 	}
 	n := Name{Length: uint8(len(name))}
-	copy(n.Data[:], []byte(name))
+	copy(n.Data[:], name)
 	return n, nil
 }
 
