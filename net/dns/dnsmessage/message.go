@@ -656,7 +656,7 @@ func (p *Parser) AllQuestions() ([]Question, error) {
 	var qs []Question
 	for {
 		q, err := p.Question()
-		if err == ErrSectionDone {
+		if errors.Is(err, ErrSectionDone) {
 			return qs, nil
 		}
 		if err != nil {
@@ -689,7 +689,7 @@ func (p *Parser) SkipQuestion() error {
 // SkipAllQuestions skips all Questions.
 func (p *Parser) SkipAllQuestions() error {
 	for {
-		if err := p.SkipQuestion(); err == ErrSectionDone {
+		if err := p.SkipQuestion(); errors.Is(err, ErrSectionDone) {
 			return nil
 		} else if err != nil {
 			return err
@@ -721,7 +721,7 @@ func (p *Parser) AllAnswers() ([]Resource, error) {
 	as := make([]Resource, 0, n)
 	for {
 		a, err := p.Answer()
-		if err == ErrSectionDone {
+		if errors.Is(err, ErrSectionDone) {
 			return as, nil
 		}
 		if err != nil {
@@ -739,7 +739,7 @@ func (p *Parser) SkipAnswer() error {
 // SkipAllAnswers skips all Answer Resources.
 func (p *Parser) SkipAllAnswers() error {
 	for {
-		if err := p.SkipAnswer(); err == ErrSectionDone {
+		if err := p.SkipAnswer(); errors.Is(err, ErrSectionDone) {
 			return nil
 		} else if err != nil {
 			return err
@@ -771,7 +771,7 @@ func (p *Parser) AllAuthorities() ([]Resource, error) {
 	as := make([]Resource, 0, n)
 	for {
 		a, err := p.Authority()
-		if err == ErrSectionDone {
+		if errors.Is(err, ErrSectionDone) {
 			return as, nil
 		}
 		if err != nil {
@@ -789,7 +789,7 @@ func (p *Parser) SkipAuthority() error {
 // SkipAllAuthorities skips all Authority Resources.
 func (p *Parser) SkipAllAuthorities() error {
 	for {
-		if err := p.SkipAuthority(); err == ErrSectionDone {
+		if err := p.SkipAuthority(); errors.Is(err, ErrSectionDone) {
 			return nil
 		} else if err != nil {
 			return err
@@ -821,7 +821,7 @@ func (p *Parser) AllAdditionals() ([]Resource, error) {
 	as := make([]Resource, 0, n)
 	for {
 		a, err := p.Additional()
-		if err == ErrSectionDone {
+		if errors.Is(err, ErrSectionDone) {
 			return as, nil
 		}
 		if err != nil {
@@ -839,7 +839,7 @@ func (p *Parser) SkipAdditional() error {
 // SkipAllAdditionals skips all Additional Resources.
 func (p *Parser) SkipAllAdditionals() error {
 	for {
-		if err := p.SkipAdditional(); err == ErrSectionDone {
+		if err := p.SkipAdditional(); errors.Is(err, ErrSectionDone) {
 			return nil
 		} else if err != nil {
 			return err
