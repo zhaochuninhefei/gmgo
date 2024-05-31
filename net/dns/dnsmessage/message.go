@@ -653,7 +653,7 @@ func (p *Parser) AllQuestions() ([]Question, error) {
 	//
 	// Do not pre-allocate based on info in p.header, since
 	// the data is untrusted.
-	qs := []Question{}
+	var qs []Question
 	for {
 		q, err := p.Question()
 		if err == ErrSectionDone {
