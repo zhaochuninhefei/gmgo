@@ -558,7 +558,7 @@ func TestTooManyRecords(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if _, got := test.msg.Pack(); got != test.want {
+		if _, got := test.msg.Pack(); !errors.Is(got, test.want) {
 			t.Errorf("got Message.Pack() for %d %s = %v, want = %v", recs, test.name, got, test.want)
 		}
 	}
