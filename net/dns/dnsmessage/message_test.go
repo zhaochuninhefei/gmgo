@@ -1231,7 +1231,7 @@ func benchmarkParsing(tb testing.TB, buf []byte) {
 
 	for {
 		_, err := p.Question()
-		if err == ErrSectionDone {
+		if errors.Is(err, ErrSectionDone) {
 			break
 		}
 		if err != nil {
