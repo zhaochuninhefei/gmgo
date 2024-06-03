@@ -277,7 +277,7 @@ func TestIncompressibleName(t *testing.T) {
 		t.Fatal("unpacking incompressible name without pointers failed:", err)
 	}
 	var n2 Name
-	if _, err := n2.unpackCompressed(buf, off, false /* allowCompression */); err != errCompressedSRV {
+	if _, err := n2.unpackCompressed(buf, off, false /* allowCompression */); !errors.Is(err, errCompressedSRV) {
 		t.Errorf("unpacking compressed incompressible name with pointers: got %v, want = %v", err, errCompressedSRV)
 	}
 }
@@ -337,7 +337,7 @@ func TestResourceNotStarted(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := test.fn(&Parser{}); err != ErrNotStarted {
+		if err := test.fn(&Parser{}); !errors.Is(err, ErrNotStarted) {
 			t.Errorf("got Parser.%s() = _ , %v, want = _, %v", test.name, err, ErrNotStarted)
 		}
 	}
