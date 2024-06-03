@@ -700,7 +700,7 @@ func TestBuilderResourceError(t *testing.T) {
 func TestFinishError(t *testing.T) {
 	var b Builder
 	want := ErrNotStarted
-	if _, got := b.Finish(); got != want {
+	if _, got := b.Finish(); !errors.Is(got, want) {
 		t.Errorf("got Builder.Finish() = %v, want = %v", got, want)
 	}
 }
