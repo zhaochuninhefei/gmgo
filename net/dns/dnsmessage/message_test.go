@@ -1117,7 +1117,7 @@ func TestParseUnknownResource(t *testing.T) {
 
 	// Finish parsing the rest of the message to ensure that
 	// (*Parser).UnknownResource() leaves the parser in a consistent state.
-	if _, err = p.AnswerHeader(); err != ErrSectionDone {
+	if _, err = p.AnswerHeader(); !errors.Is(err, ErrSectionDone) {
 		t.Fatalf("Answer section should be fully parsed")
 	}
 	if _, err = p.AllAuthorities(); err != nil {
