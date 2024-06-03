@@ -690,7 +690,7 @@ func TestBuilderResourceError(t *testing.T) {
 
 	for _, env := range envs {
 		for _, test := range tests {
-			if got := test.fn(env.fn()); got != env.want {
+			if got := test.fn(env.fn()); !errors.Is(got, env.want) {
 				t.Errorf("got Builder{%s}.%s() = %v, want = %v", env.name, test.name, got, env.want)
 			}
 		}
