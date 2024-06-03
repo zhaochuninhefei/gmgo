@@ -6,6 +6,7 @@ package dnsmessage
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -232,7 +233,7 @@ func TestNamePackUnpack(t *testing.T) {
 		in := MustNewName(test.in)
 		want := MustNewName(test.want)
 		buf, err := in.pack(make([]byte, 0, 30), map[string]int{}, 0)
-		if err != test.err {
+		if !errors.Is(err, test.err) {
 			t.Errorf("got %q.pack() = %v, want = %v", test.in, err, test.err)
 			continue
 		}
@@ -282,7 +283,8 @@ func TestIncompressibleName(t *testing.T) {
 }
 
 func checkErrorPrefix(err error, prefix string) bool {
-	e, ok := err.(*nestedError)
+	var e *nestedError
+	ok := errors.As(err, &e)
 	return ok && e.s == prefix
 }
 
