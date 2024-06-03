@@ -463,7 +463,7 @@ func TestSkipEach(t *testing.T) {
 		if err := test.f(); err != nil {
 			t.Errorf("first Parser.%s() = %v, want = nil", test.name, err)
 		}
-		if err := test.f(); err != ErrSectionDone {
+		if err := test.f(); !errors.Is(err, ErrSectionDone) {
 			t.Errorf("second Parser.%s() = %v, want = %v", test.name, err, ErrSectionDone)
 		}
 	}
@@ -495,7 +495,7 @@ func TestSkipAfterRead(t *testing.T) {
 		if err := test.read(); err != nil {
 			t.Errorf("got Parser.%s() = _, %v, want = _, nil", test.name, err)
 		}
-		if err := test.skip(); err != ErrSectionDone {
+		if err := test.skip(); !errors.Is(err, ErrSectionDone) {
 			t.Errorf("got Parser.Skip%s() = %v, want = %v", test.name, err, ErrSectionDone)
 		}
 	}
@@ -514,7 +514,7 @@ func TestSkipNotStarted(t *testing.T) {
 		{"SkipAllAdditionals", p.SkipAllAdditionals},
 	}
 	for _, test := range tests {
-		if err := test.f(); err != ErrNotStarted {
+		if err := test.f(); !errors.Is(err, ErrNotStarted) {
 			t.Errorf("got Parser.%s() = %v, want = %v", test.name, err, ErrNotStarted)
 		}
 	}
