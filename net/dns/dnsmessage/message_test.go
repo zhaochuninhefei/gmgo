@@ -605,7 +605,7 @@ func TestVeryLongTxt(t *testing.T) {
 
 func TestTooLongTxt(t *testing.T) {
 	rb := TXTResource{[]string{strings.Repeat(".", 256)}}
-	if _, err := rb.pack(make([]byte, 0, 8000), map[string]int{}, 0); err != errStringTooLong {
+	if _, err := rb.pack(make([]byte, 0, 8000), map[string]int{}, 0); !errors.Is(err, errStringTooLong) {
 		t.Errorf("packing TXTResource with 256 character string: got err = %v, want = %v", err, errStringTooLong)
 	}
 }
