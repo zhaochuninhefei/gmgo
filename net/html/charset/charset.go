@@ -209,6 +209,8 @@ func prescan(content []byte) (e encoding.Encoding, name string) {
 			if e != nil {
 				return e, name
 			}
+		default:
+			panic("unhandled default case")
 		}
 	}
 }
