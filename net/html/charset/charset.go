@@ -10,6 +10,7 @@ package charset // import "gitee.com/zhaochuninhefei/gmgo/net/html/charset"
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -109,7 +110,7 @@ func NewReader(r io.Reader, contentType string) (io.Reader, error) {
 	preview := make([]byte, 1024)
 	n, err := io.ReadFull(r, preview)
 	switch {
-	case err == io.ErrUnexpectedEOF:
+	case errors.Is(err, io.ErrUnexpectedEOF):
 		preview = preview[:n]
 		r = bytes.NewReader(preview)
 	case err != nil:
