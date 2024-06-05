@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -184,7 +183,7 @@ func TestReader(t *testing.T) {
 		}
 
 		e, _ := Lookup(tc.want)
-		want, err := ioutil.ReadAll(transform.NewReader(bytes.NewReader(content), e.NewDecoder()))
+		want, err := io.ReadAll(transform.NewReader(bytes.NewReader(content), e.NewDecoder()))
 		if err != nil {
 			t.Errorf("%s: error decoding with hard-coded charset name: %v", tc.filename, err)
 			continue
