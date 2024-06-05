@@ -140,6 +140,7 @@ func NewReaderLabel(label string, input io.Reader) (io.Reader, error) {
 func prescan(content []byte) (e encoding.Encoding, name string) {
 	z := html.NewTokenizer(bytes.NewReader(content))
 	for {
+		//goland:noinspection GoSwitchMissingCasesForIotaConsts
 		switch z.Next() {
 		case html.ErrorToken:
 			return nil, ""
@@ -210,8 +211,6 @@ func prescan(content []byte) (e encoding.Encoding, name string) {
 			if e != nil {
 				return e, name
 			}
-		default:
-			panic("unhandled default case")
 		}
 	}
 }
