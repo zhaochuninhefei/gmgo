@@ -7,6 +7,7 @@ package charset
 import (
 	"bytes"
 	"encoding/xml"
+	"io"
 	"io/ioutil"
 	"runtime"
 	"strings"
@@ -17,7 +18,7 @@ import (
 
 func transformString(t transform.Transformer, s string) (string, error) {
 	r := transform.NewReader(strings.NewReader(s), t)
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	return string(b), err
 }
 
