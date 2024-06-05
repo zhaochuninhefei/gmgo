@@ -177,7 +177,7 @@ func TestReader(t *testing.T) {
 			continue
 		}
 
-		got, err := ioutil.ReadAll(r)
+		got, err := io.ReadAll(r)
 		if err != nil {
 			t.Errorf("%s: error reading from charset.NewReader: %v", tc.filename, err)
 			continue
