@@ -86,6 +86,7 @@ func parseDoctype(s string) (n *Node, quirks bool) {
 				quirks = true
 			}
 		}
+		//goland:noinspection HttpUrlsUsage
 		if lastAttr := n.Attr[len(n.Attr)-1]; lastAttr.Key == "system" &&
 			strings.ToLower(lastAttr.Val) == "http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd" {
 			quirks = true
