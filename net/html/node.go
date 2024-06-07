@@ -191,7 +191,7 @@ func (s *nodeStack) contains(a atom.Atom) bool {
 
 // insert inserts a node at the given index.
 func (s *nodeStack) insert(i int, n *Node) {
-	(*s) = append(*s, nil)
+	*s = append(*s, nil)
 	copy((*s)[i+1:], (*s)[i:])
 	(*s)[i] = n
 }
