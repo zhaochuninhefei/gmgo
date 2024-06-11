@@ -146,6 +146,7 @@ func (p *parser) indexOfElementInScope(s scope, matchTags ...a.Atom) int {
 					return -1
 				}
 			}
+		default:
 		}
 	}
 	return -1
@@ -532,6 +533,7 @@ func initialIM(p *parser) bool {
 		p.quirks = quirks
 		p.im = beforeHTMLIM
 		return true
+	default:
 	}
 	p.quirks = true
 	p.im = beforeHTMLIM
@@ -571,6 +573,7 @@ func beforeHTMLIM(p *parser) bool {
 			Data: p.tok.Data,
 		})
 		return true
+	default:
 	}
 	p.parseImpliedToken(StartTagToken, a.Html, a.Html.String())
 	return false
@@ -613,6 +616,7 @@ func beforeHeadIM(p *parser) bool {
 	case DoctypeToken:
 		// Ignore the token.
 		return true
+	default:
 	}
 
 	p.parseImpliedToken(StartTagToken, a.Head, a.Head.String())
@@ -728,6 +732,7 @@ func inHeadIM(p *parser) bool {
 	case DoctypeToken:
 		// Ignore the token.
 		return true
+	default:
 	}
 
 	p.parseImpliedToken(EndTagToken, a.Head, a.Head.String())
@@ -771,6 +776,7 @@ func inHeadNoscriptIM(p *parser) bool {
 		}
 	case CommentToken:
 		return inHeadIM(p)
+	default:
 	}
 	p.oe.pop()
 	if p.top().DataAtom != a.Head {
@@ -836,6 +842,7 @@ func afterHeadIM(p *parser) bool {
 	case DoctypeToken:
 		// Ignore the token.
 		return true
+	default:
 	}
 
 	p.parseImpliedToken(StartTagToken, a.Body, a.Body.String())
@@ -1202,6 +1209,7 @@ func inBodyIM(p *parser) bool {
 				return true
 			}
 		}
+	default:
 	}
 
 	return true
@@ -1406,6 +1414,7 @@ func textIM(p *parser) bool {
 		return true
 	case EndTagToken:
 		p.oe.pop()
+	default:
 	}
 	p.im = p.originalIM
 	p.originalIM = nil
@@ -1511,6 +1520,7 @@ func inTableIM(p *parser) bool {
 		return true
 	case ErrorToken:
 		return inBodyIM(p)
+	default:
 	}
 
 	p.fosterParenting = true
@@ -1559,6 +1569,7 @@ func inCaptionIM(p *parser) bool {
 			// Ignore the token.
 			return true
 		}
+	default:
 	}
 	return inBodyIM(p)
 }
@@ -1613,6 +1624,7 @@ func inColumnGroupIM(p *parser) bool {
 		}
 	case ErrorToken:
 		return inBodyIM(p)
+	default:
 	}
 	if p.oe.top().DataAtom != a.Colgroup {
 		return true
@@ -1669,6 +1681,7 @@ func inTableBodyIM(p *parser) bool {
 			Data: p.tok.Data,
 		})
 		return true
+	default:
 	}
 
 	return inTableIM(p)
@@ -1720,6 +1733,7 @@ func inRowIM(p *parser) bool {
 			// Ignore the token.
 			return true
 		}
+	default:
 	}
 
 	return inTableIM(p)
@@ -1771,6 +1785,7 @@ func inCellIM(p *parser) bool {
 			p.im = inRowIM
 			return false
 		}
+	default:
 	}
 	return inBodyIM(p)
 }
@@ -1855,6 +1870,7 @@ func inSelectIM(p *parser) bool {
 		return true
 	case ErrorToken:
 		return inBodyIM(p)
+	default:
 	}
 
 	return true
@@ -1883,6 +1899,7 @@ func inSelectInTableIM(p *parser) bool {
 			p.resetInsertionMode()
 			return false
 		}
+	default:
 	}
 	return inSelectIM(p)
 }
@@ -1949,6 +1966,7 @@ func inTemplateIM(p *parser) bool {
 		p.templateStack.pop()
 		p.resetInsertionMode()
 		return false
+	default:
 	}
 	return false
 }
@@ -1986,6 +2004,7 @@ func afterBodyIM(p *parser) bool {
 			Data: p.tok.Data,
 		})
 		return true
+	default:
 	}
 	p.im = inBodyIM
 	return false
@@ -2104,6 +2123,7 @@ func afterAfterBodyIM(p *parser) bool {
 		return true
 	case DoctypeToken:
 		return inBodyIM(p)
+	default:
 	}
 	p.im = inBodyIM
 	return false
