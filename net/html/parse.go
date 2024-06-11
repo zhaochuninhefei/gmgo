@@ -2165,7 +2165,7 @@ func afterAfterFramesetIM(p *parser) bool {
 	return true
 }
 
-func ignoreTheRemainingTokens(p *parser) bool {
+func ignoreTheRemainingTokens(_ *parser) bool {
 	return true
 }
 
