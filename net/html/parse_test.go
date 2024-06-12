@@ -464,7 +464,7 @@ func TestNodeConsistency(t *testing.T) {
 
 func TestParseFragmentWithNilContext(t *testing.T) {
 	// This shouldn't panic.
-	ParseFragment(strings.NewReader("<p>hello</p>"), nil)
+	_, _ = ParseFragment(strings.NewReader("<p>hello</p>"), nil)
 }
 
 func TestParseFragmentForeignContentTemplates(t *testing.T) {
