@@ -139,9 +139,9 @@ func readParseTest(r *bufio.Reader) (*testAttrs, error) {
 }
 
 func dumpIndent(w io.Writer, level int) {
-	io.WriteString(w, "| ")
+	_, _ = io.WriteString(w, "| ")
 	for i := 0; i < level; i++ {
-		io.WriteString(w, "  ")
+		_, _ = io.WriteString(w, "  ")
 	}
 }
 
