@@ -474,7 +474,7 @@ func TestParseFragmentForeignContentTemplates(t *testing.T) {
 	}
 	for _, src := range srcs {
 		// The next line shouldn't infinite-loop.
-		ParseFragment(strings.NewReader(src), nil)
+		_, _ = ParseFragment(strings.NewReader(src), nil)
 	}
 }
 
