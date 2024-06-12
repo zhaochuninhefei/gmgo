@@ -488,6 +488,6 @@ func BenchmarkParser(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Parse(bytes.NewBuffer(buf))
+		_, _ = Parse(bytes.NewBuffer(buf))
 	}
 }
