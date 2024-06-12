@@ -172,33 +172,33 @@ func dumpLevel(w io.Writer, n *Node, level int) error {
 		return errors.New("unexpected DocumentNode")
 	case ElementNode:
 		if n.Namespace != "" {
-			fmt.Fprintf(w, "<%s %s>", n.Namespace, n.Data)
+			_, _ = fmt.Fprintf(w, "<%s %s>", n.Namespace, n.Data)
 		} else {
-			fmt.Fprintf(w, "<%s>", n.Data)
+			_, _ = fmt.Fprintf(w, "<%s>", n.Data)
 		}
 		attr := sortedAttributes(n.Attr)
 		sort.Sort(attr)
 		for _, a := range attr {
-			io.WriteString(w, "\n")
+			_, _ = io.WriteString(w, "\n")
 			dumpIndent(w, level)
 			if a.Namespace != "" {
-				fmt.Fprintf(w, `%s %s="%s"`, a.Namespace, a.Key, a.Val)
+				_, _ = fmt.Fprintf(w, `%s %s="%s"`, a.Namespace, a.Key, a.Val)
 			} else {
-				fmt.Fprintf(w, `%s="%s"`, a.Key, a.Val)
+				_, _ = fmt.Fprintf(w, `%s="%s"`, a.Key, a.Val)
 			}
 		}
 		if n.Namespace == "" && n.DataAtom == atom.Template {
-			io.WriteString(w, "\n")
+			_, _ = io.WriteString(w, "\n")
 			dumpIndent(w, level)
 			level++
-			io.WriteString(w, "content")
+			_, _ = io.WriteString(w, "content")
 		}
 	case TextNode:
-		fmt.Fprintf(w, `"%s"`, n.Data)
+		_, _ = fmt.Fprintf(w, `"%s"`, n.Data)
 	case CommentNode:
-		fmt.Fprintf(w, "<!-- %s -->", n.Data)
+		_, _ = fmt.Fprintf(w, "<!-- %s -->", n.Data)
 	case DoctypeNode:
-		fmt.Fprintf(w, "<!DOCTYPE %s", n.Data)
+		_, _ = fmt.Fprintf(w, "<!DOCTYPE %s", n.Data)
 		if n.Attr != nil {
 			var p, s string
 			for _, a := range n.Attr {
@@ -210,17 +210,17 @@ func dumpLevel(w io.Writer, n *Node, level int) error {
 				}
 			}
 			if p != "" || s != "" {
-				fmt.Fprintf(w, ` "%s"`, p)
-				fmt.Fprintf(w, ` "%s"`, s)
+				_, _ = fmt.Fprintf(w, ` "%s"`, p)
+				_, _ = fmt.Fprintf(w, ` "%s"`, s)
 			}
 		}
-		io.WriteString(w, ">")
+		_, _ = io.WriteString(w, ">")
 	case scopeMarkerNode:
 		return errors.New("unexpected scopeMarkerNode")
 	default:
 		return errors.New("unknown node type")
 	}
-	io.WriteString(w, "\n")
+	_, _ = io.WriteString(w, "\n")
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if err := dumpLevel(w, c, level); err != nil {
 			return err
