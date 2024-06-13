@@ -59,7 +59,7 @@ var plaintextAbort = errors.New("html: internal error (plaintext abort)")
 
 func render(w writer, n *Node) error {
 	err := render1(w, n)
-	if err == plaintextAbort {
+	if errors.Is(err, plaintextAbort) {
 		err = nil
 	}
 	return err
