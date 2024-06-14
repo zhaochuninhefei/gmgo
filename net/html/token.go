@@ -90,7 +90,7 @@ func (t Token) tagString() string {
 		buf.WriteByte(' ')
 		buf.WriteString(a.Key)
 		buf.WriteString(`="`)
-		escape(buf, a.Val)
+		_ = escape(buf, a.Val)
 		buf.WriteByte('"')
 	}
 	return buf.String()
