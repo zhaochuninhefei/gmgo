@@ -1054,6 +1054,7 @@ loop:
 			z.readUntilCloseAngle()
 			z.tt = CommentToken
 			return z.tt
+		default:
 		}
 	}
 	if z.raw.start < z.raw.end {
@@ -1129,6 +1130,7 @@ func (z *Tokenizer) Text() []byte {
 			s = unescape(s, false)
 		}
 		return s
+	default:
 	}
 	return nil
 }
@@ -1144,6 +1146,7 @@ func (z *Tokenizer) TagName() (name []byte, hasAttr bool) {
 			z.data.start = z.raw.end
 			z.data.end = z.raw.end
 			return lower(s), z.nAttrReturned < len(z.attr)
+		default:
 		}
 	}
 	return nil, false
@@ -1161,6 +1164,7 @@ func (z *Tokenizer) TagAttr() (key, val []byte, moreAttr bool) {
 			key = z.buf[x[0].start:x[0].end]
 			val = z.buf[x[1].start:x[1].end]
 			return lower(key), unescape(convertNewlines(val), true), z.nAttrReturned < len(z.attr)
+		default:
 		}
 	}
 	return nil, nil, false
@@ -1185,6 +1189,7 @@ func (z *Tokenizer) Token() Token {
 		} else {
 			t.DataAtom, t.Data = 0, string(name)
 		}
+	default:
 	}
 	return t
 }
