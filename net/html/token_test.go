@@ -6,6 +6,7 @@ package html
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"reflect"
@@ -487,7 +488,7 @@ func TestMaxBuffer(t *testing.T) {
 	if got, want := tt, ErrorToken; got != want {
 		t.Fatalf("token type: got: %v want: %v", got, want)
 	}
-	if got, want := z.Err(), ErrBufferExceeded; got != want {
+	if got, want := z.Err(), ErrBufferExceeded; !errors.Is(got, want) {
 		t.Errorf("error type: got: %v want: %v", got, want)
 	}
 	if got, want := string(z.Raw()), "<tttt"; got != want {
