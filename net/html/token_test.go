@@ -739,6 +739,7 @@ func benchmarkTokenizer(b *testing.B, level int) {
 					}
 				case EndTagToken:
 					z.TagName()
+				default:
 				}
 			case highLevel:
 				// Calling z.Token converts []byte values to strings whose validity
