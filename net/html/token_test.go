@@ -580,6 +580,7 @@ loop:
 					depth--
 				}
 			}
+		default:
 		}
 	}
 	u := "14567"
