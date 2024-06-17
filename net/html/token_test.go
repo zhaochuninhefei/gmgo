@@ -626,7 +626,7 @@ func TestReaderEdgeCases(t *testing.T) {
 		&stuckReader{},
 	}
 	for i, tc := range testCases {
-		got := []TokenType{}
+		var got []TokenType
 		z := NewTokenizer(tc)
 		for {
 			tt := z.Next()
