@@ -516,7 +516,7 @@ tests:
 				}
 			}
 			// Anything tokenized along with untokenized input or data left in the reader.
-			assembled, err := ioutil.ReadAll(io.MultiReader(&tokenized, bytes.NewReader(z.Buffered()), r))
+			assembled, err := io.ReadAll(io.MultiReader(&tokenized, bytes.NewReader(z.Buffered()), r))
 			if err != nil {
 				t.Errorf("%s: ReadAll: %v", test.desc, err)
 				continue tests
