@@ -636,7 +636,7 @@ func TestReaderEdgeCases(t *testing.T) {
 			got = append(got, tt)
 		}
 		if err := z.Err(); err != nil && err != io.EOF {
-			if err != io.ErrNoProgress {
+			if !errors.Is(err, io.ErrNoProgress) {
 				t.Errorf("i=%d: %v", i, err)
 			}
 			continue
