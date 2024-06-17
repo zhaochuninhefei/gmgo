@@ -7,7 +7,7 @@ package html
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -703,7 +703,7 @@ const (
 )
 
 func benchmarkTokenizer(b *testing.B, level int) {
-	buf, err := ioutil.ReadFile("testdata/go1.html")
+	buf, err := os.ReadFile("testdata/go1.html")
 	if err != nil {
 		b.Fatalf("could not read testdata/go1.html: %v", err)
 	}
