@@ -692,7 +692,7 @@ func (r *eofStringsReader) Read(p []byte) (int, error) {
 // stuckReader is an io.Reader that always returns no data and no error.
 type stuckReader struct{}
 
-func (*stuckReader) Read(p []byte) (int, error) {
+func (*stuckReader) Read(_ []byte) (int, error) {
 	return 0, nil
 }
 
