@@ -510,7 +510,7 @@ tests:
 				tt := z.Next()
 				tokenized.Write(z.Raw())
 				if tt == ErrorToken {
-					if err := z.Err(); err != io.EOF && err != ErrBufferExceeded {
+					if err := z.Err(); err != io.EOF && !errors.Is(err, ErrBufferExceeded) {
 						t.Errorf("%s: unexpected error: %v", test.desc, err)
 					}
 					break
