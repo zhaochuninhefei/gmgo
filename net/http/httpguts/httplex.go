@@ -211,6 +211,8 @@ func ValidHeaderFieldName(v string) bool {
 }
 
 // ValidHostHeader reports whether h is a valid host header.
+//
+//goland:noinspection GoUnusedExportedFunction
 func ValidHostHeader(h string) bool {
 	// The latest spec is actually this:
 	//
