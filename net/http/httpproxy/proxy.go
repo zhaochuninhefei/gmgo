@@ -331,6 +331,7 @@ type matcher interface {
 // allMatch matches on all possible inputs
 type allMatch struct{}
 
+//goland:noinspection GoUnusedParameter
 func (a allMatch) match(host, port string, ip net.IP) bool {
 	return true
 }
@@ -339,6 +340,7 @@ type cidrMatch struct {
 	cidr *net.IPNet
 }
 
+//goland:noinspection GoUnusedParameter
 func (m cidrMatch) match(host, port string, ip net.IP) bool {
 	return m.cidr.Contains(ip)
 }
@@ -348,6 +350,7 @@ type ipMatch struct {
 	port string
 }
 
+//goland:noinspection GoUnusedParameter
 func (m ipMatch) match(host, port string, ip net.IP) bool {
 	if m.ip.Equal(ip) {
 		return m.port == "" || m.port == port
@@ -362,6 +365,7 @@ type domainMatch struct {
 	matchHost bool
 }
 
+//goland:noinspection GoUnusedParameter
 func (m domainMatch) match(host, port string, ip net.IP) bool {
 	if strings.HasSuffix(host, m.host) || (m.matchHost && host == m.host[1:]) {
 		return m.port == "" || m.port == port
