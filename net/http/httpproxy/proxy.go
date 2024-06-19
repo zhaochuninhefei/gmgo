@@ -205,29 +205,29 @@ func (cfg *config) useProxy(addr string) bool {
 	return true
 }
 
-func (c *config) init() {
-	if parsed, err := parseProxy(c.HTTPProxy); err == nil {
-		c.httpProxy = parsed
+func (cfg *config) init() {
+	if parsed, err := parseProxy(cfg.HTTPProxy); err == nil {
+		cfg.httpProxy = parsed
 	}
-	if parsed, err := parseProxy(c.HTTPSProxy); err == nil {
-		c.httpsProxy = parsed
+	if parsed, err := parseProxy(cfg.HTTPSProxy); err == nil {
+		cfg.httpsProxy = parsed
 	}
 
-	for _, p := range strings.Split(c.NoProxy, ",") {
+	for _, p := range strings.Split(cfg.NoProxy, ",") {
 		p = strings.ToLower(strings.TrimSpace(p))
 		if len(p) == 0 {
 			continue
 		}
 
 		if p == "*" {
-			c.ipMatchers = []matcher{allMatch{}}
-			c.domainMatchers = []matcher{allMatch{}}
+			cfg.ipMatchers = []matcher{allMatch{}}
+			cfg.domainMatchers = []matcher{allMatch{}}
 			return
 		}
 
 		// IPv4/CIDR, IPv6/CIDR
 		if _, pnet, err := net.ParseCIDR(p); err == nil {
-			c.ipMatchers = append(c.ipMatchers, cidrMatch{cidr: pnet})
+			cfg.ipMatchers = append(cfg.ipMatchers, cidrMatch{cidr: pnet})
 			continue
 		}
 
@@ -246,7 +246,7 @@ func (c *config) init() {
 		}
 		// IPv4, IPv6
 		if pip := net.ParseIP(phost); pip != nil {
-			c.ipMatchers = append(c.ipMatchers, ipMatch{ip: pip, port: pport})
+			cfg.ipMatchers = append(cfg.ipMatchers, ipMatch{ip: pip, port: pport})
 			continue
 		}
 
@@ -267,7 +267,7 @@ func (c *config) init() {
 			matchHost = true
 			phost = "." + phost
 		}
-		c.domainMatchers = append(c.domainMatchers, domainMatch{host: phost, port: pport, matchHost: matchHost})
+		cfg.domainMatchers = append(cfg.domainMatchers, domainMatch{host: phost, port: pport, matchHost: matchHost})
 	}
 }
 
