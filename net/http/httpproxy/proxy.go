@@ -157,7 +157,8 @@ func parseProxy(proxy string) (*url.URL, error) {
 		// proxy was bogus. Try prepending "http://" to it and
 		// see if that parses correctly. If not, we fall
 		// through and complain about the original one.
-		if proxyURL, err := url.Parse("http://" + proxy); err == nil {
+		if //goland:noinspection HttpUrlsUsage
+		proxyURL, err := url.Parse("http://" + proxy); err == nil {
 			return proxyURL, nil
 		}
 	}
