@@ -292,6 +292,8 @@ func canonicalAddr(url *url.URL) string {
 
 // Given a string of the form "host", "host:port", or "[ipv6::address]:port",
 // return true if the string includes a port.
+//
+//goland:noinspection GoUnusedFunction
 func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
 
 func idnaASCII(v string) (string, error) {
