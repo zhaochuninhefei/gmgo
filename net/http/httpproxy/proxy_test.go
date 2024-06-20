@@ -193,25 +193,25 @@ func testProxyForURL(t *testing.T, tt proxyForURLTest) {
 	}
 	cfg := tt.cfg
 	proxyForURL := cfg.ProxyFunc()
-	url, err := proxyForURL(reqURL)
+	proxyUrl, err := proxyForURL(reqURL)
 	if g, e := fmt.Sprintf("%v", err), fmt.Sprintf("%v", tt.wanterr); g != e {
 		t.Errorf("%v: got error = %q, want %q", tt, g, e)
 		return
 	}
-	if got := fmt.Sprintf("%s", url); got != tt.want {
-		t.Errorf("%v: got URL = %q, want %q", tt, url, tt.want)
+	if got := fmt.Sprintf("%s", proxyUrl); got != tt.want {
+		t.Errorf("%v: got URL = %q, want %q", tt, proxyUrl, tt.want)
 	}
 
 	// Check that changing the Config doesn't change the results
 	// of the functuon.
 	cfg = httpproxy.Config{}
-	url, err = proxyForURL(reqURL)
+	proxyUrl, err = proxyForURL(reqURL)
 	if g, e := fmt.Sprintf("%v", err), fmt.Sprintf("%v", tt.wanterr); g != e {
 		t.Errorf("(after mutating config) %v: got error = %q, want %q", tt, g, e)
 		return
 	}
-	if got := fmt.Sprintf("%s", url); got != tt.want {
-		t.Errorf("(after mutating config) %v: got URL = %q, want %q", tt, url, tt.want)
+	if got := fmt.Sprintf("%s", proxyUrl); got != tt.want {
+		t.Errorf("(after mutating config) %v: got URL = %q, want %q", tt, proxyUrl, tt.want)
 	}
 }
 
