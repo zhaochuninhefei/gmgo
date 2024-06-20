@@ -44,6 +44,7 @@ func (t proxyForURLTest) String() string {
 		space()
 		_, _ = fmt.Fprintf(&buf, "no_proxy=%q", t.cfg.NoProxy)
 	}
+	//goland:noinspection HttpUrlsUsage
 	req := "http://example.com"
 	if t.req != "" {
 		req = t.req
@@ -53,6 +54,7 @@ func (t proxyForURLTest) String() string {
 	return strings.TrimSpace(buf.String())
 }
 
+//goland:noinspection HttpUrlsUsage
 var proxyForURLTests = []proxyForURLTest{{
 	cfg: httpproxy.Config{
 		HTTPProxy: "127.0.0.1:8080",
