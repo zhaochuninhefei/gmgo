@@ -34,22 +34,22 @@ func (t proxyForURLTest) String() string {
 		}
 	}
 	if t.cfg.HTTPProxy != "" {
-		fmt.Fprintf(&buf, "http_proxy=%q", t.cfg.HTTPProxy)
+		_, _ = fmt.Fprintf(&buf, "http_proxy=%q", t.cfg.HTTPProxy)
 	}
 	if t.cfg.HTTPSProxy != "" {
 		space()
-		fmt.Fprintf(&buf, "https_proxy=%q", t.cfg.HTTPSProxy)
+		_, _ = fmt.Fprintf(&buf, "https_proxy=%q", t.cfg.HTTPSProxy)
 	}
 	if t.cfg.NoProxy != "" {
 		space()
-		fmt.Fprintf(&buf, "no_proxy=%q", t.cfg.NoProxy)
+		_, _ = fmt.Fprintf(&buf, "no_proxy=%q", t.cfg.NoProxy)
 	}
 	req := "http://example.com"
 	if t.req != "" {
 		req = t.req
 	}
 	space()
-	fmt.Fprintf(&buf, "req=%q", req)
+	_, _ = fmt.Fprintf(&buf, "req=%q", req)
 	return strings.TrimSpace(buf.String())
 }
 
