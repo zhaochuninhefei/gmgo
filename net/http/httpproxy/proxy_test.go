@@ -343,6 +343,7 @@ func TestAllNoProxy(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 func BenchmarkProxyForURL(b *testing.B) {
 	cfg := &httpproxy.Config{
 		HTTPProxy:  "http://proxy.example.org",
