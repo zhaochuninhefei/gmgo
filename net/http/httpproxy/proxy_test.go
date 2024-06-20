@@ -255,10 +255,10 @@ func TestFromEnvironmentWithRequestMethod(t *testing.T) {
 }
 
 func TestFromEnvironmentLowerCase(t *testing.T) {
-	os.Setenv("http_proxy", "httpproxy")
-	os.Setenv("https_proxy", "httpsproxy")
-	os.Setenv("no_proxy", "noproxy")
-	os.Setenv("REQUEST_METHOD", "")
+	_ = os.Setenv("http_proxy", "httpproxy")
+	_ = os.Setenv("https_proxy", "httpsproxy")
+	_ = os.Setenv("no_proxy", "noproxy")
+	_ = os.Setenv("REQUEST_METHOD", "")
 	got := httpproxy.FromEnvironment()
 	want := httpproxy.Config{
 		HTTPProxy:  "httpproxy",
