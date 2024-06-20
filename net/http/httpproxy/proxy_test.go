@@ -186,6 +186,7 @@ func testProxyForURL(t *testing.T, tt proxyForURLTest) {
 	setHelper(t)
 	reqURLStr := tt.req
 	if reqURLStr == "" {
+		//goland:noinspection HttpUrlsUsage
 		reqURLStr = "http://example.com"
 	}
 	reqURL, err := url.Parse(reqURLStr)
