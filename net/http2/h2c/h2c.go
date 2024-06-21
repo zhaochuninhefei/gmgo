@@ -162,6 +162,7 @@ func drainClientPreface(r io.Reader) error {
 		return err
 	}
 	if n != prefaceLen || buf.String() != http2.ClientPreface {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Client never sent: %s", http2.ClientPreface)
 	}
 	return nil
@@ -181,6 +182,7 @@ func h2cUpgrade(w http.ResponseWriter, r *http.Request) (net.Conn, error) {
 
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
+		//goland:noinspection GoErrorStringFormat
 		return nil, errors.New("hijack not supported.")
 	}
 	conn, rw, err := hijacker.Hijack()
@@ -393,6 +395,7 @@ func getH2Settings(h http.Header) ([]http2.Setting, error) {
 	}
 	settings, err := decodeSettings(vals[0])
 	if err != nil {
+		//goland:noinspection GoErrorStringFormat
 		return nil, fmt.Errorf("Invalid HTTP2-Settings: %q", vals[0])
 	}
 	return settings, nil
