@@ -82,7 +82,9 @@ func (s h2cHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 
 		s.s.ServeConn(conn, &http2.ServeConnOpts{
 			Context: r.Context(),
@@ -92,7 +94,9 @@ func (s h2cHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// Handle Upgrade to h2c (RFC 7540 Section 3.2)
 	if conn, err := h2cUpgrade(w, r); err == nil {
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 
 		s.s.ServeConn(conn, &http2.ServeConnOpts{
 			Context: r.Context(),
