@@ -188,10 +188,10 @@ func h2cUpgrade(w http.ResponseWriter, r *http.Request) (net.Conn, error) {
 		return nil, fmt.Errorf("hijack failed: %v", err)
 	}
 
-	rw.Write([]byte("HTTP/1.1 101 Switching Protocols\r\n" +
+	_, _ = rw.Write([]byte("HTTP/1.1 101 Switching Protocols\r\n" +
 		"Connection: Upgrade\r\n" +
 		"Upgrade: h2c\r\n\r\n"))
-	rw.Flush()
+	_ = rw.Flush()
 
 	// A conforming client will now send an H2 client preface which need to drain
 	// since we already sent this.
