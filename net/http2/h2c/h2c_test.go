@@ -24,7 +24,7 @@ func TestSettingsAckSwallowWriter(t *testing.T) {
 	var buf bytes.Buffer
 	swallower := newSettingsAckSwallowWriter(bufio.NewWriter(&buf))
 	fw := http2.NewFramer(swallower, nil)
-	_ = fw.WriteSettings(http2.Setting{http2.SettingMaxFrameSize, 2})
+	_ = fw.WriteSettings(http2.Setting{ID: http2.SettingMaxFrameSize, Val: 2})
 	_ = fw.WriteSettingsAck()
 	_ = fw.WriteData(1, true, []byte{})
 	_ = swallower.Flush()
