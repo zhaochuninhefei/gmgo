@@ -50,7 +50,7 @@ func TestSettingsAckSwallowWriter(t *testing.T) {
 
 func ExampleNewHandler() {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hello world")
+		_, _ = fmt.Fprint(w, "Hello world")
 	})
 	h2s := &http2.Server{
 		// ...
@@ -72,7 +72,7 @@ func TestContext(t *testing.T) {
 		if r.Context().Value("testkey") != "testvalue" {
 			t.Errorf("Request doesn't have expected base context: %v", r.Context())
 		}
-		fmt.Fprint(w, "Hello world")
+		_, _ = fmt.Fprint(w, "Hello world")
 	})
 
 	h2s := &http2.Server{}
