@@ -156,6 +156,7 @@ func (app *h2i) Main() error {
 	log.Printf("Connecting to %s ...", hostAndPort)
 	tc, err := tls.Dial("tcp", hostAndPort, cfg)
 	if err != nil {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Error dialing %s: %v", hostAndPort, err)
 	}
 	log.Printf("Connected to %v", tc.RemoteAddr())
@@ -174,6 +175,7 @@ func (app *h2i) Main() error {
 	state := tc.ConnectionState()
 	log.Printf("Negotiated protocol %q", state.NegotiatedProtocol)
 	if !state.NegotiatedProtocolIsMutual || state.NegotiatedProtocol == "" {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Could not negotiate protocol mutually")
 	}
 
