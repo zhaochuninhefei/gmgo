@@ -136,7 +136,7 @@ func main() {
 		if app.term != nil {
 			app.logf("%v\n", err)
 		} else {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		}
 		os.Exit(1)
 	}
