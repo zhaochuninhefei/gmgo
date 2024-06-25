@@ -269,7 +269,7 @@ func (app *h2i) readConsole() error {
 		if !ok {
 			panic("settings command not found")
 		}
-		c.run(app, args)
+		_ = c.run(app, args)
 	}
 
 	for {
