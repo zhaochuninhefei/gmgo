@@ -160,7 +160,9 @@ func (app *h2i) Main() error {
 		return fmt.Errorf("Error dialing %s: %v", hostAndPort, err)
 	}
 	log.Printf("Connected to %v", tc.RemoteAddr())
-	defer tc.Close()
+	defer func(tc *tls.Conn) {
+		_ = tc.Close()
+	}(tc)
 
 	if err := tc.Handshake(); err != nil {
 		return fmt.Errorf("TLS handshake: %v", err)
@@ -186,7 +188,9 @@ func (app *h2i) Main() error {
 	if err != nil {
 		return err
 	}
-	defer term.Restore(0, oldState)
+	defer func(fd int, oldState *term.State) {
+		_ = term.Restore(fd, oldState)
+	}(0, oldState)
 
 	var screen = struct {
 		io.Reader
