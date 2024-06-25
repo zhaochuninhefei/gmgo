@@ -318,37 +318,37 @@ func lookupCommand(prefix string) (name string, c command, ok bool) {
 
 var errExitApp = errors.New("internal sentinel error value to quit the console reading loop")
 
-func (a *h2i) cmdQuit(args []string) error {
+func (app *h2i) cmdQuit(args []string) error {
 	if len(args) > 0 {
-		a.logf("the QUIT command takes no argument")
+		app.logf("the QUIT command takes no argument")
 		return nil
 	}
 	return errExitApp
 }
 
-func (a *h2i) cmdSettings(args []string) error {
+func (app *h2i) cmdSettings(args []string) error {
 	if len(args) == 1 && strings.EqualFold(args[0], "ACK") {
-		return a.framer.WriteSettingsAck()
+		return app.framer.WriteSettingsAck()
 	}
 	var settings []http2.Setting
 	for _, arg := range args {
 		if strings.EqualFold(arg, "ACK") {
-			a.logf("Error: ACK must be only argument with the SETTINGS command")
+			app.logf("Error: ACK must be only argument with the SETTINGS command")
 			return nil
 		}
 		eq := strings.Index(arg, "=")
 		if eq == -1 {
-			a.logf("Error: invalid argument %q (expected SETTING_NAME=nnnn)", arg)
+			app.logf("Error: invalid argument %q (expected SETTING_NAME=nnnn)", arg)
 			return nil
 		}
 		sid, ok := settingByName(arg[:eq])
 		if !ok {
-			a.logf("Error: unknown setting name %q", arg[:eq])
+			app.logf("Error: unknown setting name %q", arg[:eq])
 			return nil
 		}
 		val, err := strconv.ParseUint(arg[eq+1:], 10, 32)
 		if err != nil {
-			a.logf("Error: invalid argument %q (expected SETTING_NAME=nnnn)", arg)
+			app.logf("Error: invalid argument %q (expected SETTING_NAME=nnnn)", arg)
 			return nil
 		}
 		settings = append(settings, http2.Setting{
@@ -356,8 +356,8 @@ func (a *h2i) cmdSettings(args []string) error {
 			Val: uint32(val),
 		})
 	}
-	a.logf("Sending: %v", settings)
-	return a.framer.WriteSettings(settings...)
+	app.logf("Sending: %v", settings)
+	return app.framer.WriteSettings(settings...)
 }
 
 func settingByName(name string) (http2.SettingID, bool) {
