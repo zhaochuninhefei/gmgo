@@ -256,7 +256,7 @@ func (app *h2i) Main() error {
 }
 
 func (app *h2i) logf(format string, args ...interface{}) {
-	fmt.Fprintf(app.term, format+"\r\n", args...)
+	_, _ = fmt.Fprintf(app.term, format+"\r\n", args...)
 }
 
 func (app *h2i) readConsole() error {
