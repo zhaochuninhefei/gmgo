@@ -523,6 +523,6 @@ func (app *h2i) encodeHeaders(req *http.Request) []byte {
 }
 
 func (app *h2i) writeHeader(name, value string) {
-	app.henc.WriteField(hpack.HeaderField{Name: name, Value: value})
+	_ = app.henc.WriteField(hpack.HeaderField{Name: name, Value: value})
 	app.logf(" %s = %s", name, value)
 }
