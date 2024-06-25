@@ -291,7 +291,7 @@ func (app *h2i) readConsole() error {
 		} else {
 			app.logf("Unknown command %q", line)
 		}
-		if err == errExitApp {
+		if errors.Is(err, errExitApp) {
 			return nil
 		}
 		if err != nil {
