@@ -140,7 +140,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stdout, "\n")
+	_, _ = fmt.Fprintf(os.Stdout, "\n")
 }
 
 func (app *h2i) Main() error {
