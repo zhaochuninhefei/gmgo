@@ -312,8 +312,8 @@ func TestEncoderSetMaxDynamicTableSizeLimit(t *testing.T) {
 	if got, want := e.maxSizeLimit, uint32(4095); got != want {
 		t.Errorf("e.maxSizeLimit = %v; want %v", got, want)
 	}
-	if got, want := e.tableSizeUpdate, true; got != want {
-		t.Errorf("e.tableSizeUpdate = %v; want %v", got, want)
+	if got, _ := e.tableSizeUpdate, true; got != true {
+		t.Errorf("e.tableSizeUpdate = %v; want %v", got, true)
 	}
 	// maxSize will be truncated to maxSizeLimit
 	e.SetMaxDynamicTableSize(16384)
