@@ -7,6 +7,7 @@ package hpack
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -399,7 +400,7 @@ func TestHuffmanDecodeExcessPadding(t *testing.T) {
 	}
 	for i, in := range tests {
 		var buf bytes.Buffer
-		if _, err := HuffmanDecode(&buf, in); err != ErrInvalidHuffman {
+		if _, err := HuffmanDecode(&buf, in); !errors.Is(err, ErrInvalidHuffman) {
 			t.Errorf("test-%d: decode(%q) = %v; want ErrInvalidHuffman", i, in, err)
 		}
 	}
@@ -408,7 +409,7 @@ func TestHuffmanDecodeExcessPadding(t *testing.T) {
 func TestHuffmanDecodeEOS(t *testing.T) {
 	in := []byte{0xff, 0xff, 0xff, 0xff, 0xfc} // {EOS, "?"}
 	var buf bytes.Buffer
-	if _, err := HuffmanDecode(&buf, in); err != ErrInvalidHuffman {
+	if _, err := HuffmanDecode(&buf, in); !errors.Is(err, ErrInvalidHuffman) {
 		t.Errorf("error = %v; want ErrInvalidHuffman", err)
 	}
 }
@@ -416,7 +417,7 @@ func TestHuffmanDecodeEOS(t *testing.T) {
 func TestHuffmanDecodeMaxLengthOnTrailingByte(t *testing.T) {
 	in := []byte{0x00, 0x01} // {"0", "0", "0"}
 	var buf bytes.Buffer
-	if err := huffmanDecode(&buf, 2, in); err != ErrStringLength {
+	if err := huffmanDecode(&buf, 2, in); !errors.Is(err, ErrStringLength) {
 		t.Errorf("error = %v; want ErrStringLength", err)
 	}
 }
@@ -424,7 +425,7 @@ func TestHuffmanDecodeMaxLengthOnTrailingByte(t *testing.T) {
 func TestHuffmanDecodeCorruptPadding(t *testing.T) {
 	in := []byte{0x00}
 	var buf bytes.Buffer
-	if _, err := HuffmanDecode(&buf, in); err != ErrInvalidHuffman {
+	if _, err := HuffmanDecode(&buf, in); !errors.Is(err, ErrInvalidHuffman) {
 		t.Errorf("error = %v; want ErrInvalidHuffman", err)
 	}
 }
@@ -527,7 +528,7 @@ func TestHuffmanMaxStrLen(t *testing.T) {
 	testGood(len(msg) + 1)
 
 	var out bytes.Buffer
-	if err := huffmanDecode(&out, len(msg)-1, huff); err != ErrStringLength {
+	if err := huffmanDecode(&out, len(msg)-1, huff); !errors.Is(err, ErrStringLength) {
 		t.Errorf("err = %v; want ErrStringLength", err)
 	}
 }
@@ -589,7 +590,7 @@ func TestHuffmanDecodeFuzz(t *testing.T) {
 
 		buf.Reset()
 		if err := huffmanDecode(&buf, 0, zbuf.Bytes()); err != nil {
-			if err == ErrInvalidHuffman {
+			if errors.Is(err, ErrInvalidHuffman) {
 				numFail++
 				continue
 			}
@@ -664,7 +665,7 @@ func TestHuffmanFuzzCrash(t *testing.T) {
 	if got != "" {
 		t.Errorf("Got %q; want empty string", got)
 	}
-	if err != ErrInvalidHuffman {
+	if !errors.Is(err, ErrInvalidHuffman) {
 		t.Errorf("Err = %v; want ErrInvalidHuffman", err)
 	}
 }
@@ -737,7 +738,7 @@ func TestSaveBufLimit(t *testing.T) {
 	frag = append(frag, make([]byte, maxStr*3)...)
 
 	_, err := dec.Write(frag)
-	if err != ErrStringLength {
+	if !errors.Is(err, ErrStringLength) {
 		t.Fatalf("Write error = %v; want ErrStringLength", err)
 	}
 }
