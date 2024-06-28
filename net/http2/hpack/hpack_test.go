@@ -501,7 +501,7 @@ func TestAppendHuffmanString(t *testing.T) {
 			"94e7 821d d7f2 e6c7 b335 dfdf cd5b 3960 d5af 2708 7f36 72c1 ab27 0fb5 291f 9587 3160 65c0 03ed 4ee5 b106 3d50 07"},
 	}
 	for i, tt := range tests {
-		buf := []byte{}
+		var buf []byte
 		want := strings.Replace(tt.want, " ", "", -1)
 		buf = AppendHuffmanString(buf, tt.in)
 		if got := hex.EncodeToString(buf); want != got {
