@@ -746,7 +746,7 @@ func TestDynamicSizeUpdate(t *testing.T) {
 	var buf bytes.Buffer
 	enc := NewEncoder(&buf)
 	enc.SetMaxDynamicTableSize(255)
-	enc.WriteField(HeaderField{Name: "foo", Value: "bar"})
+	_ = enc.WriteField(HeaderField{Name: "foo", Value: "bar"})
 
 	d := NewDecoder(4096, func(_ HeaderField) {})
 	_, err := d.Write(buf.Bytes())
@@ -754,7 +754,7 @@ func TestDynamicSizeUpdate(t *testing.T) {
 		t.Fatalf("unexpected error: got = %v", err)
 	}
 
-	d.Close()
+	_ = d.Close()
 
 	// Start a new header
 	_, err = d.Write(buf.Bytes())
