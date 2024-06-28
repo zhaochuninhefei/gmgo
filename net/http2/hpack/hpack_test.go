@@ -60,7 +60,7 @@ func TestDynamicTableSizeEvict(t *testing.T) {
 	if want := uint32(6 + 32); d.dynTab.size != want {
 		t.Fatalf("after setMaxSize, size = %d; want %d", d.dynTab.size, want)
 	}
-	if got, want := d.mustAt(staticTable.len()+1), (pair("foo", "bar")); got != want {
+	if got, want := d.mustAt(staticTable.len()+1), pair("foo", "bar"); got != want {
 		t.Errorf("at(dyn 1) = %v; want %v", got, want)
 	}
 	add(pair("long", strings.Repeat("x", 500)))
