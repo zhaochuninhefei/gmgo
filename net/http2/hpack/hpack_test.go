@@ -686,8 +686,8 @@ func dehex(s string) []byte {
 func TestEmitEnabled(t *testing.T) {
 	var buf bytes.Buffer
 	enc := NewEncoder(&buf)
-	enc.WriteField(HeaderField{Name: "foo", Value: "bar"})
-	enc.WriteField(HeaderField{Name: "foo", Value: "bar"})
+	_ = enc.WriteField(HeaderField{Name: "foo", Value: "bar"})
+	_ = enc.WriteField(HeaderField{Name: "foo", Value: "bar"})
 
 	numCallback := 0
 	var dec *Decoder
