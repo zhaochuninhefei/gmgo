@@ -157,7 +157,7 @@ func buildRootHuffmanNode() {
 			cur = cur.children[i]
 		}
 		shift := 8 - codeLen
-		start, end := int(uint8(code<<shift)), int(1<<shift)
+		start, end := int(uint8(code<<shift)), 1<<shift
 
 		leaves[sym].sym = byte(sym)
 		leaves[sym].codeLen = codeLen
