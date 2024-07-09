@@ -136,7 +136,8 @@ func getRootHuffmanNode() *node {
 }
 
 func buildRootHuffmanNode() {
-	if len(huffmanCodes) != 256 {
+	if //goland:noinspection GoBoolExpressions
+	len(huffmanCodes) != 256 {
 		panic("unexpected size")
 	}
 	lazyRootHuffmanNode = newInternalNode()
