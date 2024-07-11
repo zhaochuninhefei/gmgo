@@ -6,6 +6,7 @@ package http2
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -52,7 +53,7 @@ func testDataBuffer(t *testing.T, wantBytes []byte, setup func(t *testing.T) *da
 			for {
 				n, err := b.Read(buf)
 				gotRead.Write(buf[:n])
-				if err == errReadEmpty {
+				if errors.Is(err, errReadEmpty) {
 					break
 				}
 				if err != nil {
