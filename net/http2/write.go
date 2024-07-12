@@ -125,11 +125,11 @@ func (hp handlerPanicRST) writeFrame(ctx writeContext) error {
 
 func (hp handlerPanicRST) staysWithinBuffer(max int) bool { return frameHeaderLen+4 <= max }
 
-func (se StreamError) writeFrame(ctx writeContext) error {
-	return ctx.Framer().WriteRSTStream(se.StreamID, se.Code)
+func (e StreamError) writeFrame(ctx writeContext) error {
+	return ctx.Framer().WriteRSTStream(e.StreamID, e.Code)
 }
 
-func (se StreamError) staysWithinBuffer(max int) bool { return frameHeaderLen+4 <= max }
+func (e StreamError) staysWithinBuffer(max int) bool { return frameHeaderLen+4 <= max }
 
 type writePingAck struct{ pf *PingFrame }
 
