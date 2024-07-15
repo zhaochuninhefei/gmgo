@@ -171,12 +171,12 @@ func TestWriteDataPadded(t *testing.T) {
 	}
 }
 
-func (fh FrameHeader) Equal(b FrameHeader) bool {
-	return fh.valid == b.valid &&
-		fh.Type == b.Type &&
-		fh.Flags == b.Flags &&
-		fh.Length == b.Length &&
-		fh.StreamID == b.StreamID
+func (h FrameHeader) Equal(b FrameHeader) bool {
+	return h.valid == b.valid &&
+		h.Type == b.Type &&
+		h.Flags == b.Flags &&
+		h.Length == b.Length &&
+		h.StreamID == b.StreamID
 }
 
 func TestWriteHeaders(t *testing.T) {
