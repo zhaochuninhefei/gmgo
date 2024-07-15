@@ -1624,13 +1624,13 @@ func summarizeFrame(f Frame) string {
 		}
 	case *DataFrame:
 		data := f.Data()
-		const max = 256
-		if len(data) > max {
-			data = data[:max]
+		const maxVal = 256
+		if len(data) > maxVal {
+			data = data[:maxVal]
 		}
 		_, _ = fmt.Fprintf(&buf, " data=%q", data)
-		if len(f.Data()) > max {
-			_, _ = fmt.Fprintf(&buf, " (%d bytes omitted)", len(f.Data())-max)
+		if len(f.Data()) > maxVal {
+			_, _ = fmt.Fprintf(&buf, " (%d bytes omitted)", len(f.Data())-maxVal)
 		}
 	case *WindowUpdateFrame:
 		if f.StreamID == 0 {
