@@ -171,8 +171,11 @@ type FrameHeader struct {
 
 // Header returns h. It exists so FrameHeaders can be embedded in other
 // specific frame types and implement the Frame interface.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (h FrameHeader) Header() FrameHeader { return h }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h FrameHeader) String() string {
 	var buf bytes.Buffer
 	buf.WriteString("[FrameHeader ")
@@ -181,6 +184,7 @@ func (h FrameHeader) String() string {
 	return buf.String()
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h FrameHeader) writeDebug(buf *bytes.Buffer) {
 	buf.WriteString(h.Type.String())
 	if h.Flags != 0 {
@@ -208,12 +212,14 @@ func (h FrameHeader) writeDebug(buf *bytes.Buffer) {
 	_, _ = fmt.Fprintf(buf, " len=%d", h.Length)
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h *FrameHeader) checkValid() {
 	if !h.valid {
 		panic("Frame accessor called on non-owned Frame")
 	}
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h *FrameHeader) invalidate() { h.valid = false }
 
 // frame header bytes.
