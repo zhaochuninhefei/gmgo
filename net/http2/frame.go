@@ -483,7 +483,8 @@ var ErrFrameTooLarge = errors.New("http2: frame too large")
 // terminalReadFrameError reports whether err is an unrecoverable
 // error from ReadFrame and no other frames should be read.
 func terminalReadFrameError(err error) bool {
-	if _, ok := err.(StreamError); ok {
+	var streamError StreamError
+	if errors.As(err, &streamError) {
 		return false
 	}
 	return err != nil
@@ -514,7 +515,8 @@ func (f *Framer) ReadFrame() (Frame, error) {
 	}
 	fp, err := typeFrameParser(fh.Type)(f.frameCache, fh, f.countError, payload)
 	if err != nil {
-		if ce, ok := err.(connError); ok {
+		var ce connError
+		if errors.As(err, &ce) {
 			return nil, f.connError(ce.Code, ce.Reason)
 		}
 		return nil, err
