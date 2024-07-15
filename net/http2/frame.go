@@ -929,7 +929,7 @@ func (f *UnknownFrame) Payload() []byte {
 	return f.p
 }
 
-func parseUnknownFrame(_ *frameCache, fh FrameHeader, countError func(string), p []byte) (Frame, error) {
+func parseUnknownFrame(_ *frameCache, fh FrameHeader, _ func(string), p []byte) (Frame, error) {
 	return &UnknownFrame{fh, p}, nil
 }
 
