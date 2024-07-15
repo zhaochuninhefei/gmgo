@@ -338,11 +338,11 @@ type Framer struct {
 	frameCache *frameCache // nil if frames aren't reused (default)
 }
 
-func (fr *Framer) maxHeaderListSize() uint32 {
-	if fr.MaxHeaderListSize == 0 {
+func (f *Framer) maxHeaderListSize() uint32 {
+	if f.MaxHeaderListSize == 0 {
 		return 16 << 20 // sane default, per docs
 	}
-	return fr.MaxHeaderListSize
+	return f.MaxHeaderListSize
 }
 
 func (f *Framer) startWrite(ftype FrameType, flags Flags, streamID uint32) {
@@ -414,11 +414,11 @@ const (
 // SetReuseFrames allows the Framer to reuse Frames.
 // If called on a Framer, Frames returned by calls to ReadFrame are only
 // valid until the next call to ReadFrame.
-func (fr *Framer) SetReuseFrames() {
-	if fr.frameCache != nil {
+func (f *Framer) SetReuseFrames() {
+	if f.frameCache != nil {
 		return
 	}
-	fr.frameCache = &frameCache{}
+	f.frameCache = &frameCache{}
 }
 
 type frameCache struct {
@@ -458,11 +458,11 @@ func NewFramer(w io.Writer, r io.Reader) *Framer {
 // that will be read by a subsequent call to ReadFrame.
 // It is the caller's responsibility to advertise this
 // limit with a SETTINGS frame.
-func (fr *Framer) SetMaxReadFrameSize(v uint32) {
+func (f *Framer) SetMaxReadFrameSize(v uint32) {
 	if v > maxFrameSize {
 		v = maxFrameSize
 	}
-	fr.maxReadSize = v
+	f.maxReadSize = v
 }
 
 // ErrorDetail returns a more detailed error of the last error
@@ -472,8 +472,8 @@ func (fr *Framer) SetMaxReadFrameSize(v uint32) {
 // to return a non-nil value and like the rest of the http2 package,
 // its return value is not protected by an API compatibility promise.
 // ErrorDetail is reset after the next call to ReadFrame.
-func (fr *Framer) ErrorDetail() error {
-	return fr.errDetail
+func (f *Framer) ErrorDetail() error {
+	return f.errDetail
 }
 
 // ErrFrameTooLarge is returned from Framer.ReadFrame when the peer
@@ -496,83 +496,83 @@ func terminalReadFrameError(err error) bool {
 // returned error is ErrFrameTooLarge. Other errors may be of type
 // ConnectionError, StreamError, or anything else from the underlying
 // reader.
-func (fr *Framer) ReadFrame() (Frame, error) {
-	fr.errDetail = nil
-	if fr.lastFrame != nil {
-		fr.lastFrame.invalidate()
+func (f *Framer) ReadFrame() (Frame, error) {
+	f.errDetail = nil
+	if f.lastFrame != nil {
+		f.lastFrame.invalidate()
 	}
-	fh, err := readFrameHeader(fr.headerBuf[:], fr.r)
+	fh, err := readFrameHeader(f.headerBuf[:], f.r)
 	if err != nil {
 		return nil, err
 	}
-	if fh.Length > fr.maxReadSize {
+	if fh.Length > f.maxReadSize {
 		return nil, ErrFrameTooLarge
 	}
-	payload := fr.getReadBuf(fh.Length)
-	if _, err := io.ReadFull(fr.r, payload); err != nil {
+	payload := f.getReadBuf(fh.Length)
+	if _, err := io.ReadFull(f.r, payload); err != nil {
 		return nil, err
 	}
-	f, err := typeFrameParser(fh.Type)(fr.frameCache, fh, fr.countError, payload)
+	fp, err := typeFrameParser(fh.Type)(f.frameCache, fh, f.countError, payload)
 	if err != nil {
 		if ce, ok := err.(connError); ok {
-			return nil, fr.connError(ce.Code, ce.Reason)
+			return nil, f.connError(ce.Code, ce.Reason)
 		}
 		return nil, err
 	}
-	if err := fr.checkFrameOrder(f); err != nil {
+	if err := f.checkFrameOrder(fp); err != nil {
 		return nil, err
 	}
-	if fr.logReads {
-		fr.debugReadLoggerf("http2: Framer %p: read %v", fr, summarizeFrame(f))
+	if f.logReads {
+		f.debugReadLoggerf("http2: Framer %p: read %v", f, summarizeFrame(fp))
 	}
-	if fh.Type == FrameHeaders && fr.ReadMetaHeaders != nil {
-		return fr.readMetaFrame(f.(*HeadersFrame))
+	if fh.Type == FrameHeaders && f.ReadMetaHeaders != nil {
+		return f.readMetaFrame(fp.(*HeadersFrame))
 	}
-	return f, nil
+	return fp, nil
 }
 
 // connError returns ConnectionError(code) but first
 // stashes away a public reason to the caller can optionally relay it
 // to the peer before hanging up on them. This might help others debug
 // their implementations.
-func (fr *Framer) connError(code ErrCode, reason string) error {
-	fr.errDetail = errors.New(reason)
+func (f *Framer) connError(code ErrCode, reason string) error {
+	f.errDetail = errors.New(reason)
 	return ConnectionError(code)
 }
 
 // checkFrameOrder reports an error if f is an invalid frame to return
 // next from ReadFrame. Mostly it checks whether HEADERS and
 // CONTINUATION frames are contiguous.
-func (fr *Framer) checkFrameOrder(f Frame) error {
-	last := fr.lastFrame
-	fr.lastFrame = f
-	if fr.AllowIllegalReads {
+func (f *Framer) checkFrameOrder(fm Frame) error {
+	last := f.lastFrame
+	f.lastFrame = fm
+	if f.AllowIllegalReads {
 		return nil
 	}
 
-	fh := f.Header()
-	if fr.lastHeaderStream != 0 {
+	fh := fm.Header()
+	if f.lastHeaderStream != 0 {
 		if fh.Type != FrameContinuation {
-			return fr.connError(ErrCodeProtocol,
+			return f.connError(ErrCodeProtocol,
 				fmt.Sprintf("got %s for stream %d; expected CONTINUATION following %s for stream %d",
 					fh.Type, fh.StreamID,
-					last.Header().Type, fr.lastHeaderStream))
+					last.Header().Type, f.lastHeaderStream))
 		}
-		if fh.StreamID != fr.lastHeaderStream {
-			return fr.connError(ErrCodeProtocol,
+		if fh.StreamID != f.lastHeaderStream {
+			return f.connError(ErrCodeProtocol,
 				fmt.Sprintf("got CONTINUATION for stream %d; expected stream %d",
-					fh.StreamID, fr.lastHeaderStream))
+					fh.StreamID, f.lastHeaderStream))
 		}
 	} else if fh.Type == FrameContinuation {
-		return fr.connError(ErrCodeProtocol, fmt.Sprintf("unexpected CONTINUATION for stream %d", fh.StreamID))
+		return f.connError(ErrCodeProtocol, fmt.Sprintf("unexpected CONTINUATION for stream %d", fh.StreamID))
 	}
 
 	switch fh.Type {
 	case FrameHeaders, FrameContinuation:
 		if fh.Flags.Has(FlagHeadersEndHeaders) {
-			fr.lastHeaderStream = 0
+			f.lastHeaderStream = 0
 		} else {
-			fr.lastHeaderStream = fh.StreamID
+			f.lastHeaderStream = fh.StreamID
 		}
 	}
 
@@ -1507,8 +1507,8 @@ func (mh *MetaHeadersFrame) checkPseudos() error {
 	return nil
 }
 
-func (fr *Framer) maxHeaderStringLen() int {
-	v := fr.maxHeaderListSize()
+func (f *Framer) maxHeaderStringLen() int {
+	v := f.maxHeaderListSize()
 	if uint32(int(v)) == v {
 		return int(v)
 	}
@@ -1520,23 +1520,23 @@ func (fr *Framer) maxHeaderStringLen() int {
 // readMetaFrame returns 0 or more CONTINUATION frames from fr and
 // merge them into the provided hf and returns a MetaHeadersFrame
 // with the decoded hpack values.
-func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
-	if fr.AllowIllegalReads {
+func (f *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
+	if f.AllowIllegalReads {
 		return nil, errors.New("illegal use of AllowIllegalReads with ReadMetaHeaders")
 	}
 	mh := &MetaHeadersFrame{
 		HeadersFrame: hf,
 	}
-	var remainSize = fr.maxHeaderListSize()
+	var remainSize = f.maxHeaderListSize()
 	var sawRegular bool
 
 	var invalid error // pseudo header field errors
-	hdec := fr.ReadMetaHeaders
+	hdec := f.ReadMetaHeaders
 	hdec.SetEmitEnabled(true)
-	hdec.SetMaxStringLength(fr.maxHeaderStringLen())
+	hdec.SetMaxStringLength(f.maxHeaderStringLen())
 	hdec.SetEmitFunc(func(hf hpack.HeaderField) {
-		if VerboseLogs && fr.logReads {
-			fr.debugReadLoggerf("http2: decoded hpack field %+v", hf)
+		if VerboseLogs && f.logReads {
+			f.debugReadLoggerf("http2: decoded hpack field %+v", hf)
 		}
 		if !httpguts.ValidHeaderFieldValue(hf.Value) {
 			invalid = headerFieldValueError(hf.Value)
@@ -1581,7 +1581,7 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 		if hc.HeadersEnded() {
 			break
 		}
-		if f, err := fr.ReadFrame(); err != nil {
+		if f, err := f.ReadFrame(); err != nil {
 			return nil, err
 		} else {
 			hc = f.(*ContinuationFrame) // guaranteed by checkFrameOrder
@@ -1595,14 +1595,14 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 		return nil, ConnectionError(ErrCodeCompression)
 	}
 	if invalid != nil {
-		fr.errDetail = invalid
+		f.errDetail = invalid
 		if VerboseLogs {
 			log.Printf("http2: invalid header: %v", invalid)
 		}
 		return nil, StreamError{mh.StreamID, ErrCodeProtocol, invalid}
 	}
 	if err := mh.checkPseudos(); err != nil {
-		fr.errDetail = err
+		f.errDetail = err
 		if VerboseLogs {
 			log.Printf("http2: invalid pseudo headers: %v", err)
 		}
