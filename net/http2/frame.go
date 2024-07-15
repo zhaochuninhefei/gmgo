@@ -198,14 +198,14 @@ func (h FrameHeader) writeDebug(buf *bytes.Buffer) {
 			if name != "" {
 				buf.WriteString(name)
 			} else {
-				fmt.Fprintf(buf, "0x%x", 1<<i)
+				_, _ = fmt.Fprintf(buf, "0x%x", 1<<i)
 			}
 		}
 	}
 	if h.StreamID != 0 {
-		fmt.Fprintf(buf, " stream=%d", h.StreamID)
+		_, _ = fmt.Fprintf(buf, " stream=%d", h.StreamID)
 	}
-	fmt.Fprintf(buf, " len=%d", h.Length)
+	_, _ = fmt.Fprintf(buf, " len=%d", h.Length)
 }
 
 func (h *FrameHeader) checkValid() {
