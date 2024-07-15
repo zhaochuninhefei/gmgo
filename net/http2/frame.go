@@ -70,23 +70,23 @@ func (f Flags) Has(v Flags) bool {
 
 // Frame-specific FrameHeader flag bits.
 const (
-	// Data Frame
+	// FlagDataEndStream Data Frame
 	FlagDataEndStream Flags = 0x1
 	FlagDataPadded    Flags = 0x8
 
-	// Headers Frame
+	// FlagHeadersEndStream Headers Frame
 	FlagHeadersEndStream  Flags = 0x1
 	FlagHeadersEndHeaders Flags = 0x4
 	FlagHeadersPadded     Flags = 0x8
 	FlagHeadersPriority   Flags = 0x20
 
-	// Settings Frame
+	// FlagSettingsAck Settings Frame
 	FlagSettingsAck Flags = 0x1
 
-	// Ping Frame
+	// FlagPingAck Ping Frame
 	FlagPingAck Flags = 0x1
 
-	// Continuation Frame
+	// FlagContinuationEndHeaders Continuation Frame
 	FlagContinuationEndHeaders Flags = 0x4
 
 	FlagPushPromiseEndHeaders Flags = 0x4
