@@ -1043,7 +1043,7 @@ func parseHeadersFrame(_ *frameCache, fh FrameHeader, countError func(string), p
 			return nil, err
 		}
 		hf.Priority.StreamDep = v & 0x7fffffff
-		hf.Priority.Exclusive = (v != hf.Priority.StreamDep) // high bit was set
+		hf.Priority.Exclusive = v != hf.Priority.StreamDep // high bit was set
 		p, hf.Priority.Weight, err = readByte(p)
 		if err != nil {
 			countError("frame_headers_prio_weight_short")
