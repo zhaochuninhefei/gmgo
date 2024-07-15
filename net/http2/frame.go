@@ -1611,12 +1611,12 @@ func summarizeFrame(f Frame) string {
 	switch f := f.(type) {
 	case *SettingsFrame:
 		n := 0
-		f.ForeachSetting(func(s Setting) error {
+		_ = f.ForeachSetting(func(s Setting) error {
 			n++
 			if n == 1 {
 				buf.WriteString(", settings:")
 			}
-			fmt.Fprintf(&buf, " %v=%v,", s.ID, s.Val)
+			_, _ = fmt.Fprintf(&buf, " %v=%v,", s.ID, s.Val)
 			return nil
 		})
 		if n > 0 {
@@ -1628,22 +1628,22 @@ func summarizeFrame(f Frame) string {
 		if len(data) > max {
 			data = data[:max]
 		}
-		fmt.Fprintf(&buf, " data=%q", data)
+		_, _ = fmt.Fprintf(&buf, " data=%q", data)
 		if len(f.Data()) > max {
-			fmt.Fprintf(&buf, " (%d bytes omitted)", len(f.Data())-max)
+			_, _ = fmt.Fprintf(&buf, " (%d bytes omitted)", len(f.Data())-max)
 		}
 	case *WindowUpdateFrame:
 		if f.StreamID == 0 {
 			buf.WriteString(" (conn)")
 		}
-		fmt.Fprintf(&buf, " incr=%v", f.Increment)
+		_, _ = fmt.Fprintf(&buf, " incr=%v", f.Increment)
 	case *PingFrame:
-		fmt.Fprintf(&buf, " ping=%q", f.Data[:])
+		_, _ = fmt.Fprintf(&buf, " ping=%q", f.Data[:])
 	case *GoAwayFrame:
-		fmt.Fprintf(&buf, " LastStreamID=%v ErrCode=%v Debug=%q",
+		_, _ = fmt.Fprintf(&buf, " LastStreamID=%v ErrCode=%v Debug=%q",
 			f.LastStreamID, f.ErrCode, f.debugData)
 	case *RSTStreamFrame:
-		fmt.Fprintf(&buf, " ErrCode=%v", f.ErrCode)
+		_, _ = fmt.Fprintf(&buf, " ErrCode=%v", f.ErrCode)
 	}
 	return buf.String()
 }
