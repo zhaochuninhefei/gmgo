@@ -245,7 +245,7 @@ func readFrameHeader(buf []byte, r io.Reader) (FrameHeader, error) {
 		return FrameHeader{}, err
 	}
 	return FrameHeader{
-		Length:   (uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2])),
+		Length:   uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2]),
 		Type:     FrameType(buf[3]),
 		Flags:    Flags(buf[4]),
 		StreamID: binary.BigEndian.Uint32(buf[5:]) & (1<<31 - 1),
