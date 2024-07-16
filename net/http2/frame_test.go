@@ -749,14 +749,14 @@ func TestWritePushPromise(t *testing.T) {
 // test checkFrameOrder and that HEADERS and CONTINUATION frames can't be intermingled.
 func TestReadFrameOrder(t *testing.T) {
 	head := func(f *Framer, id uint32, end bool) {
-		f.WriteHeaders(HeadersFrameParam{
+		_ = f.WriteHeaders(HeadersFrameParam{
 			StreamID:      id,
 			BlockFragment: []byte("foo"), // unused, but non-empty
 			EndHeaders:    end,
 		})
 	}
 	cont := func(f *Framer, id uint32, end bool) {
-		f.WriteContinuation(id, end, []byte("foo"))
+		_ = f.WriteContinuation(id, end, []byte("foo"))
 	}
 
 	tests := [...]struct {
@@ -1188,7 +1188,7 @@ func TestNoSetReuseFrames(t *testing.T) {
 
 func readAndVerifyDataFrame(data string, length byte, fr *Framer, buf *bytes.Buffer, t *testing.T) *DataFrame {
 	var streamID uint32 = 1<<24 + 2<<16 + 3<<8 + 4
-	fr.WriteData(streamID, true, []byte(data))
+	_ = fr.WriteData(streamID, true, []byte(data))
 	wantEnc := "\x00\x00" + string(length) + "\x00\x01\x01\x02\x03\x04" + data
 	if buf.String() != wantEnc {
 		t.Errorf("encoded as %q; want %q", buf.Bytes(), wantEnc)
@@ -1245,7 +1245,7 @@ func TestSettingsDuplicates(t *testing.T) {
 	}
 	for i, tt := range tests {
 		fr, _ := testFramer()
-		fr.WriteSettings(tt.settings...)
+		_ = fr.WriteSettings(tt.settings...)
 		f, err := fr.ReadFrame()
 		if err != nil {
 			t.Fatalf("%d. ReadFrame: %v", i, err)
