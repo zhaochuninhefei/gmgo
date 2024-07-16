@@ -6,6 +6,7 @@ package http2
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -359,12 +360,12 @@ func TestWriteInvalidStreamDep(t *testing.T) {
 			StreamDep: 1 << 31,
 		},
 	})
-	if err != errDepStreamID {
+	if !errors.Is(err, errDepStreamID) {
 		t.Errorf("header error = %v; want %q", err, errDepStreamID)
 	}
 
 	err = fr.WritePriority(2, PriorityParam{StreamDep: 1 << 31})
-	if err != errDepStreamID {
+	if !errors.Is(err, errDepStreamID) {
 		t.Errorf("priority error = %v; want %q", err, errDepStreamID)
 	}
 }
