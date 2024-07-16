@@ -886,7 +886,7 @@ func TestReadFrameOrder(t *testing.T) {
 func TestMetaFrameHeader(t *testing.T) {
 	write := func(f *Framer, frags ...[]byte) {
 		for i, frag := range frags {
-			end := (i == len(frags)-1)
+			end := i == len(frags)-1
 			if i == 0 {
 				_ = f.WriteHeaders(HeadersFrameParam{
 					StreamID:      1,
