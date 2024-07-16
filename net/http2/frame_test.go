@@ -651,7 +651,7 @@ func TestReadWriteFrameHeader(t *testing.T) {
 		fr, buf := testFramer()
 		fr.startWrite(tt.typ, tt.flags, tt.streamID)
 		fr.writeBytes(make([]byte, tt.len))
-		fr.endWrite()
+		_ = fr.endWrite()
 		fh, err := ReadFrameHeader(buf)
 		if err != nil {
 			t.Errorf("ReadFrameHeader(%+v) = %v", tt, err)
@@ -846,7 +846,7 @@ func TestReadFrameOrder(t *testing.T) {
 		f := NewFramer(buf, buf)
 		f.AllowIllegalWrites = true
 		tt.w(f)
-		f.WriteData(1, true, nil) // to test transition away from last step
+		_ = f.WriteData(1, true, nil) // to test transition away from last step
 
 		var err error
 		n := 0
