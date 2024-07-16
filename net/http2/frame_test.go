@@ -886,13 +886,13 @@ func TestMetaFrameHeader(t *testing.T) {
 		for i, frag := range frags {
 			end := (i == len(frags)-1)
 			if i == 0 {
-				f.WriteHeaders(HeadersFrameParam{
+				_ = f.WriteHeaders(HeadersFrameParam{
 					StreamID:      1,
 					BlockFragment: frag,
 					EndHeaders:    end,
 				})
 			} else {
-				f.WriteContinuation(1, end, frag)
+				_ = f.WriteContinuation(1, end, frag)
 			}
 		}
 	}
