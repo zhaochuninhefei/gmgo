@@ -854,7 +854,7 @@ func TestReadFrameOrder(t *testing.T) {
 		for {
 			var got Frame
 			got, err = f.ReadFrame()
-			fmt.Fprintf(&log, "  read %v, %v\n", got, err)
+			_, _ = fmt.Fprintf(&log, "  read %v, %v\n", got, err)
 			if err != nil {
 				break
 			}
