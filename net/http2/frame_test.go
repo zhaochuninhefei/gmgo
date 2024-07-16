@@ -171,6 +171,7 @@ func TestWriteDataPadded(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (h FrameHeader) Equal(b FrameHeader) bool {
 	return h.valid == b.valid &&
 		h.Type == b.Type &&
