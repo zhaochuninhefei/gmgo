@@ -1093,7 +1093,8 @@ func TestMetaFrameHeader(t *testing.T) {
 
 			// Ignore the StreamError.Cause field, if it matches the wantErrReason.
 			// The test table above predates the Cause field.
-			if se, ok := err.(StreamError); ok && se.Cause != nil && se.Cause.Error() == tt.wantErrReason {
+			var se StreamError
+			if errors.As(err, &se) && se.Cause != nil && se.Cause.Error() == tt.wantErrReason {
 				se.Cause = nil
 				got = se
 			}
