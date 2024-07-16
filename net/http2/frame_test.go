@@ -79,7 +79,7 @@ func TestWriteData(t *testing.T) {
 	fr, buf := testFramer()
 	var streamID uint32 = 1<<24 + 2<<16 + 3<<8 + 4
 	data := []byte("ABC")
-	fr.WriteData(streamID, true, data)
+	_ = fr.WriteData(streamID, true, data)
 	const wantEnc = "\x00\x00\x03\x00\x01\x01\x02\x03\x04ABC"
 	if buf.String() != wantEnc {
 		t.Errorf("encoded as %q; want %q", buf.Bytes(), wantEnc)
@@ -152,7 +152,7 @@ func TestWriteDataPadded(t *testing.T) {
 	}
 	for i, tt := range tests {
 		fr, _ := testFramer()
-		fr.WriteDataPadded(tt.streamID, tt.endStream, tt.data, tt.pad)
+		_ = fr.WriteDataPadded(tt.streamID, tt.endStream, tt.data, tt.pad)
 		f, err := fr.ReadFrame()
 		if err != nil {
 			t.Errorf("%d. ReadFrame: %v", i, err)
