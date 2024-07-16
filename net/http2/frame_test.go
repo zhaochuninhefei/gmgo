@@ -870,7 +870,7 @@ func TestReadFrameOrder(t *testing.T) {
 			t.Errorf("%d. after %d good frames, ReadFrame = %v; want success\n%s", i, n, err, log.Bytes())
 			continue
 		}
-		if !ok && err != ConnectionError(ErrCodeProtocol) {
+		if !ok && !errors.Is(err, ConnectionError(ErrCodeProtocol)) {
 			t.Errorf("%d. after %d good frames, ReadFrame = %v; want ConnectionError(ErrCodeProtocol)\n%s", i, n, err, log.Bytes())
 			continue
 		}
