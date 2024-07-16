@@ -496,7 +496,7 @@ func TestWritePriority(t *testing.T) {
 func TestWriteSettings(t *testing.T) {
 	fr, buf := testFramer()
 	settings := []Setting{{1, 2}, {3, 4}}
-	fr.WriteSettings(settings...)
+	_ = fr.WriteSettings(settings...)
 	const wantEnc = "\x00\x00\f\x04\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x02\x00\x03\x00\x00\x00\x04"
 	if buf.String() != wantEnc {
 		t.Errorf("encoded as %q; want %q", buf.Bytes(), wantEnc)
@@ -510,7 +510,7 @@ func TestWriteSettings(t *testing.T) {
 		t.Fatalf("Got a %T; want a SettingsFrame", f)
 	}
 	var got []Setting
-	sf.ForeachSetting(func(s Setting) error {
+	_ = sf.ForeachSetting(func(s Setting) error {
 		got = append(got, s)
 		valBack, ok := sf.Value(s.ID)
 		if !ok || valBack != s.Val {
@@ -525,7 +525,7 @@ func TestWriteSettings(t *testing.T) {
 
 func TestWriteSettingsAck(t *testing.T) {
 	fr, buf := testFramer()
-	fr.WriteSettingsAck()
+	_ = fr.WriteSettingsAck()
 	const wantEnc = "\x00\x00\x00\x04\x01\x00\x00\x00\x00"
 	if buf.String() != wantEnc {
 		t.Errorf("encoded as %q; want %q", buf.Bytes(), wantEnc)
