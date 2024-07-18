@@ -79,7 +79,7 @@ func parseUintBytes(s []byte, base int, bitSize int) (n uint64, err error) {
 	var cutoff, maxVal uint64
 
 	if bitSize == 0 {
-		bitSize = int(strconv.IntSize)
+		bitSize = strconv.IntSize
 	}
 
 	s0 := s
