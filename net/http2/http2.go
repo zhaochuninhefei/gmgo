@@ -13,7 +13,6 @@
 // See https://http2.github.io/ for more information on HTTP/2.
 //
 // See https://http2.golang.org/ for a test server running this code.
-//
 package http2 // import "gitee.com/zhaochuninhefei/gmgo/net/http2"
 
 import (
@@ -178,10 +177,11 @@ func (s SettingID) String() string {
 // name (key). See httpguts.ValidHeaderName for the base rules.
 //
 // Further, http2 says:
-//   "Just as in HTTP/1.x, header field names are strings of ASCII
-//   characters that are compared in a case-insensitive
-//   fashion. However, header field names MUST be converted to
-//   lowercase prior to their encoding in HTTP/2. "
+//
+//	"Just as in HTTP/1.x, header field names are strings of ASCII
+//	characters that are compared in a case-insensitive
+//	fashion. However, header field names MUST be converted to
+//	lowercase prior to their encoding in HTTP/2. "
 func validWireHeaderFieldName(v string) bool {
 	if len(v) == 0 {
 		return false
@@ -225,16 +225,22 @@ type closeWaiter chan struct{}
 // It exists because so a closeWaiter value can be placed inside a
 // larger struct and have the Mutex and Cond's memory in the same
 // allocation.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (cw *closeWaiter) Init() {
 	*cw = make(chan struct{})
 }
 
 // Close marks the closeWaiter as closed and unblocks any waiters.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (cw closeWaiter) Close() {
 	close(cw)
 }
 
 // Wait waits for the closeWaiter to become closed.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (cw closeWaiter) Wait() {
 	<-cw
 }
@@ -367,8 +373,8 @@ func (s *sorter) SortStrings(ss []string) {
 // validPseudoPath reports whether v is a valid :path pseudo-header
 // value. It must be either:
 //
-//     *) a non-empty string starting with '/'
-//     *) the string '*', for OPTIONS requests.
+//	*) a non-empty string starting with '/'
+//	*) the string '*', for OPTIONS requests.
 //
 // For now this is only used a quick check for deciding when to clean
 // up Opaque URLs before sending requests from the Transport.
