@@ -163,7 +163,7 @@ func dockerLogs(container string) ([]byte, error) {
 		return out, errors.New("unexpected exit status from docker wait")
 	}
 	out, err = exec.Command("docker", "logs", container).CombinedOutput()
-	exec.Command("docker", "rm", container).Run()
+	_ = exec.Command("docker", "rm", container).Run()
 	if err == nil && exitStatus != 0 {
 		err = fmt.Errorf("exit status %d: %s", exitStatus, out)
 	}
@@ -171,8 +171,8 @@ func dockerLogs(container string) ([]byte, error) {
 }
 
 func kill(container string) {
-	exec.Command("docker", "kill", container).Run()
-	exec.Command("docker", "rm", container).Run()
+	_ = exec.Command("docker", "kill", container).Run()
+	_ = exec.Command("docker", "rm", container).Run()
 }
 
 func cleanDate(res *http.Response) {
