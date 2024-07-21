@@ -238,6 +238,7 @@ func equalError(a, b error) bool {
 	if a == nil {
 		return b == nil
 	}
+	//goland:noinspection GoDfaConstantCondition
 	if b == nil {
 		return a == nil
 	}
