@@ -26,6 +26,7 @@ import (
 
 var knownFailing = flag.Bool("known_failing", false, "Run known-failing tests.")
 
+//goland:noinspection GoUnusedFunction
 func condSkipFailingTest(t *testing.T) {
 	if !*knownFailing {
 		t.Skip("Skipping known-failing test without --known_failing")
