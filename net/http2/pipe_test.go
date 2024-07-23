@@ -19,7 +19,7 @@ func TestPipeClose(t *testing.T) {
 	p.CloseWithError(a)
 	p.CloseWithError(b)
 	_, err := p.Read(make([]byte, 1))
-	if err != a {
+	if !errors.Is(err, a) {
 		t.Errorf("err = %v want %v", err, a)
 	}
 }
@@ -88,14 +88,14 @@ func TestPipeCloseWithError(t *testing.T) {
 	if string(all) != body {
 		t.Errorf("read bytes = %q; want %q", all, body)
 	}
-	if err != a {
+	if !errors.Is(err, a) {
 		t.Logf("read error = %v, %v", err, a)
 	}
 	if p.Len() != 0 {
 		t.Errorf("pipe should have 0 unread bytes")
 	}
 	// Read and Write should fail.
-	if n, err := p.Write([]byte("abc")); err != errClosedPipeWrite || n != 0 {
+	if n, err := p.Write([]byte("abc")); !errors.Is(err, errClosedPipeWrite) || n != 0 {
 		t.Errorf("Write(abc) after close\ngot %v, %v\nwant 0, %v", n, err, errClosedPipeWrite)
 	}
 	if n, err := p.Read(make([]byte, 1)); err == nil || n != 0 {
@@ -115,7 +115,7 @@ func TestPipeBreakWithError(t *testing.T) {
 	if string(all) != "" {
 		t.Errorf("read bytes = %q; want empty string", all)
 	}
-	if err != a {
+	if !errors.Is(err, a) {
 		t.Logf("read error = %v, %v", err, a)
 	}
 	if p.b != nil {
