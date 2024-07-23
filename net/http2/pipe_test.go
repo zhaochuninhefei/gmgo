@@ -82,7 +82,7 @@ func TestPipeDoneChan_Break_ErrFirst(t *testing.T) {
 func TestPipeCloseWithError(t *testing.T) {
 	p := &pipe{b: new(bytes.Buffer)}
 	const body = "foo"
-	io.WriteString(p, body)
+	_, _ = io.WriteString(p, body)
 	a := errors.New("test error")
 	p.CloseWithError(a)
 	all, err := ioutil.ReadAll(p)
@@ -109,7 +109,7 @@ func TestPipeCloseWithError(t *testing.T) {
 
 func TestPipeBreakWithError(t *testing.T) {
 	p := &pipe{b: new(bytes.Buffer)}
-	io.WriteString(p, "foo")
+	_, _ = io.WriteString(p, "foo")
 	a := errors.New("test err")
 	p.BreakWithError(a)
 	all, err := ioutil.ReadAll(p)
