@@ -2189,7 +2189,7 @@ func (sc *serverConn) runHandler(rw *responseWriter, req *http.Request, handler 
 	didPanic = false
 }
 
-func handleHeaderListTooLong(w http.ResponseWriter, r *http.Request) {
+func handleHeaderListTooLong(w http.ResponseWriter, _ *http.Request) {
 	// 10.5.1 Limits on Header Block Size:
 	// .. "A server that receives a larger header block than it is
 	// willing to handle can send an HTTP 431 (Request Header Fields Too
