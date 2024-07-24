@@ -2194,7 +2194,7 @@ func handleHeaderListTooLong(w http.ResponseWriter, r *http.Request) {
 	// Large) status code"
 	const statusRequestHeaderFieldsTooLarge = 431 // only in Go 1.6+
 	w.WriteHeader(statusRequestHeaderFieldsTooLarge)
-	io.WriteString(w, "<h1>HTTP Error 431</h1><p>Request Header Field(s) Too Large</p>")
+	_, _ = io.WriteString(w, "<h1>HTTP Error 431</h1><p>Request Header Field(s) Too Large</p>")
 }
 
 // called from handler goroutines.
