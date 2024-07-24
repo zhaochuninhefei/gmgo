@@ -698,7 +698,7 @@ func (sc *serverConn) condlogf(err error, format string, args ...interface{}) {
 	if err == nil {
 		return
 	}
-	if err == io.EOF || err == io.ErrUnexpectedEOF || isClosedConnError(err) || err == errPrefaceTimeout {
+	if err == io.EOF || errors.Is(err, io.ErrUnexpectedEOF) || isClosedConnError(err) || errors.Is(err, errPrefaceTimeout) {
 		// Boring, expected errors.
 		sc.vlogf(format, args...)
 	} else {
