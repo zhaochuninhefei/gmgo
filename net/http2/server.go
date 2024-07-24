@@ -2168,7 +2168,7 @@ func (sc *serverConn) runHandler(rw *responseWriter, req *http.Request, handler 
 		rw.rws.stream.cancelCtx()
 		if didPanic {
 			e := recover()
-			sc.writeFrameFromHandler(FrameWriteRequest{
+			_ = sc.writeFrameFromHandler(FrameWriteRequest{
 				write:  handlerPanicRST{rw.rws.stream.id},
 				stream: rw.rws.stream,
 			})
