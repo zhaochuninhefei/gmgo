@@ -1397,6 +1397,7 @@ func (sc *serverConn) processFrameFromReader(res readFrameResult) bool {
 		}
 	}
 
+	//goland:noinspection GoTypeAssertionOnErrors
 	switch ev := err.(type) {
 	case StreamError:
 		sc.resetStream(ev)
@@ -3022,6 +3023,7 @@ func (sc *serverConn) countError(name string, err error) error {
 	}
 	var typ string
 	var code ErrCode
+	//goland:noinspection GoTypeAssertionOnErrors
 	switch e := err.(type) {
 	case ConnectionError:
 		typ = "conn"
