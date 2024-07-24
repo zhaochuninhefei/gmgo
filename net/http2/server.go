@@ -2707,7 +2707,7 @@ func (w *responseWriter) WriteString(s string) (n int, err error) {
 }
 
 // either dataB or dataS is non-zero.
-func (w *responseWriter) write(lenData int, dataB []byte, dataS string) (n int, err error) {
+func (w *responseWriter) write(_ int, dataB []byte, dataS string) (n int, err error) {
 	rws := w.rws
 	if rws == nil {
 		panic("Write called after Handler finished")
