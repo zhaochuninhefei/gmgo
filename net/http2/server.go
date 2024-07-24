@@ -1910,7 +1910,7 @@ func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	// technically more like the http1 Server's ReadHeaderTimeout
 	// (in Go 1.8), though. That's a more sane option anyway.
 	if sc.hs.ReadTimeout != 0 {
-		sc.conn.SetReadDeadline(time.Time{})
+		_ = sc.conn.SetReadDeadline(time.Time{})
 	}
 
 	go sc.runHandler(rw, req, handler)
