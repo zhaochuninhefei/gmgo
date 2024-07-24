@@ -2250,7 +2250,7 @@ type bodyReadMsg struct {
 // called from handler goroutines.
 // Notes that the handler for the given stream ID read n bytes of its body
 // and schedules flow control tokens to be sent.
-func (sc *serverConn) noteBodyReadFromHandler(st *stream, n int, err error) {
+func (sc *serverConn) noteBodyReadFromHandler(st *stream, n int, _ error) {
 	sc.serveG.checkNotOn() // NOT on
 	if n > 0 {
 		select {
