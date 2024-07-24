@@ -1133,7 +1133,7 @@ func (sc *serverConn) writeFrame(wr FrameWriteRequest) {
 			// For extra safety, detect wraparounds, which should not happen,
 			// and pull the plug.
 			if sc.queuedControlFrames < 0 {
-				sc.conn.Close()
+				_ = sc.conn.Close()
 			}
 		}
 		sc.writeSched.Push(wr)
