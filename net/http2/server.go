@@ -679,8 +679,10 @@ func isClosedConnError(err error) bool {
 	// Windows-specific stuff. Fix that and move this, once we
 	// have a way to bundle this into std's net/http somehow.
 	if runtime.GOOS == "windows" {
-		if oe, ok := err.(*net.OpError); ok && oe.Op == "read" {
-			if se, ok := oe.Err.(*os.SyscallError); ok && se.Syscall == "wsarecv" {
+		var oe *net.OpError
+		if errors.As(err, &oe) && oe.Op == "read" {
+			var se *os.SyscallError
+			if errors.As(oe.Err, &se) && se.Syscall == "wsarecv" {
 				const WSAECONNABORTED = 10053
 				const WSAECONNRESET = 10054
 				if n := errno(se.Err); n == WSAECONNRESET || n == WSAECONNABORTED {
