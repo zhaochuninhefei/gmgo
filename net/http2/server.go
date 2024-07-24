@@ -814,7 +814,9 @@ func (sc *serverConn) notePanic() {
 func (sc *serverConn) serve() {
 	sc.serveG.check()
 	defer sc.notePanic()
-	defer sc.conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(sc.conn)
 	defer sc.closeAllStreamsOnConnClose()
 	defer sc.stopShutdownTimer()
 	defer close(sc.doneServing) // unblocks handlers trying to send
