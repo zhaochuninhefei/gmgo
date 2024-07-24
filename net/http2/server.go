@@ -869,7 +869,8 @@ func (sc *serverConn) serve() {
 		loopNum++
 		select {
 		case wr := <-sc.wantWriteFrameCh:
-			if se, ok := wr.write.(StreamError); ok {
+			if //goland:noinspection GoTypeAssertionOnErrors
+			se, ok := wr.write.(StreamError); ok {
 				sc.resetStream(se)
 				break
 			}
