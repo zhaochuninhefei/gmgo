@@ -1108,6 +1108,7 @@ func (sc *serverConn) writeFrame(wr FrameWriteRequest) {
 	// may result in duplicate RST_STREAMs in some cases, but the client should
 	// ignore those.
 	if wr.StreamID() != 0 {
+		//goland:noinspection GoTypeAssertionOnErrors
 		_, isReset := wr.write.(StreamError)
 		if state, _ := sc.state(wr.StreamID()); state == stateClosed && !isReset {
 			ignoreWrite = true
