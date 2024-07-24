@@ -3030,7 +3030,7 @@ func (sc *serverConn) countError(name string, err error) error {
 		code = ErrCode(e)
 	case StreamError:
 		typ = "stream"
-		code = ErrCode(e.Code)
+		code = e.Code
 	default:
 		return err
 	}
