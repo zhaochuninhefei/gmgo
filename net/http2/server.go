@@ -1370,11 +1370,11 @@ func (sc *serverConn) processFrameFromReader(res readFrameResult) bool {
 	sc.serveG.check()
 	err := res.err
 	if err != nil {
-		if err == ErrFrameTooLarge {
+		if errors.Is(err, ErrFrameTooLarge) {
 			sc.goAway(ErrCodeFrameSize)
 			return true // goAway will close the loop
 		}
-		clientGone := err == io.EOF || err == io.ErrUnexpectedEOF || isClosedConnError(err)
+		clientGone := err == io.EOF || errors.Is(err, io.ErrUnexpectedEOF) || isClosedConnError(err)
 		if clientGone {
 			// TODO: could we also get into this state if
 			// the peer does a half close
