@@ -483,9 +483,9 @@ func serverConnBaseContext(c net.Conn, opts *ServeConnOpts) (ctx context.Context
 func (sc *serverConn) rejectConn(err ErrCode, debug string) {
 	sc.vlogf("http2: server rejecting conn: %v, %s", err, debug)
 	// ignoring errors. hanging up anyway.
-	sc.framer.WriteGoAway(0, err, []byte(debug))
-	sc.bw.Flush()
-	sc.conn.Close()
+	_ = sc.framer.WriteGoAway(0, err, []byte(debug))
+	_ = sc.bw.Flush()
+	_ = sc.conn.Close()
 }
 
 type serverConn struct {
