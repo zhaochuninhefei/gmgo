@@ -2232,7 +2232,7 @@ func (sc *serverConn) writeHeaders(st *stream, headerData *writeResHeaders) erro
 
 // called from handler goroutines.
 func (sc *serverConn) write100ContinueHeaders(st *stream) {
-	sc.writeFrameFromHandler(FrameWriteRequest{
+	_ = sc.writeFrameFromHandler(FrameWriteRequest{
 		write:  write100ContinueHeadersFrame{st.id},
 		stream: st,
 	})
