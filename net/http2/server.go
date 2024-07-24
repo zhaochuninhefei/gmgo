@@ -1230,6 +1230,7 @@ func (sc *serverConn) wroteFrame(res frameWriteResult) {
 			sc.resetStream(streamError(st.id, ErrCodeNo))
 		case stateHalfClosedRemote:
 			sc.closeStream(st, errHandlerComplete)
+		default:
 		}
 	} else {
 		switch v := wr.write.(type) {
