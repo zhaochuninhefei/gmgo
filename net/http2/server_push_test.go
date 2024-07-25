@@ -498,7 +498,8 @@ func TestServer_Push_RejectAfterGoAway(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			errc <- fmt.Errorf("timeout waiting for GOAWAY to be processed")
 		}
-		if got, want := w.(http.Pusher).Push("https://"+r.Host+"/pushed", nil), http.ErrNotSupported; got != want {
+		if got, want := w.(http.Pusher).Push("https://"+r.Host+"/pushed", nil), http.ErrNotSupported; !errors.Is(got, want) {
+			//goland:noinspection GoErrorStringFormat
 			errc <- fmt.Errorf("Push()=%v, want %v", got, want)
 		}
 		errc <- nil
