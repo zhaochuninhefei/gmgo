@@ -74,7 +74,7 @@ func TestServer_Push_Success(t *testing.T) {
 			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("Content-Length", strconv.Itoa(len(mainBody)))
 			w.WriteHeader(200)
-			io.WriteString(w, mainBody)
+			_, _ = io.WriteString(w, mainBody)
 			errc <- nil
 
 		case "/pushed?get":
@@ -87,7 +87,7 @@ func TestServer_Push_Success(t *testing.T) {
 			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("Content-Length", strconv.Itoa(len(pushedBody)))
 			w.WriteHeader(200)
-			io.WriteString(w, pushedBody)
+			_, _ = io.WriteString(w, pushedBody)
 			errc <- nil
 
 		case "/pushed?head":
@@ -446,7 +446,7 @@ func TestServer_Push_StateTransitions(t *testing.T) {
 		w.Header().Set("Content-Type", "text/html")
 		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 		w.WriteHeader(200)
-		io.WriteString(w, body)
+		_, _ = io.WriteString(w, body)
 	})
 	defer st.Close()
 
@@ -498,7 +498,7 @@ func TestServer_Push_RejectAfterGoAway(t *testing.T) {
 	getSlash(st)
 
 	// Send GOAWAY and wait for it to be processed.
-	st.fr.WriteGoAway(1, ErrCodeNo, nil)
+	_ = st.fr.WriteGoAway(1, ErrCodeNo, nil)
 	go func() {
 		for {
 			select {
