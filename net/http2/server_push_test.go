@@ -387,6 +387,7 @@ func TestServer_Push_RejectMissingHost(t *testing.T) {
 	testServer_Push_RejectSingleRequest(t,
 		func(p http.Pusher, r *http.Request) error {
 			if err := p.Push("https:pushed", nil); err == nil {
+				//goland:noinspection GoErrorStringFormat
 				return errors.New("Push() should have failed (push target URL missing host)")
 			}
 			return nil
@@ -397,6 +398,7 @@ func TestServer_Push_RejectRelativePath(t *testing.T) {
 	testServer_Push_RejectSingleRequest(t,
 		func(p http.Pusher, r *http.Request) error {
 			if err := p.Push("../test", nil); err == nil {
+				//goland:noinspection GoErrorStringFormat
 				return errors.New("Push() should have failed (push target is a relative path)")
 			}
 			return nil
@@ -407,6 +409,7 @@ func TestServer_Push_RejectForbiddenMethod(t *testing.T) {
 	testServer_Push_RejectSingleRequest(t,
 		func(p http.Pusher, r *http.Request) error {
 			if err := p.Push("https://"+r.Host+"/pushed", &http.PushOptions{Method: "POST"}); err == nil {
+				//goland:noinspection GoErrorStringFormat
 				return errors.New("Push() should have failed (cannot promise a POST)")
 			}
 			return nil
@@ -425,6 +428,7 @@ func TestServer_Push_RejectForbiddenHeader(t *testing.T) {
 				":authority":       {"test.com"},
 			}
 			if err := p.Push("https://"+r.Host+"/pushed", &http.PushOptions{Header: header}); err == nil {
+				//goland:noinspection GoErrorStringFormat
 				return errors.New("Push() should have failed (forbidden headers)")
 			}
 			return nil
