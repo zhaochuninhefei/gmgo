@@ -323,6 +323,7 @@ func TestServer_Push_RejectRecursivePush(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoSnakeCaseUsage
 func testServer_Push_RejectSingleRequest(t *testing.T, doPush func(http.Pusher, *http.Request) error, settings ...Setting) {
 	// Expect one request, but might get two if there's a bug and the push succeeds.
 	errc := make(chan error, 2)
