@@ -374,7 +374,9 @@ func TestServer_Push_RejectWhenNoConcurrentStreams(t *testing.T) {
 func TestServer_Push_RejectWrongScheme(t *testing.T) {
 	testServer_Push_RejectSingleRequest(t,
 		func(p http.Pusher, r *http.Request) error {
-			if err := p.Push("http://"+r.Host+"/pushed", nil); err == nil {
+			if //goland:noinspection HttpUrlsUsage
+			err := p.Push("http://"+r.Host+"/pushed", nil); err == nil {
+				//goland:noinspection GoErrorStringFormat
 				return errors.New("Push() should have failed (push target URL is http)")
 			}
 			return nil
