@@ -362,7 +362,8 @@ func TestServer_Push_RejectIfDisabled(t *testing.T) {
 func TestServer_Push_RejectWhenNoConcurrentStreams(t *testing.T) {
 	testServer_Push_RejectSingleRequest(t,
 		func(p http.Pusher, r *http.Request) error {
-			if got, want := p.Push("https://"+r.Host+"/pushed", nil), ErrPushLimitReached; got != want {
+			if got, want := p.Push("https://"+r.Host+"/pushed", nil), ErrPushLimitReached; !errors.Is(got, want) {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Push()=%v, want %v", got, want)
 			}
 			return nil
