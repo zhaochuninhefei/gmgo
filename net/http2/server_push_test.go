@@ -299,7 +299,8 @@ func TestServer_Push_RejectRecursivePush(t *testing.T) {
 			return nil
 
 		case "/push1":
-			if got, want := w.(http.Pusher).Push(baseURL+"/push2", nil), ErrRecursivePush; got != want {
+			if got, want := w.(http.Pusher).Push(baseURL+"/push2", nil), ErrRecursivePush; !errors.Is(got, want) {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Push()=%v, want %v", got, want)
 			}
 			return nil
