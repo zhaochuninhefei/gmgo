@@ -3362,6 +3362,8 @@ func (c *issue53Conn) SetReadDeadline(_ time.Time) error  { return nil }
 func (c *issue53Conn) SetWriteDeadline(_ time.Time) error { return nil }
 
 // golang.org/issue/33839
+//
+//goland:noinspection GoDfaNilDereference
 func TestServeConnOptsNilReceiverBehavior(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
