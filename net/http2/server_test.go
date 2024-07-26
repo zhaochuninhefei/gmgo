@@ -3354,9 +3354,9 @@ func (c *issue53Conn) LocalAddr() net.Addr {
 func (c *issue53Conn) RemoteAddr() net.Addr {
 	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 49706}
 }
-func (c *issue53Conn) SetDeadline(t time.Time) error      { return nil }
-func (c *issue53Conn) SetReadDeadline(t time.Time) error  { return nil }
-func (c *issue53Conn) SetWriteDeadline(t time.Time) error { return nil }
+func (c *issue53Conn) SetDeadline(_ time.Time) error      { return nil }
+func (c *issue53Conn) SetReadDeadline(_ time.Time) error  { return nil }
+func (c *issue53Conn) SetWriteDeadline(_ time.Time) error { return nil }
 
 // golang.org/issue/33839
 func TestServeConnOptsNilReceiverBehavior(t *testing.T) {
