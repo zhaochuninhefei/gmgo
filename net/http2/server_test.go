@@ -3600,11 +3600,13 @@ func TestServerHandleCustomConn(t *testing.T) {
 	var req *http.Request
 	go func() {
 		defer close(clientDone)
-		defer c2.Close()
+		defer func(c2 net.Conn) {
+			_ = c2.Close()
+		}(c2)
 		fr := NewFramer(c2, c2)
-		io.WriteString(c2, ClientPreface)
-		fr.WriteSettings()
-		fr.WriteSettingsAck()
+		_, _ = io.WriteString(c2, ClientPreface)
+		_ = fr.WriteSettings()
+		_ = fr.WriteSettingsAck()
 		f, err := fr.ReadFrame()
 		if err != nil {
 			t.Error(err)
@@ -3624,13 +3626,15 @@ func TestServerHandleCustomConn(t *testing.T) {
 			return
 		}
 		var henc hpackEncoder
-		fr.WriteHeaders(HeadersFrameParam{
+		_ = fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      1,
 			BlockFragment: henc.encodeHeaderRaw(t, ":method", "GET", ":path", "/", ":scheme", "https", ":authority", "foo.com"),
 			EndStream:     true,
 			EndHeaders:    true,
 		})
-		go io.Copy(io.Discard, c2)
+		go func() {
+			_, _ = io.Copy(io.Discard, c2)
+		}()
 		<-handlerDone
 	}()
 	const testString = "my custom ConnectionState"
