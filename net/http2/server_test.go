@@ -3309,7 +3309,7 @@ func TestIssue53(t *testing.T) {
 	s := &http.Server{
 		ErrorLog: log.New(io.MultiWriter(stderrv(), twriter{t: t}), "", log.LstdFlags),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.Write([]byte("hello"))
+			_, _ = w.Write([]byte("hello"))
 		}),
 	}
 	s2 := &Server{
