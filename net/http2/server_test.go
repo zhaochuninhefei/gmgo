@@ -1472,7 +1472,7 @@ func TestServer_CloseNotify_After_RSTStream(t *testing.T) {
 }
 
 func TestServer_CloseNotify_After_ConnClose(t *testing.T) {
-	testServerPostUnblock(t, blockUntilClosed, func(st *serverTester) { st.cc.Close() }, nil)
+	testServerPostUnblock(t, blockUntilClosed, func(st *serverTester) { _ = st.cc.Close() }, nil)
 }
 
 // that CloseNotify unblocks after a stream error due to the client's
