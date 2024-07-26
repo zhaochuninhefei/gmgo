@@ -2086,6 +2086,7 @@ func TestServer_Response_LargeWrite(t *testing.T) {
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
 		n, err := w.Write(bytes.Repeat([]byte("a"), size))
 		if err != nil {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Write error: %v", err)
 		}
 		if n != size {
@@ -2165,6 +2166,7 @@ func TestServer_Response_LargeWrite_FlowControlled(t *testing.T) {
 		w.(http.Flusher).Flush()
 		n, err := w.Write(bytes.Repeat([]byte("a"), size))
 		if err != nil {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Write error: %v", err)
 		}
 		if n != size {
