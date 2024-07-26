@@ -2854,7 +2854,7 @@ func TestServerDoS_MaxHeaderListSize(t *testing.T) {
 			chunk = chunk[:frameSize]
 		}
 		b = b[len(chunk):]
-		st.fr.WriteContinuation(1, len(b) == 0, chunk)
+		_ = st.fr.WriteContinuation(1, len(b) == 0, chunk)
 	}
 
 	h := st.wantHeaders()
