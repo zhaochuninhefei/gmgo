@@ -2718,9 +2718,9 @@ func testServerWithCurl(t *testing.T, permitProhibitedCipherSuites bool) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Foo", "Bar")
 		w.Header().Set("Client-Proto", r.Proto)
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 	}))
-	ConfigureServer(ts.Config, &Server{
+	_ = ConfigureServer(ts.Config, &Server{
 		PermitProhibitedCipherSuites: permitProhibitedCipherSuites,
 	})
 	ts.TLS = ts.Config.TLSConfig // the httptest.Server has its own copy of this TLS config
