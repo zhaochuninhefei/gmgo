@@ -3049,7 +3049,7 @@ func testServerWritesTrailers(t *testing.T, withFlush bool) {
 		w.Header().Set("Foo", "Bar")
 		w.Header().Set("Content-Length", "5") // len("Hello")
 
-		_ = io.WriteString(w, "Hello")
+		_, _ = io.WriteString(w, "Hello")
 		if withFlush {
 			w.(http.Flusher).Flush()
 		}
