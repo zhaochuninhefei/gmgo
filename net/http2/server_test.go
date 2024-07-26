@@ -291,7 +291,7 @@ func (st *serverTester) greet() {
 func (st *serverTester) greetAndCheckSettings(checkSetting func(s Setting) error) {
 	st.writePreface()
 	st.writeInitialSettings()
-	st.wantSettings().ForeachSetting(checkSetting)
+	_ = st.wantSettings().ForeachSetting(checkSetting)
 	st.writeSettingsAck()
 
 	// The initial WINDOW_UPDATE and SETTINGS ACK can come in any order.
