@@ -144,7 +144,7 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 		}
 	}
 
-	ConfigureServer(ts.Config, h2server)
+	_ = ConfigureServer(ts.Config, h2server)
 
 	st := &serverTester{
 		t:  t,
@@ -184,13 +184,13 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 			st.fr.debugReadLoggerf = func(m string, v ...interface{}) {
 				m = time.Now().Format("2006-01-02 15:04:05.999999999 ") + strings.TrimPrefix(m, "http2: ") + "\n"
 				st.frameReadLogMu.Lock()
-				fmt.Fprintf(&st.frameReadLogBuf, m, v...)
+				_, _ = fmt.Fprintf(&st.frameReadLogBuf, m, v...)
 				st.frameReadLogMu.Unlock()
 			}
 			st.fr.debugWriteLoggerf = func(m string, v ...interface{}) {
 				m = time.Now().Format("2006-01-02 15:04:05.999999999 ") + strings.TrimPrefix(m, "http2: ") + "\n"
 				st.frameWriteLogMu.Lock()
-				fmt.Fprintf(&st.frameWriteLogBuf, m, v...)
+				_, _ = fmt.Fprintf(&st.frameWriteLogBuf, m, v...)
 				st.frameWriteLogMu.Unlock()
 			}
 			st.fr.logReads = true
