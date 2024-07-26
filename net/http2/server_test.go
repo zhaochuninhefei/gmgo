@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -820,7 +819,7 @@ func testBodyContents(t *testing.T, wantContentLength int64, wantBody string, wr
 		if r.ContentLength != wantContentLength {
 			t.Errorf("ContentLength = %v; want %d", r.ContentLength, wantContentLength)
 		}
-		all, err := ioutil.ReadAll(r.Body)
+		all, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -841,7 +840,7 @@ func testBodyContentsFail(t *testing.T, wantContentLength int64, wantReadError s
 		if r.ContentLength != wantContentLength {
 			t.Errorf("ContentLength = %v; want %d", r.ContentLength, wantContentLength)
 		}
-		all, err := ioutil.ReadAll(r.Body)
+		all, err := io.ReadAll(r.Body)
 		if err == nil {
 			t.Fatalf("expected an error (%q) reading from the body. Successfully read %q instead.",
 				wantReadError, all)
@@ -3016,7 +3015,7 @@ func TestServerReadsTrailers(t *testing.T) {
 		if !reflect.DeepEqual(r.Trailer, wantTrailer) {
 			t.Errorf("initial Trailer = %v; want %v", r.Trailer, wantTrailer)
 		}
-		slurp, err := ioutil.ReadAll(r.Body)
+		slurp, err := io.ReadAll(r.Body)
 		if string(slurp) != testBody {
 			t.Errorf("read body %q; want %q", slurp, testBody)
 		}
@@ -3189,7 +3188,7 @@ func BenchmarkServerPosts(b *testing.B) {
 		// Consume the (empty) body from th peer before replying, otherwise
 		// the server will sometimes (depending on scheduling) send the peer a
 		// a RST_STREAM with the CANCEL error code.
-		if n, err := io.Copy(ioutil.Discard, r.Body); n != 0 || err != nil {
+		if n, err := io.Copy(io.Discard, r.Body); n != 0 || err != nil {
 			b.Errorf("Copy error; got %v, %v; want 0, nil", n, err)
 		}
 		io.WriteString(w, msg)
@@ -3253,7 +3252,7 @@ func benchmarkServerToClientStream(b *testing.B, newServerOpts ...interface{}) {
 		// Consume the (empty) body from th peer before replying, otherwise
 		// the server will sometimes (depending on scheduling) send the peer a
 		// a RST_STREAM with the CANCEL error code.
-		if n, err := io.Copy(ioutil.Discard, r.Body); n != 0 || err != nil {
+		if n, err := io.Copy(io.Discard, r.Body); n != 0 || err != nil {
 			b.Errorf("Copy error; got %v, %v; want 0, nil", n, err)
 		}
 		for i := 0; i < b.N; i += 1 {
@@ -3525,7 +3524,7 @@ func BenchmarkServer_GetRequest(b *testing.B) {
 	b.ReportAllocs()
 	const msg = "Hello, world."
 	st := newServerTester(b, func(w http.ResponseWriter, r *http.Request) {
-		n, err := io.Copy(ioutil.Discard, r.Body)
+		n, err := io.Copy(io.Discard, r.Body)
 		if err != nil || n > 0 {
 			b.Errorf("Read %d bytes, error %v; want 0 bytes.", n, err)
 		}
@@ -3557,7 +3556,7 @@ func BenchmarkServer_PostRequest(b *testing.B) {
 	b.ReportAllocs()
 	const msg = "Hello, world."
 	st := newServerTester(b, func(w http.ResponseWriter, r *http.Request) {
-		n, err := io.Copy(ioutil.Discard, r.Body)
+		n, err := io.Copy(io.Discard, r.Body)
 		if err != nil || n > 0 {
 			b.Errorf("Read %d bytes, error %v; want 0 bytes.", n, err)
 		}
@@ -3631,7 +3630,7 @@ func TestServerHandleCustomConn(t *testing.T) {
 			EndStream:     true,
 			EndHeaders:    true,
 		})
-		go io.Copy(ioutil.Discard, c2)
+		go io.Copy(io.Discard, c2)
 		<-handlerDone
 	}()
 	const testString = "my custom ConnectionState"
@@ -3980,7 +3979,7 @@ func TestIssue20704Race(t *testing.T) {
 
 func TestServer_Rejects_TooSmall(t *testing.T) {
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
-		ioutil.ReadAll(r.Body)
+		io.ReadAll(r.Body)
 		return nil
 	}, func(st *serverTester) {
 		st.writeHeaders(HeadersFrameParam{
