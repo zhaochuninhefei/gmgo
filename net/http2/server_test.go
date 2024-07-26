@@ -272,12 +272,12 @@ func (st *serverTester) Close() {
 		// httptest.Server doesn't wait forever for the conn
 		// to close.
 		if st.cc != nil {
-			st.cc.Close()
+			_ = st.cc.Close()
 		}
 	}
 	st.ts.Close()
 	if st.cc != nil {
-		st.cc.Close()
+		_ = st.cc.Close()
 	}
 	log.SetOutput(os.Stderr)
 }
