@@ -4118,7 +4118,9 @@ func TestServerGracefulShutdown(t *testing.T) {
 	handlerDone := make(chan struct{})
 	st = newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		defer close(handlerDone)
-		go st.ts.Config.Shutdown(context.Background())
+		go func() {
+			_ = st.ts.Config.Shutdown(context.Background())
+		}()
 
 		ga := st.wantGoAway()
 		if ga.ErrCode != ErrCodeNo {
@@ -4177,8 +4179,8 @@ func TestContentEncodingNoSniffing(t *testing.T) {
 			body: func() []byte {
 				buf := new(bytes.Buffer)
 				gzw := gzip.NewWriter(buf)
-				gzw.Write([]byte("doctype html><p>Hello</p>"))
-				gzw.Close()
+				_, _ = gzw.Write([]byte("doctype html><p>Hello</p>"))
+				_ = gzw.Close()
 				return buf.Bytes()
 			}(),
 		},
@@ -4189,8 +4191,8 @@ func TestContentEncodingNoSniffing(t *testing.T) {
 			body: func() []byte {
 				buf := new(bytes.Buffer)
 				zw := zlib.NewWriter(buf)
-				zw.Write([]byte("doctype html><p>Hello</p>"))
-				zw.Close()
+				_, _ = zw.Write([]byte("doctype html><p>Hello</p>"))
+				_ = zw.Close()
 				return buf.Bytes()
 			}(),
 		},
@@ -4200,8 +4202,8 @@ func TestContentEncodingNoSniffing(t *testing.T) {
 			body: func() []byte {
 				buf := new(bytes.Buffer)
 				gzw := gzip.NewWriter(buf)
-				gzw.Write([]byte("doctype html><p>Hello</p>"))
-				gzw.Close()
+				_, _ = gzw.Write([]byte("doctype html><p>Hello</p>"))
+				_ = gzw.Close()
 				return buf.Bytes()
 			}(),
 		},
@@ -4224,7 +4226,7 @@ func TestContentEncodingNoSniffing(t *testing.T) {
 				if tt.contentEncoding != nil {
 					w.Header().Set("Content-Encoding", tt.contentEncoding.(string))
 				}
-				w.Write(tt.body)
+				_, _ = w.Write(tt.body)
 			}, optOnlyServer)
 			defer st.Close()
 
@@ -4236,7 +4238,9 @@ func TestContentEncodingNoSniffing(t *testing.T) {
 			if err != nil {
 				t.Fatalf("GET %s: %v", st.ts.URL, err)
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 
 			g := res.Header.Get("Content-Encoding")
 			t.Logf("%s: Content-Encoding: %s", st.ts.URL, g)
