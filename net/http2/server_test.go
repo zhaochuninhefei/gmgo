@@ -1449,7 +1449,7 @@ func TestServer_DeadConn_Unblocks_Read(t *testing.T) {
 			_, err = r.Body.Read(make([]byte, 1))
 			return
 		},
-		func(st *serverTester) { st.cc.Close() },
+		func(st *serverTester) { _ = st.cc.Close() },
 		func(err error) {
 			if err == nil {
 				t.Error("unexpected nil error from Request.Body.Read")
