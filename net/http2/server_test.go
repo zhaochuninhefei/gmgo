@@ -2127,10 +2127,10 @@ func TestServer_Response_LargeWrite(t *testing.T) {
 		if !reflect.DeepEqual(goth, wanth) {
 			t.Errorf("Got headers %v; want %v", goth, wanth)
 		}
-		var bytes, frames int
+		var bytesTmp, frames int
 		for {
 			df := st.wantData()
-			bytes += len(df.Data())
+			bytesTmp += len(df.Data())
 			frames++
 			for _, b := range df.Data() {
 				if b != 'a' {
@@ -2141,8 +2141,8 @@ func TestServer_Response_LargeWrite(t *testing.T) {
 				break
 			}
 		}
-		if bytes != size {
-			t.Errorf("Got %d bytes; want %d", bytes, size)
+		if bytesTmp != size {
+			t.Errorf("Got %d bytes; want %d", bytesTmp, size)
 		}
 		if want := int(size / maxFrameSize); frames < want || frames > want*2 {
 			t.Errorf("Got %d frames; want %d", frames, size)
