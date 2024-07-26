@@ -2146,7 +2146,7 @@ func TestServer_Response_LargeWrite(t *testing.T) {
 		if bytesTmp != size {
 			t.Errorf("Got %d bytes; want %d", bytesTmp, size)
 		}
-		if want := int(size / maxFrameSize); frames < want || frames > want*2 {
+		if want := size / maxFrameSize; frames < want || frames > want*2 {
 			t.Errorf("Got %d frames; want %d", frames, size)
 		}
 	})
@@ -2201,7 +2201,7 @@ func TestServer_Response_LargeWrite_FlowControlled(t *testing.T) {
 				t.Fatal(err)
 			}
 			df := st.wantData()
-			if int(quota) != len(df.Data()) {
+			if quota != len(df.Data()) {
 				t.Fatalf("read %d bytes after giving %d quota", len(df.Data()), quota)
 			}
 		}
