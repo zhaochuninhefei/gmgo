@@ -1405,6 +1405,7 @@ func TestServer_RSTStream_Unblocks_Header_Write(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoSnakeCaseUsage
 func testServer_RSTStream_Unblocks_Header_Write(t *testing.T) {
 	inHandler := make(chan bool, 1)
 	unblockHandler := make(chan bool, 1)
