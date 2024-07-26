@@ -3256,7 +3256,7 @@ func benchmarkServerToClientStream(b *testing.B, newServerOpts ...interface{}) {
 			b.Errorf("Copy error; got %v, %v; want 0, nil", n, err)
 		}
 		for i := 0; i < b.N; i += 1 {
-			w.Write(nextMsg(i))
+			_, _ = w.Write(nextMsg(i))
 			w.(http.Flusher).Flush()
 		}
 	}, newServerOpts...)
