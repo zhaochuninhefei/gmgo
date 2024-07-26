@@ -3821,15 +3821,15 @@ func TestUnreadFlowControlReturned_Server(t *testing.T) {
 		{
 			"body-closed",
 			func(r *http.Request) {
-				r.Body.Close()
+				_ = r.Body.Close()
 			},
 		},
 		{
 			"read-1-byte-and-close",
 			func(r *http.Request) {
 				b := make([]byte, 1)
-				r.Body.Read(b)
-				r.Body.Close()
+				_, _ = r.Body.Read(b)
+				_ = r.Body.Close()
 			},
 		},
 	} {
@@ -3873,7 +3873,7 @@ func TestUnreadFlowControlReturned_Server(t *testing.T) {
 				if err != nil {
 					t.Fatal(tt.name, err)
 				}
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 		})
 	}
