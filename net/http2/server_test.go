@@ -2546,7 +2546,7 @@ func TestServer_NoCrash_HandlerClose_Then_ClientClose(t *testing.T) {
 		testHookOnPanicMu.Unlock()
 
 		// Now force the serve loop to end, via closing the connection.
-		st.cc.Close()
+		_ = st.cc.Close()
 		select {
 		case <-st.sc.doneServing:
 			// Loop has exited.
