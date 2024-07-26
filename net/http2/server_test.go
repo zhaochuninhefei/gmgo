@@ -1890,7 +1890,7 @@ func TestServer_Response_Data_Sniff_DoesntOverride(t *testing.T) {
 	const msg = "<html>this is HTML."
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "foo/bar")
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		return nil
 	}, func(st *serverTester) {
 		getSlash(st)
