@@ -3979,13 +3979,13 @@ func TestIssue20704Race(t *testing.T) {
 		}
 		// Force a RST stream to the server by closing without
 		// reading the body:
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
 func TestServer_Rejects_TooSmall(t *testing.T) {
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
-		io.ReadAll(r.Body)
+		_, _ = io.ReadAll(r.Body)
 		return nil
 	}, func(st *serverTester) {
 		st.writeHeaders(HeadersFrameParam{
