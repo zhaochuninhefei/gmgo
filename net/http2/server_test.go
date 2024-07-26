@@ -1220,7 +1220,7 @@ func TestServer_RejectsLargeFrames(t *testing.T) {
 	// Write too large of a frame (too large by one byte)
 	// We ignore the return value because it's expected that the server
 	// will only read the first 9 bytes (the headre) and then disconnect.
-	st.fr.WriteRawFrame(0xff, 0, 0, make([]byte, defaultMaxReadFrameSize+1))
+	_ = st.fr.WriteRawFrame(0xff, 0, 0, make([]byte, defaultMaxReadFrameSize+1))
 
 	gf := st.wantGoAway()
 	if gf.ErrCode != ErrCodeFrameSize {
