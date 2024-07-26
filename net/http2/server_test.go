@@ -3560,7 +3560,7 @@ func BenchmarkServer_PostRequest(b *testing.B) {
 		if err != nil || n > 0 {
 			b.Errorf("Read %d bytes, error %v; want 0 bytes.", n, err)
 		}
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 	})
 	defer st.Close()
 	st.greet()
