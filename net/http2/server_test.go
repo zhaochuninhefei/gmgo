@@ -2377,7 +2377,7 @@ func TestServer_HandlerWriteErrorOnDisconnect(t *testing.T) {
 			t.Fatal("want END_HEADERS flag")
 		}
 		// Close the connection and wait for the handler to (hopefully) notice.
-		st.cc.Close()
+		_ = st.cc.Close()
 		select {
 		case <-errc:
 		case <-time.After(5 * time.Second):
