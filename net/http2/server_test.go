@@ -1005,10 +1005,10 @@ func TestServer_Request_Reject_Pseudo_AfterRegular(t *testing.T) {
 		st.addLogFilter("pseudo-header after regular header")
 		var buf bytes.Buffer
 		enc := hpack.NewEncoder(&buf)
-		enc.WriteField(hpack.HeaderField{Name: ":method", Value: "GET"})
-		enc.WriteField(hpack.HeaderField{Name: "regular", Value: "foobar"})
-		enc.WriteField(hpack.HeaderField{Name: ":path", Value: "/"})
-		enc.WriteField(hpack.HeaderField{Name: ":scheme", Value: "https"})
+		_ = enc.WriteField(hpack.HeaderField{Name: ":method", Value: "GET"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "regular", Value: "foobar"})
+		_ = enc.WriteField(hpack.HeaderField{Name: ":path", Value: "/"})
+		_ = enc.WriteField(hpack.HeaderField{Name: ":scheme", Value: "https"})
 		st.writeHeaders(HeadersFrameParam{
 			StreamID:      1, // clients send odd numbers
 			BlockFragment: buf.Bytes(),
