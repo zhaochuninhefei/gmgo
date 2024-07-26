@@ -1067,17 +1067,17 @@ func testRejectRequestWithProtocolError(t *testing.T, send func(*serverTester)) 
 // connection error (Section 5.4.1) of type PROTOCOL_ERROR."
 func TestRejectFrameOnIdle_WindowUpdate(t *testing.T) {
 	testRejectRequestWithProtocolError(t, func(st *serverTester) {
-		st.fr.WriteWindowUpdate(123, 456)
+		_ = st.fr.WriteWindowUpdate(123, 456)
 	})
 }
 func TestRejectFrameOnIdle_Data(t *testing.T) {
 	testRejectRequestWithProtocolError(t, func(st *serverTester) {
-		st.fr.WriteData(123, true, nil)
+		_ = st.fr.WriteData(123, true, nil)
 	})
 }
 func TestRejectFrameOnIdle_RSTStream(t *testing.T) {
 	testRejectRequestWithProtocolError(t, func(st *serverTester) {
-		st.fr.WriteRSTStream(123, ErrCodeCancel)
+		_ = st.fr.WriteRSTStream(123, ErrCodeCancel)
 	})
 }
 
