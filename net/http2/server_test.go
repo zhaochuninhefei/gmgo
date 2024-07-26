@@ -2616,7 +2616,7 @@ func TestServer_Advertises_Common_Cipher(t *testing.T) {
 		// Have the client only support the one required by the spec.
 		c.CipherSuites = []uint16{requiredSuite}
 	}, func(ts *httptest.Server) {
-		var srv *http.Server = ts.Config
+		var srv = ts.Config
 		// Have the server configured with no specific cipher suites.
 		// This tests that Go's defaults include the required one.
 		srv.TLSConfig = nil
