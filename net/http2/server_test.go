@@ -2782,9 +2782,9 @@ func TestServerWithH2Load(t *testing.T) {
 
 	msg := strings.Repeat("Hello, h2load!\n", 5000)
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		w.(http.Flusher).Flush()
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 	}))
 	ts.StartTLS()
 	defer ts.Close()
