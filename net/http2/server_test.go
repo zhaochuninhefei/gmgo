@@ -3941,10 +3941,10 @@ func TestRequestBodyReadCloseRace(t *testing.T) {
 		buf := make([]byte, 10)
 		go func() {
 			time.Sleep(1 * time.Millisecond)
-			body.Close()
+			_ = body.Close()
 			done <- true
 		}()
-		body.Read(buf)
+		_, _ = body.Read(buf)
 		<-done
 	}
 }
