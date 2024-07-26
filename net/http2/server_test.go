@@ -1924,7 +1924,7 @@ func TestServer_Response_TransferEncoding_chunked(t *testing.T) {
 	const msg = "hi"
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Transfer-Encoding", "chunked") // should be stripped
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		return nil
 	}, func(st *serverTester) {
 		getSlash(st)
@@ -1945,7 +1945,7 @@ func TestServer_Response_TransferEncoding_chunked(t *testing.T) {
 func TestServer_Response_Data_IgnoreHeaderAfterWrite_After(t *testing.T) {
 	const msg = "<html>this is HTML."
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		w.Header().Set("foo", "should be ignored")
 		return nil
 	}, func(st *serverTester) {
