@@ -3191,7 +3191,7 @@ func BenchmarkServerPosts(b *testing.B) {
 		if n, err := io.Copy(io.Discard, r.Body); n != 0 || err != nil {
 			b.Errorf("Copy error; got %v, %v; want 0, nil", n, err)
 		}
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 	})
 	defer st.Close()
 	st.greet()
