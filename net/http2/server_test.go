@@ -1974,7 +1974,7 @@ func TestServer_Response_Data_IgnoreHeaderAfterWrite_Overwrite(t *testing.T) {
 	const msg = "<html>this is HTML."
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("foo", "proper value")
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		w.Header().Set("foo", "should be ignored")
 		return nil
 	}, func(st *serverTester) {
@@ -2002,7 +2002,7 @@ func TestServer_Response_Data_IgnoreHeaderAfterWrite_Overwrite(t *testing.T) {
 func TestServer_Response_Data_SniffLenType(t *testing.T) {
 	const msg = "<html>this is HTML."
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		return nil
 	}, func(st *serverTester) {
 		getSlash(st)
@@ -2036,9 +2036,9 @@ func TestServer_Response_Header_Flush_MidWrite(t *testing.T) {
 	const msg = "<html>this is HTML"
 	const msg2 = ", and this is the next chunk"
 	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		w.(http.Flusher).Flush()
-		io.WriteString(w, msg2)
+		_, _ = io.WriteString(w, msg2)
 		return nil
 	}, func(st *serverTester) {
 		getSlash(st)
