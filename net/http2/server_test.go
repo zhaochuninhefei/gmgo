@@ -203,7 +203,7 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 func (st *serverTester) closeConn() {
 	st.scMu.Lock()
 	defer st.scMu.Unlock()
-	st.sc.conn.Close()
+	_ = st.sc.conn.Close()
 }
 
 func (st *serverTester) addLogFilter(phrase string) {
