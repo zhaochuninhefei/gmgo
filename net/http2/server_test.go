@@ -3491,7 +3491,7 @@ func TestServerNoAutoContentLengthOnHead(t *testing.T) {
 func TestServerNoDuplicateContentType(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header()["Content-Type"] = []string{""}
-		fmt.Fprintf(w, "<html><head></head><body>hi</body></html>")
+		_, _ = fmt.Fprintf(w, "<html><head></head><body>hi</body></html>")
 	})
 	defer st.Close()
 	st.greet()
@@ -3528,7 +3528,7 @@ func BenchmarkServer_GetRequest(b *testing.B) {
 		if err != nil || n > 0 {
 			b.Errorf("Read %d bytes, error %v; want 0 bytes.", n, err)
 		}
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 	})
 	defer st.Close()
 
