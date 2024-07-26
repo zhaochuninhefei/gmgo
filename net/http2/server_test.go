@@ -3153,7 +3153,7 @@ func BenchmarkServerGets(b *testing.B) {
 
 	const msg = "Hello, world"
 	st := newServerTester(b, func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 	})
 	defer st.Close()
 	st.greet()
