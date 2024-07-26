@@ -3759,14 +3759,14 @@ func TestExpect100ContinueAfterHandlerWrites(t *testing.T) {
 	defer close(doRead) // fallback cleanup
 
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, msg)
+		_, _ = io.WriteString(w, msg)
 		w.(http.Flusher).Flush()
 
 		// Do a read, which might force a 100-continue status to be sent.
 		<-doRead
-		r.Body.Read(make([]byte, 10))
+		_, _ = r.Body.Read(make([]byte, 10))
 
-		io.WriteString(w, msg2)
+		_, _ = io.WriteString(w, msg2)
 
 	}, optOnlyServer)
 	defer st.Close()
@@ -3781,7 +3781,9 @@ func TestExpect100ContinueAfterHandlerWrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 
 	buf := make([]byte, len(msg))
 	if _, err := io.ReadFull(res.Body, buf); err != nil {
