@@ -1502,7 +1502,7 @@ var (
 	errStopReqBodyWrite = errors.New("http2: aborting request body write")
 
 	// abort request body write, but send stream reset of cancel.
-	errStopReqBodyWriteAndCancel = errors.New("http2: canceling request")
+	_ = errors.New("http2: canceling request")
 
 	errReqBodyTooLong = errors.New("http2: request body larger than specified content length")
 )
