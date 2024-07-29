@@ -1405,7 +1405,7 @@ func (cs *clientStream) cleanupWriteRequest(err error) {
 	cs.reqBodyClosed = true
 	cc.mu.Unlock()
 	if !bodyClosed && cs.reqBody != nil {
-		cs.reqBody.Close()
+		_ = cs.reqBody.Close()
 	}
 
 	if err != nil && cs.sentEndStream {
@@ -1444,7 +1444,7 @@ func (cs *clientStream) cleanupWriteRequest(err error) {
 	werr := cc.werr
 	cc.wmu.Unlock()
 	if werr != nil {
-		cc.Close()
+		_ = cc.Close()
 	}
 
 	close(cs.donec)
