@@ -1301,7 +1301,7 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 		}
 
 		if err = cs.writeRequestBody(req); err != nil {
-			if err != errStopReqBodyWrite {
+			if !errors.Is(err, errStopReqBodyWrite) {
 				traceWroteRequest(cs.trace, err)
 				return err
 			}
