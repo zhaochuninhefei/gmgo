@@ -2465,9 +2465,9 @@ func (b transportResponseBody) Close() error {
 		cc.wmu.Lock()
 		// Return connection-level flow control.
 		if unread > 0 {
-			cc.fr.WriteWindowUpdate(0, uint32(unread))
+			_ = cc.fr.WriteWindowUpdate(0, uint32(unread))
 		}
-		cc.bw.Flush()
+		_ = cc.bw.Flush()
 		cc.wmu.Unlock()
 	}
 
