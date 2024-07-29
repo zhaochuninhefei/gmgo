@@ -2514,7 +2514,7 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 			cc.mu.Unlock()
 
 			cc.wmu.Lock()
-			_ = cc.fr.WriteWindowUpdate(0, uint32(f.Length))
+			_ = cc.fr.WriteWindowUpdate(0, f.Length)
 			_ = cc.bw.Flush()
 			cc.wmu.Unlock()
 		}
