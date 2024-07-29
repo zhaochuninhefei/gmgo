@@ -1936,7 +1936,7 @@ func (cc *ClientConn) writeHeader(name, value string) {
 	if VerboseLogs {
 		log.Printf("http2: Transport encoding header %q = %q", name, value)
 	}
-	cc.henc.WriteField(hpack.HeaderField{Name: name, Value: value})
+	_ = cc.henc.WriteField(hpack.HeaderField{Name: name, Value: value})
 }
 
 //goland:noinspection GoUnusedType
@@ -1982,7 +1982,9 @@ func (cc *ClientConn) forgetStreamID(id uint32) {
 			cc.vlogf("http2: Transport closing idle conn %p (forSingleUse=%v, maxStream=%v)", cc, cc.singleUse, cc.nextStreamID-2)
 		}
 		cc.closed = true
-		defer cc.tconn.Close()
+		defer func(tconn net.Conn) {
+			_ = tconn.Close()
+		}(cc.tconn)
 	}
 
 	cc.mu.Unlock()
