@@ -2512,8 +2512,8 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 			cc.mu.Unlock()
 
 			cc.wmu.Lock()
-			cc.fr.WriteWindowUpdate(0, uint32(f.Length))
-			cc.bw.Flush()
+			_ = cc.fr.WriteWindowUpdate(0, uint32(f.Length))
+			_ = cc.bw.Flush()
 			cc.wmu.Unlock()
 		}
 		return nil
@@ -2579,11 +2579,11 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 
 		if refund > 0 {
 			cc.wmu.Lock()
-			cc.fr.WriteWindowUpdate(0, uint32(refund))
+			_ = cc.fr.WriteWindowUpdate(0, uint32(refund))
 			if !didReset {
-				cc.fr.WriteWindowUpdate(cs.ID, uint32(refund))
+				_ = cc.fr.WriteWindowUpdate(cs.ID, uint32(refund))
 			}
-			cc.bw.Flush()
+			_ = cc.bw.Flush()
 			cc.wmu.Unlock()
 		}
 
