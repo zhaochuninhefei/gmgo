@@ -2435,12 +2435,12 @@ func (b transportResponseBody) Read(p []byte) (n int, err error) {
 		cc.wmu.Lock()
 		defer cc.wmu.Unlock()
 		if connAdd != 0 {
-			cc.fr.WriteWindowUpdate(0, mustUint31(connAdd))
+			_ = cc.fr.WriteWindowUpdate(0, mustUint31(connAdd))
 		}
 		if streamAdd != 0 {
-			cc.fr.WriteWindowUpdate(cs.ID, mustUint31(streamAdd))
+			_ = cc.fr.WriteWindowUpdate(cs.ID, mustUint31(streamAdd))
 		}
-		cc.bw.Flush()
+		_ = cc.bw.Flush()
 	}
 	return
 }
