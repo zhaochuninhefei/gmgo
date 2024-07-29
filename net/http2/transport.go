@@ -2837,7 +2837,7 @@ func (rl *clientConnReadLoop) processPing(f *PingFrame) error {
 	return cc.bw.Flush()
 }
 
-func (rl *clientConnReadLoop) processPushPromise(f *PushPromiseFrame) error {
+func (rl *clientConnReadLoop) processPushPromise(_ *PushPromiseFrame) error {
 	// We told the peer we don't want them.
 	// Spec says:
 	// "PUSH_PROMISE MUST NOT be sent if the SETTINGS_ENABLE_PUSH
