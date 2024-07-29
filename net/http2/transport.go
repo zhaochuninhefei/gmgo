@@ -2031,7 +2031,9 @@ func isEOFOrNetReadError(err error) bool {
 
 func (rl *clientConnReadLoop) cleanup() {
 	cc := rl.cc
-	defer cc.tconn.Close()
+	defer func(tconn net.Conn) {
+		_ = tconn.Close()
+	}(cc.tconn)
 	defer cc.t.connPool().MarkDead(cc)
 	defer close(cc.readerDone)
 
