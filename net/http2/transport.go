@@ -715,13 +715,13 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: maxSize})
 	}
 
-	cc.bw.Write(clientPreface)
-	cc.fr.WriteSettings(initialSettings...)
-	cc.fr.WriteWindowUpdate(0, transportDefaultConnFlow)
+	_, _ = cc.bw.Write(clientPreface)
+	_ = cc.fr.WriteSettings(initialSettings...)
+	_ = cc.fr.WriteWindowUpdate(0, transportDefaultConnFlow)
 	cc.inflow.add(transportDefaultConnFlow + initialWindowSize)
-	cc.bw.Flush()
+	_ = cc.bw.Flush()
 	if cc.werr != nil {
-		cc.Close()
+		_ = cc.Close()
 		return nil, cc.werr
 	}
 
@@ -737,7 +737,7 @@ func (cc *ClientConn) healthCheck() {
 	defer cancel()
 	err := cc.Ping(ctx)
 	if err != nil {
-		cc.closeForLostPing()
+		_ = cc.closeForLostPing()
 		cc.t.connPool().MarkDead(cc)
 		return
 	}
