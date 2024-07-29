@@ -1513,10 +1513,10 @@ var (
 // It returns max(1, min(peer's advertised max frame size,
 // Request.ContentLength+1, 512KB)).
 func (cs *clientStream) frameScratchBufferLen(maxFrameSize int) int {
-	const max = 512 << 10
+	const maxSize = 512 << 10
 	n := int64(maxFrameSize)
-	if n > max {
-		n = max
+	if n > maxSize {
+		n = maxSize
 	}
 	if cl := cs.reqBodyContentLength; cl != -1 && cl+1 < n {
 		// Add an extra byte past the declared content-length to
