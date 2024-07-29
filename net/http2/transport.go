@@ -1936,6 +1936,7 @@ func (cc *ClientConn) writeHeader(name, value string) {
 	cc.henc.WriteField(hpack.HeaderField{Name: name, Value: value})
 }
 
+//goland:noinspection GoUnusedType
 type resAndError struct {
 	_   incomparable
 	res *http.Response
