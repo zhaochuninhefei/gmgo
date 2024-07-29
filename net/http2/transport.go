@@ -210,14 +210,18 @@ func configureTransports(t1 *http.Transport) (*Transport, error) {
 	upgradeFn := func(authority string, c *tls.Conn) http.RoundTripper {
 		addr := authorityAddr("https", authority)
 		if used, err := connPool.addConnIfNeeded(addr, t2, c); err != nil {
-			go c.Close()
+			go func() {
+				_ = c.Close()
+			}()
 			return erringRoundTripper{err}
 		} else if !used {
 			// Turns out we don't need this c.
 			// For example, two goroutines made requests to the same host
 			// at the same time, both kicking off TCP dials. (since protocol
 			// was unknown)
-			go c.Close()
+			go func() {
+				_ = c.Close()
+			}()
 		}
 		return t2
 	}
