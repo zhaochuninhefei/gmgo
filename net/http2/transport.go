@@ -1484,7 +1484,7 @@ func (cc *ClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize
 		hdrs = hdrs[len(chunk):]
 		endHeaders := len(hdrs) == 0
 		if first {
-			cc.fr.WriteHeaders(HeadersFrameParam{
+			_ = cc.fr.WriteHeaders(HeadersFrameParam{
 				StreamID:      streamID,
 				BlockFragment: chunk,
 				EndStream:     endStream,
@@ -1492,10 +1492,10 @@ func (cc *ClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize
 			})
 			first = false
 		} else {
-			cc.fr.WriteContinuation(streamID, endHeaders, chunk)
+			_ = cc.fr.WriteContinuation(streamID, endHeaders, chunk)
 		}
 	}
-	cc.bw.Flush()
+	_ = cc.bw.Flush()
 	return cc.werr
 }
 
