@@ -2666,8 +2666,8 @@ func (rl *clientConnReadLoop) processSettings(f *SettingsFrame) error {
 		return err
 	}
 	if !f.IsAck() {
-		cc.fr.WriteSettingsAck()
-		cc.bw.Flush()
+		_ = cc.fr.WriteSettingsAck()
+		_ = cc.bw.Flush()
 	}
 	return nil
 }
