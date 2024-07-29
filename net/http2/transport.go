@@ -2001,7 +2001,8 @@ func (cc *ClientConn) readLoop() {
 	rl := &clientConnReadLoop{cc: cc}
 	defer rl.cleanup()
 	cc.readerErr = rl.run()
-	if ce, ok := cc.readerErr.(ConnectionError); ok {
+	var ce ConnectionError
+	if errors.As(cc.readerErr, &ce) {
 		cc.wmu.Lock()
 		_ = cc.fr.WriteGoAway(0, ErrCode(ce), nil)
 		cc.wmu.Unlock()
@@ -2025,7 +2026,8 @@ func isEOFOrNetReadError(err error) bool {
 	if err == io.EOF {
 		return true
 	}
-	ne, ok := err.(*net.OpError)
+	var ne *net.OpError
+	ok := errors.As(err, &ne)
 	return ok && ne.Op == "read"
 }
 
@@ -2076,7 +2078,8 @@ func (cc *ClientConn) countReadFrameError(err error) {
 	if f == nil || err == nil {
 		return
 	}
-	if ce, ok := err.(ConnectionError); ok {
+	var ce ConnectionError
+	if errors.As(err, &ce) {
 		errCode := ErrCode(ce)
 		f(fmt.Sprintf("read_frame_conn_error_%s", errCode.stringToken()))
 		return
@@ -2113,7 +2116,8 @@ func (rl *clientConnReadLoop) run() error {
 		if err != nil {
 			cc.vlogf("http2: Transport readFrame error on conn %p: (%T) %v", cc, err, err)
 		}
-		if se, ok := err.(StreamError); ok {
+		var se StreamError
+		if errors.As(err, &se) {
 			if cs := rl.streamByID(se.StreamID); cs != nil {
 				if se.Cause == nil {
 					se.Cause = cc.fr.errDetail
@@ -2121,9 +2125,6 @@ func (rl *clientConnReadLoop) run() error {
 				rl.endStreamError(cs, se)
 			}
 			continue
-		} else if err != nil {
-			cc.countReadFrameError(err)
-			return err
 		}
 		if VerboseLogs {
 			cc.vlogf("http2: Transport received %s", summarizeFrame(f))
@@ -2199,7 +2200,8 @@ func (rl *clientConnReadLoop) processHeaders(f *MetaHeadersFrame) error {
 
 	res, err := rl.handleResponse(cs, f)
 	if err != nil {
-		if _, ok := err.(ConnectionError); ok {
+		var connectionError ConnectionError
+		if errors.As(err, &connectionError) {
 			return err
 		}
 		// Any other error type is a stream error.
