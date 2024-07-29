@@ -924,7 +924,7 @@ func (cc *ClientConn) closeIfIdle() {
 	if VerboseLogs {
 		cc.vlogf("http2: Transport closing idle conn %p (forSingleUse=%v, maxStream=%v)", cc, cc.singleUse, nextID-2)
 	}
-	cc.tconn.Close()
+	_ = cc.tconn.Close()
 }
 
 func (cc *ClientConn) isDoNotReuseAndIdle() bool {
