@@ -2891,7 +2891,7 @@ func (t *Transport) logf(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-var noBody io.ReadCloser = io.NopCloser(bytes.NewReader(nil))
+var noBody = io.NopCloser(bytes.NewReader(nil))
 
 type missingBody struct{}
 
