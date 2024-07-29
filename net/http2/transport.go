@@ -2931,7 +2931,7 @@ func (gz *gzipReader) Close() error {
 
 type errorReader struct{ err error }
 
-func (r errorReader) Read(p []byte) (int, error) { return 0, r.err }
+func (r errorReader) Read(_ []byte) (int, error) { return 0, r.err }
 
 // isConnectionCloseRequest reports whether req should use its own
 // connection for a single request and then close the connection.
