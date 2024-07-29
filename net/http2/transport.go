@@ -1167,7 +1167,7 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 				// golang.org/issue/49645
 				return handleResponseHeaders()
 			default:
-				waitDone()
+				_ = waitDone()
 				return nil, cs.abortErr
 			}
 		case <-ctx.Done():
