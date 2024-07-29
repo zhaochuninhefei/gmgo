@@ -2003,7 +2003,7 @@ func (cc *ClientConn) readLoop() {
 	cc.readerErr = rl.run()
 	if ce, ok := cc.readerErr.(ConnectionError); ok {
 		cc.wmu.Lock()
-		cc.fr.WriteGoAway(0, ErrCode(ce), nil)
+		_ = cc.fr.WriteGoAway(0, ErrCode(ce), nil)
 		cc.wmu.Unlock()
 	}
 }
