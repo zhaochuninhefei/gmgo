@@ -380,7 +380,7 @@ func (cs *clientStream) abortStreamLocked(err error) {
 		close(cs.abort)
 	})
 	if cs.reqBody != nil && !cs.reqBodyClosed {
-		cs.reqBody.Close()
+		_ = cs.reqBody.Close()
 		cs.reqBodyClosed = true
 	}
 	// TODO(dneil): Clean up tests where cs.cc.cond is nil.
@@ -395,7 +395,7 @@ func (cs *clientStream) abortRequestBodyWrite() {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	if cs.reqBody != nil && !cs.reqBodyClosed {
-		cs.reqBody.Close()
+		_ = cs.reqBody.Close()
 		cs.reqBodyClosed = true
 		cc.cond.Broadcast()
 	}
@@ -413,7 +413,7 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 	}
 	for {
 		if sew.timeout != 0 {
-			sew.conn.SetWriteDeadline(time.Now().Add(sew.timeout))
+			_ = sew.conn.SetWriteDeadline(time.Now().Add(sew.timeout))
 		}
 		nn, err := sew.conn.Write(p[n:])
 		n += nn
@@ -422,7 +422,7 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 			continue
 		}
 		if sew.timeout != 0 {
-			sew.conn.SetWriteDeadline(time.Time{})
+			_ = sew.conn.SetWriteDeadline(time.Time{})
 		}
 		*sew.err = err
 		return n, err
