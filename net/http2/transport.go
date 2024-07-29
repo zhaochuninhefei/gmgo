@@ -708,8 +708,8 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		{ID: SettingEnablePush, Val: 0},
 		{ID: SettingInitialWindowSize, Val: transportDefaultStreamFlow},
 	}
-	if max := t.maxHeaderListSize(); max != 0 {
-		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: max})
+	if maxSize := t.maxHeaderListSize(); maxSize != 0 {
+		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: maxSize})
 	}
 
 	cc.bw.Write(clientPreface)
