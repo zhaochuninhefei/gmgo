@@ -2848,7 +2848,7 @@ func (rl *clientConnReadLoop) processPushPromise(_ *PushPromiseFrame) error {
 	return ConnectionError(ErrCodeProtocol)
 }
 
-func (cc *ClientConn) writeStreamReset(streamID uint32, code ErrCode, err error) {
+func (cc *ClientConn) writeStreamReset(streamID uint32, code ErrCode, _ error) {
 	// TODO: map err to more interesting error codes, once the
 	// HTTP community comes up with some. But currently for
 	// RST_STREAM there's no equivalent to GOAWAY frame's debug
