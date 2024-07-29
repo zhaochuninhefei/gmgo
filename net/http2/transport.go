@@ -568,7 +568,7 @@ func shouldRetryRequest(req *http.Request, err error) (*http.Request, error) {
 	// The Request.Body can't reset back to the beginning, but we
 	// don't seem to have started to read from it yet, so reuse
 	// the request directly.
-	if err == errClientConnUnusable {
+	if errors.Is(err, errClientConnUnusable) {
 		return req, nil
 	}
 
@@ -576,11 +576,12 @@ func shouldRetryRequest(req *http.Request, err error) (*http.Request, error) {
 }
 
 func canRetryError(err error) bool {
-	if err == errClientConnUnusable || err == errClientConnGotGoAway {
+	if errors.Is(err, errClientConnUnusable) || errors.Is(err, errClientConnGotGoAway) {
 		return true
 	}
-	if se, ok := err.(StreamError); ok {
-		if se.Code == ErrCodeProtocol && se.Cause == errFromPeer {
+	var se StreamError
+	if errors.As(err, &se) {
+		if se.Code == ErrCodeProtocol && errors.Is(se.Cause, errFromPeer) {
 			// See golang/go#47635, golang/go#42777
 			return true
 		}
