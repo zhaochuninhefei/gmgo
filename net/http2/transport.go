@@ -1422,12 +1422,11 @@ func (cs *clientStream) cleanupWriteRequest(err error) {
 	if err != nil {
 		cs.abortStream(err) // possibly redundant, but harmless
 		if cs.sentHeaders {
-			if se, ok := err.(StreamError); ok {
-				if se.Cause != errFromPeer {
+			var se StreamError
+			if errors.As(err, &se) {
+				if !errors.Is(se.Cause, errFromPeer) {
 					cc.writeStreamReset(cs.ID, se.Code, err)
 				}
-			} else {
-				cc.writeStreamReset(cs.ID, ErrCodeCancel, err)
 			}
 		}
 		cs.bufPipe.CloseWithError(err) // no-op if already closed
