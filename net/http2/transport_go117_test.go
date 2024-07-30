@@ -134,7 +134,7 @@ func TestDialRaceResumesDial(t *testing.T) {
 			errCh <- err
 			return
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 	}()
 	successCh := make(chan struct{})
 	go func() {
