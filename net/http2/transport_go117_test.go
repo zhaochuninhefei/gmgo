@@ -63,7 +63,7 @@ func TestTransportDialTLSContext(t *testing.T) {
 			errCh <- err
 			return
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 	}()
 	// Wait for GetClientCertificate handler to be called
 	<-blockCh
