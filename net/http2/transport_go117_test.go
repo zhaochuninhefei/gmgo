@@ -146,7 +146,7 @@ func TestDialRaceResumesDial(t *testing.T) {
 			errCh <- err
 			return
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		// Close successCh to indicate that the second request
 		// made it to the server successfully.
 		close(successCh)
