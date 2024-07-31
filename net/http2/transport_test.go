@@ -1141,7 +1141,7 @@ func TestTransportConnectRequest(t *testing.T) {
 			t.Errorf("%d. RoundTrip = %v", i, err)
 			continue
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		req := <-gotc
 		if req.Method != "CONNECT" {
 			t.Errorf("method = %q; want CONNECT", req.Method)
