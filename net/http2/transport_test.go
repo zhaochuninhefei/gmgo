@@ -2108,7 +2108,7 @@ func TestTransportDisableKeepAlives_Concurrency(t *testing.T) {
 	st := newServerTester(t,
 		func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(D)
-			io.WriteString(w, "hi")
+			_, _ = io.WriteString(w, "hi")
 		},
 		optOnlyServer,
 	)
