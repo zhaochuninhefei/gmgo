@@ -2156,7 +2156,7 @@ func TestTransportDisableKeepAlives_Concurrency(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 		}()
 	}
 	reqs.Wait()
