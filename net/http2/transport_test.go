@@ -2275,7 +2275,9 @@ func TestTransportDisableCompression(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 }
 
 // RFC 7540 section 8.1.2.2
