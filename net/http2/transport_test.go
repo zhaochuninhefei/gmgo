@@ -1525,7 +1525,9 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 		if err != nil {
 			return fmt.Errorf("RoundTrip: %v", err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
@@ -1556,7 +1558,7 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 					hbf := buf.Bytes()
 					switch mode {
 					case oneHeader:
-						ct.fr.WriteHeaders(HeadersFrameParam{
+						_ = ct.fr.WriteHeaders(HeadersFrameParam{
 							StreamID:      f.StreamID,
 							EndHeaders:    true,
 							EndStream:     endStream,
@@ -1566,13 +1568,13 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 						if len(hbf) < 2 {
 							panic("too small")
 						}
-						ct.fr.WriteHeaders(HeadersFrameParam{
+						_ = ct.fr.WriteHeaders(HeadersFrameParam{
 							StreamID:      f.StreamID,
 							EndHeaders:    false,
 							EndStream:     endStream,
 							BlockFragment: hbf[:1],
 						})
-						ct.fr.WriteContinuation(f.StreamID, true, hbf[1:])
+						_ = ct.fr.WriteContinuation(f.StreamID, true, hbf[1:])
 					default:
 						panic("bogus mode")
 					}
@@ -1580,8 +1582,8 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 				// Response headers (1+ frames; 1 or 2 in this test, but never 0)
 				{
 					buf.Reset()
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-					enc.WriteField(hpack.HeaderField{Name: "trailer", Value: "declared"})
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+					_ = enc.WriteField(hpack.HeaderField{Name: "trailer", Value: "declared"})
 					endStream = false
 					send(oneHeader)
 				}
