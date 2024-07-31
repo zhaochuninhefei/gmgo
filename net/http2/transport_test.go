@@ -611,7 +611,9 @@ func TestTransportBody(t *testing.T) {
 		if err != nil {
 			t.Fatalf("#%d: %v", i, err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		ri := <-gotc
 		if ri.err != nil {
 			t.Errorf("#%d: read error: %v", i, ri.err)
