@@ -3041,10 +3041,14 @@ func TestTransportAdjustsFlowControl(t *testing.T) {
 	const bodySize = 1 << 20
 
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		if runtime.GOOS == "plan9" {
 			// CloseWrite not supported on Plan 9; Issue 17906
-			defer ct.cc.(*net.TCPConn).Close()
+			defer func(conn *net.TCPConn) {
+				_ = conn.Close()
+			}(ct.cc.(*net.TCPConn))
 		}
 		defer close(clientDone)
 
@@ -3053,7 +3057,7 @@ func TestTransportAdjustsFlowControl(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		return nil
 	}
 	ct.server = func() error {
@@ -3084,16 +3088,16 @@ func TestTransportAdjustsFlowControl(t *testing.T) {
 				if gotBytes >= initialWindowSize/2 && !sentSettings {
 					sentSettings = true
 
-					ct.fr.WriteSettings(Setting{ID: SettingInitialWindowSize, Val: bodySize})
-					ct.fr.WriteWindowUpdate(0, bodySize)
-					ct.fr.WriteSettingsAck()
+					_ = ct.fr.WriteSettings(Setting{ID: SettingInitialWindowSize, Val: bodySize})
+					_ = ct.fr.WriteWindowUpdate(0, bodySize)
+					_ = ct.fr.WriteSettingsAck()
 				}
 
 				if f.StreamEnded() {
 					var buf bytes.Buffer
 					enc := hpack.NewEncoder(&buf)
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-					ct.fr.WriteHeaders(HeadersFrameParam{
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+					_ = ct.fr.WriteHeaders(HeadersFrameParam{
 						StreamID:      f.StreamID,
 						EndHeaders:    true,
 						EndStream:     true,
@@ -3118,7 +3122,9 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		<-unblockClient
 		return nil
 	}
@@ -3145,16 +3151,16 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 
 		var buf bytes.Buffer
 		enc := hpack.NewEncoder(&buf)
-		enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-		enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "5000"})
-		ct.fr.WriteHeaders(HeadersFrameParam{
+		_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "5000"})
+		_ = ct.fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      hf.StreamID,
 			EndHeaders:    true,
 			EndStream:     false,
 			BlockFragment: buf.Bytes(),
 		})
 		pad := make([]byte, 5)
-		ct.fr.WriteDataPadded(hf.StreamID, false, make([]byte, 5000), pad) // without ending stream
+		_ = ct.fr.WriteDataPadded(hf.StreamID, false, make([]byte, 5000), pad) // without ending stream
 
 		f, err := ct.readNonSettingsFrame()
 		if err != nil {
