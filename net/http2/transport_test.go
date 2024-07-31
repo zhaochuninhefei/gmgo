@@ -1277,7 +1277,7 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 				hbf := buf.Bytes()
 				switch mode {
 				case oneHeader:
-					ct.fr.WriteHeaders(HeadersFrameParam{
+					_ = ct.fr.WriteHeaders(HeadersFrameParam{
 						StreamID:      f.Header().StreamID,
 						EndHeaders:    true,
 						EndStream:     endStream,
@@ -1287,13 +1287,13 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 					if len(hbf) < 2 {
 						panic("too small")
 					}
-					ct.fr.WriteHeaders(HeadersFrameParam{
+					_ = ct.fr.WriteHeaders(HeadersFrameParam{
 						StreamID:      f.Header().StreamID,
 						EndHeaders:    false,
 						EndStream:     endStream,
 						BlockFragment: hbf[:1],
 					})
-					ct.fr.WriteContinuation(f.Header().StreamID, true, hbf[1:])
+					_ = ct.fr.WriteContinuation(f.Header().StreamID, true, hbf[1:])
 				default:
 					panic("bogus mode")
 				}
@@ -1308,23 +1308,23 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 				// Response headers (1+ frames; 1 or 2 in this test, but never 0)
 				{
 					buf.Reset()
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-					enc.WriteField(hpack.HeaderField{Name: "x-foo", Value: "blah"})
-					enc.WriteField(hpack.HeaderField{Name: "x-bar", Value: "more"})
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+					_ = enc.WriteField(hpack.HeaderField{Name: "x-foo", Value: "blah"})
+					_ = enc.WriteField(hpack.HeaderField{Name: "x-bar", Value: "more"})
 					if trailers != noHeader {
-						enc.WriteField(hpack.HeaderField{Name: "trailer", Value: "some-trailer"})
+						_ = enc.WriteField(hpack.HeaderField{Name: "trailer", Value: "some-trailer"})
 					}
 					endStream = withData == false && trailers == noHeader
 					send(resHeader)
 				}
 				if withData {
 					endStream = trailers == noHeader
-					ct.fr.WriteData(f.StreamID, endStream, []byte(resBody))
+					_ = ct.fr.WriteData(f.StreamID, endStream, []byte(resBody))
 				}
 				if trailers != noHeader {
 					endStream = true
 					buf.Reset()
-					enc.WriteField(hpack.HeaderField{Name: "some-trailer", Value: "some-value"})
+					_ = enc.WriteField(hpack.HeaderField{Name: "some-trailer", Value: "some-value"})
 					send(trailers)
 				}
 				if endStream {
@@ -1333,7 +1333,7 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 			case *HeadersFrame:
 				if expect100Continue != noHeader {
 					buf.Reset()
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: "100"})
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "100"})
 					send(expect100Continue)
 				}
 			}
