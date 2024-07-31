@@ -64,7 +64,7 @@ func TestTransportExternal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	res.Write(os.Stdout)
+	_ = res.Write(os.Stdout)
 }
 
 type fakeTLSConn struct {
@@ -88,7 +88,7 @@ func startH2cServer(t *testing.T) net.Listener {
 			return
 		}
 		h2Server.ServeConn(&fakeTLSConn{conn}, &ServeConnOpts{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Hello, %v, http: %v", r.URL.Path, r.TLS == nil)
+			_, _ = fmt.Fprintf(w, "Hello, %v, http: %v", r.URL.Path, r.TLS == nil)
 		})})
 	}()
 	return l
