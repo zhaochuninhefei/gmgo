@@ -847,8 +847,8 @@ func (ct *clientTester) cleanup() {
 	ct.tr.CloseIdleConnections()
 
 	// close both connections, ignore the error if its already closed
-	ct.sc.Close()
-	ct.cc.Close()
+	_ = ct.sc.Close()
+	_ = ct.cc.Close()
 }
 
 func (ct *clientTester) run() {
