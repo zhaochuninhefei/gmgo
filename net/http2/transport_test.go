@@ -195,7 +195,7 @@ func TestTransport(t *testing.T) {
 
 func testTransportReusesConns(t *testing.T, useClient, wantSame bool, modReq func(*http.Request)) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, r.RemoteAddr)
+		_, _ = io.WriteString(w, r.RemoteAddr)
 	}, optOnlyServer, func(c net.Conn, st http.ConnState) {
 		t.Logf("conn %v is now state %v", c.RemoteAddr(), st)
 	})
@@ -214,7 +214,7 @@ func testTransportReusesConns(t *testing.T, useClient, wantSame bool, modReq fun
 		var res *http.Response
 		if useClient {
 			c := st.ts.Client()
-			ConfigureTransports(c.Transport.(*http.Transport))
+			_, _ = ConfigureTransports(c.Transport.(*http.Transport))
 			res, err = c.Do(req)
 		} else {
 			res, err = tr.RoundTrip(req)
@@ -222,7 +222,9 @@ func testTransportReusesConns(t *testing.T, useClient, wantSame bool, modReq fun
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		slurp, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("Body read: %v", err)
