@@ -280,7 +280,7 @@ func TestTransportGetGotConnHooks_Client(t *testing.T) { testTransportGetGotConn
 
 func testTransportGetGotConnHooks(t *testing.T, useClient bool) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, r.RemoteAddr)
+		_, _ = io.WriteString(w, r.RemoteAddr)
 	}, func(s *httptest.Server) {
 		s.EnableHTTP2 = true
 	}, optOnlyServer)
@@ -288,7 +288,7 @@ func testTransportGetGotConnHooks(t *testing.T, useClient bool) {
 
 	tr := &Transport{TLSClientConfig: tlsConfigInsecure}
 	client := st.ts.Client()
-	ConfigureTransports(client.Transport.(*http.Transport))
+	_, _ = ConfigureTransports(client.Transport.(*http.Transport))
 
 	var (
 		getConns int32
@@ -325,7 +325,7 @@ func testTransportGetGotConnHooks(t *testing.T, useClient bool) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		if get := atomic.LoadInt32(&getConns); get != int32(i+1) {
 			t.Errorf("after request %v, %v calls to GetConns: want %v", i, get, i+1)
 		}
@@ -394,7 +394,7 @@ func TestTransportGroupsPendingDials(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 		}()
 	}
 	wg.Wait()
@@ -445,7 +445,9 @@ func TestTransportAbortClosesPipes(t *testing.T) {
 			errCh <- err
 			return
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		st.closeConn()
 		_, err = ioutil.ReadAll(res.Body)
 		if err == nil {
@@ -493,7 +495,9 @@ func TestTransportPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	got := <-gotc
 	if got.Path != path {
 		t.Errorf("Read Path = %q; want %q", got.Path, path)
