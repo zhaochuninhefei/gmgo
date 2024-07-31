@@ -1723,8 +1723,8 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 			// requests that attempt to send greater than
 			// maxHeaderListSize bytes of trailers, since
 			// those requests generate a stream reset.
-			ioutil.ReadAll(r.Body)
-			r.Body.Close()
+			_, _ = ioutil.ReadAll(r.Body)
+			_ = r.Body.Close()
 		},
 		func(ts *httptest.Server) {
 			ts.Config.MaxHeaderBytes = 16 << 10
@@ -1741,7 +1741,7 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 		res, err := tr.RoundTrip(req)
 		if err != wantErr {
 			if res != nil {
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 			t.Errorf("%v: RoundTrip err = %v; want %v", desc, err, wantErr)
 			return
@@ -1751,7 +1751,9 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 				t.Errorf("%v: response nil; want non-nil.", desc)
 				return
 			}
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(res.Body)
 			if res.StatusCode != http.StatusOK {
 				t.Errorf("%v: response status = %v; want %v", desc, res.StatusCode, http.StatusOK)
 			}
