@@ -96,7 +96,9 @@ func startH2cServer(t *testing.T) net.Listener {
 
 func TestTransportH2c(t *testing.T) {
 	l := startH2cServer(t)
-	defer l.Close()
+	defer func(l net.Listener) {
+		_ = l.Close()
+	}(l)
 	req, err := http.NewRequest("GET", "http://"+l.Addr().String()+"/foobar", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +140,7 @@ func TestTransportH2c(t *testing.T) {
 func TestTransport(t *testing.T) {
 	const body = "sup"
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, body)
+		_, _ = io.WriteString(w, body)
 	}, optOnlyServer)
 	defer st.Close()
 
@@ -187,7 +189,7 @@ func TestTransport(t *testing.T) {
 		} else if string(slurp) != body {
 			t.Errorf("%d: Body = %q; want %q", i, slurp, body)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 	}
 }
 
