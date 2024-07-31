@@ -2929,7 +2929,7 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 		if n, err := res.Body.Read(make([]byte, 1)); err != nil || n != 1 {
 			return fmt.Errorf("body read = %v, %v; want 1, nil", n, err)
 		}
-		res.Body.Close() // leaving 4999 bytes unread
+		_ = res.Body.Close() // leaving 4999 bytes unread
 		close(clientClosed)
 
 		return nil
@@ -2957,9 +2957,9 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 
 		var buf bytes.Buffer
 		enc := hpack.NewEncoder(&buf)
-		enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-		enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "5000"})
-		ct.fr.WriteHeaders(HeadersFrameParam{
+		_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "5000"})
+		_ = ct.fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      hf.StreamID,
 			EndHeaders:    true,
 			EndStream:     false,
@@ -2977,14 +2977,14 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 		// close before seconding the second DATA frame. This tests the case
 		// where the client receives a DATA frame after it has reset the stream.
 		if oneDataFrame {
-			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 5000))
+			_ = ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 5000))
 			close(serverWroteFirstByte)
 			<-clientClosed
 		} else {
-			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 1))
+			_ = ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 1))
 			close(serverWroteFirstByte)
 			<-clientClosed
-			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 4999))
+			_ = ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 4999))
 		}
 
 		waitingFor := "RSTStreamFrame"
