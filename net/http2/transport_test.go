@@ -2386,7 +2386,7 @@ func TestTransportRejectsConnHeaders(t *testing.T) {
 			got = fmt.Sprintf("ERROR: %v", err)
 		} else {
 			got = res.Header.Get("Got-Header")
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 		if got != tt.want {
 			t.Errorf("For key %q, value %q, got = %q; want %q", tt.key, tt.value, got, tt.want)
