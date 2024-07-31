@@ -704,7 +704,7 @@ func TestConfigureTransport(t *testing.T) {
 
 	// And does it work?
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, r.Proto)
+		_, _ = io.WriteString(w, r.Proto)
 	}, optOnlyServer)
 	defer st.Close()
 
