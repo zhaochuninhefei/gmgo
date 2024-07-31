@@ -1489,8 +1489,8 @@ func TestTransportInvalidTrailer_Pseudo2(t *testing.T) {
 }
 func testTransportInvalidTrailer_Pseudo(t *testing.T, trailers headerType) {
 	testInvalidTrailer(t, trailers, pseudoHeaderError(":colon"), func(enc *hpack.Encoder) {
-		enc.WriteField(hpack.HeaderField{Name: ":colon", Value: "foo"})
-		enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
+		_ = enc.WriteField(hpack.HeaderField{Name: ":colon", Value: "foo"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
 	})
 }
 
@@ -1502,18 +1502,18 @@ func TestTransportInvalidTrailer_Capital2(t *testing.T) {
 }
 func testTransportInvalidTrailer_Capital(t *testing.T, trailers headerType) {
 	testInvalidTrailer(t, trailers, headerFieldNameError("Capital"), func(enc *hpack.Encoder) {
-		enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
-		enc.WriteField(hpack.HeaderField{Name: "Capital", Value: "bad"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "Capital", Value: "bad"})
 	})
 }
 func TestTransportInvalidTrailer_EmptyFieldName(t *testing.T) {
 	testInvalidTrailer(t, oneHeader, headerFieldNameError(""), func(enc *hpack.Encoder) {
-		enc.WriteField(hpack.HeaderField{Name: "", Value: "bad"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "", Value: "bad"})
 	})
 }
 func TestTransportInvalidTrailer_BinaryFieldValue(t *testing.T) {
 	testInvalidTrailer(t, oneHeader, headerFieldValueError("has\nnewline"), func(enc *hpack.Encoder) {
-		enc.WriteField(hpack.HeaderField{Name: "x", Value: "has\nnewline"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "x", Value: "has\nnewline"})
 	})
 }
 
