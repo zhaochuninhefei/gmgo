@@ -3193,7 +3193,7 @@ func TestTransportReturnsErrorOnBadResponseHeaders(t *testing.T) {
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
 		res, err := ct.tr.RoundTrip(req)
 		if err == nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 			return errors.New("unexpected successful GET")
 		}
 		want := StreamError{1, ErrCodeProtocol, headerFieldNameError("  content-type")}
@@ -3212,9 +3212,9 @@ func TestTransportReturnsErrorOnBadResponseHeaders(t *testing.T) {
 
 		var buf bytes.Buffer
 		enc := hpack.NewEncoder(&buf)
-		enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-		enc.WriteField(hpack.HeaderField{Name: "  content-type", Value: "bogus"}) // bogus spaces
-		ct.fr.WriteHeaders(HeadersFrameParam{
+		_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "  content-type", Value: "bogus"}) // bogus spaces
+		_ = ct.fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      hf.StreamID,
 			EndHeaders:    true,
 			EndStream:     false,
