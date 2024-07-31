@@ -2447,7 +2447,7 @@ func TestTransportRejectsContentLengthWithSign(t *testing.T) {
 				got = fmt.Sprintf("ERROR: %v", err)
 			} else {
 				got = res.Header.Get("Content-Length")
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 
 			if got != tt.wantCL {
@@ -2514,7 +2514,7 @@ func TestTransportFailsOnInvalidHeaders(t *testing.T) {
 			if bad {
 				t.Logf("case %d: server got headers %q", i, res.Header.Get("Got-Header"))
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 	}
 }
@@ -2645,15 +2645,15 @@ func TestTransportReadHeadResponse(t *testing.T) {
 			}
 			var buf bytes.Buffer
 			enc := hpack.NewEncoder(&buf)
-			enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-			enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "123"})
-			ct.fr.WriteHeaders(HeadersFrameParam{
+			_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+			_ = enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "123"})
+			_ = ct.fr.WriteHeaders(HeadersFrameParam{
 				StreamID:      hf.StreamID,
 				EndHeaders:    true,
 				EndStream:     false, // as the GFE does
 				BlockFragment: buf.Bytes(),
 			})
-			ct.fr.WriteData(hf.StreamID, true, nil)
+			_ = ct.fr.WriteData(hf.StreamID, true, nil)
 
 			<-clientDone
 			return nil
@@ -2704,15 +2704,15 @@ func TestTransportReadHeadResponseWithBody(t *testing.T) {
 			}
 			var buf bytes.Buffer
 			enc := hpack.NewEncoder(&buf)
-			enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-			enc.WriteField(hpack.HeaderField{Name: "content-length", Value: strconv.Itoa(len(response))})
-			ct.fr.WriteHeaders(HeadersFrameParam{
+			_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+			_ = enc.WriteField(hpack.HeaderField{Name: "content-length", Value: strconv.Itoa(len(response))})
+			_ = ct.fr.WriteHeaders(HeadersFrameParam{
 				StreamID:      hf.StreamID,
 				EndHeaders:    true,
 				EndStream:     false,
 				BlockFragment: buf.Bytes(),
 			})
-			ct.fr.WriteData(hf.StreamID, true, []byte(response))
+			_ = ct.fr.WriteData(hf.StreamID, true, []byte(response))
 
 			<-clientDone
 			return nil
@@ -2737,8 +2737,8 @@ func (b neverEnding) Read(p []byte) (int, error) {
 func TestTransportHandlerBodyClose(t *testing.T) {
 	const bodySize = 10 << 20
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
-		r.Body.Close()
-		io.Copy(w, io.LimitReader(neverEnding('A'), bodySize))
+		_ = r.Body.Close()
+		_, _ = io.Copy(w, io.LimitReader(neverEnding('A'), bodySize))
 	}, optOnlyServer)
 	defer st.Close()
 
@@ -2758,7 +2758,7 @@ func TestTransportHandlerBodyClose(t *testing.T) {
 			t.Fatal(err)
 		}
 		n, err := io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if n != bodySize || err != nil {
 			t.Fatalf("req#%d: Copy = %d, %v; want %d, nil", i, n, err, bodySize)
 		}
