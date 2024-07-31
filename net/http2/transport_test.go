@@ -1423,7 +1423,9 @@ func TestTransportReceiveUndeclaredTrailer(t *testing.T) {
 		if err != nil {
 			return fmt.Errorf("RoundTrip: %v", err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
@@ -1457,8 +1459,8 @@ func TestTransportReceiveUndeclaredTrailer(t *testing.T) {
 		enc := hpack.NewEncoder(&buf)
 
 		// send headers without Trailer header
-		enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-		ct.fr.WriteHeaders(HeadersFrameParam{
+		_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+		_ = ct.fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      hf.StreamID,
 			EndHeaders:    true,
 			EndStream:     false,
@@ -1467,8 +1469,8 @@ func TestTransportReceiveUndeclaredTrailer(t *testing.T) {
 
 		// send trailers
 		buf.Reset()
-		enc.WriteField(hpack.HeaderField{Name: "some-trailer", Value: "I'm an undeclared Trailer!"})
-		ct.fr.WriteHeaders(HeadersFrameParam{
+		_ = enc.WriteField(hpack.HeaderField{Name: "some-trailer", Value: "I'm an undeclared Trailer!"})
+		_ = ct.fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      hf.StreamID,
 			EndHeaders:    true,
 			EndStream:     true,
