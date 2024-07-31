@@ -3572,7 +3572,7 @@ func TestTransportPingWriteBlocks(t *testing.T) {
 				// Without this, we block indefinitely in newClientConn,
 				// and never get to the point of sending a PING.
 				var buf [1024]byte
-				s.Read(buf[:])
+				_, _ = s.Read(buf[:])
 			}()
 			return c, nil
 		},
@@ -3630,17 +3630,23 @@ func testTransportPingWhenReading(t *testing.T, readIdleTimeout, deadline time.D
 	ctx, cancel := context.WithTimeout(context.Background(), deadline)
 	defer cancel()
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		if runtime.GOOS == "plan9" {
 			// CloseWrite not supported on Plan 9; Issue 17906
-			defer ct.cc.(*net.TCPConn).Close()
+			defer func(conn *net.TCPConn) {
+				_ = conn.Close()
+			}(ct.cc.(*net.TCPConn))
 		}
 		req, _ := http.NewRequestWithContext(ctx, "GET", "https://dummy.tld/", nil)
 		res, err := ct.tr.RoundTrip(req)
 		if err != nil {
 			return fmt.Errorf("RoundTrip: %v", err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want %v", res.StatusCode, 200)
 		}
@@ -3677,8 +3683,8 @@ func testTransportPingWhenReading(t *testing.T, readIdleTimeout, deadline time.D
 				if !f.HeadersEnded() {
 					return fmt.Errorf("headers should have END_HEADERS be ended: %v", f)
 				}
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: strconv.Itoa(200)})
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: strconv.Itoa(200)})
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      f.StreamID,
 					EndHeaders:    true,
 					EndStream:     false,
