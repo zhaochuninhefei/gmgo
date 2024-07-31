@@ -3719,7 +3719,9 @@ func TestTransportRetryAfterGOAWAY(t *testing.T) {
 	ct2 := make(chan *clientTester)
 
 	ln := newLocalListener(t)
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	tr := &Transport{
 		TLSClientConfig: tlsConfigInsecure,
@@ -3762,7 +3764,7 @@ func TestTransportRetryAfterGOAWAY(t *testing.T) {
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
 		res, err := tr.RoundTrip(req)
 		if res != nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 			if got := res.Header.Get("Foo"); got != "bar" {
 				err = fmt.Errorf("foo header = %q; want bar", got)
 			}
@@ -3809,8 +3811,8 @@ func TestTransportRetryAfterGOAWAY(t *testing.T) {
 
 		var buf bytes.Buffer
 		enc := hpack.NewEncoder(&buf)
-		enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-		enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
+		_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+		_ = enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
 		err = ct.fr.WriteHeaders(HeadersFrameParam{
 			StreamID:      hf.StreamID,
 			EndHeaders:    true,
@@ -3833,7 +3835,7 @@ func TestTransportRetryAfterGOAWAY(t *testing.T) {
 
 	close(connToClose)
 	for c := range connToClose {
-		c.Close()
+		_ = c.Close()
 	}
 }
 
