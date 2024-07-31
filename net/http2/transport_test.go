@@ -672,7 +672,7 @@ func TestTransportDialTLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 	mu.Lock()
 	if !gotReq {
 		t.Error("didn't get request")
