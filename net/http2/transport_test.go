@@ -1048,8 +1048,8 @@ func TestTransportFullDuplex(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200) // redundant but for clarity
 		w.(http.Flusher).Flush()
-		io.Copy(flushWriter{w}, capitalizeReader{r.Body})
-		fmt.Fprintf(w, "bye.\n")
+		_, _ = io.Copy(flushWriter{w}, capitalizeReader{r.Body})
+		_, _ = fmt.Fprintf(w, "bye.\n")
 	}, optOnlyServer)
 	defer st.Close()
 
@@ -1067,7 +1067,9 @@ func TestTransportFullDuplex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	if res.StatusCode != 200 {
 		t.Fatalf("StatusCode = %v; want %v", res.StatusCode, 200)
 	}
@@ -1087,7 +1089,7 @@ func TestTransportFullDuplex(t *testing.T) {
 	want("FOO")
 	write("bar\n")
 	want("BAR")
-	pw.Close()
+	_ = pw.Close()
 	want("bye.")
 	if err := bs.Err(); err != nil {
 		t.Fatal(err)
