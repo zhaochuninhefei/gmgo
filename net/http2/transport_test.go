@@ -3461,11 +3461,11 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/hello") {
 			time.Sleep(50 * time.Millisecond)
-			io.WriteString(w, msg)
+			_, _ = io.WriteString(w, msg)
 			return
 		}
 		for i := 0; i < 50; i++ {
-			io.WriteString(w, "Some data.")
+			_, _ = io.WriteString(w, "Some data.")
 			w.(http.Flusher).Flush()
 			if i == 2 {
 				close(cancel)
@@ -3509,7 +3509,7 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 func TestTransportNoRaceOnRequestObjectAfterRequestComplete(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
-		io.WriteString(w, "body")
+		_, _ = io.WriteString(w, "body")
 	}, optOnlyServer)
 	defer st.Close()
 
@@ -3538,7 +3538,9 @@ func TestTransportCloseAfterLostPing(t *testing.T) {
 	ct.tr.PingTimeout = 1 * time.Second
 	ct.tr.ReadIdleTimeout = 1 * time.Second
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		defer close(clientDone)
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
 		_, err := ct.tr.RoundTrip(req)
