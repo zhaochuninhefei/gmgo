@@ -2030,7 +2030,7 @@ func TestTransportDoubleCloseOnWriteError(t *testing.T) {
 			mu.Lock()
 			defer mu.Unlock()
 			if conn != nil {
-				conn.Close()
+				_ = conn.Close()
 			}
 		},
 		optOnlyServer,
@@ -2052,7 +2052,7 @@ func TestTransportDoubleCloseOnWriteError(t *testing.T) {
 	}
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
-	c.Get(st.ts.URL)
+	_, _ = c.Get(st.ts.URL)
 }
 
 // Test that the http1 Transport.DisableKeepAlives option is respected
