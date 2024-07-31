@@ -928,7 +928,7 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 		defer close(clientDone)
 
 		body := &pipe{b: new(bytes.Buffer)}
-		io.Copy(body, io.LimitReader(neverEnding('A'), bodySize/2))
+		_, _ = io.Copy(body, io.LimitReader(neverEnding('A'), bodySize/2))
 		req, err := http.NewRequest("PUT", "https://dummy.tld/", body)
 		if err != nil {
 			return err
@@ -940,7 +940,7 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 		if res.StatusCode != status {
 			return fmt.Errorf("status code = %v; want %v", res.StatusCode, status)
 		}
-		io.Copy(body, io.LimitReader(neverEnding('A'), bodySize/2))
+		_, _ = io.Copy(body, io.LimitReader(neverEnding('A'), bodySize/2))
 		body.CloseWithError(io.EOF)
 		slurp, err := ioutil.ReadAll(res.Body)
 		if err != nil {
@@ -949,7 +949,7 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 		if len(slurp) > 0 {
 			return fmt.Errorf("unexpected body: %q", slurp)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		if status == 200 {
 			if got := <-recvLen; got != bodySize {
 				return fmt.Errorf("For 200 response, Transport wrote %d bytes; want %d", got, bodySize)
@@ -996,8 +996,8 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 				dataLen := len(f.Data())
 				if dataLen > 0 {
 					if dataRecv == 0 {
-						enc.WriteField(hpack.HeaderField{Name: ":status", Value: strconv.Itoa(status)})
-						ct.fr.WriteHeaders(HeadersFrameParam{
+						_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: strconv.Itoa(status)})
+						_ = ct.fr.WriteHeaders(HeadersFrameParam{
 							StreamID:      f.StreamID,
 							EndHeaders:    true,
 							EndStream:     false,
