@@ -1878,7 +1878,7 @@ func TestTransportChecksResponseHeaderListSize(t *testing.T) {
 		if err != errResponseHeaderListSize {
 			size := int64(0)
 			if res != nil {
-				res.Body.Close()
+				_ = res.Body.Close()
 				for k, vv := range res.Header {
 					for _, v := range vv {
 						size += int64(len(k)) + int64(len(v)) + 32
@@ -1901,10 +1901,10 @@ func TestTransportChecksResponseHeaderListSize(t *testing.T) {
 			}
 			switch f := f.(type) {
 			case *HeadersFrame:
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
 				large := strings.Repeat("a", 1<<10)
 				for i := 0; i < 5042; i++ {
-					enc.WriteField(hpack.HeaderField{Name: large, Value: large})
+					_ = enc.WriteField(hpack.HeaderField{Name: large, Value: large})
 				}
 				if size, want := buf.Len(), 6329; size != want {
 					// Note: this number might change if
@@ -1915,7 +1915,7 @@ func TestTransportChecksResponseHeaderListSize(t *testing.T) {
 					// header block fragment frame.
 					return fmt.Errorf("encoding over 10MB of duplicate keypairs took %d bytes; expected %d", size, want)
 				}
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      f.StreamID,
 					EndHeaders:    true,
 					EndStream:     true,
@@ -1965,8 +1965,8 @@ func TestTransportCookieHeaderSplit(t *testing.T) {
 
 				var buf bytes.Buffer
 				enc := hpack.NewEncoder(&buf)
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      f.StreamID,
 					EndHeaders:    true,
 					EndStream:     true,
