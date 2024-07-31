@@ -1233,7 +1233,9 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 		if err != nil {
 			return fmt.Errorf("RoundTrip: %v", err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
