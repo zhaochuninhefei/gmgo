@@ -2061,7 +2061,7 @@ func TestTransportDoubleCloseOnWriteError(t *testing.T) {
 func TestTransportDisableKeepAlives(t *testing.T) {
 	st := newServerTester(t,
 		func(w http.ResponseWriter, r *http.Request) {
-			io.WriteString(w, "hi")
+			_, _ = io.WriteString(w, "hi")
 		},
 		optOnlyServer,
 	)
@@ -2089,7 +2089,9 @@ func TestTransportDisableKeepAlives(t *testing.T) {
 	if _, err := ioutil.ReadAll(res.Body); err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 
 	select {
 	case <-connClosed:
