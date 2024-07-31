@@ -1347,7 +1347,7 @@ func TestTransportUnknown1xx(t *testing.T) {
 	var buf bytes.Buffer
 	defer func() { got1xxFuncForTests = nil }()
 	got1xxFuncForTests = func(code int, header textproto.MIMEHeader) error {
-		fmt.Fprintf(&buf, "code=%d header=%v\n", code, header)
+		_, _ = fmt.Fprintf(&buf, "code=%d header=%v\n", code, header)
 		return nil
 	}
 
@@ -1358,7 +1358,9 @@ func TestTransportUnknown1xx(t *testing.T) {
 		if err != nil {
 			return fmt.Errorf("RoundTrip: %v", err)
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != 204 {
 			return fmt.Errorf("status code = %v; want 204", res.StatusCode)
 		}
@@ -1388,9 +1390,9 @@ code=114 header=map[Foo-Bar:[114]]
 			case *HeadersFrame:
 				for i := 110; i <= 114; i++ {
 					buf.Reset()
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: fmt.Sprint(i)})
-					enc.WriteField(hpack.HeaderField{Name: "foo-bar", Value: fmt.Sprint(i)})
-					ct.fr.WriteHeaders(HeadersFrameParam{
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: fmt.Sprint(i)})
+					_ = enc.WriteField(hpack.HeaderField{Name: "foo-bar", Value: fmt.Sprint(i)})
+					_ = ct.fr.WriteHeaders(HeadersFrameParam{
 						StreamID:      f.StreamID,
 						EndHeaders:    true,
 						EndStream:     false,
@@ -1398,8 +1400,8 @@ code=114 header=map[Foo-Bar:[114]]
 					})
 				}
 				buf.Reset()
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: "204"})
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "204"})
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      f.StreamID,
 					EndHeaders:    true,
 					EndStream:     false,
