@@ -2805,7 +2805,9 @@ func TestTransportFlowControl(t *testing.T) {
 	if err != nil {
 		t.Fatal("RoundTrip error:", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	var read int64
 	b := make([]byte, bufLen)
@@ -2858,7 +2860,7 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 				return fmt.Errorf("unexpected client RoundTrip error: %v", err)
 			}
 			_, err = io.Copy(ioutil.Discard, res.Body)
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 		want := GoAwayError{
 			LastStreamID: 5,
@@ -2885,9 +2887,9 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 			if failMidBody {
 				var buf bytes.Buffer
 				enc := hpack.NewEncoder(&buf)
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-				enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "123"})
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+				_ = enc.WriteField(hpack.HeaderField{Name: "content-length", Value: "123"})
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      hf.StreamID,
 					EndHeaders:    true,
 					EndStream:     false,
@@ -2896,12 +2898,12 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 			}
 			// Write two GOAWAY frames, to test that the Transport takes
 			// the interesting parts of both.
-			ct.fr.WriteGoAway(5, ErrCodeNo, []byte(goAwayDebugData))
-			ct.fr.WriteGoAway(5, goAwayErrCode, nil)
-			ct.sc.(*net.TCPConn).CloseWrite()
+			_ = ct.fr.WriteGoAway(5, ErrCodeNo, []byte(goAwayDebugData))
+			_ = ct.fr.WriteGoAway(5, goAwayErrCode, nil)
+			_ = ct.sc.(*net.TCPConn).CloseWrite()
 			if runtime.GOOS == "plan9" {
 				// CloseWrite not supported on Plan 9; Issue 17906
-				ct.sc.(*net.TCPConn).Close()
+				_ = ct.sc.(*net.TCPConn).Close()
 			}
 			<-clientDone
 			return nil
