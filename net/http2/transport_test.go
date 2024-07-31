@@ -916,10 +916,14 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 	ct := newClientTester(t)
 	recvLen := make(chan int64, 1)
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		if runtime.GOOS == "plan9" {
 			// CloseWrite not supported on Plan 9; Issue 17906
-			defer ct.cc.(*net.TCPConn).Close()
+			defer func(conn *net.TCPConn) {
+				_ = conn.Close()
+			}(ct.cc.(*net.TCPConn))
 		}
 		defer close(clientDone)
 
