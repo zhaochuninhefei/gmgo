@@ -2003,7 +2003,9 @@ func TestTransportBodyReadErrorType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	doPanic <- true
 	buf := make([]byte, 100)
 	n, err := res.Body.Read(buf)
