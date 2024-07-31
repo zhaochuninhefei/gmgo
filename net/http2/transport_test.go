@@ -789,7 +789,7 @@ func newClientTester(t *testing.T) *clientTester {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ln.Close()
+	_ = ln.Close()
 	ct.cc = cc
 	ct.sc = sc
 	ct.fr = NewFramer(sc, sc)
