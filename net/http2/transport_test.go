@@ -3843,10 +3843,14 @@ func TestTransportRetryAfterRefusedStream(t *testing.T) {
 	clientDone := make(chan struct{})
 	ct := newClientTester(t)
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		if runtime.GOOS == "plan9" {
 			// CloseWrite not supported on Plan 9; Issue 17906
-			defer ct.cc.(*net.TCPConn).Close()
+			defer func(conn *net.TCPConn) {
+				_ = conn.Close()
+			}(ct.cc.(*net.TCPConn))
 		}
 		defer close(clientDone)
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
@@ -3854,7 +3858,7 @@ func TestTransportRetryAfterRefusedStream(t *testing.T) {
 		if err != nil {
 			return fmt.Errorf("RoundTrip: %v", err)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode != 204 {
 			return fmt.Errorf("Status = %v; want 204", resp.StatusCode)
 		}
@@ -3887,10 +3891,10 @@ func TestTransportRetryAfterRefusedStream(t *testing.T) {
 				}
 				nreq++
 				if nreq == 1 {
-					ct.fr.WriteRSTStream(f.StreamID, ErrCodeRefusedStream)
+					_ = ct.fr.WriteRSTStream(f.StreamID, ErrCodeRefusedStream)
 				} else {
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: "204"})
-					ct.fr.WriteHeaders(HeadersFrameParam{
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "204"})
+					_ = ct.fr.WriteHeaders(HeadersFrameParam{
 						StreamID:      f.StreamID,
 						EndHeaders:    true,
 						EndStream:     true,
