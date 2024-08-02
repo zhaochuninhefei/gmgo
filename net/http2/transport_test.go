@@ -4138,10 +4138,10 @@ func TestTransportRequestsStallAtServerLimit(t *testing.T) {
 		defer func() {
 			wg.Wait()
 			close(clientDone)
-			ct.cc.(*net.TCPConn).CloseWrite()
+			_ = ct.cc.(*net.TCPConn).CloseWrite()
 			if runtime.GOOS == "plan9" {
 				// CloseWrite not supported on Plan 9; Issue 17906
-				ct.cc.(*net.TCPConn).Close()
+				_ = ct.cc.(*net.TCPConn).Close()
 			}
 		}()
 		for k := 0; k < maxConcurrent+2; k++ {
@@ -4178,8 +4178,8 @@ func TestTransportRequestsStallAtServerLimit(t *testing.T) {
 						errs <- fmt.Errorf("RoundTrip(%d): %v", k, err)
 						return
 					}
-					ioutil.ReadAll(resp.Body)
-					resp.Body.Close()
+					_, _ = ioutil.ReadAll(resp.Body)
+					_ = resp.Body.Close()
 					if resp.StatusCode != 204 {
 						errs <- fmt.Errorf("Status = %v; want 204", resp.StatusCode)
 						return
@@ -4210,8 +4210,8 @@ func TestTransportRequestsStallAtServerLimit(t *testing.T) {
 			<-unblockServer
 			for id := range writeResp {
 				buf.Reset()
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: "204"})
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "204"})
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      id,
 					EndHeaders:    true,
 					EndStream:     true,
