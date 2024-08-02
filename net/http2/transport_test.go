@@ -4573,19 +4573,21 @@ func testClientConnClose(t *testing.T, closeMode closeMode) {
 		bodyWrite = func(w http.ResponseWriter) {
 			<-sendBody
 			b := make([]byte, 32)
-			w.Write(b)
+			_, _ = w.Write(b)
 			w.(http.Flusher).Flush()
 			if err := cc.Close(); err != nil {
 				t.Errorf("unexpected ClientConn close error: %v", err)
 			}
 			close(closeDone)
-			w.Write(b)
+			_, _ = w.Write(b)
 			w.(http.Flusher).Flush()
 		}
 	}
 	res, err := cc.RoundTrip(req)
 	if res != nil {
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 	}
 	if closeMode == closeAtHeaders {
 		got := fmt.Sprint(err)
