@@ -4886,10 +4886,14 @@ func TestTransportBodyEagerEndStream(t *testing.T) {
 
 	ct := newClientTester(t)
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		if runtime.GOOS == "plan9" {
 			// CloseWrite not supported on Plan 9; Issue 17906
-			defer ct.cc.(*net.TCPConn).Close()
+			defer func(conn *net.TCPConn) {
+				_ = conn.Close()
+			}(ct.cc.(*net.TCPConn))
 		}
 		body := strings.NewReader(reqBody)
 		req, err := http.NewRequest("PUT", "https://dummy.tld/", body)
@@ -4916,19 +4920,19 @@ func TestTransportBodyEagerEndStream(t *testing.T) {
 			case *HeadersFrame:
 			case *DataFrame:
 				if !f.StreamEnded() {
-					ct.fr.WriteRSTStream(f.StreamID, ErrCodeRefusedStream)
+					_ = ct.fr.WriteRSTStream(f.StreamID, ErrCodeRefusedStream)
 					return fmt.Errorf("data frame without END_STREAM %v", f)
 				}
 				var buf bytes.Buffer
 				enc := hpack.NewEncoder(&buf)
-				enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      f.Header().StreamID,
 					EndHeaders:    true,
 					EndStream:     false,
 					BlockFragment: buf.Bytes(),
 				})
-				ct.fr.WriteData(f.StreamID, true, []byte(resBody))
+				_ = ct.fr.WriteData(f.StreamID, true, []byte(resBody))
 				return nil
 			case *RSTStreamFrame:
 			default:
