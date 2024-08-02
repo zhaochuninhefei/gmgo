@@ -4472,14 +4472,14 @@ func TestTransportHandlesInvalidStatuslessResponse(t *testing.T) {
 			}
 			switch f := f.(type) {
 			case *HeadersFrame:
-				enc.WriteField(hpack.HeaderField{Name: "content-type", Value: "text/html"}) // no :status header
-				ct.fr.WriteHeaders(HeadersFrameParam{
+				_ = enc.WriteField(hpack.HeaderField{Name: "content-type", Value: "text/html"}) // no :status header
+				_ = ct.fr.WriteHeaders(HeadersFrameParam{
 					StreamID:      f.StreamID,
 					EndHeaders:    true,
 					EndStream:     false, // we'll send some DATA to try to crash the transport
 					BlockFragment: buf.Bytes(),
 				})
-				ct.fr.WriteData(f.StreamID, true, []byte("payload"))
+				_ = ct.fr.WriteData(f.StreamID, true, []byte("payload"))
 				return nil
 			}
 		}
