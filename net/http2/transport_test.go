@@ -4342,13 +4342,15 @@ func TestTransportNoBodyMeansNoDATA(t *testing.T) {
 
 	ct.client = func() error {
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", http.NoBody)
-		ct.tr.RoundTrip(req)
+		_, _ = ct.tr.RoundTrip(req)
 		<-unblockClient
 		return nil
 	}
 	ct.server = func() error {
 		defer close(unblockClient)
-		defer ct.cc.(*net.TCPConn).Close()
+		defer func(conn *net.TCPConn) {
+			_ = conn.Close()
+		}(ct.cc.(*net.TCPConn))
 		ct.greet()
 
 		for {
@@ -4410,7 +4412,7 @@ func benchSimpleRoundTrip(b *testing.B, nReqHeaders, nResHeader int) {
 			}
 			b.Fatalf("RoundTrip err = %v; want nil", err)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 		if res.StatusCode != http.StatusOK {
 			b.Fatalf("Response code = %v; want %v", res.StatusCode, http.StatusOK)
 		}
