@@ -4408,7 +4408,7 @@ func benchSimpleRoundTrip(b *testing.B, nReqHeaders, nResHeader int) {
 		res, err := tr.RoundTrip(req)
 		if err != nil {
 			if res != nil {
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 			b.Fatalf("RoundTrip err = %v; want nil", err)
 		}
