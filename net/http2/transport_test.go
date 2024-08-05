@@ -5877,7 +5877,7 @@ func TestTransportCloseResponseBodyWhileRequestBodyHangs(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.(http.Flusher).Flush()
-		io.Copy(io.Discard, r.Body)
+		_, _ = io.Copy(io.Discard, r.Body)
 	}, optOnlyServer)
 	defer st.Close()
 
@@ -5894,8 +5894,8 @@ func TestTransportCloseResponseBodyWhileRequestBodyHangs(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Closing the Response's Body interrupts the blocked body read.
-	res.Body.Close()
-	pw.Close()
+	_ = res.Body.Close()
+	_ = pw.Close()
 }
 
 func TestTransport300ResponseBody(t *testing.T) {
