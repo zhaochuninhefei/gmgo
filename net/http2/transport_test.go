@@ -5768,7 +5768,7 @@ func TestClientConnReservations(t *testing.T) {
 
 	// Use up all the reservations
 	for i := 0; i < n; i++ {
-		cc.RoundTrip(new(http.Request))
+		_, _ = cc.RoundTrip(new(http.Request))
 	}
 
 	n2 = 0
@@ -5784,7 +5784,9 @@ func TestTransportTimeoutServerHangs(t *testing.T) {
 	clientDone := make(chan struct{})
 	ct := newClientTester(t)
 	ct.client = func() error {
-		defer ct.cc.(*net.TCPConn).CloseWrite()
+		defer func(conn *net.TCPConn) {
+			_ = conn.CloseWrite()
+		}(ct.cc.(*net.TCPConn))
 		defer close(clientDone)
 
 		req, err := http.NewRequest("PUT", "https://dummy.tld/", nil)
