@@ -5905,7 +5905,7 @@ func TestTransport300ResponseBody(t *testing.T) {
 		w.WriteHeader(300)
 		w.(http.Flusher).Flush()
 		<-reqc
-		w.Write(body)
+		_, _ = w.Write(body)
 	}, optOnlyServer)
 	defer st.Close()
 
@@ -5929,8 +5929,8 @@ func TestTransport300ResponseBody(t *testing.T) {
 	if !bytes.Equal(got, body) {
 		t.Errorf("got response body %q, want %q", string(got), string(body))
 	}
-	res.Body.Close()
-	pw.Close()
+	_ = res.Body.Close()
+	_ = pw.Close()
 }
 
 func TestTransportWriteByteTimeout(t *testing.T) {
