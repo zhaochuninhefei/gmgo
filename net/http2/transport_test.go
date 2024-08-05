@@ -5134,7 +5134,7 @@ func TestTransportBodyRewindRace(t *testing.T) {
 			defer wg.Done()
 			res, err := client.Do(req)
 			if err == nil {
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 		}()
 	}
@@ -5175,7 +5175,7 @@ func TestTransportServerResetStreamAtHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 }
 
 type trackingReader struct {
