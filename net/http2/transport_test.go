@@ -5198,7 +5198,7 @@ func TestTransportExpectContinue(t *testing.T) {
 		case "/reject":
 			w.WriteHeader(403)
 		default:
-			io.Copy(io.Discard, r.Body)
+			_, _ = io.Copy(io.Discard, r.Body)
 		}
 	}, optOnlyServer)
 	defer st.Close()
@@ -5253,7 +5253,7 @@ func TestTransportExpectContinue(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			res.Body.Close()
+			_ = res.Body.Close()
 
 			if delta := time.Since(startTime); delta >= tr.ExpectContinueTimeout {
 				t.Error("Request didn't finish before expect continue timeout")
