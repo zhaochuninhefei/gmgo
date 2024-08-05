@@ -5653,7 +5653,7 @@ func TestTransportRetriesOnStreamProtocolError(t *testing.T) {
 			t.Errorf("didn't dial again: got %#q; want %#q", got, want)
 		}
 		if res != nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 		}
 		select {
 		case <-gotProtoError:
@@ -5716,9 +5716,9 @@ func TestTransportRetriesOnStreamProtocolError(t *testing.T) {
 				if numHeaders == 1 {
 					firstStreamID = f.StreamID
 					hbuf.Reset()
-					enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
-					enc.WriteField(hpack.HeaderField{Name: "is-long", Value: "1"})
-					ct.fr.WriteHeaders(HeadersFrameParam{
+					_ = enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+					_ = enc.WriteField(hpack.HeaderField{Name: "is-long", Value: "1"})
+					_ = ct.fr.WriteHeaders(HeadersFrameParam{
 						StreamID:      f.StreamID,
 						EndHeaders:    true,
 						EndStream:     false,
@@ -5728,8 +5728,8 @@ func TestTransportRetriesOnStreamProtocolError(t *testing.T) {
 				}
 				if !sentErr {
 					sentErr = true
-					ct.fr.WriteRSTStream(f.StreamID, ErrCodeProtocol)
-					ct.fr.WriteData(firstStreamID, true, nil)
+					_ = ct.fr.WriteRSTStream(f.StreamID, ErrCodeProtocol)
+					_ = ct.fr.WriteData(firstStreamID, true, nil)
 					continue
 				}
 			}
