@@ -5578,8 +5578,8 @@ func TestTransportCloseRequestBody(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			res.Body.Close()
-			pw.Close()
+			_ = res.Body.Close()
+			_ = pw.Close()
 			if err := body.isClosed(); err != nil {
 				t.Fatal(err)
 			}
