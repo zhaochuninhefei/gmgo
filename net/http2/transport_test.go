@@ -5493,7 +5493,7 @@ func TestTransportBlockingRequestWrite(t *testing.T) {
 					t.Errorf("StatusCode = %v; want %v", got, want)
 				}
 				if res != nil && res.Body != nil {
-					res.Body.Close()
+					_ = res.Body.Close()
 				}
 			}
 
@@ -5508,7 +5508,7 @@ func TestTransportBlockingRequestWrite(t *testing.T) {
 				}
 				res, _ := tr.RoundTrip(req)
 				if res != nil && res.Body != nil {
-					res.Body.Close()
+					_ = res.Body.Close()
 				}
 			}()
 			conn := <-connc
@@ -5529,7 +5529,7 @@ func TestTransportBlockingRequestWrite(t *testing.T) {
 					t.Errorf("StatusCode = %v; want %v", got, want)
 				}
 				if res != nil && res.Body != nil {
-					res.Body.Close()
+					_ = res.Body.Close()
 				}
 			}
 
