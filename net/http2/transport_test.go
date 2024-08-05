@@ -5397,7 +5397,7 @@ func TestTransportFrameBufferReuse(t *testing.T) {
 				t.Errorf("StatusCode = %v; want %v", got, want)
 			}
 			if res != nil && res.Body != nil {
-				res.Body.Close()
+				_ = res.Body.Close()
 			}
 		}()
 	}
