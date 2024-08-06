@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -2665,7 +2664,7 @@ func TestTransportReadHeadResponse(t *testing.T) {
 func TestTransportReadHeadResponseWithBody(t *testing.T) {
 	// This test use not valid response format.
 	// Discarding logger output to not spam tests output.
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	defer log.SetOutput(os.Stderr)
 
 	response := "redirecting to /elsewhere"
@@ -2757,7 +2756,7 @@ func TestTransportHandlerBodyClose(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		n, err := io.Copy(ioutil.Discard, res.Body)
+		n, err := io.Copy(io.Discard, res.Body)
 		_ = res.Body.Close()
 		if n != bodySize || err != nil {
 			t.Fatalf("req#%d: Copy = %d, %v; want %d, nil", i, n, err, bodySize)
@@ -2859,7 +2858,7 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 			if err != nil {
 				return fmt.Errorf("unexpected client RoundTrip error: %v", err)
 			}
-			_, err = io.Copy(ioutil.Discard, res.Body)
+			_, err = io.Copy(io.Discard, res.Body)
 			_ = res.Body.Close()
 		}
 		want := GoAwayError{
@@ -3486,7 +3485,7 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = io.Copy(ioutil.Discard, res.Body); err == nil {
+	if _, err = io.Copy(io.Discard, res.Body); err == nil {
 		t.Fatal("unexpected success")
 	}
 	clientGotError <- true
@@ -3521,7 +3520,7 @@ func TestTransportNoRaceOnRequestObjectAfterRequestComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = io.Copy(ioutil.Discard, resp.Body); err != nil {
+	if _, err = io.Copy(io.Discard, resp.Body); err != nil {
 		t.Fatalf("error reading response body: %v", err)
 	}
 	if err := resp.Body.Close(); err != nil {
@@ -3968,7 +3967,7 @@ func TestTransportRetryHasLimit(t *testing.T) {
 func TestTransportResponseDataBeforeHeaders(t *testing.T) {
 	// This test use not valid response format.
 	// Discarding logger output to not spam tests output.
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	defer log.SetOutput(os.Stderr)
 
 	ct := newClientTester(t)
@@ -4657,7 +4656,7 @@ func testClientConnClose(t *testing.T, closeMode closeMode) {
 	case closeAtHeaders, closeAtBody:
 		if closeMode == closeAtBody {
 			go close(sendBody)
-			if _, err := io.Copy(ioutil.Discard, res.Body); err == nil {
+			if _, err := io.Copy(io.Discard, res.Body); err == nil {
 				t.Error("expected a Copy error, got nil")
 			}
 		}
