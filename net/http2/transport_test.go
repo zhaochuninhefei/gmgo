@@ -1058,7 +1058,7 @@ func TestTransportFullDuplex(t *testing.T) {
 	c := &http.Client{Transport: tr}
 
 	pr, pw := io.Pipe()
-	req, err := http.NewRequest("PUT", st.ts.URL, ioutil.NopCloser(pr))
+	req, err := http.NewRequest("PUT", st.ts.URL, io.NopCloser(pr))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2523,7 +2523,7 @@ func TestTransportFailsOnInvalidHeaders(t *testing.T) {
 // the first Read call's gzip.NewReader returning an error.
 func TestGzipReader_DoubleReadCrash(t *testing.T) {
 	gz := &gzipReader{
-		body: ioutil.NopCloser(strings.NewReader("0123456789")),
+		body: io.NopCloser(strings.NewReader("0123456789")),
 	}
 	var buf [1]byte
 	n, err1 := gz.Read(buf[:])
@@ -3416,7 +3416,7 @@ func TestTransportRequestPathPseudo(t *testing.T) {
 // before we've determined that the ClientConn is usable.
 func TestRoundTripDoesntConsumeRequestBodyEarly(t *testing.T) {
 	const body = "foo"
-	req, _ := http.NewRequest("POST", "http://foo.com/", ioutil.NopCloser(strings.NewReader(body)))
+	req, _ := http.NewRequest("POST", "http://foo.com/", io.NopCloser(strings.NewReader(body)))
 	cc := &ClientConn{
 		closed:      true,
 		reqHeaderMu: make(chan struct{}, 1),
@@ -4708,7 +4708,7 @@ func TestClientConnShutdownCancel(t *testing.T) {
 func TestTransportUsesGetBodyWhenPresent(t *testing.T) {
 	calls := 0
 	someBody := func() io.ReadCloser {
-		return struct{ io.ReadCloser }{ioutil.NopCloser(bytes.NewReader(nil))}
+		return struct{ io.ReadCloser }{io.NopCloser(bytes.NewReader(nil))}
 	}
 	req := &http.Request{
 		Body: someBody(),
