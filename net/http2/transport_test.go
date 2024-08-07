@@ -5043,7 +5043,7 @@ type fakeConnErr struct {
 	closed   bool
 }
 
-func (fce *fakeConnErr) Write(b []byte) (n int, err error) {
+func (fce *fakeConnErr) Write(_ []byte) (n int, err error) {
 	return 0, fce.writeErr
 }
 
