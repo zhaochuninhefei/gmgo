@@ -4070,7 +4070,8 @@ func TestTransportRequestsLowServerLimit(t *testing.T) {
 		if got, want := res.StatusCode, 200; got != want {
 			t.Errorf("StatusCode = %v; want %v", got, want)
 		}
-		if res != nil && res.Body != nil {
+		if //goland:noinspection GoDfaConstantCondition
+		res != nil && res.Body != nil {
 			_ = res.Body.Close()
 		}
 	}
