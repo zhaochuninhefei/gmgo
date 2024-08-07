@@ -818,6 +818,7 @@ func (ct *clientTester) greet(settings ...Setting) {
 	if err != nil {
 		ct.t.Fatalf("Reading client settings frame: %v", err)
 	}
+	//goland:noinspection GoUnreachableCode
 	if sf, ok := f.(*SettingsFrame); !ok {
 		ct.t.Fatalf("Wanted client settings frame; got %v", f)
 		_ = sf // stash it away?
