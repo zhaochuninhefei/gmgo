@@ -406,6 +406,7 @@ func TestTransportGroupsPendingDials(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedFunction
 func retry(tries int, delay time.Duration, fn func() error) error {
 	var err error
 	for i := 0; i < tries; i++ {
