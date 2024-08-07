@@ -2249,6 +2249,7 @@ func testTransportResponseHeaderTimeout(t *testing.T, body bool) {
 }
 
 func TestTransportDisableCompression(t *testing.T) {
+	//goland:noinspection GoUnusedConst
 	const body = "sup"
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		want := http.Header{
