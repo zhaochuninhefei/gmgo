@@ -98,6 +98,7 @@ func TestTransportH2c(t *testing.T) {
 	defer func(l net.Listener) {
 		_ = l.Close()
 	}(l)
+	//goland:noinspection HttpUrlsUsage
 	req, err := http.NewRequest("GET", "http://"+l.Addr().String()+"/foobar", nil)
 	if err != nil {
 		t.Fatal(err)
