@@ -5739,6 +5739,7 @@ func TestTransportRetriesOnStreamProtocolError(t *testing.T) {
 				}
 			}
 		}
+		//goland:noinspection GoUnreachableCode
 		return nil
 	}
 	ct.run()
