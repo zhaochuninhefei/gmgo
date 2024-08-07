@@ -893,6 +893,7 @@ func (ct *clientTester) firstHeaders() (*HeadersFrame, error) {
 		}
 		hf, ok := f.(*HeadersFrame)
 		if !ok {
+			//goland:noinspection GoErrorStringFormat
 			return nil, fmt.Errorf("Got %T; want HeadersFrame", f)
 		}
 		return hf, nil
@@ -948,6 +949,7 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 		body.CloseWithError(io.EOF)
 		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Slurp: %v", err)
 		}
 		if len(slurp) > 0 {
@@ -955,10 +957,12 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 		}
 		_ = res.Body.Close()
 		if status == 200 {
+			//goland:noinspection GoErrorStringFormat
 			if got := <-recvLen; got != bodySize {
 				return fmt.Errorf("For 200 response, Transport wrote %d bytes; want %d", got, bodySize)
 			}
 		} else {
+			//goland:noinspection GoErrorStringFormat
 			if got := <-recvLen; got == 0 || got >= bodySize {
 				return fmt.Errorf("For %d response, Transport wrote %d bytes; want (0,%d) exclusive", status, got, bodySize)
 			}
@@ -1030,10 +1034,12 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 				}
 			case *RSTStreamFrame:
 				if status == 200 {
+					//goland:noinspection GoErrorStringFormat
 					return fmt.Errorf("Unexpected client frame %v", f)
 				}
 				ended = true
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 			if ended {
@@ -1245,6 +1251,7 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 		}
 		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Slurp: %v", err)
 		}
 		wantBody := resBody
