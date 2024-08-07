@@ -597,6 +597,7 @@ func TestTransportBody(t *testing.T) {
 
 	for i, tt := range bodyTests {
 		tr := &Transport{TLSClientConfig: tlsConfigInsecure}
+		//goland:noinspection GoDeferInLoop
 		defer tr.CloseIdleConnections()
 
 		var body io.Reader = strings.NewReader(tt.body)
@@ -612,6 +613,7 @@ func TestTransportBody(t *testing.T) {
 		if err != nil {
 			t.Fatalf("#%d: %v", i, err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(Body io.ReadCloser) {
 			_ = Body.Close()
 		}(res.Body)
