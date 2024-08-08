@@ -1969,7 +1969,7 @@ func TestTransportCookieHeaderSplit(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				got := []string{}
+				var got []string
 				want := []string{"a=b", "c=d", "e=f", "e=f", "g=h", "i=j"}
 				for _, hf := range hfs {
 					if hf.Name == "cookie" {
