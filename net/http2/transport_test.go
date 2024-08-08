@@ -1547,8 +1547,9 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
 		slurp, err := io.ReadAll(res.Body)
-		se, ok := err.(StreamError)
-		if !ok || se.Cause != wantErr {
+		var se StreamError
+		ok := errors.As(err, &se)
+		if !ok || !errors.Is(se.Cause, wantErr) {
 			return fmt.Errorf("res.Body ReadAll error = %q, %#v; want StreamError with cause %T, %#v", slurp, err, wantErr, wantErr)
 		}
 		if len(slurp) > 0 {
