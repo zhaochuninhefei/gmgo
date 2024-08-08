@@ -2550,7 +2550,7 @@ func TestGzipReader_DoubleReadCrash(t *testing.T) {
 		t.Fatalf("Read = %v, %v; want 0, invalid header", n, err1)
 	}
 	n, err2 := gz.Read(buf[:])
-	if n != 0 || err2 != err1 {
+	if n != 0 || !errors.Is(err2, err1) {
 		t.Fatalf("second Read = %v, %v; want 0, %v", n, err2, err1)
 	}
 }
