@@ -1755,7 +1755,7 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 
 	checkRoundTrip := func(req *http.Request, wantErr error, desc string) {
 		res, err := tr.RoundTrip(req)
-		if err != wantErr {
+		if !errors.Is(err, wantErr) {
 			if res != nil {
 				_ = res.Body.Close()
 			}
@@ -1888,10 +1888,11 @@ func TestTransportChecksResponseHeaderListSize(t *testing.T) {
 	ct.client = func() error {
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
 		res, err := ct.tr.RoundTrip(req)
-		if e, ok := err.(StreamError); ok {
+		var e StreamError
+		if errors.As(err, &e) {
 			err = e.Cause
 		}
-		if err != errResponseHeaderListSize {
+		if !errors.Is(err, errResponseHeaderListSize) {
 			size := int64(0)
 			if res != nil {
 				_ = res.Body.Close()
