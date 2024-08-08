@@ -2026,7 +2026,8 @@ func TestTransportBodyReadErrorType(t *testing.T) {
 	doPanic <- true
 	buf := make([]byte, 100)
 	n, err := res.Body.Read(buf)
-	got, ok := err.(StreamError)
+	var got StreamError
+	ok := errors.As(err, &got)
 	want := StreamError{StreamID: 0x1, Code: 0x2}
 	if !ok || got.StreamID != want.StreamID || got.Code != want.Code {
 		t.Errorf("Read = %v, %#v; want error %#v", n, err, want)
