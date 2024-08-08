@@ -2646,6 +2646,7 @@ func TestTransportReadHeadResponse(t *testing.T) {
 			return fmt.Errorf("ReadAll: %v", err)
 		}
 		if len(slurp) > 0 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Unexpected non-empty ReadAll body: %q", slurp)
 		}
 		return nil
@@ -2705,6 +2706,7 @@ func TestTransportReadHeadResponseWithBody(t *testing.T) {
 			return fmt.Errorf("ReadAll: %v", err)
 		}
 		if len(slurp) > 0 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Unexpected non-empty ReadAll body: %q", slurp)
 		}
 		return nil
