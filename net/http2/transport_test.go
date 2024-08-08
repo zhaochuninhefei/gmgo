@@ -1498,6 +1498,8 @@ func TestTransportInvalidTrailer_Pseudo1(t *testing.T) {
 func TestTransportInvalidTrailer_Pseudo2(t *testing.T) {
 	testTransportInvalidTrailer_Pseudo(t, splitHeader)
 }
+
+//goland:noinspection GoSnakeCaseUsage
 func testTransportInvalidTrailer_Pseudo(t *testing.T, trailers headerType) {
 	testInvalidTrailer(t, trailers, pseudoHeaderError(":colon"), func(enc *hpack.Encoder) {
 		_ = enc.WriteField(hpack.HeaderField{Name: ":colon", Value: "foo"})
@@ -1511,6 +1513,8 @@ func TestTransportInvalidTrailer_Capital1(t *testing.T) {
 func TestTransportInvalidTrailer_Capital2(t *testing.T) {
 	testTransportInvalidTrailer_Capital(t, splitHeader)
 }
+
+//goland:noinspection GoSnakeCaseUsage
 func testTransportInvalidTrailer_Capital(t *testing.T, trailers headerType) {
 	testInvalidTrailer(t, trailers, headerFieldNameError("Capital"), func(enc *hpack.Encoder) {
 		_ = enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
