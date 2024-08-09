@@ -5907,7 +5907,7 @@ func TestTransportContentLengthWithoutBody(t *testing.T) {
 			}(res.Body)
 			body, err := io.ReadAll(res.Body)
 
-			if err != test.wantErr {
+			if !errors.Is(err, test.wantErr) {
 				t.Errorf("Expected error %v, got: %v", test.wantErr, err)
 			}
 			if len(body) > 0 {
