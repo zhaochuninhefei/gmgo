@@ -2971,6 +2971,7 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 			var ok bool
 			hf, ok = f.(*HeadersFrame)
 			if !ok {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got %T; want HeadersFrame", f)
 			}
 			break
@@ -3023,6 +3024,7 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 					return fmt.Errorf("saw second RSTStreamFrame: %v", summarizeFrame(f))
 				}
 				if f.ErrCode != ErrCodeCancel {
+					//goland:noinspection GoErrorStringFormat
 					return fmt.Errorf("Expected a RSTStreamFrame with code cancel; got %v", summarizeFrame(f))
 				}
 				sawRST = true
@@ -3031,10 +3033,12 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 					return fmt.Errorf("saw second WindowUpdateFrame: %v", summarizeFrame(f))
 				}
 				if f.Increment != 4999 {
+					//goland:noinspection GoErrorStringFormat
 					return fmt.Errorf("Expected WindowUpdateFrames for 5000 bytes; got %v", summarizeFrame(f))
 				}
 				sawWUF = true
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected frame: %v", summarizeFrame(f))
 			}
 		}
