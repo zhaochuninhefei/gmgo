@@ -4867,7 +4867,7 @@ func testTransportBodyReadError(t *testing.T, body []byte) {
 			return err
 		}
 		_, err = ct.tr.RoundTrip(req)
-		if err != bodyReadError {
+		if !errors.Is(err, bodyReadError) {
 			return fmt.Errorf("err = %v; want %v", err, bodyReadError)
 		}
 		if err = checkNoStreams(); err != nil {
@@ -4907,6 +4907,7 @@ func testTransportBodyReadError(t *testing.T, body []byte) {
 			case *RSTStreamFrame:
 				resetCount++
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
