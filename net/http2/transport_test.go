@@ -3305,6 +3305,7 @@ func TestTransportBodyDoubleEndStream(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failure on req %d: %v", i+1, err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(Body io.ReadCloser) {
 			_ = Body.Close()
 		}(res.Body)
