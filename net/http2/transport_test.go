@@ -5097,7 +5097,7 @@ func TestTransportNewClientConnCloseOnWriteError(t *testing.T) {
 	writeErr := errors.New("write error")
 	fakeConn := &fakeConnErr{writeErr: writeErr}
 	_, err := tr.NewClientConn(fakeConn)
-	if err != writeErr {
+	if !errors.Is(err, writeErr) {
 		t.Fatalf("expected %v, got %v", writeErr, err)
 	}
 	if !fakeConn.closed {
@@ -5127,7 +5127,7 @@ func TestTransportRoundtripCloseOnWriteError(t *testing.T) {
 	cc.wmu.Unlock()
 
 	_, err = cc.RoundTrip(req)
-	if err != writeErr {
+	if !errors.Is(writeErr, err) {
 		t.Fatalf("expected %v, got %v", writeErr, err)
 	}
 
