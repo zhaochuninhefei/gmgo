@@ -4399,6 +4399,7 @@ func TestTransportNoBodyMeansNoDATA(t *testing.T) {
 			}
 			switch f := f.(type) {
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got %T; want HeadersFrame", f)
 			case *WindowUpdateFrame, *SettingsFrame:
 				continue
