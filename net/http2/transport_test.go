@@ -3169,6 +3169,7 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 			var ok bool
 			hf, ok = f.(*HeadersFrame)
 			if !ok {
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Got %T; want HeadersFrame", f)
 			}
 			break
@@ -3193,6 +3194,7 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 		}
 		wantBack := uint32(len(pad)) + 1 // one byte for the length of the padding
 		if wuf, ok := f.(*WindowUpdateFrame); !ok || wuf.Increment != wantBack || wuf.StreamID != 0 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Expected conn WindowUpdateFrame for %d bytes; got %v", wantBack, summarizeFrame(f))
 		}
 
@@ -3201,6 +3203,7 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 			return fmt.Errorf("ReadFrame while waiting for second WindowUpdateFrame: %v", err)
 		}
 		if wuf, ok := f.(*WindowUpdateFrame); !ok || wuf.Increment != wantBack || wuf.StreamID == 0 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Expected stream WindowUpdateFrame for %d bytes; got %v", wantBack, summarizeFrame(f))
 		}
 		unblockClient <- true
