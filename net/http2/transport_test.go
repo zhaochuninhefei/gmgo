@@ -3891,6 +3891,7 @@ func TestTransportRetryAfterRefusedStream(t *testing.T) {
 		}
 		_ = resp.Body.Close()
 		if resp.StatusCode != 204 {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Status = %v; want 204", resp.StatusCode)
 		}
 		return nil
@@ -3933,6 +3934,7 @@ func TestTransportRetryAfterRefusedStream(t *testing.T) {
 					})
 				}
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
