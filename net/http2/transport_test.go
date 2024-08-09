@@ -3733,6 +3733,7 @@ func testTransportPingWhenReading(t *testing.T, readIdleTimeout, deadline time.D
 				}
 			case *RSTStreamFrame:
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
