@@ -5687,6 +5687,7 @@ func TestTransportRetriesOnStreamProtocolError(t *testing.T) {
 			return err
 		}
 		if got, want := res1.Header.Get("Is-Long"), "1"; got != want {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("First response's Is-Long header = %q; want %q", got, want)
 		}
 
