@@ -5848,7 +5848,8 @@ func TestTransportTimeoutServerHangs(t *testing.T) {
 		if err == nil {
 			return errors.New("error should not be nil")
 		}
-		if ne, ok := err.(net.Error); !ok || !ne.Timeout() {
+		var ne net.Error
+		if !errors.As(err, &ne) || !ne.Timeout() {
 			return fmt.Errorf("error should be a net error timeout: %v", err)
 		}
 		return nil
