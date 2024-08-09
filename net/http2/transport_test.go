@@ -3991,6 +3991,7 @@ func TestTransportRetryHasLimit(t *testing.T) {
 				}
 				_ = ct.fr.WriteRSTStream(f.StreamID, ErrCodeRefusedStream)
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
