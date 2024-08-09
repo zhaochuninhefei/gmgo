@@ -4977,6 +4977,7 @@ func TestTransportBodyEagerEndStream(t *testing.T) {
 				return nil
 			case *RSTStreamFrame:
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
