@@ -4218,6 +4218,7 @@ func TestTransportRequestsStallAtServerLimit(t *testing.T) {
 					_, _ = io.ReadAll(resp.Body)
 					_ = resp.Body.Close()
 					if resp.StatusCode != 204 {
+						//goland:noinspection GoErrorStringFormat
 						errs <- fmt.Errorf("Status = %v; want 204", resp.StatusCode)
 						return
 					}
@@ -4287,6 +4288,7 @@ func TestTransportRequestsStallAtServerLimit(t *testing.T) {
 				}
 			case *DataFrame:
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
