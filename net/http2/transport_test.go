@@ -5344,7 +5344,7 @@ func (rc *closeChecker) isClosed() error {
 	// The RoundTrip contract says that it will close the request body,
 	// but that it may do so in a separate goroutine. Wait a reasonable
 	// amount of time before concluding that the body isn't being closed.
-	timeout := time.Duration(10 * time.Second)
+	timeout := 10 * time.Second
 	select {
 	case <-rc.closed:
 	case <-time.After(timeout):
@@ -5498,7 +5498,7 @@ func TestTransportBlockingRequestWrite(t *testing.T) {
 					t.Errorf("request body mismatch\ngot:  %q\nwant: %q", string(v), filler)
 				}
 				if v := r.Trailer.Get("Big"); v != "" && v != filler {
-					t.Errorf("request trailer mismatch\ngot:  %q\nwant: %q", string(v), filler)
+					t.Errorf("request trailer mismatch\ngot:  %q\nwant: %q", v, filler)
 				}
 			}, optOnlyServer, func(s *Server) {
 				s.MaxConcurrentStreams = 1
