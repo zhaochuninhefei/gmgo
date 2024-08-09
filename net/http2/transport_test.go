@@ -4027,7 +4027,8 @@ func TestTransportResponseDataBeforeHeaders(t *testing.T) {
 		if err == nil {
 			return fmt.Errorf("RoundTrip expected error, got response: %+v", resp)
 		}
-		if err, ok := err.(StreamError); !ok || err.Code != ErrCodeProtocol {
+		var err1 StreamError
+		if !errors.As(err, &err1) || err1.Code != ErrCodeProtocol {
 			return fmt.Errorf("expected stream PROTOCOL_ERROR, got: %v", err)
 		}
 		return nil
@@ -4060,6 +4061,7 @@ func TestTransportResponseDataBeforeHeaders(t *testing.T) {
 					_ = ct.fr.WriteData(f.StreamID, true, []byte("payload"))
 				}
 			default:
+				//goland:noinspection GoErrorStringFormat
 				return fmt.Errorf("Unexpected client frame %v", f)
 			}
 		}
