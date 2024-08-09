@@ -5033,7 +5033,7 @@ func testTransportBodyLargerThanSpecifiedContentLength(t *testing.T, body *chunk
 	req, _ := http.NewRequest("POST", st.ts.URL, body)
 	req.ContentLength = contentLen
 	_, err := tr.RoundTrip(req)
-	if err != errReqBodyTooLong {
+	if !errors.Is(err, errReqBodyTooLong) {
 		t.Fatalf("expected %v, got %v", errReqBodyTooLong, err)
 	}
 }
