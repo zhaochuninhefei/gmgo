@@ -3445,13 +3445,14 @@ func TestTransportRequestPathPseudo(t *testing.T) {
 // before we've determined that the ClientConn is usable.
 func TestRoundTripDoesntConsumeRequestBodyEarly(t *testing.T) {
 	const body = "foo"
+	//goland:noinspection HttpUrlsUsage
 	req, _ := http.NewRequest("POST", "http://foo.com/", io.NopCloser(strings.NewReader(body)))
 	cc := &ClientConn{
 		closed:      true,
 		reqHeaderMu: make(chan struct{}, 1),
 	}
 	_, err := cc.RoundTrip(req)
-	if err != errClientConnUnusable {
+	if !errors.Is(err, errClientConnUnusable) {
 		t.Fatalf("RoundTrip = %v; want errClientConnUnusable", err)
 	}
 	slurp, err := io.ReadAll(req.Body)
