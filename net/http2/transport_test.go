@@ -4645,7 +4645,7 @@ func testClientConnClose(t *testing.T, closeMode closeMode) {
 	}
 	switch closeMode {
 	case shutdownCancel:
-		if err = cc.Shutdown(canceledCtx); err != context.Canceled {
+		if err = cc.Shutdown(canceledCtx); !errors.Is(err, context.Canceled) {
 			t.Errorf("got %v, want %v", err, context.Canceled)
 		}
 		if cc.closing == false {
