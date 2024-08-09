@@ -4367,7 +4367,7 @@ func TestTransportAllocationsAfterResponseBodyClose(t *testing.T) {
 	gotErr := <-writeErr
 	if gotErr == nil {
 		t.Errorf("Handler unexpectedly managed to write its entire response without getting an error")
-	} else if gotErr != errStreamClosed {
+	} else if !errors.Is(gotErr, errStreamClosed) {
 		t.Errorf("Handler Write err = %v; want errStreamClosed", gotErr)
 	}
 }
