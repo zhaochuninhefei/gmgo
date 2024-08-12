@@ -89,7 +89,7 @@ type writeGoAway struct {
 
 func (p *writeGoAway) writeFrame(ctx writeContext) error {
 	err := ctx.Framer().WriteGoAway(p.maxStreamID, p.code, nil)
-	ctx.Flush() // ignore error: we're hanging up on them anyway
+	_ = ctx.Flush() // ignore error: we're hanging up on them anyway
 	return err
 }
 
@@ -192,7 +192,7 @@ func encKV(enc *hpack.Encoder, k, v string) {
 	if VerboseLogs {
 		log.Printf("http2: server encoding header %q = %q", k, v)
 	}
-	enc.WriteField(hpack.HeaderField{Name: k, Value: v})
+	_ = enc.WriteField(hpack.HeaderField{Name: k, Value: v})
 }
 
 func (w *writeResHeaders) staysWithinBuffer(_ int) bool {
