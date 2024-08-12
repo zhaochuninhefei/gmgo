@@ -68,7 +68,7 @@ func (flushFrameWriter) writeFrame(ctx writeContext) error {
 	return ctx.Flush()
 }
 
-func (flushFrameWriter) staysWithinBuffer(max int) bool { return false }
+func (flushFrameWriter) staysWithinBuffer(_ int) bool { return false }
 
 type writeSettings []Setting
 
@@ -93,7 +93,7 @@ func (p *writeGoAway) writeFrame(ctx writeContext) error {
 	return err
 }
 
-func (*writeGoAway) staysWithinBuffer(max int) bool { return false } // flushes
+func (*writeGoAway) staysWithinBuffer(_ int) bool { return false } // flushes
 
 type writeData struct {
 	streamID  uint32
@@ -195,7 +195,7 @@ func encKV(enc *hpack.Encoder, k, v string) {
 	enc.WriteField(hpack.HeaderField{Name: k, Value: v})
 }
 
-func (w *writeResHeaders) staysWithinBuffer(max int) bool {
+func (w *writeResHeaders) staysWithinBuffer(_ int) bool {
 	// TODO: this is a common one. It'd be nice to return true
 	// here and get into the fast path if we could be clever and
 	// calculate the size fast enough, or at least a conservative
@@ -260,7 +260,7 @@ type writePushPromise struct {
 	promisedID         uint32
 }
 
-func (w *writePushPromise) staysWithinBuffer(max int) bool {
+func (w *writePushPromise) staysWithinBuffer(_ int) bool {
 	// TODO: see writeResHeaders.staysWithinBuffer
 	return false
 }
