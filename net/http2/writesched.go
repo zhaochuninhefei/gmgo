@@ -64,6 +64,8 @@ type FrameWriteRequest struct {
 
 // StreamID returns the id of the stream this frame will be written to.
 // 0 is used for non-stream frames such as PING and SETTINGS.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (wr FrameWriteRequest) StreamID() uint32 {
 	if wr.stream == nil {
 		if //goland:noinspection GoTypeAssertionOnErrors
@@ -81,13 +83,18 @@ func (wr FrameWriteRequest) StreamID() uint32 {
 
 // isControl reports whether wr is a control frame for MaxQueuedControlFrames
 // purposes. That includes non-stream frames and RST_STREAM frames.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (wr FrameWriteRequest) isControl() bool {
 	return wr.stream == nil
 }
 
 // DataSize returns the number of flow control bytes that must be consumed
 // to write this entire frame. This is 0 for non-DATA frames.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (wr FrameWriteRequest) DataSize() int {
+	//goland:noinspection GoMixedReceiverTypes
 	if wd, ok := wr.write.(*writeData); ok {
 		return len(wd.p)
 	}
@@ -104,6 +111,8 @@ func (wr FrameWriteRequest) DataSize() int {
 // returns (consumed, rest, 2), where 'consumed' contains the consumed bytes and
 // 'rest' contains the remaining bytes. The consumed bytes are deducted from the
 // underlying stream's flow control budget.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (wr FrameWriteRequest) Consume(n int32) (FrameWriteRequest, FrameWriteRequest, int) {
 	var empty FrameWriteRequest
 
@@ -159,6 +168,8 @@ func (wr FrameWriteRequest) Consume(n int32) (FrameWriteRequest, FrameWriteReque
 }
 
 // String is for debugging only.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (wr FrameWriteRequest) String() string {
 	var des string
 	if s, ok := wr.write.(fmt.Stringer); ok {
@@ -171,6 +182,8 @@ func (wr FrameWriteRequest) String() string {
 
 // replyToWriter sends err to wr.done and panics if the send must block
 // This does nothing if wr.done is nil.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (wr *FrameWriteRequest) replyToWriter(err error) {
 	if wr.done == nil {
 		return
