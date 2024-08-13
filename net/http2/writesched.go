@@ -66,7 +66,8 @@ type FrameWriteRequest struct {
 // 0 is used for non-stream frames such as PING and SETTINGS.
 func (wr FrameWriteRequest) StreamID() uint32 {
 	if wr.stream == nil {
-		if se, ok := wr.write.(StreamError); ok {
+		if //goland:noinspection GoTypeAssertionOnErrors
+		se, ok := wr.write.(StreamError); ok {
 			// (*serverConn).resetStream doesn't set
 			// stream because it doesn't necessarily have
 			// one. So special case this type of write
