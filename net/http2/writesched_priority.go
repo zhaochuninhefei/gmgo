@@ -143,6 +143,7 @@ func (n *priorityNode) setParent(parent *priorityNode) {
 
 func (n *priorityNode) addBytes(b int64) {
 	n.bytes += b
+	//goland:noinspection GoAssignmentToReceiver
 	for ; n != nil; n = n.parent {
 		n.subtreeBytes += b
 	}
