@@ -364,6 +364,7 @@ func checkPopAll(ws WriteScheduler, order []uint32) error {
 			return fmt.Errorf("Pop[%d]: got ok=false, want %d (order=%v)", k, id, order)
 		}
 		if got := wr.StreamID(); got != id {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Pop[%d]: got %v, want %d (order=%v)", k, got, id, order)
 		}
 	}
