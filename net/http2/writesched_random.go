@@ -27,7 +27,7 @@ type randomWriteScheduler struct {
 	queuePool writeQueuePool
 }
 
-func (ws *randomWriteScheduler) OpenStream(streamID uint32, options OpenStreamOptions) {
+func (ws *randomWriteScheduler) OpenStream(_ uint32, _ OpenStreamOptions) {
 	// no-op: idle streams are not tracked
 }
 
@@ -40,7 +40,7 @@ func (ws *randomWriteScheduler) CloseStream(streamID uint32) {
 	ws.queuePool.put(q)
 }
 
-func (ws *randomWriteScheduler) AdjustStream(streamID uint32, priority PriorityParam) {
+func (ws *randomWriteScheduler) AdjustStream(_ uint32, _ PriorityParam) {
 	// no-op: priorities are ignored
 }
 
