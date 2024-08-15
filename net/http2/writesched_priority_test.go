@@ -360,6 +360,7 @@ func checkPopAll(ws WriteScheduler, order []uint32) error {
 	for k, id := range order {
 		wr, ok := ws.Pop()
 		if !ok {
+			//goland:noinspection GoErrorStringFormat
 			return fmt.Errorf("Pop[%d]: got ok=false, want %d (order=%v)", k, id, order)
 		}
 		if got := wr.StreamID(); got != id {
@@ -368,6 +369,7 @@ func checkPopAll(ws WriteScheduler, order []uint32) error {
 	}
 	wr, ok := ws.Pop()
 	if ok {
+		//goland:noinspection GoErrorStringFormat
 		return fmt.Errorf("Pop[%d]: got %v, want ok=false (order=%v)", len(order), wr.StreamID(), order)
 	}
 	return nil
