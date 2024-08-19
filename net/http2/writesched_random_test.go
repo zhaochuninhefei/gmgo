@@ -33,7 +33,8 @@ func TestRandomScheduler(t *testing.T) {
 	if order[0].StreamID() != 0 || order[1].StreamID() != 0 {
 		t.Fatal("expected non-stream frames first", order[0], order[1])
 	}
-	if _, ok := order[2].write.(StreamError); !ok {
+	if //goland:noinspection GoTypeAssertionOnErrors
+	_, ok := order[2].write.(StreamError); !ok {
 		t.Fatal("expected RST stream frames first", order[2])
 	}
 	got := make(map[uint32]bool)
