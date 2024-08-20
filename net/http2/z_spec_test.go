@@ -151,7 +151,7 @@ func (sc specCoverage) readXRef(se xml.StartElement) []byte {
 			if b != nil {
 				panic("unexpected CharData")
 			}
-			b = []byte(string(v))
+			b = v
 		case xml.EndElement:
 			if v.Name.Local != "xref" {
 				panic("expected </xref>")
