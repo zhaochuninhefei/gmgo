@@ -32,7 +32,7 @@ func loadSpec() {
 		panic(err)
 	} else {
 		defaultSpecCoverage = readSpecCov(f)
-		f.Close()
+		_ = f.Close()
 	}
 }
 
