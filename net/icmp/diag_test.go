@@ -150,7 +150,9 @@ func doDiag(dt diagTest, seq int) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer func(c *icmp.PacketConn) {
+		_ = c.Close()
+	}(c)
 
 	dst, err := googleAddr(c, dt.protocol)
 	if err != nil {
@@ -261,7 +263,7 @@ func TestConcurrentNonPrivilegedListenPacket(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			c.Close()
+			_ = c.Close()
 		}()
 	}
 	wg.Wait()
@@ -288,7 +290,7 @@ func supportsNonPrivilegedICMP() (string, bool) {
 					nonPrivMsg = "you may need to adjust the net.ipv4.ping_group_range kernel state"
 					return
 				}
-				c.Close()
+				_ = c.Close()
 			}
 			nonPrivICMP = true
 		default:
