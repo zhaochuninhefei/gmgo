@@ -20,7 +20,7 @@ type Echo struct {
 }
 
 // Len implements the Len method of MessageBody interface.
-func (p *Echo) Len(proto int) int {
+func (p *Echo) Len(_ int) int {
 	if p == nil {
 		return 0
 	}
@@ -28,7 +28,7 @@ func (p *Echo) Len(proto int) int {
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
-func (p *Echo) Marshal(proto int) ([]byte, error) {
+func (p *Echo) Marshal(_ int) ([]byte, error) {
 	b := make([]byte, 4+len(p.Data))
 	binary.BigEndian.PutUint16(b[:2], uint16(p.ID))
 	binary.BigEndian.PutUint16(b[2:4], uint16(p.Seq))
@@ -37,7 +37,7 @@ func (p *Echo) Marshal(proto int) ([]byte, error) {
 }
 
 // parseEcho parses b as an ICMP echo request or reply message body.
-func parseEcho(proto int, _ Type, b []byte) (MessageBody, error) {
+func parseEcho(_ int, _ Type, b []byte) (MessageBody, error) {
 	bodyLen := len(b)
 	if bodyLen < 4 {
 		return nil, errMessageTooShort
@@ -124,7 +124,7 @@ type ExtendedEchoReply struct {
 }
 
 // Len implements the Len method of MessageBody interface.
-func (p *ExtendedEchoReply) Len(proto int) int {
+func (p *ExtendedEchoReply) Len(_ int) int {
 	if p == nil {
 		return 0
 	}
@@ -132,7 +132,7 @@ func (p *ExtendedEchoReply) Len(proto int) int {
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
-func (p *ExtendedEchoReply) Marshal(proto int) ([]byte, error) {
+func (p *ExtendedEchoReply) Marshal(_ int) ([]byte, error) {
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint16(b[:2], uint16(p.ID))
 	b[2] = byte(p.Seq)
@@ -151,7 +151,7 @@ func (p *ExtendedEchoReply) Marshal(proto int) ([]byte, error) {
 
 // parseExtendedEchoReply parses b as an ICMP extended echo reply
 // message body.
-func parseExtendedEchoReply(proto int, _ Type, b []byte) (MessageBody, error) {
+func parseExtendedEchoReply(_ int, _ Type, b []byte) (MessageBody, error) {
 	if len(b) < 4 {
 		return nil, errMessageTooShort
 	}
