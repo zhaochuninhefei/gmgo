@@ -159,7 +159,7 @@ type RawExtension struct {
 }
 
 // Len implements the Len method of Extension interface.
-func (p *RawExtension) Len(proto int) int {
+func (p *RawExtension) Len(_ int) int {
 	if p == nil {
 		return 0
 	}
@@ -167,6 +167,6 @@ func (p *RawExtension) Len(proto int) int {
 }
 
 // Marshal implements the Marshal method of Extension interface.
-func (p *RawExtension) Marshal(proto int) ([]byte, error) {
+func (p *RawExtension) Marshal(_ int) ([]byte, error) {
 	return p.Data, nil
 }
