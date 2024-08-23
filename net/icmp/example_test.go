@@ -28,7 +28,9 @@ func ExamplePacketConn_nonPrivilegedPing() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c *icmp.PacketConn) {
+		_ = c.Close()
+	}(c)
 
 	wm := icmp.Message{
 		Type: ipv6.ICMPTypeEchoRequest, Code: 0,
