@@ -115,8 +115,10 @@ func parseExtensions(typ Type, b []byte, l int) ([]Extension, int, error) {
 
 func validExtensions(typ Type, exts []Extension) bool {
 	switch typ {
+	//case ipv4.ICMPTypeDestinationUnreachable, ipv4.ICMPTypeTimeExceeded, ipv4.ICMPTypeParameterProblem,
+	//	ipv6.ICMPTypeDestinationUnreachable, ipv6.ICMPTypeTimeExceeded:
 	case ipv4.ICMPTypeDestinationUnreachable, ipv4.ICMPTypeTimeExceeded, ipv4.ICMPTypeParameterProblem,
-		ipv6.ICMPTypeDestinationUnreachable, ipv6.ICMPTypeTimeExceeded:
+		ipv6.ICMPTypeDestinationUnreachable:
 		for i := range exts {
 			switch exts[i].(type) {
 			case *MPLSLabelStack, *InterfaceInfo, *RawExtension:
