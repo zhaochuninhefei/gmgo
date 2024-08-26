@@ -5,6 +5,7 @@
 package icmp
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -59,7 +60,7 @@ func TestMarshalAndParseExtension(t *testing.T) {
 				{append(make([]byte, 512), append(hdr, obj...)...), 513, -1, errNoExtension},
 			} {
 				exts, l, err := parseExtensions(typ, wire.data, wire.inlattr)
-				if err != wire.err {
+				if !errors.Is(err, wire.err) {
 					return fmt.Errorf("#%d: got %v; want %v", i, err, wire.err)
 				}
 				if wire.err != nil {
@@ -325,7 +326,7 @@ func TestParseInterfaceName(t *testing.T) {
 		{[]byte{7, 'e', 'n', '0', 0xff, 0xff, 0xff, 0xff}, errInvalidExtension},
 		{[]byte{8, 'e', 'n', '0', 0xff, 0xff, 0xff}, errMessageTooShort},
 	} {
-		if _, err := ifi.parseName(tt.b); err != tt.error {
+		if _, err := ifi.parseName(tt.b); !errors.Is(err, tt.error) {
 			t.Errorf("#%d: got %v; want %v", i, err, tt.error)
 		}
 	}
