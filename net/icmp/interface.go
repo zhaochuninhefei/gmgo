@@ -163,7 +163,7 @@ func (ifi *InterfaceInfo) parseIPAddr(b []byte) ([]byte, error) {
 func (ifi *InterfaceInfo) marshalName(_ int, b []byte) []byte {
 	l := byte(ifi.nameLen())
 	b[0] = l
-	copy(b[1:], []byte(ifi.Interface.Name))
+	copy(b[1:], ifi.Interface.Name)
 	return b[l:]
 }
 
