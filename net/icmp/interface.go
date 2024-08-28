@@ -108,7 +108,7 @@ func (ifi *InterfaceInfo) marshal(proto int, b []byte, attrs, l int) error {
 	return nil
 }
 
-func (ifi *InterfaceInfo) marshalIfIndex(proto int, b []byte) []byte {
+func (ifi *InterfaceInfo) marshalIfIndex(_ int, b []byte) []byte {
 	binary.BigEndian.PutUint32(b[:4], uint32(ifi.Interface.Index))
 	return b[4:]
 }
@@ -160,7 +160,7 @@ func (ifi *InterfaceInfo) parseIPAddr(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (ifi *InterfaceInfo) marshalName(proto int, b []byte) []byte {
+func (ifi *InterfaceInfo) marshalName(_ int, b []byte) []byte {
 	l := byte(ifi.nameLen())
 	b[0] = l
 	copy(b[1:], []byte(ifi.Interface.Name))
@@ -181,7 +181,7 @@ func (ifi *InterfaceInfo) parseName(b []byte) ([]byte, error) {
 	return b[l:], nil
 }
 
-func (ifi *InterfaceInfo) marshalMTU(proto int, b []byte) []byte {
+func (ifi *InterfaceInfo) marshalMTU(_ int, b []byte) []byte {
 	binary.BigEndian.PutUint32(b[:4], uint32(ifi.Interface.MTU))
 	return b[4:]
 }
