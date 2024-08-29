@@ -17,6 +17,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/net/ipv6"
 )
 
+//goland:noinspection GoSnakeCaseUsage
 const sysIP_STRIPHDR = 0x17 // for now only darwin supports this option
 
 // ListenPacket listens for incoming ICMP packets addressed to
