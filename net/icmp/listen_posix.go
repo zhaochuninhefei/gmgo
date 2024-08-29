@@ -29,6 +29,7 @@ const sysIP_STRIPHDR = 0x17 // for now only darwin supports this option
 // Currently only Darwin and Linux support this.
 //
 // Examples:
+//
 //	ListenPacket("udp4", "192.168.0.1")
 //	ListenPacket("udp4", "0.0.0.0")
 //	ListenPacket("udp6", "fe80::1%en0")
@@ -38,6 +39,7 @@ const sysIP_STRIPHDR = 0x17 // for now only darwin supports this option
 // followed by a colon and an ICMP protocol number or name.
 //
 // Examples:
+//
 //	ListenPacket("ip4:icmp", "192.168.0.1")
 //	ListenPacket("ip4:1", "0.0.0.0")
 //	ListenPacket("ip6:ipv6-icmp", "fe80::1%en0")
@@ -71,22 +73,22 @@ func ListenPacket(network, address string) (*PacketConn, error) {
 		}
 		if (runtime.GOOS == "darwin" || runtime.GOOS == "ios") && family == syscall.AF_INET {
 			if err := syscall.SetsockoptInt(s, iana.ProtocolIP, sysIP_STRIPHDR, 1); err != nil {
-				syscall.Close(s)
+				_ = syscall.Close(s)
 				return nil, os.NewSyscallError("setsockopt", err)
 			}
 		}
 		sa, err := sockaddr(family, address)
 		if err != nil {
-			syscall.Close(s)
+			_ = syscall.Close(s)
 			return nil, err
 		}
 		if err := syscall.Bind(s, sa); err != nil {
-			syscall.Close(s)
+			_ = syscall.Close(s)
 			return nil, os.NewSyscallError("bind", err)
 		}
 		f := os.NewFile(uintptr(s), "datagram-oriented icmp")
 		c, cerr = net.FilePacketConn(f)
-		f.Close()
+		_ = f.Close()
 	default:
 		c, cerr = net.ListenPacket(network, address)
 	}
