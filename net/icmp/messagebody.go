@@ -27,7 +27,7 @@ type RawBody struct {
 }
 
 // Len implements the Len method of MessageBody interface.
-func (p *RawBody) Len(proto int) int {
+func (p *RawBody) Len(_ int) int {
 	if p == nil {
 		return 0
 	}
@@ -35,12 +35,12 @@ func (p *RawBody) Len(proto int) int {
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
-func (p *RawBody) Marshal(proto int) ([]byte, error) {
+func (p *RawBody) Marshal(_ int) ([]byte, error) {
 	return p.Data, nil
 }
 
 // parseRawBody parses b as an ICMP message body.
-func parseRawBody(proto int, b []byte) (MessageBody, error) {
+func parseRawBody(_ int, b []byte) (MessageBody, error) {
 	p := &RawBody{Data: make([]byte, len(b))}
 	copy(p.Data, b)
 	return p, nil
