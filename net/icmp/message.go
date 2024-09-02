@@ -27,6 +27,7 @@ import (
 
 // BUG(mikio): This package is not implemented on JS, NaCl and Plan 9.
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	errInvalidConn      = errors.New("invalid connection")
 	errInvalidProtocol  = errors.New("invalid protocol")
