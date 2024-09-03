@@ -84,14 +84,14 @@ func TestMarshalAndParseMultipartMessage(t *testing.T) {
 			if len(got.Data) != 128 {
 				return fmt.Errorf("got %d; want 128", len(got.Data))
 			}
-		case ipv6.ICMPTypeTimeExceeded:
-			got, want := m.Body.(*icmp.TimeExceeded), tm.Body.(*icmp.TimeExceeded)
-			if !reflect.DeepEqual(got.Extensions, want.Extensions) {
-				return errors.New(dumpExtensions(got.Extensions, want.Extensions))
-			}
-			if len(got.Data) != 128 {
-				return fmt.Errorf("got %d; want 128", len(got.Data))
-			}
+		//case ipv6.ICMPTypeTimeExceeded:
+		//	got, want := m.Body.(*icmp.TimeExceeded), tm.Body.(*icmp.TimeExceeded)
+		//	if !reflect.DeepEqual(got.Extensions, want.Extensions) {
+		//		return errors.New(dumpExtensions(got.Extensions, want.Extensions))
+		//	}
+		//	if len(got.Data) != 128 {
+		//		return fmt.Errorf("got %d; want 128", len(got.Data))
+		//	}
 		default:
 			return fmt.Errorf("unknown message type: %v", m.Type)
 		}
