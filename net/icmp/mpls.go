@@ -27,7 +27,7 @@ type MPLSLabelStack struct {
 }
 
 // Len implements the Len method of Extension interface.
-func (ls *MPLSLabelStack) Len(proto int) int {
+func (ls *MPLSLabelStack) Len(_ int) int {
 	return 4 + (4 * len(ls.Labels))
 }
 
