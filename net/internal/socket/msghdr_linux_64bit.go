@@ -6,8 +6,6 @@
 
 package socket
 
-import "unsafe"
-
 func (h *msghdr) setIov(vs []iovec) {
 	l := len(vs)
 	if l == 0 {
@@ -18,6 +16,6 @@ func (h *msghdr) setIov(vs []iovec) {
 }
 
 func (h *msghdr) setControl(b []byte) {
-	h.Control = (*byte)(unsafe.Pointer(&b[0]))
+	h.Control = &b[0]
 	h.Controllen = uint64(len(b))
 }
