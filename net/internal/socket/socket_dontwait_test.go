@@ -32,7 +32,7 @@ func TestUDPDontwait(t *testing.T) {
 	}
 	isErrWouldblock := func(err error) bool {
 		var errno syscall.Errno
-		return errors.As(err, &errno) && (errno == syscall.EAGAIN || errno == syscall.EWOULDBLOCK)
+		return errors.As(err, &errno) && (errors.Is(errno, syscall.EAGAIN) || errors.Is(errno, syscall.EWOULDBLOCK))
 	}
 
 	t.Run("Message-dontwait", func(t *testing.T) {
