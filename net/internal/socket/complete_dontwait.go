@@ -7,6 +7,7 @@
 package socket
 
 import (
+	"errors"
 	"syscall"
 )
 
@@ -17,7 +18,7 @@ func ioComplete(flags int, operr error) bool {
 		// Caller explicitly said don't wait, so always return immediately.
 		return true
 	}
-	if operr == syscall.EAGAIN || operr == syscall.EWOULDBLOCK {
+	if errors.Is(operr, syscall.EAGAIN) || errors.Is(operr, syscall.EWOULDBLOCK) {
 		// No data available, block for I/O and try again.
 		return false
 	}
