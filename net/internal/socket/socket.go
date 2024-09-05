@@ -198,8 +198,10 @@ func (m ControlMessage) Parse() ([]ControlMessage, error) {
 		ms = append(ms, m[:l])
 		ll := l - controlHeaderLen()
 		if len(m) >= ControlMessageSpace(ll) {
+			//goland:noinspection GoAssignmentToReceiver
 			m = m[ControlMessageSpace(ll):]
 		} else {
+			//goland:noinspection GoAssignmentToReceiver
 			m = m[controlMessageLen(ll):]
 		}
 	}
