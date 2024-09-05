@@ -15,7 +15,7 @@ func (h *msghdr) pack(vs []iovec, bs [][]byte, oob []byte, sa []byte) {
 		h.setControl(oob)
 	}
 	if sa != nil {
-		h.Name = (*byte)(unsafe.Pointer(&sa[0]))
+		h.Name = &sa[0]
 		h.Namelen = uint32(len(sa))
 	} else {
 		h.Name = nil
