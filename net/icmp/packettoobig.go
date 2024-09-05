@@ -13,7 +13,7 @@ type PacketTooBig struct {
 }
 
 // Len implements the Len method of MessageBody interface.
-func (p *PacketTooBig) Len(proto int) int {
+func (p *PacketTooBig) Len(_ int) int {
 	if p == nil {
 		return 0
 	}
@@ -21,7 +21,7 @@ func (p *PacketTooBig) Len(proto int) int {
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
-func (p *PacketTooBig) Marshal(proto int) ([]byte, error) {
+func (p *PacketTooBig) Marshal(_ int) ([]byte, error) {
 	b := make([]byte, 4+len(p.Data))
 	binary.BigEndian.PutUint32(b[:4], uint32(p.MTU))
 	copy(b[4:], p.Data)
@@ -29,7 +29,7 @@ func (p *PacketTooBig) Marshal(proto int) ([]byte, error) {
 }
 
 // parsePacketTooBig parses b as an ICMP packet too big message body.
-func parsePacketTooBig(proto int, _ Type, b []byte) (MessageBody, error) {
+func parsePacketTooBig(_ int, _ Type, b []byte) (MessageBody, error) {
 	bodyLen := len(b)
 	if bodyLen < 4 {
 		return nil, errMessageTooShort
