@@ -195,7 +195,7 @@ func (m ControlMessage) Parse() ([]ControlMessage, error) {
 		// +-----+---------------+------+----------+
 		// | ... |    Header     | PadH |   Data   |
 		// +-----+---------------+------+----------+
-		ms = append(ms, ControlMessage(m[:l]))
+		ms = append(ms, m[:l])
 		ll := l - controlHeaderLen()
 		if len(m) >= ControlMessageSpace(ll) {
 			m = m[ControlMessageSpace(ll):]
