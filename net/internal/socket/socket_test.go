@@ -303,11 +303,11 @@ func TestUDP(t *testing.T) {
 		Buffers: [][]byte{{}},
 		Addr:    c.LocalAddr(),
 	}
-	cc.SendMsg(&wm, 0)
+	_ = cc.SendMsg(&wm, 0)
 	wms := []socket.Message{
 		{Buffers: [][]byte{{}}, Addr: c.LocalAddr()},
 	}
-	cc.SendMsgs(wms, 0)
+	_, _ = cc.SendMsgs(wms, 0)
 }
 
 func BenchmarkUDP(b *testing.B) {
