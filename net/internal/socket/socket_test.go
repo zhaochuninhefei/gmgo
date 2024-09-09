@@ -454,7 +454,9 @@ func main() {
 	if err != nil {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(dir)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(dir)
 	goBinary := filepath.Join(runtime.GOROOT(), "bin", "go")
 	t.Logf("%s version", goBinary)
 	got, err := exec.Command(goBinary, "version").CombinedOutput()
