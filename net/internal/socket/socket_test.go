@@ -450,7 +450,7 @@ func main() {
 	if !platforms[runtime.GOOS+"/"+runtime.GOARCH] {
 		t.Skip("skipping test on non-race-enabled host.")
 	}
-	dir, err := ioutil.TempDir("", "testrace")
+	dir, err := os.MkdirTemp("", "testrace")
 	if err != nil {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
