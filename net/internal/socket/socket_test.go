@@ -315,7 +315,9 @@ func BenchmarkUDP(b *testing.B) {
 	if err != nil {
 		b.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	cc, err := socket.NewConn(c.(net.Conn))
 	if err != nil {
 		b.Fatal(err)
