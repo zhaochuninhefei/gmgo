@@ -165,7 +165,9 @@ func TestUDP(t *testing.T) {
 	if err != nil {
 		t.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	// test that wrapped connections work with NewConn too
 	type wrappedConn struct{ *net.UDPConn }
 	cc, err := socket.NewConn(&wrappedConn{c.(*net.UDPConn)})
