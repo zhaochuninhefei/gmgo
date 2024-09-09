@@ -118,7 +118,8 @@ func TestControlMessage(t *testing.T) {
 			copy(m.Data(len(c.Data)), c.Data)
 			m = m.Next(len(c.Data))
 		}
-		m = w
+		//goland:noinspection GoRedundantConversion
+		m = socket.ControlMessage(w)
 		for _, c := range tt.cs {
 			m, err = m.Marshal(c.Level, c.Type, c.Data)
 			if err != nil {
