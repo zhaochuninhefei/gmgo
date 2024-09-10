@@ -9,6 +9,7 @@ package socket
 
 import "golang.org/x/sys/unix"
 
+//goland:noinspection GoUnusedConst,GoSnakeCaseUsage
 const (
 	sysAF_UNSPEC = unix.AF_UNSPEC
 	sysAF_INET   = unix.AF_INET
