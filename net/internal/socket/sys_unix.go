@@ -13,15 +13,19 @@ import (
 )
 
 //go:linkname syscall_getsockopt syscall.getsockopt
+//goland:noinspection GoSnakeCaseUsage
 func syscall_getsockopt(s, level, name int, val unsafe.Pointer, vallen *uint32) error
 
 //go:linkname syscall_setsockopt syscall.setsockopt
+//goland:noinspection GoSnakeCaseUsage
 func syscall_setsockopt(s, level, name int, val unsafe.Pointer, vallen uintptr) error
 
 //go:linkname syscall_recvmsg syscall.recvmsg
+//goland:noinspection GoSnakeCaseUsage
 func syscall_recvmsg(s int, msg *syscall.Msghdr, flags int) (int, error)
 
 //go:linkname syscall_sendmsg syscall.sendmsg
+//goland:noinspection GoSnakeCaseUsage
 func syscall_sendmsg(s int, msg *syscall.Msghdr, flags int) (int, error)
 
 func getsockopt(s uintptr, level, name int, b []byte) (int, error) {
