@@ -24,8 +24,10 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 		return nil, err
 	}
 	if deadline, ok := ctx.Deadline(); ok && !deadline.IsZero() {
-		c.SetDeadline(deadline)
-		defer c.SetDeadline(noDeadline)
+		_ = c.SetDeadline(deadline)
+		defer func(c net.Conn, t time.Time) {
+			_ = c.SetDeadline(t)
+		}(c, noDeadline)
 	}
 	if ctx != context.Background() {
 		errCh := make(chan error, 1)
@@ -39,7 +41,7 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 		go func() {
 			select {
 			case <-ctx.Done():
-				c.SetDeadline(aLongTimeAgo)
+				_ = c.SetDeadline(aLongTimeAgo)
 				errCh <- ctx.Err()
 			case <-done:
 				errCh <- nil
