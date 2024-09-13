@@ -6,6 +6,7 @@ package socks_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"math/rand"
 	"net"
@@ -96,7 +97,7 @@ func TestDial(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		cancel()
 		err = <-dialErr
-		if perr, nerr := parseDialError(err); perr != context.Canceled && nerr == nil {
+		if perr, nerr := parseDialError(err); !errors.Is(perr, context.Canceled) && nerr == nil {
 			t.Fatalf("got %v; want context.Canceled or equivalent", err)
 		}
 	})
@@ -115,7 +116,7 @@ func TestDial(t *testing.T) {
 		if err == nil {
 			_ = c.Close()
 		}
-		if perr, nerr := parseDialError(err); perr != context.DeadlineExceeded && nerr == nil {
+		if perr, nerr := parseDialError(err); !errors.Is(perr, context.DeadlineExceeded) && nerr == nil {
 			t.Fatalf("got %v; want context.DeadlineExceeded or equivalent", err)
 		}
 	})
