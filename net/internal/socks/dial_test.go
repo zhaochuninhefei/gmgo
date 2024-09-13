@@ -131,6 +131,7 @@ func TestDial(t *testing.T) {
 		d := socks.NewDialer(ss.Addr().Network(), ss.Addr().String())
 		for i := 0; i < 2*len(rogueCmdList); i++ {
 			ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(100*time.Millisecond))
+			//goland:noinspection GoDeferInLoop
 			defer cancel()
 			c, err := d.DialContext(ctx, ss.TargetAddr().Network(), ss.TargetAddr().String())
 			if err == nil {
