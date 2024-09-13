@@ -172,12 +172,14 @@ var rogueCmdList = [][]byte{
 }
 
 func parseDialError(err error) (perr, nerr error) {
-	if e, ok := err.(*net.OpError); ok {
+	var e *net.OpError
+	if errors.As(err, &e) {
 		err = e.Err
 		nerr = e
 	}
-	if e, ok := err.(*os.SyscallError); ok {
-		err = e.Err
+	var e1 *os.SyscallError
+	if errors.As(err, &e1) {
+		err = e1.Err
 	}
 	perr = err
 	return
