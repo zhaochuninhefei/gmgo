@@ -23,7 +23,9 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer ss.Close()
+		defer func(ss *sockstest.Server) {
+			_ = ss.Close()
+		}(ss)
 		d := socks.NewDialer(ss.Addr().Network(), ss.Addr().String())
 		d.AuthMethods = []socks.AuthMethod{
 			socks.AuthMethodNotRequired,
@@ -38,19 +40,23 @@ func TestDial(t *testing.T) {
 			t.Fatal(err)
 		}
 		c.(*socks.Conn).BoundAddr()
-		c.Close()
+		_ = c.Close()
 	})
 	t.Run("ConnectWithConn", func(t *testing.T) {
 		ss, err := sockstest.NewServer(sockstest.NoAuthRequired, sockstest.NoProxyRequired)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer ss.Close()
+		defer func(ss *sockstest.Server) {
+			_ = ss.Close()
+		}(ss)
 		c, err := net.Dial(ss.Addr().Network(), ss.Addr().String())
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.Conn) {
+			_ = c.Close()
+		}(c)
 		d := socks.NewDialer(ss.Addr().Network(), ss.Addr().String())
 		d.AuthMethods = []socks.AuthMethod{
 			socks.AuthMethodNotRequired,
@@ -73,7 +79,9 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer ss.Close()
+		defer func(ss *sockstest.Server) {
+			_ = ss.Close()
+		}(ss)
 		d := socks.NewDialer(ss.Addr().Network(), ss.Addr().String())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -81,7 +89,7 @@ func TestDial(t *testing.T) {
 		go func() {
 			c, err := d.DialContext(ctx, ss.TargetAddr().Network(), ss.TargetAddr().String())
 			if err == nil {
-				c.Close()
+				_ = c.Close()
 			}
 			dialErr <- err
 		}()
@@ -97,13 +105,15 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer ss.Close()
+		defer func(ss *sockstest.Server) {
+			_ = ss.Close()
+		}(ss)
 		d := socks.NewDialer(ss.Addr().Network(), ss.Addr().String())
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(100*time.Millisecond))
 		defer cancel()
 		c, err := d.DialContext(ctx, ss.TargetAddr().Network(), ss.TargetAddr().String())
 		if err == nil {
-			c.Close()
+			_ = c.Close()
 		}
 		if perr, nerr := parseDialError(err); perr != context.DeadlineExceeded && nerr == nil {
 			t.Fatalf("got %v; want context.DeadlineExceeded or equivalent", err)
@@ -114,7 +124,9 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer ss.Close()
+		defer func(ss *sockstest.Server) {
+			_ = ss.Close()
+		}(ss)
 		d := socks.NewDialer(ss.Addr().Network(), ss.Addr().String())
 		for i := 0; i < 2*len(rogueCmdList); i++ {
 			ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(100*time.Millisecond))
@@ -122,7 +134,7 @@ func TestDial(t *testing.T) {
 			c, err := d.DialContext(ctx, ss.TargetAddr().Network(), ss.TargetAddr().String())
 			if err == nil {
 				t.Log(c.(*socks.Conn).BoundAddr())
-				c.Close()
+				_ = c.Close()
 				t.Error("should fail")
 			}
 		}
