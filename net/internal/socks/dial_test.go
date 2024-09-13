@@ -157,7 +157,7 @@ func rogueCmdFunc(rw io.ReadWriter, b []byte) error {
 	if _, err := sockstest.ParseCmdRequest(b); err != nil {
 		return err
 	}
-	rw.Write(rogueCmdList[rand.Intn(len(rogueCmdList))])
+	_, _ = rw.Write(rogueCmdList[rand.Intn(len(rogueCmdList))])
 	return nil
 }
 
