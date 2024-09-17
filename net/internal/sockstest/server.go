@@ -157,7 +157,9 @@ func (s *Server) serve(authFunc, cmdFunc func(io.ReadWriter, []byte) error) {
 	if err != nil {
 		return
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 	go s.serve(authFunc, cmdFunc)
 	b := make([]byte, 512)
 	n, err := c.Read(b)
