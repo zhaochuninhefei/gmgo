@@ -156,13 +156,13 @@ func TestExpectedErrorRate(t *testing.T) {
 		ts.AddWithTime(&ob, fake.Time())
 
 		// The results should be accurate within one missing bucket (1/6) of the observations recorded.
-		checkNear(t, ts.Latest(0, buckets), min(float64(i), 60), 10)
-		checkNear(t, ts.Latest(1, buckets), min(float64(i), 600), 100)
-		checkNear(t, ts.Latest(2, buckets), min(float64(i), 3600), 600)
+		checkNear(t, ts.Latest(0, buckets), minInner(float64(i), 60), 10)
+		checkNear(t, ts.Latest(1, buckets), minInner(float64(i), 600), 100)
+		checkNear(t, ts.Latest(2, buckets), minInner(float64(i), 3600), 600)
 	}
 }
 
-func min(a, b float64) float64 {
+func minInner(a, b float64) float64 {
 	if a < b {
 		return a
 	}
