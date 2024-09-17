@@ -230,7 +230,7 @@ func (d *Dialer) Dial(network, address string) (net.Conn, error) {
 	return c, nil
 }
 
-func (d *Dialer) validateTarget(network, address string) error {
+func (d *Dialer) validateTarget(network, _ string) error {
 	switch network {
 	case "tcp", "tcp6", "tcp4":
 	default:
@@ -284,7 +284,7 @@ type UsernamePassword struct {
 
 // Authenticate authenticates a pair of username and password with the
 // proxy server.
-func (up *UsernamePassword) Authenticate(ctx context.Context, rw io.ReadWriter, auth AuthMethod) error {
+func (up *UsernamePassword) Authenticate(_ context.Context, rw io.ReadWriter, auth AuthMethod) error {
 	switch auth {
 	case AuthMethodNotRequired:
 		return nil
