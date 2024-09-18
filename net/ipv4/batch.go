@@ -77,7 +77,7 @@ func (c *payloadHandler) ReadBatch(ms []Message, flags int) (int, error) {
 	}
 	switch runtime.GOOS {
 	case "linux":
-		n, err := c.RecvMsgs([]socket.Message(ms), flags)
+		n, err := c.RecvMsgs(ms, flags)
 		if err != nil {
 			err = &net.OpError{Op: "read", Net: c.PacketConn.LocalAddr().Network(), Source: c.PacketConn.LocalAddr(), Err: err}
 		}
@@ -111,7 +111,7 @@ func (c *payloadHandler) WriteBatch(ms []Message, flags int) (int, error) {
 	}
 	switch runtime.GOOS {
 	case "linux":
-		n, err := c.SendMsgs([]socket.Message(ms), flags)
+		n, err := c.SendMsgs(ms, flags)
 		if err != nil {
 			err = &net.OpError{Op: "write", Net: c.PacketConn.LocalAddr().Network(), Source: c.PacketConn.LocalAddr(), Err: err}
 		}
@@ -143,7 +143,7 @@ func (c *packetHandler) ReadBatch(ms []Message, flags int) (int, error) {
 	}
 	switch runtime.GOOS {
 	case "linux":
-		n, err := c.RecvMsgs([]socket.Message(ms), flags)
+		n, err := c.RecvMsgs(ms, flags)
 		if err != nil {
 			err = &net.OpError{Op: "read", Net: c.IPConn.LocalAddr().Network(), Source: c.IPConn.LocalAddr(), Err: err}
 		}
@@ -177,7 +177,7 @@ func (c *packetHandler) WriteBatch(ms []Message, flags int) (int, error) {
 	}
 	switch runtime.GOOS {
 	case "linux":
-		n, err := c.SendMsgs([]socket.Message(ms), flags)
+		n, err := c.SendMsgs(ms, flags)
 		if err != nil {
 			err = &net.OpError{Op: "write", Net: c.IPConn.LocalAddr().Network(), Source: c.IPConn.LocalAddr(), Err: err}
 		}
