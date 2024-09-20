@@ -23,7 +23,9 @@ func TestBPF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer l.Close()
+	defer func(l net.PacketConn) {
+		_ = l.Close()
+	}(l)
 
 	p := ipv4.NewPacketConn(l)
 
@@ -53,14 +55,16 @@ func TestBPF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer func(s net.Conn) {
+		_ = s.Close()
+	}(s)
 	go func() {
 		for i := byte(0); i < 10; i++ {
-			s.Write([]byte{i})
+			_, _ = s.Write([]byte{i})
 		}
 	}()
 
-	l.SetDeadline(time.Now().Add(2 * time.Second))
+	_ = l.SetDeadline(time.Now().Add(2 * time.Second))
 	seen := make([]bool, 5)
 	for {
 		var b [512]byte
