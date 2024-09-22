@@ -126,6 +126,8 @@ func NewControlMessage(cf ControlFlags) []byte {
 }
 
 // Ancillary data socket options
+//
+//goland:noinspection GoUnusedConst
 const (
 	ctlTTL        = iota // header field
 	ctlSrc               // header field
