@@ -19,7 +19,7 @@ import (
 
 func marshalPacketInfo(b []byte, cm *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
-	m.MarshalHeader(iana.ProtocolIP, unix.IP_PKTINFO, sizeofInetPktinfo)
+	_ = m.MarshalHeader(iana.ProtocolIP, unix.IP_PKTINFO, sizeofInetPktinfo)
 	if cm != nil {
 		pi := (*inetPktinfo)(unsafe.Pointer(&m.Data(sizeofInetPktinfo)[0]))
 		if ip := cm.Src.To4(); ip != nil {
