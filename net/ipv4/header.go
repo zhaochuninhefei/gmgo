@@ -20,6 +20,7 @@ const (
 
 type HeaderFlags int
 
+//goland:noinspection GoUnusedConst
 const (
 	MoreFragments HeaderFlags = 1 << iota // more fragments flag
 	DontFragment                          // don't fragment flag
