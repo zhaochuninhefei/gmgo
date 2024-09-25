@@ -7,8 +7,6 @@
 package ipv4
 
 import (
-	"unsafe"
-
 	"gitee.com/zhaochuninhefei/gmgo/net/internal/iana"
 	"gitee.com/zhaochuninhefei/gmgo/net/internal/socket"
 
@@ -71,5 +69,5 @@ func marshalTTL(b []byte, _ *ControlMessage) []byte {
 }
 
 func parseTTL(cm *ControlMessage, b []byte) {
-	cm.TTL = int(*(*byte)(unsafe.Pointer(&b[:1][0])))
+	cm.TTL = int(*&b[:1][0])
 }
