@@ -67,7 +67,7 @@ func setControlMessage(c *socket.Conn, opt *rawOpt, cf ControlFlags, on bool) er
 
 func marshalTTL(b []byte, _ *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
-	m.MarshalHeader(iana.ProtocolIP, unix.IP_RECVTTL, 1)
+	_ = m.MarshalHeader(iana.ProtocolIP, unix.IP_RECVTTL, 1)
 	return m.Next(1)
 }
 
