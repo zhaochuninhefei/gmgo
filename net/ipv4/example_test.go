@@ -55,7 +55,9 @@ func ExamplePacketConn_servingOneShotMulticastDNS() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv4.NewPacketConn(c)
 
 	en0, err := net.InterfaceByName("en0")
@@ -66,7 +68,9 @@ func ExamplePacketConn_servingOneShotMulticastDNS() {
 	if err := p.JoinGroup(en0, &mDNSLinkLocal); err != nil {
 		log.Fatal(err)
 	}
-	defer p.LeaveGroup(en0, &mDNSLinkLocal)
+	defer func(p *ipv4.PacketConn, ifi *net.Interface, group net.Addr) {
+		_ = p.LeaveGroup(ifi, group)
+	}(p, en0, &mDNSLinkLocal)
 	if err := p.SetControlMessage(ipv4.FlagDst, true); err != nil {
 		log.Fatal(err)
 	}
