@@ -115,7 +115,9 @@ func ExamplePacketConn_tracingIPPacketRoute() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv4.NewPacketConn(c)
 
 	if err := p.SetControlMessage(ipv4.FlagTTL|ipv4.FlagSrc|ipv4.FlagDst|ipv4.FlagInterface, true); err != nil {
@@ -186,7 +188,9 @@ func ExampleRawConn_advertisingOSPFHello() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	r, err := ipv4.NewRawConn(c)
 	if err != nil {
 		log.Fatal(err)
@@ -200,7 +204,9 @@ func ExampleRawConn_advertisingOSPFHello() {
 	if err := r.JoinGroup(en0, &allSPFRouters); err != nil {
 		log.Fatal(err)
 	}
-	defer r.LeaveGroup(en0, &allSPFRouters)
+	defer func(r *ipv4.RawConn, ifi *net.Interface, group net.Addr) {
+		_ = r.LeaveGroup(ifi, group)
+	}(r, en0, &allSPFRouters)
 
 	hello := make([]byte, 24) // fake hello data, you need to implement this
 	ospf := make([]byte, 24)  // fake ospf header, you need to implement this
