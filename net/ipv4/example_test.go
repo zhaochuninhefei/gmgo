@@ -5,6 +5,7 @@
 package ipv4_test
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -154,7 +155,8 @@ func ExamplePacketConn_tracingIPPacketRoute() {
 		}
 		n, cm, peer, err := p.ReadFrom(rb)
 		if err != nil {
-			if err, ok := err.(net.Error); ok && err.Timeout() {
+			var err net.Error
+			if errors.As(err, &err) && err.Timeout() {
 				fmt.Printf("%v\t*\n", i)
 				continue
 			}
