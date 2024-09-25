@@ -7,6 +7,7 @@ package ipv4
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"net"
 	"reflect"
 	"runtime"
@@ -164,7 +165,7 @@ func TestMarshalHeader(t *testing.T) {
 		{nil, errNilHeader},
 		{&Header{Len: HeaderLen - 1}, errHeaderTooShort},
 	} {
-		if _, err := tt.h.Marshal(); err != tt.err {
+		if _, err := tt.h.Marshal(); !errors.Is(err, tt.err) {
 			t.Errorf("#%d: got %v; want %v", i, err, tt.err)
 		}
 	}
@@ -216,7 +217,7 @@ func TestParseHeader(t *testing.T) {
 			0x00, 0x00, 0x00, 0x00,
 		}, errExtHeaderTooShort},
 	} {
-		if err := tt.h.Parse(tt.wh); err != tt.err {
+		if err := tt.h.Parse(tt.wh); !errors.Is(err, tt.err) {
 			t.Fatalf("#%d: got %v; want %v", i, err, tt.err)
 		}
 	}
