@@ -21,7 +21,9 @@ func ExampleConn_markingTCP() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	for {
 		c, err := ln.Accept()
@@ -29,7 +31,9 @@ func ExampleConn_markingTCP() {
 			log.Fatal(err)
 		}
 		go func(c net.Conn) {
-			defer c.Close()
+			defer func(c net.Conn) {
+				_ = c.Close()
+			}(c)
 			if c.RemoteAddr().(*net.TCPAddr).IP.To4() != nil {
 				p := ipv4.NewConn(c)
 				if err := p.SetTOS(0x28); err != nil { // DSCP AF11
