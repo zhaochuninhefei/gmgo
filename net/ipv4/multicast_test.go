@@ -281,6 +281,7 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c net.PacketConn) {
 			_ = c.Close()
 		}(c)
@@ -289,6 +290,7 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(r *ipv4.RawConn) {
 			_ = r.Close()
 		}(r)
@@ -296,6 +298,7 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 			if err := r.JoinGroup(ifi, tt.grp); err != nil {
 				t.Fatal(err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(r *ipv4.RawConn, ifi *net.Interface, group net.Addr) {
 				_ = r.LeaveGroup(ifi, group)
 			}(r, ifi, tt.grp)
@@ -309,6 +312,7 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(r *ipv4.RawConn, ifi *net.Interface, group, source net.Addr) {
 				_ = r.LeaveSourceSpecificGroup(ifi, group, source)
 			}(r, ifi, tt.grp, tt.src)
