@@ -281,18 +281,24 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 
 		r, err := ipv4.NewRawConn(c)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer r.Close()
+		defer func(r *ipv4.RawConn) {
+			_ = r.Close()
+		}(r)
 		if tt.src == nil {
 			if err := r.JoinGroup(ifi, tt.grp); err != nil {
 				t.Fatal(err)
 			}
-			defer r.LeaveGroup(ifi, tt.grp)
+			defer func(r *ipv4.RawConn, ifi *net.Interface, group net.Addr) {
+				_ = r.LeaveGroup(ifi, group)
+			}(r, ifi, tt.grp)
 		} else {
 			if err := r.JoinSourceSpecificGroup(ifi, tt.grp, tt.src); err != nil {
 				switch runtime.GOOS {
@@ -303,7 +309,9 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
-			defer r.LeaveSourceSpecificGroup(ifi, tt.grp, tt.src)
+			defer func(r *ipv4.RawConn, ifi *net.Interface, group, source net.Addr) {
+				_ = r.LeaveSourceSpecificGroup(ifi, group, source)
+			}(r, ifi, tt.grp, tt.src)
 		}
 		if err := r.SetMulticastInterface(ifi); err != nil {
 			t.Fatal(err)
@@ -348,7 +356,7 @@ func TestRawConnReadWriteMulticastICMP(t *testing.T) {
 			if err := r.SetDeadline(time.Now().Add(200 * time.Millisecond)); err != nil {
 				t.Fatal(err)
 			}
-			r.SetMulticastTTL(i + 1)
+			_ = r.SetMulticastTTL(i + 1)
 			if err := r.WriteTo(wh, wb, nil); err != nil {
 				t.Fatal(err)
 			}
