@@ -261,7 +261,10 @@ func TestIPPerInterfaceSingleRawConnWithSingleGroupListener(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		//goland:noinspection GoDeferInLoop
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		r, err := ipv4.NewRawConn(c)
 		if err != nil {
 			t.Fatal(err)
