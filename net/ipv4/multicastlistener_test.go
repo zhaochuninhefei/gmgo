@@ -159,7 +159,10 @@ func TestUDPPerInterfaceSinglePacketConnWithSingleGroupListener(t *testing.T) {
 			t.Log(err)
 			continue
 		}
-		defer c.Close()
+		//goland:noinspection GoDeferInLoop
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		if port == "0" {
 			_, port, err = net.SplitHostPort(c.LocalAddr().String())
 			if err != nil {
