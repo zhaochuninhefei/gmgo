@@ -88,12 +88,16 @@ func TestRawConnMulticastSocketOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		r, err := ipv4.NewRawConn(c)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer r.Close()
+		defer func(r *ipv4.RawConn) {
+			_ = r.Close()
+		}(r)
 
 		if tt.src == nil {
 			testMulticastSocketOptions(t, r, ifi, tt.grp)
