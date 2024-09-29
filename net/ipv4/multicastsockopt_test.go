@@ -88,6 +88,7 @@ func TestRawConnMulticastSocketOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c net.PacketConn) {
 			_ = c.Close()
 		}(c)
@@ -95,6 +96,7 @@ func TestRawConnMulticastSocketOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(r *ipv4.RawConn) {
 			_ = r.Close()
 		}(r)
