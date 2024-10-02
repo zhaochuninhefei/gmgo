@@ -357,7 +357,9 @@ func TestPacketConnConcurrentReadWriteUnicast(t *testing.T) {
 		if err != nil {
 			t.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		p := ipv4.NewPacketConn(c)
 		t.Run("ToFrom", func(t *testing.T) {
 			testPacketConnConcurrentReadWriteUnicast(t, p, datagram, c.LocalAddr(), false)
