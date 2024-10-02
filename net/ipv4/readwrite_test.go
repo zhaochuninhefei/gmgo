@@ -103,7 +103,9 @@ func BenchmarkPacketConnReadWriteUnicast(b *testing.B) {
 		if err != nil {
 			b.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		p := ipv4.NewPacketConn(c)
 		dst := c.LocalAddr()
 		cf := ipv4.FlagTTL | ipv4.FlagInterface
