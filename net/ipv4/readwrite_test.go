@@ -168,7 +168,9 @@ func BenchmarkPacketConnReadWriteUnicast(b *testing.B) {
 		if err != nil {
 			b.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		p := ipv4.NewPacketConn(c)
 		dst := c.LocalAddr()
 		cf := ipv4.FlagTTL | ipv4.FlagInterface
@@ -231,9 +233,13 @@ func TestPacketConnConcurrentReadWriteUnicastUDP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv4.NewPacketConn(c)
-	defer p.Close()
+	defer func(p *ipv4.PacketConn) {
+		_ = p.Close()
+	}(p)
 
 	dst := c.LocalAddr()
 	ifi, _ := nettest.RoutedInterface("ip4", net.FlagUp|net.FlagLoopback)
