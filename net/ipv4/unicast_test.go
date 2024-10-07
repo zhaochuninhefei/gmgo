@@ -128,7 +128,7 @@ func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 			}
 			t.Fatal(err)
 		}
-		p.SetTTL(i + 1)
+		_ = p.SetTTL(i + 1)
 		if err := p.SetWriteDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
 			t.Fatal(err)
 		}
