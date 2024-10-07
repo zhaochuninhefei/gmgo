@@ -12,14 +12,14 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/net/internal/socket"
 )
 
-func (so *sockOpt) setIPMreq(c *socket.Conn, ifi *net.Interface, grp net.IP) error {
+func (so *sockOpt) setIPMreq(_ *socket.Conn, _ *net.Interface, _ net.IP) error {
 	return errNotImplemented
 }
 
-func (so *sockOpt) getMulticastIf(c *socket.Conn) (*net.Interface, error) {
+func (so *sockOpt) getMulticastIf(_ *socket.Conn) (*net.Interface, error) {
 	return nil, errNotImplemented
 }
 
-func (so *sockOpt) setMulticastIf(c *socket.Conn, ifi *net.Interface) error {
+func (so *sockOpt) setMulticastIf(_ *socket.Conn, _ *net.Interface) error {
 	return errNotImplemented
 }
