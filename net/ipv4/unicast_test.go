@@ -92,14 +92,18 @@ func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 
 	dst, err := net.ResolveIPAddr("ip4", "127.0.0.1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	p := ipv4.NewPacketConn(c)
-	defer p.Close()
+	defer func(p *ipv4.PacketConn) {
+		_ = p.Close()
+	}(p)
 	cf := ipv4.FlagDst | ipv4.FlagInterface
 	if runtime.GOOS != "illumos" && runtime.GOOS != "solaris" {
 		// Illumos and Solaris never allow modification of ICMP properties.
