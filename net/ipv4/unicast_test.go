@@ -33,9 +33,13 @@ func TestPacketConnReadWriteUnicastUDP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv4.NewPacketConn(c)
-	defer p.Close()
+	defer func(p *ipv4.PacketConn) {
+		_ = p.Close()
+	}(p)
 
 	dst := c.LocalAddr()
 	cf := ipv4.FlagTTL | ipv4.FlagDst | ipv4.FlagInterface
@@ -49,7 +53,7 @@ func TestPacketConnReadWriteUnicastUDP(t *testing.T) {
 			}
 			t.Fatal(err)
 		}
-		p.SetTTL(i + 1)
+		_ = p.SetTTL(i + 1)
 		if err := p.SetWriteDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
 			t.Fatal(err)
 		}
