@@ -181,7 +181,9 @@ func TestRawConnReadWriteUnicastICMP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 
 	dst, err := net.ResolveIPAddr("ip4", "127.0.0.1")
 	if err != nil {
@@ -191,7 +193,9 @@ func TestRawConnReadWriteUnicastICMP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer r.Close()
+	defer func(r *ipv4.RawConn) {
+		_ = r.Close()
+	}(r)
 	cf := ipv4.FlagTTL | ipv4.FlagDst | ipv4.FlagInterface
 
 	for i, toggle := range []bool{true, false, true} {
