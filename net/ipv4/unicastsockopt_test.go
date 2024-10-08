@@ -82,7 +82,9 @@ func TestPacketConnUnicastSocketOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 
 		testUnicastSocketOptions(t, ipv4.NewPacketConn(c))
 	}
