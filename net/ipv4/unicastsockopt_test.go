@@ -106,7 +106,9 @@ func TestRawConnUnicastSocketOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 
 	r, err := ipv4.NewRawConn(c)
 	if err != nil {
