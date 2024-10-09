@@ -68,7 +68,7 @@ func (c *payloadHandler) ReadBatch(ms []Message, flags int) (int, error) {
 	}
 	switch runtime.GOOS {
 	case "linux":
-		n, err := c.RecvMsgs([]socket.Message(ms), flags)
+		n, err := c.RecvMsgs(ms, flags)
 		if err != nil {
 			err = &net.OpError{Op: "read", Net: c.PacketConn.LocalAddr().Network(), Source: c.PacketConn.LocalAddr(), Err: err}
 		}
