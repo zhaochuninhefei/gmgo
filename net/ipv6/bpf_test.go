@@ -27,7 +27,9 @@ func TestBPF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer l.Close()
+	defer func(l net.PacketConn) {
+		_ = l.Close()
+	}(l)
 
 	p := ipv6.NewPacketConn(l)
 
