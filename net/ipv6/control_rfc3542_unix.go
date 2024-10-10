@@ -45,7 +45,7 @@ func parseHopLimit(cm *ControlMessage, b []byte) {
 
 func marshalPacketInfo(b []byte, cm *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
-	m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_PKTINFO, sizeofInet6Pktinfo)
+	_ = m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_PKTINFO, sizeofInet6Pktinfo)
 	if cm != nil {
 		pi := (*inet6Pktinfo)(unsafe.Pointer(&m.Data(sizeofInet6Pktinfo)[0]))
 		if ip := cm.Src.To16(); ip != nil && ip.To4() == nil {
