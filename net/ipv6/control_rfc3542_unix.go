@@ -32,7 +32,7 @@ func parseTrafficClass(cm *ControlMessage, b []byte) {
 
 func marshalHopLimit(b []byte, cm *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
-	m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_HOPLIMIT, 4)
+	_ = m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_HOPLIMIT, 4)
 	if cm != nil {
 		socket.NativeEndian.PutUint32(m.Data(4), uint32(cm.HopLimit))
 	}
