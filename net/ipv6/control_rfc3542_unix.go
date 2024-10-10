@@ -82,7 +82,7 @@ func parseNextHop(cm *ControlMessage, b []byte) {
 
 func marshalPathMTU(b []byte, cm *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
-	m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_PATHMTU, sizeofIPv6Mtuinfo)
+	_ = m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_PATHMTU, sizeofIPv6Mtuinfo)
 	return m.Next(sizeofIPv6Mtuinfo)
 }
 
