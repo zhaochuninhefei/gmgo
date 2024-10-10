@@ -77,10 +77,10 @@ func marshalNextHop(b []byte, cm *ControlMessage) []byte {
 	return m.Next(sizeofSockaddrInet6)
 }
 
-func parseNextHop(cm *ControlMessage, b []byte) {
+func parseNextHop(_ *ControlMessage, _ []byte) {
 }
 
-func marshalPathMTU(b []byte, cm *ControlMessage) []byte {
+func marshalPathMTU(b []byte, _ *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
 	_ = m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_PATHMTU, sizeofIPv6Mtuinfo)
 	return m.Next(sizeofIPv6Mtuinfo)
