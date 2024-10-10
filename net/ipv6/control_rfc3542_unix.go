@@ -69,7 +69,7 @@ func parsePacketInfo(cm *ControlMessage, b []byte) {
 
 func marshalNextHop(b []byte, cm *ControlMessage) []byte {
 	m := socket.ControlMessage(b)
-	m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_NEXTHOP, sizeofSockaddrInet6)
+	_ = m.MarshalHeader(iana.ProtocolIPv6, unix.IPV6_NEXTHOP, sizeofSockaddrInet6)
 	if cm != nil {
 		sa := (*sockaddrInet6)(unsafe.Pointer(&m.Data(sizeofSockaddrInet6)[0]))
 		sa.setSockaddr(cm.NextHop, cm.IfIndex)
