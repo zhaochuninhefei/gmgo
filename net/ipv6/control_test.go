@@ -16,6 +16,6 @@ func TestControlMessageParseWithFuzz(t *testing.T) {
 		"\f\x00\x00\x00)\x00\x00\x00.\x00\x00\x00",
 		"\f\x00\x00\x00)\x00\x00\x00,\x00\x00\x00",
 	} {
-		cm.Parse([]byte(fuzz))
+		_ = cm.Parse([]byte(fuzz))
 	}
 }
