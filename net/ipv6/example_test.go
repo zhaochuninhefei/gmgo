@@ -116,7 +116,9 @@ func ExamplePacketConn_tracingIPPacketRoute() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv6.NewPacketConn(c)
 
 	if err := p.SetControlMessage(ipv6.FlagHopLimit|ipv6.FlagSrc|ipv6.FlagDst|ipv6.FlagInterface, true); err != nil {
