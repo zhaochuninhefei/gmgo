@@ -193,7 +193,9 @@ func ExamplePacketConn_advertisingOSPFHello() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv6.NewPacketConn(c)
 
 	en0, err := net.InterfaceByName("en0")
@@ -204,7 +206,9 @@ func ExamplePacketConn_advertisingOSPFHello() {
 	if err := p.JoinGroup(en0, &allSPFRouters); err != nil {
 		log.Fatal(err)
 	}
-	defer p.LeaveGroup(en0, &allSPFRouters)
+	defer func(p *ipv6.PacketConn, ifi *net.Interface, group net.Addr) {
+		_ = p.LeaveGroup(ifi, group)
+	}(p, en0, &allSPFRouters)
 
 	hello := make([]byte, 24) // fake hello data, you need to implement this
 	ospf := make([]byte, 16)  // fake ospf header, you need to implement this
