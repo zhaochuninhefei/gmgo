@@ -23,8 +23,8 @@ func protocolNotSupported(err error) bool {
 	case *os.SyscallError:
 		switch err := err.Err.(type) {
 		case syscall.Errno:
-			switch err {
-			case syscall.EPROTONOSUPPORT, syscall.ENOPROTOOPT:
+			switch {
+			case errors.Is(err, syscall.EPROTONOSUPPORT), errors.Is(err, syscall.ENOPROTOOPT):
 				return true
 			}
 		}
