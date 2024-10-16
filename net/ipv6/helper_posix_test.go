@@ -7,6 +7,7 @@
 package ipv6_test
 
 import (
+	"errors"
 	"os"
 	"syscall"
 )
@@ -15,8 +16,8 @@ func protocolNotSupported(err error) bool {
 	//goland:noinspection GoTypeAssertionOnErrors
 	switch err := err.(type) {
 	case syscall.Errno:
-		switch err {
-		case syscall.EPROTONOSUPPORT, syscall.ENOPROTOOPT:
+		switch {
+		case errors.Is(err, syscall.EPROTONOSUPPORT), errors.Is(err, syscall.ENOPROTOOPT):
 			return true
 		}
 	case *os.SyscallError:
