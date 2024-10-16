@@ -12,6 +12,7 @@ import (
 )
 
 func protocolNotSupported(err error) bool {
+	//goland:noinspection GoTypeAssertionOnErrors
 	switch err := err.(type) {
 	case syscall.Errno:
 		switch err {
