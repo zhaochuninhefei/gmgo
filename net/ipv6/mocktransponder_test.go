@@ -18,7 +18,7 @@ func connector(t *testing.T, network, addr string, done chan<- bool) {
 		t.Error(err)
 		return
 	}
-	c.Close()
+	_ = c.Close()
 }
 
 func acceptor(t *testing.T, ln net.Listener, done chan<- bool) {
@@ -30,5 +30,5 @@ func acceptor(t *testing.T, ln net.Listener, done chan<- bool) {
 		t.Error(err)
 		return
 	}
-	c.Close()
+	_ = c.Close()
 }
