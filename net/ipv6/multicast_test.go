@@ -48,17 +48,23 @@ func TestPacketConnReadWriteMulticastUDP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 
 		grp := *tt.grp
 		grp.Port = c.LocalAddr().(*net.UDPAddr).Port
 		p := ipv6.NewPacketConn(c)
-		defer p.Close()
+		defer func(p *ipv6.PacketConn) {
+			_ = p.Close()
+		}(p)
 		if tt.src == nil {
 			if err := p.JoinGroup(ifi, &grp); err != nil {
 				t.Fatal(err)
 			}
-			defer p.LeaveGroup(ifi, &grp)
+			defer func(p *ipv6.PacketConn, ifi *net.Interface, group net.Addr) {
+				_ = p.LeaveGroup(ifi, group)
+			}(p, ifi, &grp)
 		} else {
 			if err := p.JoinSourceSpecificGroup(ifi, &grp, tt.src); err != nil {
 				switch runtime.GOOS {
@@ -69,7 +75,9 @@ func TestPacketConnReadWriteMulticastUDP(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
-			defer p.LeaveSourceSpecificGroup(ifi, &grp, tt.src)
+			defer func(p *ipv6.PacketConn, ifi *net.Interface, group, source net.Addr) {
+				_ = p.LeaveSourceSpecificGroup(ifi, group, source)
+			}(p, ifi, &grp, tt.src)
 		}
 		if err := p.SetMulticastInterface(ifi); err != nil {
 			t.Fatal(err)
