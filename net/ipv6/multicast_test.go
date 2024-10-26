@@ -174,16 +174,22 @@ func TestPacketConnReadWriteMulticastICMP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 
 		pshicmp := icmp.IPv6PseudoHeader(c.LocalAddr().(*net.IPAddr).IP, tt.grp.IP)
 		p := ipv6.NewPacketConn(c)
-		defer p.Close()
+		defer func(p *ipv6.PacketConn) {
+			_ = p.Close()
+		}(p)
 		if tt.src == nil {
 			if err := p.JoinGroup(ifi, tt.grp); err != nil {
 				t.Fatal(err)
 			}
-			defer p.LeaveGroup(ifi, tt.grp)
+			defer func(p *ipv6.PacketConn, ifi *net.Interface, group net.Addr) {
+				_ = p.LeaveGroup(ifi, group)
+			}(p, ifi, tt.grp)
 		} else {
 			if err := p.JoinSourceSpecificGroup(ifi, tt.grp, tt.src); err != nil {
 				switch runtime.GOOS {
@@ -194,7 +200,9 @@ func TestPacketConnReadWriteMulticastICMP(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
-			defer p.LeaveSourceSpecificGroup(ifi, tt.grp, tt.src)
+			defer func(p *ipv6.PacketConn, ifi *net.Interface, group, source net.Addr) {
+				_ = p.LeaveSourceSpecificGroup(ifi, group, source)
+			}(p, ifi, tt.grp, tt.src)
 		}
 		if err := p.SetMulticastInterface(ifi); err != nil {
 			t.Fatal(err)
@@ -239,7 +247,7 @@ func TestPacketConnReadWriteMulticastICMP(t *testing.T) {
 				// Some platforms never allow to
 				// disable the kernel checksum
 				// processing.
-				p.SetChecksum(false, -1)
+				_ = p.SetChecksum(false, -1)
 			}
 			wb, err := (&icmp.Message{
 				Type: ipv6.ICMPTypeEchoRequest, Code: 0,
