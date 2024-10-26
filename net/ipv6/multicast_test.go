@@ -48,6 +48,7 @@ func TestPacketConnReadWriteMulticastUDP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c net.PacketConn) {
 			_ = c.Close()
 		}(c)
@@ -55,6 +56,7 @@ func TestPacketConnReadWriteMulticastUDP(t *testing.T) {
 		grp := *tt.grp
 		grp.Port = c.LocalAddr().(*net.UDPAddr).Port
 		p := ipv6.NewPacketConn(c)
+		//goland:noinspection GoDeferInLoop
 		defer func(p *ipv6.PacketConn) {
 			_ = p.Close()
 		}(p)
@@ -62,6 +64,7 @@ func TestPacketConnReadWriteMulticastUDP(t *testing.T) {
 			if err := p.JoinGroup(ifi, &grp); err != nil {
 				t.Fatal(err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(p *ipv6.PacketConn, ifi *net.Interface, group net.Addr) {
 				_ = p.LeaveGroup(ifi, group)
 			}(p, ifi, &grp)
@@ -75,6 +78,7 @@ func TestPacketConnReadWriteMulticastUDP(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(p *ipv6.PacketConn, ifi *net.Interface, group, source net.Addr) {
 				_ = p.LeaveSourceSpecificGroup(ifi, group, source)
 			}(p, ifi, &grp, tt.src)
