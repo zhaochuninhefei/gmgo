@@ -178,12 +178,14 @@ func TestPacketConnReadWriteMulticastICMP(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c net.PacketConn) {
 			_ = c.Close()
 		}(c)
 
 		pshicmp := icmp.IPv6PseudoHeader(c.LocalAddr().(*net.IPAddr).IP, tt.grp.IP)
 		p := ipv6.NewPacketConn(c)
+		//goland:noinspection GoDeferInLoop
 		defer func(p *ipv6.PacketConn) {
 			_ = p.Close()
 		}(p)
@@ -191,6 +193,7 @@ func TestPacketConnReadWriteMulticastICMP(t *testing.T) {
 			if err := p.JoinGroup(ifi, tt.grp); err != nil {
 				t.Fatal(err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(p *ipv6.PacketConn, ifi *net.Interface, group net.Addr) {
 				_ = p.LeaveGroup(ifi, group)
 			}(p, ifi, tt.grp)
@@ -204,6 +207,7 @@ func TestPacketConnReadWriteMulticastICMP(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
+			//goland:noinspection GoDeferInLoop
 			defer func(p *ipv6.PacketConn, ifi *net.Interface, group, source net.Addr) {
 				_ = p.LeaveSourceSpecificGroup(ifi, group, source)
 			}(p, ifi, tt.grp, tt.src)
