@@ -33,7 +33,9 @@ func TestUDPSinglePacketConnWithMultipleGroupListeners(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 
 		p := ipv6.NewPacketConn(c)
 		var mift []*net.Interface
