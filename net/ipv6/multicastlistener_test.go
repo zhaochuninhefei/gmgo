@@ -260,6 +260,7 @@ func TestIPPerInterfaceSinglePacketConnWithSingleGroupListener(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c net.PacketConn) {
 			_ = c.Close()
 		}(c)
