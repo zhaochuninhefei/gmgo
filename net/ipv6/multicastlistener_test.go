@@ -76,6 +76,7 @@ func TestUDPMultiplePacketConnWithMultipleGroupListeners(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c1 net.PacketConn) {
 			_ = c1.Close()
 		}(c1)
