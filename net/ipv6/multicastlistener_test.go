@@ -75,7 +75,9 @@ func TestUDPMultiplePacketConnWithMultipleGroupListeners(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c1.Close()
+		defer func(c1 net.PacketConn) {
+			_ = c1.Close()
+		}(c1)
 		_, port, err := net.SplitHostPort(c1.LocalAddr().String())
 		if err != nil {
 			t.Fatal(err)
@@ -84,7 +86,9 @@ func TestUDPMultiplePacketConnWithMultipleGroupListeners(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c2.Close()
+		defer func(c2 net.PacketConn) {
+			_ = c2.Close()
+		}(c2)
 
 		var ps [2]*ipv6.PacketConn
 		ps[0] = ipv6.NewPacketConn(c1)
