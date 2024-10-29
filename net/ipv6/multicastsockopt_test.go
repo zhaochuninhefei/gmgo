@@ -47,10 +47,12 @@ func TestPacketConnMulticastSocketOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(c net.PacketConn) {
 			_ = c.Close()
 		}(c)
 		p := ipv6.NewPacketConn(c)
+		//goland:noinspection GoDeferInLoop
 		defer func(p *ipv6.PacketConn) {
 			_ = p.Close()
 		}(p)
