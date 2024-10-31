@@ -169,7 +169,9 @@ func BenchmarkPacketConnReadWriteUnicast(b *testing.B) {
 		if err != nil {
 			b.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 		}
-		defer c.Close()
+		defer func(c net.PacketConn) {
+			_ = c.Close()
+		}(c)
 		p := ipv6.NewPacketConn(c)
 		dst := c.LocalAddr()
 		cf := ipv6.FlagTrafficClass | ipv6.FlagHopLimit | ipv6.FlagSrc | ipv6.FlagDst | ipv6.FlagInterface | ipv6.FlagPathMTU
