@@ -389,7 +389,7 @@ func testPacketConnConcurrentReadWriteUnicast(t *testing.T, p *ipv6.PacketConn, 
 		first := false
 		firstError.Do(func() {
 			first = true
-			p.Close()
+			_ = p.Close()
 		})
 		if first {
 			t.Helper()
