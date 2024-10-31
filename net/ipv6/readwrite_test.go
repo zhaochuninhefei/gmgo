@@ -29,7 +29,9 @@ func BenchmarkReadWriteUnicast(b *testing.B) {
 	if err != nil {
 		b.Skipf("not supported on %s/%s: %v", runtime.GOOS, runtime.GOARCH, err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 
 	dst := c.LocalAddr()
 	wb, rb := []byte("HELLO-R-U-THERE"), make([]byte, 128)
