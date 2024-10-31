@@ -237,9 +237,13 @@ func TestPacketConnConcurrentReadWriteUnicastUDP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.PacketConn) {
+		_ = c.Close()
+	}(c)
 	p := ipv6.NewPacketConn(c)
-	defer p.Close()
+	defer func(p *ipv6.PacketConn) {
+		_ = p.Close()
+	}(p)
 
 	dst := c.LocalAddr()
 	ifi, _ := nettest.RoutedInterface("ip6", net.FlagUp|net.FlagLoopback)
