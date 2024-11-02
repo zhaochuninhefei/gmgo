@@ -28,7 +28,9 @@ func TestConnInitiatorPathMTU(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	done := make(chan bool)
 	go acceptor(t, ln, done)
@@ -37,7 +39,9 @@ func TestConnInitiatorPathMTU(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 
 	if pmtu, err := ipv6.NewConn(c).PathMTU(); err != nil {
 		t.Fatal(err)
