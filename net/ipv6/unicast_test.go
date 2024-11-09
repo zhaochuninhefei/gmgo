@@ -144,7 +144,7 @@ func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 			psh = pshicmp
 			// Some platforms never allow to disable the
 			// kernel checksum processing.
-			p.SetChecksum(false, -1)
+			_ = p.SetChecksum(false, -1)
 		}
 		wb, err := (&icmp.Message{
 			Type: ipv6.ICMPTypeEchoRequest, Code: 0,
