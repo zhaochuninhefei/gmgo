@@ -27,7 +27,9 @@ func TestConnUnicastSocketOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 
 	errc := make(chan error, 1)
 	go func() {
