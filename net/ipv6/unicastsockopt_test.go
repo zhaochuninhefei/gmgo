@@ -45,7 +45,9 @@ func TestConnUnicastSocketOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 
 	testUnicastSocketOptions(t, ipv6.NewConn(c))
 
