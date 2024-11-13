@@ -175,12 +175,14 @@ func testRacyRead(t *testing.T, c1, c2 net.Conn) {
 // testRacyWrite tests that it is safe to mutate the input Write buffer
 // immediately after cancelation has occurred.
 func testRacyWrite(t *testing.T, c1, c2 net.Conn) {
-	go chunkedCopy(ioutil.Discard, c2)
+	go func() {
+		_ = chunkedCopy(ioutil.Discard, c2)
+	}()
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	c1.SetWriteDeadline(time.Now().Add(time.Millisecond))
+	_ = c1.SetWriteDeadline(time.Now().Add(time.Millisecond))
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
@@ -193,7 +195,7 @@ func testRacyWrite(t *testing.T, c1, c2 net.Conn) {
 				copy(b1, b2) // Mutate b1 to trigger potential race
 				if err != nil {
 					checkForTimeoutError(t, err)
-					c1.SetWriteDeadline(time.Now().Add(time.Millisecond))
+					_ = c1.SetWriteDeadline(time.Now().Add(time.Millisecond))
 				}
 			}
 		}()
