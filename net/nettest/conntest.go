@@ -447,7 +447,7 @@ func testRoundtrip(t *testing.T, c net.Conn) {
 // It assumes that 0xff is not currently on the wire or in the read buffer.
 func resyncConn(t *testing.T, c net.Conn) {
 	t.Helper()
-	c.SetDeadline(neverTimeout)
+	_ = c.SetDeadline(neverTimeout)
 	errCh := make(chan error)
 	go func() {
 		_, err := c.Write([]byte{0xff})
