@@ -299,7 +299,7 @@ func testFutureTimeout(t *testing.T, c1, c2 net.Conn) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	c1.SetDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = c1.SetDeadline(time.Now().Add(100 * time.Millisecond))
 	go func() {
 		defer wg.Done()
 		_, err := c1.Read(make([]byte, 1024))
@@ -315,7 +315,9 @@ func testFutureTimeout(t *testing.T, c1, c2 net.Conn) {
 	}()
 	wg.Wait()
 
-	go chunkedCopy(c2, c2)
+	go func() {
+		_ = chunkedCopy(c2, c2)
+	}()
 	resyncConn(t, c1)
 	testRoundtrip(t, c1)
 }
