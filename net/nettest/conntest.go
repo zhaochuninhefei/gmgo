@@ -325,18 +325,20 @@ func testFutureTimeout(t *testing.T, c1, c2 net.Conn) {
 // testCloseTimeout tests that calling Close immediately times out pending
 // Read and Write operations.
 func testCloseTimeout(t *testing.T, c1, c2 net.Conn) {
-	go chunkedCopy(c2, c2)
+	go func() {
+		_ = chunkedCopy(c2, c2)
+	}()
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	wg.Add(3)
 
 	// Test for cancelation upon connection closure.
-	c1.SetDeadline(neverTimeout)
+	_ = c1.SetDeadline(neverTimeout)
 	go func() {
 		defer wg.Done()
 		time.Sleep(100 * time.Millisecond)
-		c1.Close()
+		_ = c1.Close()
 	}()
 	go func() {
 		defer wg.Done()
