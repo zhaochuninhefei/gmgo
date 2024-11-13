@@ -364,7 +364,9 @@ func testConcurrentMethods(t *testing.T, c1, c2 net.Conn) {
 	if runtime.GOOS == "plan9" {
 		t.Skip("skipping on plan9; see https://golang.org/issue/20489")
 	}
-	go chunkedCopy(c2, c2)
+	go func() {
+		_ = chunkedCopy(c2, c2)
+	}()
 
 	// The results of the calls may be nonsensical, but this should
 	// not trigger a race detector warning.
