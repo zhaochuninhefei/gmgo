@@ -145,12 +145,14 @@ func testPingPong(t *testing.T, c1, c2 net.Conn) {
 // testRacyRead tests that it is safe to mutate the input Read buffer
 // immediately after cancelation has occurred.
 func testRacyRead(t *testing.T, c1, c2 net.Conn) {
-	go chunkedCopy(c2, rand.New(rand.NewSource(0)))
+	go func() {
+		_ = chunkedCopy(c2, rand.New(rand.NewSource(0)))
+	}()
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	c1.SetReadDeadline(time.Now().Add(time.Millisecond))
+	_ = c1.SetReadDeadline(time.Now().Add(time.Millisecond))
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
@@ -163,7 +165,7 @@ func testRacyRead(t *testing.T, c1, c2 net.Conn) {
 				copy(b1, b2) // Mutate b1 to trigger potential race
 				if err != nil {
 					checkForTimeoutError(t, err)
-					c1.SetReadDeadline(time.Now().Add(time.Millisecond))
+					_ = c1.SetReadDeadline(time.Now().Add(time.Millisecond))
 				}
 			}
 		}()
