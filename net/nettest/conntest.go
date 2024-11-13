@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"runtime"
@@ -176,7 +175,7 @@ func testRacyRead(t *testing.T, c1, c2 net.Conn) {
 // immediately after cancelation has occurred.
 func testRacyWrite(t *testing.T, c1, c2 net.Conn) {
 	go func() {
-		_ = chunkedCopy(ioutil.Discard, c2)
+		_ = chunkedCopy(io.Discard, c2)
 	}()
 
 	var wg sync.WaitGroup
@@ -205,7 +204,7 @@ func testRacyWrite(t *testing.T, c1, c2 net.Conn) {
 // testReadTimeout tests that Read timeouts do not affect Write.
 func testReadTimeout(t *testing.T, c1, c2 net.Conn) {
 	go func() {
-		_ = chunkedCopy(ioutil.Discard, c2)
+		_ = chunkedCopy(io.Discard, c2)
 	}()
 
 	_ = c1.SetReadDeadline(aLongTimeAgo)
