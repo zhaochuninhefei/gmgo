@@ -375,23 +375,23 @@ func testConcurrentMethods(t *testing.T, c1, c2 net.Conn) {
 		wg.Add(7)
 		go func() {
 			defer wg.Done()
-			c1.Read(make([]byte, 1024))
+			_, _ = c1.Read(make([]byte, 1024))
 		}()
 		go func() {
 			defer wg.Done()
-			c1.Write(make([]byte, 1024))
+			_, _ = c1.Write(make([]byte, 1024))
 		}()
 		go func() {
 			defer wg.Done()
-			c1.SetDeadline(time.Now().Add(10 * time.Millisecond))
+			_ = c1.SetDeadline(time.Now().Add(10 * time.Millisecond))
 		}()
 		go func() {
 			defer wg.Done()
-			c1.SetReadDeadline(aLongTimeAgo)
+			_ = c1.SetReadDeadline(aLongTimeAgo)
 		}()
 		go func() {
 			defer wg.Done()
-			c1.SetWriteDeadline(aLongTimeAgo)
+			_ = c1.SetWriteDeadline(aLongTimeAgo)
 		}()
 		go func() {
 			defer wg.Done()
