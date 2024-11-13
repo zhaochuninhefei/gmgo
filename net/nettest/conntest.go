@@ -7,6 +7,7 @@ package nettest
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"math/rand"
 	"net"
@@ -411,12 +412,11 @@ func testConcurrentMethods(t *testing.T, c1, c2 net.Conn) {
 // and that Timeout returns true.
 func checkForTimeoutError(t *testing.T, err error) {
 	t.Helper()
-	if nerr, ok := err.(net.Error); ok {
+	var nerr net.Error
+	if errors.As(err, &nerr) {
 		if !nerr.Timeout() {
 			t.Errorf("err.Timeout() = false, want true")
 		}
-	} else {
-		t.Errorf("got %T, want net.Error", err)
 	}
 }
 
