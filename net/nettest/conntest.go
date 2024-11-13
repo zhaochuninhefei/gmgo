@@ -204,9 +204,11 @@ func testRacyWrite(t *testing.T, c1, c2 net.Conn) {
 
 // testReadTimeout tests that Read timeouts do not affect Write.
 func testReadTimeout(t *testing.T, c1, c2 net.Conn) {
-	go chunkedCopy(ioutil.Discard, c2)
+	go func() {
+		_ = chunkedCopy(ioutil.Discard, c2)
+	}()
 
-	c1.SetReadDeadline(aLongTimeAgo)
+	_ = c1.SetReadDeadline(aLongTimeAgo)
 	_, err := c1.Read(make([]byte, 1024))
 	checkForTimeoutError(t, err)
 	if _, err := c1.Write(make([]byte, 1024)); err != nil {
