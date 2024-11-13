@@ -255,7 +255,7 @@ func testPastTimeout(t *testing.T, c1, c2 net.Conn) {
 
 // testPresentTimeout tests that a past deadline set while there are pending
 // Read and Write operations immediately times out those operations.
-func testPresentTimeout(t *testing.T, c1, c2 net.Conn) {
+func testPresentTimeout(t *testing.T, c1, _ net.Conn) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	wg.Add(3)
