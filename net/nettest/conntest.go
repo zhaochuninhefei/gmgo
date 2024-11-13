@@ -323,7 +323,7 @@ func testFutureTimeout(t *testing.T, c1, c2 net.Conn) {
 
 // testCloseTimeout tests that calling Close immediately times out pending
 // Read and Write operations.
-func testCloseTimeout(t *testing.T, c1, c2 net.Conn) {
+func testCloseTimeout(_ *testing.T, c1, c2 net.Conn) {
 	go func() {
 		_ = chunkedCopy(c2, c2)
 	}()
