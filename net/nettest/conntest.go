@@ -233,11 +233,13 @@ func testWriteTimeout(t *testing.T, c1, c2 net.Conn) {
 // testPastTimeout tests that a deadline set in the past immediately times out
 // Read and Write requests.
 func testPastTimeout(t *testing.T, c1, c2 net.Conn) {
-	go chunkedCopy(c2, c2)
+	go func() {
+		_ = chunkedCopy(c2, c2)
+	}()
 
 	testRoundtrip(t, c1)
 
-	c1.SetDeadline(aLongTimeAgo)
+	_ = c1.SetDeadline(aLongTimeAgo)
 	n, err := c1.Write(make([]byte, 1024))
 	if n != 0 {
 		t.Errorf("unexpected Write count: got %d, want 0", n)
