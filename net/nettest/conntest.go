@@ -266,8 +266,8 @@ func testPresentTimeout(t *testing.T, c1, c2 net.Conn) {
 		defer wg.Done()
 		time.Sleep(100 * time.Millisecond)
 		deadlineSet <- true
-		c1.SetReadDeadline(aLongTimeAgo)
-		c1.SetWriteDeadline(aLongTimeAgo)
+		_ = c1.SetReadDeadline(aLongTimeAgo)
+		_ = c1.SetWriteDeadline(aLongTimeAgo)
 	}()
 	go func() {
 		defer wg.Done()
