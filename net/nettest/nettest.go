@@ -225,8 +225,8 @@ func LocalPath() (string, error) {
 		return "", err
 	}
 	path := f.Name()
-	f.Close()
-	os.Remove(path)
+	_ = f.Close()
+	_ = os.Remove(path)
 	return path, nil
 }
 
