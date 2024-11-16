@@ -35,11 +35,11 @@ var (
 
 func probeStack() {
 	if ln, err := net.Listen("tcp4", "127.0.0.1:0"); err == nil {
-		ln.Close()
+		_ = ln.Close()
 		ipv4Enabled = true
 	}
 	if ln, err := net.Listen("tcp6", "[::1]:0"); err == nil {
-		ln.Close()
+		_ = ln.Close()
 		ipv6Enabled = true
 	}
 	rawSocketSess = supportsRawSocket()
