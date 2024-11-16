@@ -251,6 +251,8 @@ func MulticastSource(network string, ifi *net.Interface) (net.IP, error) {
 
 // LoopbackInterface returns an available logical network interface
 // for loopback test.
+//
+//goland:noinspection GoUnusedExportedFunction
 func LoopbackInterface() (*net.Interface, error) {
 	ift, err := net.Interfaces()
 	if err != nil {
