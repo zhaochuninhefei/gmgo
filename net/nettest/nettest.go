@@ -137,6 +137,8 @@ func TestableNetwork(network string) bool {
 
 // TestableAddress reports whether address of network is testable on
 // the current platform configuration.
+//
+//goland:noinspection GoUnusedExportedFunction
 func TestableAddress(network, address string) bool {
 	switch ss := strings.Split(network, ":"); ss[0] {
 	case "unix", "unixgram", "unixpacket":
