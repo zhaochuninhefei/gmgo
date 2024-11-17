@@ -14,7 +14,7 @@ func supportsRawSocket() bool {
 		if err != nil {
 			continue
 		}
-		syscall.Close(s)
+		_ = syscall.Close(s)
 		return true
 	}
 	return false
