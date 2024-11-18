@@ -56,7 +56,7 @@ func (l *limitListener) Accept() (net.Conn, error) {
 			if err != nil {
 				return nil, err
 			}
-			c.Close()
+			_ = c.Close()
 		}
 	}
 
