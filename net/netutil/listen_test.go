@@ -17,16 +17,16 @@ import (
 
 func TestLimitListenerOverload(t *testing.T) {
 	const (
-		max      = 5
-		attempts = max * 2
-		msg      = "bye\n"
+		maxPrivate = 5
+		attempts   = maxPrivate * 2
+		msg        = "bye\n"
 	)
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	l = LimitListener(l, max)
+	l = LimitListener(l, maxPrivate)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -41,7 +41,7 @@ func TestLimitListenerOverload(t *testing.T) {
 				break
 			}
 			accepted++
-			if accepted == max {
+			if accepted == maxPrivate {
 				close(saturated)
 			}
 			io.WriteString(c, msg)
@@ -49,13 +49,13 @@ func TestLimitListenerOverload(t *testing.T) {
 			// Leave c open until the listener is closed.
 			defer c.Close()
 		}
-		t.Logf("with limit %d, accepted %d simultaneous connections", max, accepted)
+		t.Logf("with limit %d, accepted %d simultaneous connections", maxPrivate, accepted)
 		// The listener accounts open connections based on Listener-side Close
 		// calls, so even if the client hangs up early (for example, because it
 		// was a random dial from another process instead of from this test), we
 		// should not end up accepting more connections than expected.
-		if accepted != max {
-			t.Errorf("want exactly %d", max)
+		if accepted != maxPrivate {
+			t.Errorf("want exactly %d", maxPrivate)
 		}
 	}()
 
@@ -80,8 +80,8 @@ func TestLimitListenerOverload(t *testing.T) {
 			atomic.AddInt32(&dialed, 1)
 			defer c.Close()
 
-			// The kernel may queue more than max connections (allowing their dials to
-			// succeed), but only max of them should actually be accepted by the
+			// The kernel may queue more than maxPrivate connections (allowing their dials to
+			// succeed), but only maxPrivate of them should actually be accepted by the
 			// server. We can distinguish the two based on whether the listener writes
 			// anything to the connection — a connection that was queued but not
 			// accepted will be closed without transferring any data.
@@ -109,10 +109,10 @@ func TestLimitListenerOverload(t *testing.T) {
 
 	// If some other process (such as a port scan or another test) happens to dial
 	// the listener at the same time, the listener could end up burning its quota
-	// on that, resulting in fewer than max test connections being served.
+	// on that, resulting in fewer than maxPrivate test connections being served.
 	// But the number served certainly cannot be greater.
-	if served > max {
-		t.Errorf("expected at most %d served", max)
+	if served > maxPrivate {
+		t.Errorf("expected at most %d served", maxPrivate)
 	}
 }
 
