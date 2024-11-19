@@ -44,10 +44,12 @@ func TestLimitListenerOverload(t *testing.T) {
 			if accepted == maxPrivate {
 				close(saturated)
 			}
-			io.WriteString(c, msg)
+			_, _ = io.WriteString(c, msg)
 
 			// Leave c open until the listener is closed.
-			defer c.Close()
+			defer func(c net.Conn) {
+				_ = c.Close()
+			}(c)
 		}
 		t.Logf("with limit %d, accepted %d simultaneous connections", maxPrivate, accepted)
 		// The listener accounts open connections based on Listener-side Close
@@ -78,7 +80,9 @@ func TestLimitListenerOverload(t *testing.T) {
 				return
 			}
 			atomic.AddInt32(&dialed, 1)
-			defer c.Close()
+			defer func(c net.Conn) {
+				_ = c.Close()
+			}(c)
 
 			// The kernel may queue more than maxPrivate connections (allowing their dials to
 			// succeed), but only maxPrivate of them should actually be accepted by the
@@ -102,7 +106,7 @@ func TestLimitListenerOverload(t *testing.T) {
 	// Wait for the dials to complete to ensure that the port isn't reused before
 	// the dials are actually attempted.
 	pendingDials.Wait()
-	l.Close()
+	_ = l.Close()
 	wg.Wait()
 
 	t.Logf("served %d simultaneous connections (of %d dialed, %d attempted)", served, dialed, attempts)
