@@ -118,8 +118,8 @@ func TestLimitListenerOverload(t *testing.T) {
 
 func TestLimitListenerSaturation(t *testing.T) {
 	const (
-		max             = 5
-		attemptsPerWave = max * 2
+		maxPrivate      = 5
+		attemptsPerWave = maxPrivate * 2
 		waves           = 10
 		msg             = "bye\n"
 	)
@@ -128,7 +128,7 @@ func TestLimitListenerSaturation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	l = LimitListener(l, max)
+	l = LimitListener(l, maxPrivate)
 
 	acceptDone := make(chan struct{})
 	defer func() {
@@ -151,7 +151,7 @@ func TestLimitListenerSaturation(t *testing.T) {
 			}
 			if n := atomic.AddInt32(&open, 1); n > peakOpen {
 				peakOpen = n
-				if n == max {
+				if n == maxPrivate {
 					saturatedOnce.Do(func() {
 						// Wait a bit to make sure the listener doesn't exceed its limit
 						// after accepting this connection, then allow the in-flight
@@ -171,9 +171,9 @@ func TestLimitListenerSaturation(t *testing.T) {
 		}
 		wg.Wait()
 
-		t.Logf("with limit %d, accepted a peak of %d simultaneous connections", max, peakOpen)
-		if peakOpen > max {
-			t.Errorf("want at most %d", max)
+		t.Logf("with limit %d, accepted a peak of %d simultaneous connections", maxPrivate, peakOpen)
+		if peakOpen > maxPrivate {
+			t.Errorf("want at most %d", maxPrivate)
 		}
 	}()
 
@@ -206,11 +206,11 @@ func TestLimitListenerSaturation(t *testing.T) {
 
 		// Depending on the kernel's queueing behavior, we could get unlucky
 		// and drop one or more connections. However, we should certainly
-		// be able to serve at least max attempts out of each wave.
+		// be able to serve at least maxPrivate attempts out of each wave.
 		// (In the typical case, the kernel will queue all of the connections
 		// and they will all be served successfully.)
-		if dialed < max {
-			t.Errorf("expected at least %d dialed", max)
+		if dialed < maxPrivate {
+			t.Errorf("expected at least %d dialed", maxPrivate)
 		}
 		if served < dialed {
 			t.Errorf("expected all dialed connections to be served")
