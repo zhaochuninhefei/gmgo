@@ -282,7 +282,7 @@ func TestLimitListenerClose(t *testing.T) {
 
 	// Allow the subsequent Accept to block before closing the listener.
 	// (Accept should unblock and return.)
-	timer := time.AfterFunc(10*time.Millisecond, func() { ln.Close() })
+	timer := time.AfterFunc(10*time.Millisecond, func() { _ = ln.Close() })
 
 	c, err = ln.Accept()
 	if err == nil {
