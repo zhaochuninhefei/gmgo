@@ -251,7 +251,9 @@ func TestLimitListenerClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ln.Close()
+	defer func(ln net.Listener) {
+		_ = ln.Close()
+	}(ln)
 	ln = LimitListener(ln, 1)
 
 	errCh := make(chan error)
@@ -262,14 +264,16 @@ func TestLimitListenerClose(t *testing.T) {
 			errCh <- err
 			return
 		}
-		c.Close()
+		_ = c.Close()
 	}()
 
 	c, err := ln.Accept()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func(c net.Conn) {
+		_ = c.Close()
+	}(c)
 
 	err = <-errCh
 	if err != nil {
@@ -282,7 +286,7 @@ func TestLimitListenerClose(t *testing.T) {
 
 	c, err = ln.Accept()
 	if err == nil {
-		c.Close()
+		_ = c.Close()
 		t.Errorf("Unexpected successful Accept()")
 	}
 	if timer.Stop() {
