@@ -136,7 +136,7 @@ func TestLimitListenerSaturation(t *testing.T) {
 
 	acceptDone := make(chan struct{})
 	defer func() {
-		l.Close()
+		_ = l.Close()
 		<-acceptDone
 	}()
 	go func() {
@@ -167,9 +167,9 @@ func TestLimitListenerSaturation(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				<-saturated
-				io.WriteString(c, msg)
+				_, _ = io.WriteString(c, msg)
 				atomic.AddInt32(&open, -1)
-				c.Close()
+				_ = c.Close()
 				wg.Done()
 			}()
 		}
@@ -195,7 +195,9 @@ func TestLimitListenerSaturation(t *testing.T) {
 					return
 				}
 				atomic.AddInt32(&dialed, 1)
-				defer c.Close()
+				defer func(c net.Conn) {
+					_ = c.Close()
+				}(c)
 
 				if b, err := io.ReadAll(c); len(b) < len(msg) {
 					t.Log(err)
