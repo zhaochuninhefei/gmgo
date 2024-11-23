@@ -241,7 +241,7 @@ func TestLimitListenerError(t *testing.T) {
 	ll := LimitListener(errorListener{}, n)
 	for i := 0; i < n+1; i++ {
 		_, err := ll.Accept()
-		if err != errFake {
+		if !errors.Is(err, errFake) {
 			t.Fatalf("Accept error = %v; want errFake", err)
 		}
 	}
