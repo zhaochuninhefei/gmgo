@@ -47,6 +47,7 @@ func TestLimitListenerOverload(t *testing.T) {
 			_, _ = io.WriteString(c, msg)
 
 			// Leave c open until the listener is closed.
+			//goland:noinspection GoDeferInLoop
 			defer func(c net.Conn) {
 				_ = c.Close()
 			}(c)
