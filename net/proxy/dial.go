@@ -42,7 +42,7 @@ func dialContext(ctx context.Context, d Dialer, network, address string) (net.Co
 		conn, err = d.Dial(network, address)
 		close(done)
 		if conn != nil && ctx.Err() != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 	}()
 	select {
