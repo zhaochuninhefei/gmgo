@@ -7,6 +7,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -23,14 +24,16 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer l.Close()
+		defer func(l net.Listener) {
+			_ = l.Close()
+		}(l)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		c, err := Dial(ctx, l.Addr().Network(), l.Addr().String())
 		if err != nil {
 			t.Fatal(err)
 		}
-		c.Close()
+		_ = c.Close()
 	})
 	t.Run("DirectWithTimeout", func(t *testing.T) {
 		defer ResetProxyEnv()
