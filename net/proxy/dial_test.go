@@ -41,14 +41,16 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer l.Close()
+		defer func(l net.Listener) {
+			_ = l.Close()
+		}(l)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		c, err := Dial(ctx, l.Addr().Network(), l.Addr().String())
 		if err != nil {
 			t.Fatal(err)
 		}
-		c.Close()
+		_ = c.Close()
 	})
 	t.Run("DirectWithTimeoutExceeded", func(t *testing.T) {
 		defer ResetProxyEnv()
