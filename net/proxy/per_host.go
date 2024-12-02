@@ -58,8 +58,8 @@ func (p *PerHost) DialContext(ctx context.Context, network, addr string) (c net.
 
 func (p *PerHost) dialerForRequest(host string) Dialer {
 	if ip := net.ParseIP(host); ip != nil {
-		for _, net := range p.bypassNetworks {
-			if net.Contains(ip) {
+		for _, everyNet := range p.bypassNetworks {
+			if everyNet.Contains(ip) {
 				return p.bypass
 			}
 		}
