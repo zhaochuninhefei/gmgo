@@ -58,13 +58,17 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer l.Close()
+		defer func(l net.Listener) {
+			_ = l.Close()
+		}(l)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		time.Sleep(time.Millisecond)
 		defer cancel()
 		c, err := Dial(ctx, l.Addr().Network(), l.Addr().String())
 		if err == nil {
-			defer c.Close()
+			defer func(c net.Conn) {
+				_ = c.Close()
+			}(c)
 			t.Fatal("failed to timeout")
 		}
 	})
