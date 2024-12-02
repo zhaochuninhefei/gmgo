@@ -103,8 +103,8 @@ func (p *PerHost) AddFromString(s string) {
 		}
 		if strings.Contains(host, "/") {
 			// We assume that it's a CIDR address like 127.0.0.0/8
-			if _, net, err := net.ParseCIDR(host); err == nil {
-				p.AddNetwork(net)
+			if _, everyNet, err := net.ParseCIDR(host); err == nil {
+				p.AddNetwork(everyNet)
 			}
 			continue
 		}
