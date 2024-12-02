@@ -78,7 +78,9 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer s.Close()
+		defer func(s *sockstest.Server) {
+			_ = s.Close()
+		}(s)
 		if err = os.Setenv("ALL_PROXY", fmt.Sprintf("socks5://%s", s.Addr().String())); err != nil {
 			t.Fatal(err)
 		}
@@ -86,7 +88,7 @@ func TestDial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		c.Close()
+		_ = c.Close()
 	})
 	t.Run("SOCKS5WithTimeout", func(t *testing.T) {
 		defer ResetProxyEnv()
