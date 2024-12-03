@@ -16,7 +16,7 @@ type recordingProxy struct {
 	addrs []string
 }
 
-func (r *recordingProxy) Dial(network, addr string) (net.Conn, error) {
+func (r *recordingProxy) Dial(_, addr string) (net.Conn, error) {
 	r.addrs = append(r.addrs, addr)
 	return nil, errors.New("recordingProxy")
 }
