@@ -60,10 +60,10 @@ func TestPerHost(t *testing.T) {
 		perHost := NewPerHost(&def, &bypass)
 		perHost.AddFromString("localhost,*.zone,127.0.0.1,10.0.0.1/8,1000::/16")
 		for _, addr := range expectedDef {
-			perHost.DialContext(context.Background(), "tcp", addr)
+			_, _ = perHost.DialContext(context.Background(), "tcp", addr)
 		}
 		for _, addr := range expectedBypass {
-			perHost.DialContext(context.Background(), "tcp", addr)
+			_, _ = perHost.DialContext(context.Background(), "tcp", addr)
 		}
 
 		if !reflect.DeepEqual(expectedDef, def.addrs) {
