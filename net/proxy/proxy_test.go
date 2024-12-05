@@ -33,11 +33,11 @@ func (t proxyFromEnvTest) String() string {
 		}
 	}
 	if t.allProxyEnv != "" {
-		fmt.Fprintf(&buf, "all_proxy=%q", t.allProxyEnv)
+		_, _ = fmt.Fprintf(&buf, "all_proxy=%q", t.allProxyEnv)
 	}
 	if t.noProxyEnv != "" {
 		space()
-		fmt.Fprintf(&buf, "no_proxy=%q", t.noProxyEnv)
+		_, _ = fmt.Fprintf(&buf, "no_proxy=%q", t.noProxyEnv)
 	}
 	return strings.TrimSpace(buf.String())
 }
