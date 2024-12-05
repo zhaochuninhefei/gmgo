@@ -80,7 +80,9 @@ func TestFromURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ss.Close()
+	defer func(ss *sockstest.Server) {
+		_ = ss.Close()
+	}(ss)
 	url, err := url.Parse("socks5://user:password@" + ss.Addr().String())
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +95,7 @@ func TestFromURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.Close()
+	_ = c.Close()
 }
 
 func TestSOCKS5(t *testing.T) {
