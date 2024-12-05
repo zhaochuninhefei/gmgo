@@ -58,8 +58,8 @@ func (p *PerHost) DialContext(ctx context.Context, network, addr string) (c net.
 
 func (p *PerHost) dialerForRequest(host string) Dialer {
 	if ip := net.ParseIP(host); ip != nil {
-		for _, net := range p.bypassNetworks {
-			if net.Contains(ip) {
+		for _, everyNet := range p.bypassNetworks {
+			if everyNet.Contains(ip) {
 				return p.bypass
 			}
 		}
@@ -103,8 +103,8 @@ func (p *PerHost) AddFromString(s string) {
 		}
 		if strings.Contains(host, "/") {
 			// We assume that it's a CIDR address like 127.0.0.0/8
-			if _, net, err := net.ParseCIDR(host); err == nil {
-				p.AddNetwork(net)
+			if _, everyNet, err := net.ParseCIDR(host); err == nil {
+				p.AddNetwork(everyNet)
 			}
 			continue
 		}
