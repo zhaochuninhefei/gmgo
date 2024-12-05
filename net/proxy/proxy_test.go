@@ -151,7 +151,7 @@ func TestFromEnvironmentUsing(t *testing.T) {
 func ResetProxyEnv() {
 	for _, env := range []*envOnce{allProxyEnv, noProxyEnv} {
 		for _, v := range env.names {
-			os.Setenv(v, "")
+			_ = os.Setenv(v, "")
 		}
 	}
 	ResetCachedEnvironment()
