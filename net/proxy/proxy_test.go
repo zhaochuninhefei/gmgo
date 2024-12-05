@@ -103,7 +103,9 @@ func TestSOCKS5(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ss.Close()
+	defer func(ss *sockstest.Server) {
+		_ = ss.Close()
+	}(ss)
 	proxy, err := SOCKS5("tcp", ss.Addr().String(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +114,7 @@ func TestSOCKS5(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.Close()
+	_ = c.Close()
 }
 
 type funcFailDialer func(context.Context) error
