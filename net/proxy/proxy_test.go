@@ -119,7 +119,7 @@ func TestSOCKS5(t *testing.T) {
 
 type funcFailDialer func(context.Context) error
 
-func (f funcFailDialer) Dial(net, addr string) (net.Conn, error) {
+func (f funcFailDialer) Dial(_, _ string) (net.Conn, error) {
 	panic("shouldn't see a call to Dial")
 }
 
