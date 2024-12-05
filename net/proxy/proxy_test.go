@@ -123,7 +123,7 @@ func (f funcFailDialer) Dial(_, _ string) (net.Conn, error) {
 	panic("shouldn't see a call to Dial")
 }
 
-func (f funcFailDialer) DialContext(ctx context.Context, net, addr string) (net.Conn, error) {
+func (f funcFailDialer) DialContext(ctx context.Context, _, _ string) (net.Conn, error) {
 	return nil, f(ctx)
 }
 
