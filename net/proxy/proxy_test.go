@@ -83,11 +83,11 @@ func TestFromURL(t *testing.T) {
 	defer func(ss *sockstest.Server) {
 		_ = ss.Close()
 	}(ss)
-	url, err := url.Parse("socks5://user:password@" + ss.Addr().String())
+	urlTest, err := url.Parse("socks5://user:password@" + ss.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
-	proxy, err := FromURL(url, nil)
+	proxy, err := FromURL(urlTest, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
