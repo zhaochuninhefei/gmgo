@@ -64,8 +64,8 @@ func TestFromEnvironment(t *testing.T) {
 	}
 
 	for _, tt := range proxyFromEnvTests {
-		os.Setenv("ALL_PROXY", tt.allProxyEnv)
-		os.Setenv("NO_PROXY", tt.noProxyEnv)
+		_ = os.Setenv("ALL_PROXY", tt.allProxyEnv)
+		_ = os.Setenv("NO_PROXY", tt.noProxyEnv)
 		ResetCachedEnvironment()
 
 		d := FromEnvironment()
