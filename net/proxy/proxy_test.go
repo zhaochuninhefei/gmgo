@@ -33,11 +33,11 @@ func (t proxyFromEnvTest) String() string {
 		}
 	}
 	if t.allProxyEnv != "" {
-		fmt.Fprintf(&buf, "all_proxy=%q", t.allProxyEnv)
+		_, _ = fmt.Fprintf(&buf, "all_proxy=%q", t.allProxyEnv)
 	}
 	if t.noProxyEnv != "" {
 		space()
-		fmt.Fprintf(&buf, "no_proxy=%q", t.noProxyEnv)
+		_, _ = fmt.Fprintf(&buf, "no_proxy=%q", t.noProxyEnv)
 	}
 	return strings.TrimSpace(buf.String())
 }
@@ -64,8 +64,8 @@ func TestFromEnvironment(t *testing.T) {
 	}
 
 	for _, tt := range proxyFromEnvTests {
-		os.Setenv("ALL_PROXY", tt.allProxyEnv)
-		os.Setenv("NO_PROXY", tt.noProxyEnv)
+		_ = os.Setenv("ALL_PROXY", tt.allProxyEnv)
+		_ = os.Setenv("NO_PROXY", tt.noProxyEnv)
 		ResetCachedEnvironment()
 
 		d := FromEnvironment()
@@ -80,12 +80,14 @@ func TestFromURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ss.Close()
-	url, err := url.Parse("socks5://user:password@" + ss.Addr().String())
+	defer func(ss *sockstest.Server) {
+		_ = ss.Close()
+	}(ss)
+	urlTest, err := url.Parse("socks5://user:password@" + ss.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
-	proxy, err := FromURL(url, nil)
+	proxy, err := FromURL(urlTest, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +95,7 @@ func TestFromURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.Close()
+	_ = c.Close()
 }
 
 func TestSOCKS5(t *testing.T) {
@@ -101,7 +103,9 @@ func TestSOCKS5(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ss.Close()
+	defer func(ss *sockstest.Server) {
+		_ = ss.Close()
+	}(ss)
 	proxy, err := SOCKS5("tcp", ss.Addr().String(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -110,16 +114,16 @@ func TestSOCKS5(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.Close()
+	_ = c.Close()
 }
 
 type funcFailDialer func(context.Context) error
 
-func (f funcFailDialer) Dial(net, addr string) (net.Conn, error) {
+func (f funcFailDialer) Dial(_, _ string) (net.Conn, error) {
 	panic("shouldn't see a call to Dial")
 }
 
-func (f funcFailDialer) DialContext(ctx context.Context, net, addr string) (net.Conn, error) {
+func (f funcFailDialer) DialContext(ctx context.Context, _, _ string) (net.Conn, error) {
 	return nil, f(ctx)
 }
 
@@ -147,7 +151,7 @@ func TestFromEnvironmentUsing(t *testing.T) {
 func ResetProxyEnv() {
 	for _, env := range []*envOnce{allProxyEnv, noProxyEnv} {
 		for _, v := range env.names {
-			os.Setenv(v, "")
+			_ = os.Setenv(v, "")
 		}
 	}
 	ResetCachedEnvironment()
