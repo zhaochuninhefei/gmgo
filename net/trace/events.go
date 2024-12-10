@@ -384,7 +384,7 @@ func printStackRecord(w io.Writer, stk []uintptr) {
 		if strings.HasPrefix(name, "runtime.") {
 			continue
 		}
-		fmt.Fprintf(w, "#   %s\t%s:%d\n", name, file, line)
+		_, _ = fmt.Fprintf(w, "#   %s\t%s:%d\n", name, file, line)
 	}
 }
 
