@@ -365,7 +365,7 @@ func (el *eventLog) Stack() string {
 	buf := new(bytes.Buffer)
 	tw := tabwriter.NewWriter(buf, 1, 8, 1, '\t', 0)
 	printStackRecord(tw, el.stack)
-	tw.Flush()
+	_ = tw.Flush()
 	return buf.String()
 }
 
