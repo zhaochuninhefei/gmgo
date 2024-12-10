@@ -221,7 +221,7 @@ func (els eventLogs) Free() {
 	}
 }
 
-// eventLogs may be sorted in reverse chronological order.
+// Len eventLogs may be sorted in reverse chronological order.
 func (els eventLogs) Len() int           { return len(els) }
 func (els eventLogs) Less(i, j int) bool { return els[i].Start.After(els[j].Start) }
 func (els eventLogs) Swap(i, j int)      { els[i], els[j] = els[j], els[i] }
