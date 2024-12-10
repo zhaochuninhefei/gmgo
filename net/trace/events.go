@@ -43,7 +43,7 @@ var buckets = []bucket{
 // It does not do any auth checking. The request may be nil.
 //
 // Most users will use the Events handler.
-func RenderEvents(w http.ResponseWriter, req *http.Request, sensitive bool) {
+func RenderEvents(w http.ResponseWriter, req *http.Request, _ bool) {
 	now := time.Now()
 	data := &struct {
 		Families []string // family names
