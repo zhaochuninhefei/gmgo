@@ -140,14 +140,14 @@ func (h *histogram) percentileBoundary(percentile float64) int64 {
 			// bucket. If the remaining buckets are all empty, then we use the
 			// boundary for the next bucket as the estimate.
 			j := uint8(i + 1)
-			min := bucketBoundary(j)
+			minVal := bucketBoundary(j)
 			if runningTotal < total {
 				for h.buckets[j] == 0 {
 					j++
 				}
 			}
-			max := bucketBoundary(j)
-			return min + round(float64(max-min)/2)
+			maxVal := bucketBoundary(j)
+			return minVal + round(float64(maxVal-minVal)/2)
 		} else if runningTotal > percentOfTotal {
 			// The value is in this bucket. Interpolate the value.
 			delta := runningTotal - percentOfTotal
