@@ -86,7 +86,7 @@ func (h *histogram) total() (total int64) {
 		total = h.valueCount
 	}
 	for _, val := range h.buckets {
-		total += int64(val)
+		total += val
 	}
 	return
 }
