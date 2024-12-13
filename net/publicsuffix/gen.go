@@ -96,6 +96,7 @@ const (
 	gitCommitURL = "https://api.github.com/repos/publicsuffix/list/commits?path=public_suffix_list.dat"
 )
 
+//goland:noinspection RegExpRedundantEscape
 var (
 	labelEncoding = map[string]uint32{}
 	labelsList    = []string{}

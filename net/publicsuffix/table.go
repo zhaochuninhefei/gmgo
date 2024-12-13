@@ -16,6 +16,7 @@ const (
 	childrenBitsLo       = 14
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	nodeTypeNormal     = 0
 	nodeTypeException  = 1
@@ -540,6 +541,7 @@ const text = "9guacuiababia-goracleaningroks-theatree164-balsfjordd-dnshome-we" 
 // An I denotes an ICANN domain.
 //
 // The layout within the uint32, from MSB to LSB, is:
+//
 //	[ 0 bits] unused
 //	[10 bits] children index
 //	[ 1 bits] ICANN bit
@@ -9898,6 +9900,7 @@ var nodes = [...]uint32{
 // will be in the range [0, 6), depending on the wildcard bit and node type.
 //
 // The layout within the uint32, from MSB to LSB, is:
+//
 //	[ 1 bits] unused
 //	[ 1 bits] wildcard bit
 //	[ 2 bits] node type
