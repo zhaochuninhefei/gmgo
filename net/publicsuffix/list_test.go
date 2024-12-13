@@ -313,9 +313,11 @@ func TestSlowPublicSuffix(t *testing.T) {
 }
 
 func TestNumICANNRules(t *testing.T) {
+	//goland:noinspection GoBoolExpressions
 	if numICANNRules <= 0 {
 		t.Fatal("no ICANN rules")
 	}
+	//goland:noinspection GoBoolExpressions
 	if numICANNRules >= len(rules) {
 		t.Fatal("no Private rules")
 	}

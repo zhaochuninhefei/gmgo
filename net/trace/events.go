@@ -43,7 +43,7 @@ var buckets = []bucket{
 // It does not do any auth checking. The request may be nil.
 //
 // Most users will use the Events handler.
-func RenderEvents(w http.ResponseWriter, req *http.Request, sensitive bool) {
+func RenderEvents(w http.ResponseWriter, req *http.Request, _ bool) {
 	now := time.Now()
 	data := &struct {
 		Families []string // family names
@@ -221,7 +221,7 @@ func (els eventLogs) Free() {
 	}
 }
 
-// eventLogs may be sorted in reverse chronological order.
+// Len eventLogs may be sorted in reverse chronological order.
 func (els eventLogs) Len() int           { return len(els) }
 func (els eventLogs) Less(i, j int) bool { return els[i].Start.After(els[j].Start) }
 func (els eventLogs) Swap(i, j int)      { els[i], els[j] = els[j], els[i] }
@@ -365,7 +365,7 @@ func (el *eventLog) Stack() string {
 	buf := new(bytes.Buffer)
 	tw := tabwriter.NewWriter(buf, 1, 8, 1, '\t', 0)
 	printStackRecord(tw, el.stack)
-	tw.Flush()
+	_ = tw.Flush()
 	return buf.String()
 }
 
@@ -384,7 +384,7 @@ func printStackRecord(w io.Writer, stk []uintptr) {
 		if strings.HasPrefix(name, "runtime.") {
 			continue
 		}
-		fmt.Fprintf(w, "#   %s\t%s:%d\n", name, file, line)
+		_, _ = fmt.Fprintf(w, "#   %s\t%s:%d\n", name, file, line)
 	}
 }
 
