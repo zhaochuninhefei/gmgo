@@ -680,6 +680,7 @@ func (trl traceList) Free() {
 }
 
 // traceList may be sorted in reverse chronological order.
+
 func (trl traceList) Len() int           { return len(trl) }
 func (trl traceList) Less(i, j int) bool { return trl[i].Start.After(trl[j].Start) }
 func (trl traceList) Swap(i, j int)      { trl[i], trl[j] = trl[j], trl[i] }
