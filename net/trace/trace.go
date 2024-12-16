@@ -924,6 +924,7 @@ func newTrace() *trace {
 // freeTrace adds tr to traceFreeList if there's room.
 // This is non-blocking.
 func freeTrace(tr *trace) {
+	//goland:noinspection GoBoolExpressions
 	if DebugUseAfterFinish {
 		return // never reuse
 	}
