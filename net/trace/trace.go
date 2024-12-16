@@ -805,9 +805,9 @@ func (tr *trace) addEvent(x interface{}, recyclable, sensitive bool) {
 		tr.events = append(tr.events, e)
 	} else {
 		// Discard the middle events.
-		di := int((tr.maxEvents - 1) / 2)
+		di := (tr.maxEvents - 1) / 2
 		if d, ok := tr.events[di].What.(*discarded); ok {
-			(*d)++
+			*d++
 		} else {
 			// disc starts at two to count for the event it is replacing,
 			// plus the next one that we are about to drop.
