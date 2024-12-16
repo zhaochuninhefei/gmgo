@@ -431,6 +431,7 @@ func (tr *trace) Finish() {
 	tr.unref() // matches ref in New
 }
 
+//goland:noinspection GoUnusedConst
 const (
 	bucketsPerFamily    = 9
 	tracesPerBucket     = 10
