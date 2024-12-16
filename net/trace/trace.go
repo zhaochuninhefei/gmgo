@@ -400,6 +400,7 @@ func (tr *trace) Finish() {
 	tr.Elapsed = elapsed
 	tr.mu.Unlock()
 
+	//goland:noinspection GoBoolExpressions
 	if DebugUseAfterFinish {
 		buf := make([]byte, 4<<10) // 4 KB should be enough
 		n := runtime.Stack(buf, false)
