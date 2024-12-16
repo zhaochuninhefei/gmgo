@@ -776,6 +776,7 @@ func (tr *trace) delta(t time.Time) (time.Duration, bool) {
 }
 
 func (tr *trace) addEvent(x interface{}, recyclable, sensitive bool) {
+	//goland:noinspection GoBoolExpressions
 	if DebugUseAfterFinish && tr.finishStack != nil {
 		buf := make([]byte, 4<<10) // 4 KB should be enough
 		n := runtime.Stack(buf, false)
