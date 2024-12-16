@@ -164,8 +164,8 @@ func Traces(w http.ResponseWriter, req *http.Request) {
 //
 // It performs authorization by running AuthRequest.
 func Events(w http.ResponseWriter, req *http.Request) {
-	any, sensitive := AuthRequest(req)
-	if !any {
+	authRequest, sensitive := AuthRequest(req)
+	if !authRequest {
 		http.Error(w, "not allowed", http.StatusUnauthorized)
 		return
 	}
