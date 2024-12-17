@@ -6,6 +6,7 @@ package xml
 
 import "time"
 
+//goland:noinspection HttpUrlsUsage
 var atomValue = &Feed{
 	XMLName: Name{"http://www.w3.org/2005/Atom", "feed"},
 	Title:   "Example Feed",
@@ -25,6 +26,7 @@ var atomValue = &Feed{
 	},
 }
 
+//goland:noinspection HttpUrlsUsage
 var atomXml = `` +
 	`<feed xmlns="http://www.w3.org/2005/Atom" updated="2003-12-13T18:30:02Z">` +
 	`<title>Example Feed</title>` +
