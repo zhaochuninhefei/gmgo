@@ -945,14 +945,14 @@ func (p *printer) marshalSimple(typ reflect.Type, val reflect.Value) (string, []
 			break
 		}
 		// [...]byte
-		var bytes []byte
+		var bytesTmp []byte
 		if val.CanAddr() {
-			bytes = val.Slice(0, val.Len()).Bytes()
+			bytesTmp = val.Slice(0, val.Len()).Bytes()
 		} else {
-			bytes = make([]byte, val.Len())
-			reflect.Copy(reflect.ValueOf(bytes), val)
+			bytesTmp = make([]byte, val.Len())
+			reflect.Copy(reflect.ValueOf(bytesTmp), val)
 		}
-		return "", bytes, nil
+		return "", bytesTmp, nil
 	case reflect.Slice:
 		if typ.Elem().Kind() != reflect.Uint8 {
 			break
