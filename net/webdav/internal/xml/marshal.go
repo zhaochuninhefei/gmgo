@@ -15,8 +15,9 @@ import (
 	"strings"
 )
 
+//goland:noinspection GoUnusedConst
 const (
-	// A generic XML header suitable for use with the output of Marshal.
+	// Header A generic XML header suitable for use with the output of Marshal.
 	// This is not automatically added to any output of this package,
 	// it is provided as a convenience.
 	Header = `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
@@ -32,33 +33,33 @@ const (
 // elements containing the data.
 //
 // The name for the XML elements is taken from, in order of preference:
-//     - the tag on the XMLName field, if the data is a struct
-//     - the value of the XMLName field of type xml.Name
-//     - the tag of the struct field used to obtain the data
-//     - the name of the struct field used to obtain the data
-//     - the name of the marshalled type
+//   - the tag on the XMLName field, if the data is a struct
+//   - the value of the XMLName field of type xml.Name
+//   - the tag of the struct field used to obtain the data
+//   - the name of the struct field used to obtain the data
+//   - the name of the marshalled type
 //
 // The XML element for a struct contains marshalled elements for each of the
 // exported fields of the struct, with these exceptions:
-//     - the XMLName field, described above, is omitted.
-//     - a field with tag "-" is omitted.
-//     - a field with tag "name,attr" becomes an attribute with
-//       the given name in the XML element.
-//     - a field with tag ",attr" becomes an attribute with the
-//       field name in the XML element.
-//     - a field with tag ",chardata" is written as character data,
-//       not as an XML element.
-//     - a field with tag ",innerxml" is written verbatim, not subject
-//       to the usual marshalling procedure.
-//     - a field with tag ",comment" is written as an XML comment, not
-//       subject to the usual marshalling procedure. It must not contain
-//       the "--" string within it.
-//     - a field with a tag including the "omitempty" option is omitted
-//       if the field value is empty. The empty values are false, 0, any
-//       nil pointer or interface value, and any array, slice, map, or
-//       string of length zero.
-//     - an anonymous struct field is handled as if the fields of its
-//       value were part of the outer struct.
+//   - the XMLName field, described above, is omitted.
+//   - a field with tag "-" is omitted.
+//   - a field with tag "name,attr" becomes an attribute with
+//     the given name in the XML element.
+//   - a field with tag ",attr" becomes an attribute with the
+//     field name in the XML element.
+//   - a field with tag ",chardata" is written as character data,
+//     not as an XML element.
+//   - a field with tag ",innerxml" is written verbatim, not subject
+//     to the usual marshalling procedure.
+//   - a field with tag ",comment" is written as an XML comment, not
+//     subject to the usual marshalling procedure. It must not contain
+//     the "--" string within it.
+//   - a field with a tag including the "omitempty" option is omitted
+//     if the field value is empty. The empty values are false, 0, any
+//     nil pointer or interface value, and any array, slice, map, or
+//     string of length zero.
+//   - an anonymous struct field is handled as if the fields of its
+//     value were part of the outer struct.
 //
 // If a field uses a tag "a>b>c", then the element c will be nested inside
 // parent elements a and b. Fields that appear next to each other that name
@@ -91,6 +92,8 @@ func Marshal(v interface{}) ([]byte, error) {
 // to generate the XML output one token at a time.
 // The sequence of encoded tokens must make up zero or more valid
 // XML elements.
+//
+//goland:noinspection GoStandardMethods
 type Marshaler interface {
 	MarshalXML(e *Encoder, start StartElement) error
 }
@@ -172,6 +175,7 @@ func (enc *Encoder) EncodeElement(v interface{}, start StartElement) error {
 	return enc.p.Flush()
 }
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	begComment   = []byte("<!--")
 	endComment   = []byte("-->")
@@ -757,6 +761,7 @@ func (p *printer) fieldAttr(finfo *fieldInfo, val reflect.Value) (Attr, error) {
 		}
 	}
 	// Dereference or skip nil pointer, interface values.
+	//goland:noinspection GoSwitchMissingCasesForIotaConsts
 	switch fv.Kind() {
 	case reflect.Ptr, reflect.Interface:
 		if fv.IsNil() {
@@ -940,20 +945,21 @@ func (p *printer) marshalSimple(typ reflect.Type, val reflect.Value) (string, []
 			break
 		}
 		// [...]byte
-		var bytes []byte
+		var bytesTmp []byte
 		if val.CanAddr() {
-			bytes = val.Slice(0, val.Len()).Bytes()
+			bytesTmp = val.Slice(0, val.Len()).Bytes()
 		} else {
-			bytes = make([]byte, val.Len())
-			reflect.Copy(reflect.ValueOf(bytes), val)
+			bytesTmp = make([]byte, val.Len())
+			reflect.Copy(reflect.ValueOf(bytesTmp), val)
 		}
-		return "", bytes, nil
+		return "", bytesTmp, nil
 	case reflect.Slice:
 		if typ.Elem().Kind() != reflect.Uint8 {
 			break
 		}
 		// []byte
 		return "", val.Bytes(), nil
+	default:
 	}
 	return "", nil, &UnsupportedTypeError{typ}
 }
@@ -975,6 +981,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			if !vf.IsNil() {
 				vf = vf.Elem()
 			}
+		default:
 		}
 
 		switch finfo.flags & fMode {
@@ -1021,6 +1028,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 						return err
 					}
 				}
+			default:
 			}
 			continue
 
@@ -1082,6 +1090,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			if err := s.setParents(finfo, vf); err != nil {
 				return err
 			}
+		default:
 		}
 		if err := p.marshalValue(vf, finfo, nil); err != nil {
 			return err
@@ -1194,7 +1203,7 @@ func (s *parentStack) setParents(finfo *fieldInfo, vf reflect.Value) error {
 	return nil
 }
 
-// A MarshalXMLError is returned when Marshal encounters a type
+// UnsupportedTypeError A MarshalXMLError is returned when Marshal encounters a type
 // that cannot be converted into XML.
 type UnsupportedTypeError struct {
 	Type reflect.Type
@@ -1218,6 +1227,7 @@ func isEmptyValue(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
+	default:
 	}
 	return false
 }

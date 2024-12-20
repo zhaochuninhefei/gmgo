@@ -64,9 +64,9 @@ func TestAuthRequest(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		req := &http.Request{RemoteAddr: tt.host}
-		any, sensitive := AuthRequest(req)
-		if any != tt.want || sensitive != tt.want {
-			t.Errorf("AuthRequest(%q) = %t, %t; want %t, %t", tt.host, any, sensitive, tt.want, tt.want)
+		authRequest, sensitive := AuthRequest(req)
+		if authRequest != tt.want || sensitive != tt.want {
+			t.Errorf("AuthRequest(%q) = %t, %t; want %t, %t", tt.host, authRequest, sensitive, tt.want, tt.want)
 		}
 	}
 }

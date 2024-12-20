@@ -149,8 +149,8 @@ func FromContext(ctx context.Context) (tr Trace, ok bool) {
 //
 // It performs authorization by running AuthRequest.
 func Traces(w http.ResponseWriter, req *http.Request) {
-	any, sensitive := AuthRequest(req)
-	if !any {
+	authRequest, sensitive := AuthRequest(req)
+	if !authRequest {
 		http.Error(w, "not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -164,8 +164,8 @@ func Traces(w http.ResponseWriter, req *http.Request) {
 //
 // It performs authorization by running AuthRequest.
 func Events(w http.ResponseWriter, req *http.Request) {
-	any, sensitive := AuthRequest(req)
-	if !any {
+	authRequest, sensitive := AuthRequest(req)
+	if !authRequest {
 		http.Error(w, "not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -400,6 +400,7 @@ func (tr *trace) Finish() {
 	tr.Elapsed = elapsed
 	tr.mu.Unlock()
 
+	//goland:noinspection GoBoolExpressions
 	if DebugUseAfterFinish {
 		buf := make([]byte, 4<<10) // 4 KB should be enough
 		n := runtime.Stack(buf, false)
@@ -430,6 +431,7 @@ func (tr *trace) Finish() {
 	tr.unref() // matches ref in New
 }
 
+//goland:noinspection GoUnusedConst
 const (
 	bucketsPerFamily    = 9
 	tracesPerBucket     = 10
@@ -678,6 +680,7 @@ func (trl traceList) Free() {
 }
 
 // traceList may be sorted in reverse chronological order.
+
 func (trl traceList) Len() int           { return len(trl) }
 func (trl traceList) Less(i, j int) bool { return trl[i].Start.After(trl[j].Start) }
 func (trl traceList) Swap(i, j int)      { trl[i], trl[j] = trl[j], trl[i] }
@@ -774,6 +777,7 @@ func (tr *trace) delta(t time.Time) (time.Duration, bool) {
 }
 
 func (tr *trace) addEvent(x interface{}, recyclable, sensitive bool) {
+	//goland:noinspection GoBoolExpressions
 	if DebugUseAfterFinish && tr.finishStack != nil {
 		buf := make([]byte, 4<<10) // 4 KB should be enough
 		n := runtime.Stack(buf, false)
@@ -801,9 +805,9 @@ func (tr *trace) addEvent(x interface{}, recyclable, sensitive bool) {
 		tr.events = append(tr.events, e)
 	} else {
 		// Discard the middle events.
-		di := int((tr.maxEvents - 1) / 2)
+		di := (tr.maxEvents - 1) / 2
 		if d, ok := tr.events[di].What.(*discarded); ok {
-			(*d)++
+			*d++
 		} else {
 			// disc starts at two to count for the event it is replacing,
 			// plus the next one that we are about to drop.
@@ -921,6 +925,7 @@ func newTrace() *trace {
 // freeTrace adds tr to traceFreeList if there's room.
 // This is non-blocking.
 func freeTrace(tr *trace) {
+	//goland:noinspection GoBoolExpressions
 	if DebugUseAfterFinish {
 		return // never reuse
 	}

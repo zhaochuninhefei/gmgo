@@ -35,7 +35,7 @@ func ExampleMarshalIndent() {
 		fmt.Printf("error: %v\n", err)
 	}
 
-	os.Stdout.Write(output)
+	_, _ = os.Stdout.Write(output)
 	// Output:
 	//   <person id="13">
 	//       <name>
