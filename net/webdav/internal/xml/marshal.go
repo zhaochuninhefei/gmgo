@@ -1028,6 +1028,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 						return err
 					}
 				}
+			default:
 			}
 			continue
 
