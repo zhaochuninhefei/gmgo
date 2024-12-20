@@ -1088,6 +1088,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			if err := s.setParents(finfo, vf); err != nil {
 				return err
 			}
+		default:
 		}
 		if err := p.marshalValue(vf, finfo, nil); err != nil {
 			return err
