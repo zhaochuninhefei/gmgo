@@ -981,6 +981,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			if !vf.IsNil() {
 				vf = vf.Elem()
 			}
+		default:
 		}
 
 		switch finfo.flags & fMode {
