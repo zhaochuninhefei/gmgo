@@ -761,6 +761,7 @@ func (p *printer) fieldAttr(finfo *fieldInfo, val reflect.Value) (Attr, error) {
 		}
 	}
 	// Dereference or skip nil pointer, interface values.
+	//goland:noinspection GoSwitchMissingCasesForIotaConsts
 	switch fv.Kind() {
 	case reflect.Ptr, reflect.Interface:
 		if fv.IsNil() {
