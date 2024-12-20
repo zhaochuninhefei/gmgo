@@ -959,6 +959,7 @@ func (p *printer) marshalSimple(typ reflect.Type, val reflect.Value) (string, []
 		}
 		// []byte
 		return "", val.Bytes(), nil
+	default:
 	}
 	return "", nil, &UnsupportedTypeError{typ}
 }
