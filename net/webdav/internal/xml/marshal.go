@@ -175,6 +175,7 @@ func (enc *Encoder) EncodeElement(v interface{}, start StartElement) error {
 	return enc.p.Flush()
 }
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	begComment   = []byte("<!--")
 	endComment   = []byte("-->")
