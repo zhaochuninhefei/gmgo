@@ -92,6 +92,8 @@ func Marshal(v interface{}) ([]byte, error) {
 // to generate the XML output one token at a time.
 // The sequence of encoded tokens must make up zero or more valid
 // XML elements.
+//
+//goland:noinspection GoStandardMethods
 type Marshaler interface {
 	MarshalXML(e *Encoder, start StartElement) error
 }
