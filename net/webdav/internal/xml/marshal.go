@@ -467,17 +467,17 @@ func (p *printer) writeNamespaces() {
 		if prefix.mark {
 			return
 		}
-		p.WriteString(" ")
+		_, _ = p.WriteString(" ")
 		if prefix.prefix == "" {
 			// Default name space.
-			p.WriteString(`xmlns="`)
+			_, _ = p.WriteString(`xmlns="`)
 		} else {
-			p.WriteString("xmlns:")
-			p.WriteString(prefix.prefix)
-			p.WriteString(`="`)
+			_, _ = p.WriteString("xmlns:")
+			_, _ = p.WriteString(prefix.prefix)
+			_, _ = p.WriteString(`="`)
 		}
-		EscapeText(p, []byte(p.nsForPrefix(prefix.prefix)))
-		p.WriteString(`"`)
+		_ = EscapeText(p, []byte(p.nsForPrefix(prefix.prefix)))
+		_, _ = p.WriteString(`"`)
 	}
 }
 
