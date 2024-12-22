@@ -215,14 +215,14 @@ func (enc *Encoder) EncodeToken(t Token) error {
 			return err
 		}
 	case CharData:
-		escapeText(p, t, false)
+		_ = escapeText(p, t, false)
 	case Comment:
 		if bytes.Contains(t, endComment) {
 			return fmt.Errorf("xml: EncodeToken of Comment containing --> marker")
 		}
-		p.WriteString("<!--")
-		p.Write(t)
-		p.WriteString("-->")
+		_, _ = p.WriteString("<!--")
+		_, _ = p.Write(t)
+		_, _ = p.WriteString("-->")
 		return p.cachedWriteError()
 	case ProcInst:
 		// First token to be encoded which is also a ProcInst with target of xml
@@ -236,20 +236,20 @@ func (enc *Encoder) EncodeToken(t Token) error {
 		if bytes.Contains(t.Inst, endProcInst) {
 			return fmt.Errorf("xml: EncodeToken of ProcInst containing ?> marker")
 		}
-		p.WriteString("<?")
-		p.WriteString(t.Target)
+		_, _ = p.WriteString("<?")
+		_, _ = p.WriteString(t.Target)
 		if len(t.Inst) > 0 {
-			p.WriteByte(' ')
-			p.Write(t.Inst)
+			_ = p.WriteByte(' ')
+			_, _ = p.Write(t.Inst)
 		}
-		p.WriteString("?>")
+		_, _ = p.WriteString("?>")
 	case Directive:
 		if !isValidDirective(t) {
 			return fmt.Errorf("xml: EncodeToken of Directive containing wrong < or > markers")
 		}
-		p.WriteString("<!")
-		p.Write(t)
-		p.WriteString(">")
+		_, _ = p.WriteString("<!")
+		_, _ = p.Write(t)
+		_, _ = p.WriteString(">")
 	default:
 		return fmt.Errorf("xml: EncodeToken of invalid token type")
 
