@@ -875,7 +875,7 @@ func (p *printer) writeStart(start *StartElement) error {
 	p.createNSPrefix(start.Name.Space, false)
 
 	p.writeIndent(1)
-	p.WriteByte('<')
+	_ = p.WriteByte('<')
 	p.writeName(start.Name, false)
 	p.writeNamespaces()
 	for _, attr := range start.Attr {
@@ -884,13 +884,13 @@ func (p *printer) writeStart(start *StartElement) error {
 			// Namespaces have already been written by writeNamespaces above.
 			continue
 		}
-		p.WriteByte(' ')
+		_ = p.WriteByte(' ')
 		p.writeName(name, true)
-		p.WriteString(`="`)
+		_, _ = p.WriteString(`="`)
 		p.EscapeString(attr.Value)
-		p.WriteByte('"')
+		_ = p.WriteByte('"')
 	}
-	p.WriteByte('>')
+	_ = p.WriteByte('>')
 	return nil
 }
 
