@@ -836,7 +836,7 @@ func (p *printer) marshalTextInterface(val encoding.TextMarshaler, start StartEl
 	if err != nil {
 		return err
 	}
-	EscapeText(p, text)
+	_ = EscapeText(p, text)
 	return p.writeEnd(start.Name)
 }
 
