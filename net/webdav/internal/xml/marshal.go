@@ -703,7 +703,7 @@ func (p *printer) marshalValue(val reflect.Value, finfo *fieldInfo, startTemplat
 		if err1 != nil {
 			err = err1
 		} else if b != nil {
-			EscapeText(p, b)
+			_ = EscapeText(p, b)
 		} else {
 			p.EscapeString(s)
 		}
