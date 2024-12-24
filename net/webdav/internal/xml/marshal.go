@@ -898,10 +898,10 @@ func (p *printer) writeStart(start *StartElement) error {
 // that p.createNSPrefix(name) has already been called.
 func (p *printer) writeName(name Name, isAttr bool) {
 	if prefix := p.prefixForNS(name.Space, isAttr); prefix != "" {
-		p.WriteString(prefix)
-		p.WriteByte(':')
+		_, _ = p.WriteString(prefix)
+		_ = p.WriteByte(':')
 	}
-	p.WriteString(name.Local)
+	_, _ = p.WriteString(name.Local)
 }
 
 func (p *printer) writeEnd(name Name) error {
