@@ -1079,10 +1079,10 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			iface := vf.Interface()
 			switch raw := iface.(type) {
 			case []byte:
-				p.Write(raw)
+				_, _ = p.Write(raw)
 				continue
 			case string:
-				p.WriteString(raw)
+				_, _ = p.WriteString(raw)
 				continue
 			}
 
