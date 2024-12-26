@@ -920,10 +920,10 @@ func (p *printer) writeEnd(name Name) error {
 	p.tags = p.tags[:len(p.tags)-1]
 
 	p.writeIndent(-1)
-	p.WriteByte('<')
-	p.WriteByte('/')
+	_ = p.WriteByte('<')
+	_ = p.WriteByte('/')
 	p.writeName(name, false)
-	p.WriteByte('>')
+	_ = p.WriteByte('>')
 	p.popPrefix()
 	return nil
 }
