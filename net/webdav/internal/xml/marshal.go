@@ -1044,7 +1044,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 				continue
 			}
 			p.writeIndent(0)
-			p.WriteString("<!--")
+			_, _ = p.WriteString("<!--")
 			dashDash := false
 			dashLast := false
 			switch k {
@@ -1053,14 +1053,14 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 				dashDash = strings.Index(s, "--") >= 0
 				dashLast = s[len(s)-1] == '-'
 				if !dashDash {
-					p.WriteString(s)
+					_, _ = p.WriteString(s)
 				}
 			case reflect.Slice:
 				b := vf.Bytes()
 				dashDash = bytes.Index(b, ddBytes) >= 0
 				dashLast = b[len(b)-1] == '-'
 				if !dashDash {
-					p.Write(b)
+					_, _ = p.Write(b)
 				}
 			default:
 				panic("can't happen")
@@ -1070,9 +1070,9 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			}
 			if dashLast {
 				// "--->" is invalid grammar. Make it "- -->"
-				p.WriteByte(' ')
+				_ = p.WriteByte(' ')
 			}
-			p.WriteString("-->")
+			_, _ = p.WriteString("-->")
 			continue
 
 		case fInnerXml:
