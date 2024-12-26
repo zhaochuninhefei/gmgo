@@ -1123,16 +1123,16 @@ func (p *printer) writeIndent(depthDelta int) {
 		p.indentedIn = false
 	}
 	if p.putNewline {
-		p.WriteByte('\n')
+		_ = p.WriteByte('\n')
 	} else {
 		p.putNewline = true
 	}
 	if len(p.prefix) > 0 {
-		p.WriteString(p.prefix)
+		_, _ = p.WriteString(p.prefix)
 	}
 	if len(p.indent) > 0 {
 		for i := 0; i < p.depth; i++ {
-			p.WriteString(p.indent)
+			_, _ = p.WriteString(p.indent)
 		}
 	}
 	if depthDelta > 0 {
