@@ -19,6 +19,7 @@ import (
 
 type DriveType int
 
+//goland:noinspection GoUnusedConst
 const (
 	HyperDrive DriveType = iota
 	ImprobabilityDrive
