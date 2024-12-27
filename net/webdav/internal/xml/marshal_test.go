@@ -300,6 +300,7 @@ type MyMarshalerTest struct {
 
 var _ Marshaler = (*MyMarshalerTest)(nil)
 
+//goland:noinspection GoStandardMethods
 func (m *MyMarshalerTest) MarshalXML(e *Encoder, start StartElement) error {
 	e.EncodeToken(start)
 	e.EncodeToken(CharData([]byte("hello world")))
