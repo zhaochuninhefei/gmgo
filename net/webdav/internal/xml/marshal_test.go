@@ -19,6 +19,7 @@ import (
 
 type DriveType int
 
+//goland:noinspection GoUnusedConst
 const (
 	HyperDrive DriveType = iota
 	ImprobabilityDrive
@@ -300,9 +301,10 @@ type MyMarshalerTest struct {
 
 var _ Marshaler = (*MyMarshalerTest)(nil)
 
+//goland:noinspection GoStandardMethods
 func (m *MyMarshalerTest) MarshalXML(e *Encoder, start StartElement) error {
 	e.EncodeToken(start)
-	e.EncodeToken(CharData([]byte("hello world")))
+	e.EncodeToken(CharData("hello world"))
 	e.EncodeToken(EndElement{start.Name})
 	return nil
 }
@@ -408,6 +410,9 @@ var (
 // tests below are two-way tests. When introducing new tests,
 // please try to make them two-way as well to ensure that
 // marshalling and unmarshalling are as symmetrical as feasible.
+//
+//goland:noinspection GoRedundantConvers
+//goland:noinspection GoRedundantConversion
 var marshalTests = []struct {
 	Value         interface{}
 	ExpectXML     string
@@ -421,7 +426,7 @@ var marshalTests = []struct {
 	// Test value types
 	{Value: &Plain{true}, ExpectXML: `<Plain><V>true</V></Plain>`},
 	{Value: &Plain{false}, ExpectXML: `<Plain><V>false</V></Plain>`},
-	{Value: &Plain{int(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
+	{Value: &Plain{42}, ExpectXML: `<Plain><V>42</V></Plain>`},
 	{Value: &Plain{int8(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
 	{Value: &Plain{int16(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
 	{Value: &Plain{int32(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},

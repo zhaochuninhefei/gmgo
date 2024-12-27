@@ -215,14 +215,14 @@ func (enc *Encoder) EncodeToken(t Token) error {
 			return err
 		}
 	case CharData:
-		escapeText(p, t, false)
+		_ = escapeText(p, t, false)
 	case Comment:
 		if bytes.Contains(t, endComment) {
 			return fmt.Errorf("xml: EncodeToken of Comment containing --> marker")
 		}
-		p.WriteString("<!--")
-		p.Write(t)
-		p.WriteString("-->")
+		_, _ = p.WriteString("<!--")
+		_, _ = p.Write(t)
+		_, _ = p.WriteString("-->")
 		return p.cachedWriteError()
 	case ProcInst:
 		// First token to be encoded which is also a ProcInst with target of xml
@@ -236,20 +236,20 @@ func (enc *Encoder) EncodeToken(t Token) error {
 		if bytes.Contains(t.Inst, endProcInst) {
 			return fmt.Errorf("xml: EncodeToken of ProcInst containing ?> marker")
 		}
-		p.WriteString("<?")
-		p.WriteString(t.Target)
+		_, _ = p.WriteString("<?")
+		_, _ = p.WriteString(t.Target)
 		if len(t.Inst) > 0 {
-			p.WriteByte(' ')
-			p.Write(t.Inst)
+			_ = p.WriteByte(' ')
+			_, _ = p.Write(t.Inst)
 		}
-		p.WriteString("?>")
+		_, _ = p.WriteString("?>")
 	case Directive:
 		if !isValidDirective(t) {
 			return fmt.Errorf("xml: EncodeToken of Directive containing wrong < or > markers")
 		}
-		p.WriteString("<!")
-		p.Write(t)
-		p.WriteString(">")
+		_, _ = p.WriteString("<!")
+		_, _ = p.Write(t)
+		_, _ = p.WriteString(">")
 	default:
 		return fmt.Errorf("xml: EncodeToken of invalid token type")
 
@@ -467,17 +467,17 @@ func (p *printer) writeNamespaces() {
 		if prefix.mark {
 			return
 		}
-		p.WriteString(" ")
+		_, _ = p.WriteString(" ")
 		if prefix.prefix == "" {
 			// Default name space.
-			p.WriteString(`xmlns="`)
+			_, _ = p.WriteString(`xmlns="`)
 		} else {
-			p.WriteString("xmlns:")
-			p.WriteString(prefix.prefix)
-			p.WriteString(`="`)
+			_, _ = p.WriteString("xmlns:")
+			_, _ = p.WriteString(prefix.prefix)
+			_, _ = p.WriteString(`="`)
 		}
-		EscapeText(p, []byte(p.nsForPrefix(prefix.prefix)))
-		p.WriteString(`"`)
+		_ = EscapeText(p, []byte(p.nsForPrefix(prefix.prefix)))
+		_, _ = p.WriteString(`"`)
 	}
 }
 
@@ -703,7 +703,7 @@ func (p *printer) marshalValue(val reflect.Value, finfo *fieldInfo, startTemplat
 		if err1 != nil {
 			err = err1
 		} else if b != nil {
-			EscapeText(p, b)
+			_ = EscapeText(p, b)
 		} else {
 			p.EscapeString(s)
 		}
@@ -836,7 +836,7 @@ func (p *printer) marshalTextInterface(val encoding.TextMarshaler, start StartEl
 	if err != nil {
 		return err
 	}
-	EscapeText(p, text)
+	_ = EscapeText(p, text)
 	return p.writeEnd(start.Name)
 }
 
@@ -875,7 +875,7 @@ func (p *printer) writeStart(start *StartElement) error {
 	p.createNSPrefix(start.Name.Space, false)
 
 	p.writeIndent(1)
-	p.WriteByte('<')
+	_ = p.WriteByte('<')
 	p.writeName(start.Name, false)
 	p.writeNamespaces()
 	for _, attr := range start.Attr {
@@ -884,13 +884,13 @@ func (p *printer) writeStart(start *StartElement) error {
 			// Namespaces have already been written by writeNamespaces above.
 			continue
 		}
-		p.WriteByte(' ')
+		_ = p.WriteByte(' ')
 		p.writeName(name, true)
-		p.WriteString(`="`)
+		_, _ = p.WriteString(`="`)
 		p.EscapeString(attr.Value)
-		p.WriteByte('"')
+		_ = p.WriteByte('"')
 	}
-	p.WriteByte('>')
+	_ = p.WriteByte('>')
 	return nil
 }
 
@@ -898,10 +898,10 @@ func (p *printer) writeStart(start *StartElement) error {
 // that p.createNSPrefix(name) has already been called.
 func (p *printer) writeName(name Name, isAttr bool) {
 	if prefix := p.prefixForNS(name.Space, isAttr); prefix != "" {
-		p.WriteString(prefix)
-		p.WriteByte(':')
+		_, _ = p.WriteString(prefix)
+		_ = p.WriteByte(':')
 	}
-	p.WriteString(name.Local)
+	_, _ = p.WriteString(name.Local)
 }
 
 func (p *printer) writeEnd(name Name) error {
@@ -920,10 +920,10 @@ func (p *printer) writeEnd(name Name) error {
 	p.tags = p.tags[:len(p.tags)-1]
 
 	p.writeIndent(-1)
-	p.WriteByte('<')
-	p.WriteByte('/')
+	_ = p.WriteByte('<')
+	_ = p.WriteByte('/')
 	p.writeName(name, false)
-	p.WriteByte('>')
+	_ = p.WriteByte('>')
 	p.popPrefix()
 	return nil
 }
@@ -1044,7 +1044,7 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 				continue
 			}
 			p.writeIndent(0)
-			p.WriteString("<!--")
+			_, _ = p.WriteString("<!--")
 			dashDash := false
 			dashLast := false
 			switch k {
@@ -1053,14 +1053,14 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 				dashDash = strings.Index(s, "--") >= 0
 				dashLast = s[len(s)-1] == '-'
 				if !dashDash {
-					p.WriteString(s)
+					_, _ = p.WriteString(s)
 				}
 			case reflect.Slice:
 				b := vf.Bytes()
 				dashDash = bytes.Index(b, ddBytes) >= 0
 				dashLast = b[len(b)-1] == '-'
 				if !dashDash {
-					p.Write(b)
+					_, _ = p.Write(b)
 				}
 			default:
 				panic("can't happen")
@@ -1070,19 +1070,19 @@ func (p *printer) marshalStruct(tinfo *typeInfo, val reflect.Value) error {
 			}
 			if dashLast {
 				// "--->" is invalid grammar. Make it "- -->"
-				p.WriteByte(' ')
+				_ = p.WriteByte(' ')
 			}
-			p.WriteString("-->")
+			_, _ = p.WriteString("-->")
 			continue
 
 		case fInnerXml:
 			iface := vf.Interface()
 			switch raw := iface.(type) {
 			case []byte:
-				p.Write(raw)
+				_, _ = p.Write(raw)
 				continue
 			case string:
-				p.WriteString(raw)
+				_, _ = p.WriteString(raw)
 				continue
 			}
 
@@ -1123,16 +1123,16 @@ func (p *printer) writeIndent(depthDelta int) {
 		p.indentedIn = false
 	}
 	if p.putNewline {
-		p.WriteByte('\n')
+		_ = p.WriteByte('\n')
 	} else {
 		p.putNewline = true
 	}
 	if len(p.prefix) > 0 {
-		p.WriteString(p.prefix)
+		_, _ = p.WriteString(p.prefix)
 	}
 	if len(p.indent) > 0 {
 		for i := 0; i < p.depth; i++ {
-			p.WriteString(p.indent)
+			_, _ = p.WriteString(p.indent)
 		}
 	}
 	if depthDelta > 0 {
