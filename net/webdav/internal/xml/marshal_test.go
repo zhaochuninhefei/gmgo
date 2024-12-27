@@ -423,7 +423,7 @@ var marshalTests = []struct {
 	// Test value types
 	{Value: &Plain{true}, ExpectXML: `<Plain><V>true</V></Plain>`},
 	{Value: &Plain{false}, ExpectXML: `<Plain><V>false</V></Plain>`},
-	{Value: &Plain{int(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
+	{Value: &Plain{42}, ExpectXML: `<Plain><V>42</V></Plain>`},
 	{Value: &Plain{int8(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
 	{Value: &Plain{int16(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
 	{Value: &Plain{int32(42)}, ExpectXML: `<Plain><V>42</V></Plain>`},
