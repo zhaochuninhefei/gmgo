@@ -303,9 +303,9 @@ var _ Marshaler = (*MyMarshalerTest)(nil)
 
 //goland:noinspection GoStandardMethods
 func (m *MyMarshalerTest) MarshalXML(e *Encoder, start StartElement) error {
-	e.EncodeToken(start)
-	e.EncodeToken(CharData("hello world"))
-	e.EncodeToken(EndElement{start.Name})
+	_ = e.EncodeToken(start)
+	_ = e.EncodeToken(CharData("hello world"))
+	_ = e.EncodeToken(EndElement{start.Name})
 	return nil
 }
 
