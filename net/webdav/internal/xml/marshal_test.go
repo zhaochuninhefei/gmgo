@@ -1418,7 +1418,7 @@ func TestEncodeElement(t *testing.T) {
 func BenchmarkMarshal(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		Marshal(atomValue)
+		_, _ = Marshal(atomValue)
 	}
 }
 
@@ -1426,7 +1426,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 	b.ReportAllocs()
 	xml := []byte(atomXml)
 	for i := 0; i < b.N; i++ {
-		Unmarshal(xml, &Feed{})
+		_ = Unmarshal(xml, &Feed{})
 	}
 }
 
