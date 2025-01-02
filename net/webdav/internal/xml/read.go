@@ -182,19 +182,19 @@ func receiverType(val interface{}) string {
 
 // unmarshalInterface unmarshals a single XML element into val.
 // start is the opening tag of the element.
-func (p *Decoder) unmarshalInterface(val Unmarshaler, start *StartElement) error {
+func (d *Decoder) unmarshalInterface(val Unmarshaler, start *StartElement) error {
 	// Record that decoder must stop at end tag corresponding to start.
-	p.pushEOF()
+	d.pushEOF()
 
-	p.unmarshalDepth++
-	err := val.UnmarshalXML(p, *start)
-	p.unmarshalDepth--
+	d.unmarshalDepth++
+	err := val.UnmarshalXML(d, *start)
+	d.unmarshalDepth--
 	if err != nil {
-		p.popEOF()
+		d.popEOF()
 		return err
 	}
 
-	if !p.popEOF() {
+	if !d.popEOF() {
 		return fmt.Errorf("xml: %s.UnmarshalXML did not consume entire <%s> element", receiverType(val), start.Name.Local)
 	}
 
@@ -204,11 +204,11 @@ func (p *Decoder) unmarshalInterface(val Unmarshaler, start *StartElement) error
 // unmarshalTextInterface unmarshals a single XML element into val.
 // The chardata contained in the element (but not its children)
 // is passed to the text unmarshaler.
-func (p *Decoder) unmarshalTextInterface(val encoding.TextUnmarshaler, _ *StartElement) error {
+func (d *Decoder) unmarshalTextInterface(val encoding.TextUnmarshaler, _ *StartElement) error {
 	var buf []byte
 	depth := 1
 	for depth > 0 {
-		t, err := p.Token()
+		t, err := d.Token()
 		if err != nil {
 			return err
 		}
@@ -227,7 +227,7 @@ func (p *Decoder) unmarshalTextInterface(val encoding.TextUnmarshaler, _ *StartE
 }
 
 // unmarshalAttr unmarshals a single XML attribute into val.
-func (p *Decoder) unmarshalAttr(val reflect.Value, attr Attr) error {
+func (d *Decoder) unmarshalAttr(val reflect.Value, attr Attr) error {
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() {
 			val.Set(reflect.New(val.Type().Elem()))
@@ -271,11 +271,11 @@ var (
 )
 
 // Unmarshal a single XML element into val.
-func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
+func (d *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 	// Find start element if we need it.
 	if start == nil {
 		for {
-			tok, err := p.Token()
+			tok, err := d.Token()
 			if err != nil {
 				return err
 			}
@@ -305,24 +305,24 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 	if val.CanInterface() && val.Type().Implements(unmarshalerType) {
 		// This is an unmarshaler with a non-pointer receiver,
 		// so it's likely to be incorrect, but we do what we're told.
-		return p.unmarshalInterface(val.Interface().(Unmarshaler), start)
+		return d.unmarshalInterface(val.Interface().(Unmarshaler), start)
 	}
 
 	if val.CanAddr() {
 		pv := val.Addr()
 		if pv.CanInterface() && pv.Type().Implements(unmarshalerType) {
-			return p.unmarshalInterface(pv.Interface().(Unmarshaler), start)
+			return d.unmarshalInterface(pv.Interface().(Unmarshaler), start)
 		}
 	}
 
 	if val.CanInterface() && val.Type().Implements(textUnmarshalerType) {
-		return p.unmarshalTextInterface(val.Interface().(encoding.TextUnmarshaler), start)
+		return d.unmarshalTextInterface(val.Interface().(encoding.TextUnmarshaler), start)
 	}
 
 	if val.CanAddr() {
 		pv := val.Addr()
 		if pv.CanInterface() && pv.Type().Implements(textUnmarshalerType) {
-			return p.unmarshalTextInterface(pv.Interface().(encoding.TextUnmarshaler), start)
+			return d.unmarshalTextInterface(pv.Interface().(encoding.TextUnmarshaler), start)
 		}
 	}
 
@@ -348,7 +348,7 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 		// TODO: For now, simply ignore the field. In the near
 		//       future we may choose to unmarshal the start
 		//       element on it, if not nil.
-		return p.Skip()
+		return d.Skip()
 
 	case reflect.Slice:
 		typ := v.Type()
@@ -373,7 +373,7 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 		v.SetLen(n + 1)
 
 		// Recur to read element into slice.
-		if err := p.unmarshal(v.Index(n), start); err != nil {
+		if err := d.unmarshal(v.Index(n), start); err != nil {
 			v.SetLen(n)
 			return err
 		}
@@ -426,7 +426,7 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 				// Look for attribute.
 				for _, a := range start.Attr {
 					if a.Name.Local == finfo.name && (finfo.xmlns == "" || finfo.xmlns == a.Name.Space) {
-						if err := p.unmarshalAttr(strv, a); err != nil {
+						if err := d.unmarshalAttr(strv, a); err != nil {
 							return err
 						}
 						break
@@ -451,11 +451,11 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 			case fInnerXml:
 				if !saveXML.IsValid() {
 					saveXML = finfo.value(sv)
-					if p.saved == nil {
+					if d.saved == nil {
 						saveXMLIndex = 0
-						p.saved = new(bytes.Buffer)
+						d.saved = new(bytes.Buffer)
 					} else {
-						saveXMLIndex = p.savedOffset()
+						saveXMLIndex = d.savedOffset()
 					}
 				}
 			default:
@@ -469,9 +469,9 @@ Loop:
 	for {
 		var savedOffset int
 		if saveXML.IsValid() {
-			savedOffset = p.savedOffset()
+			savedOffset = d.savedOffset()
 		}
-		tok, err := p.Token()
+		tok, err := d.Token()
 		if err != nil {
 			return err
 		}
@@ -479,28 +479,28 @@ Loop:
 		case StartElement:
 			consumed := false
 			if sv.IsValid() {
-				consumed, err = p.unmarshalPath(tinfo, sv, nil, &t)
+				consumed, err = d.unmarshalPath(tinfo, sv, nil, &t)
 				if err != nil {
 					return err
 				}
 				if !consumed && saveAny.IsValid() {
 					consumed = true
-					if err := p.unmarshal(saveAny, &t); err != nil {
+					if err := d.unmarshal(saveAny, &t); err != nil {
 						return err
 					}
 				}
 			}
 			if !consumed {
-				if err := p.Skip(); err != nil {
+				if err := d.Skip(); err != nil {
 					return err
 				}
 			}
 
 		case EndElement:
 			if saveXML.IsValid() {
-				saveXMLData = p.saved.Bytes()[saveXMLIndex:savedOffset]
+				saveXMLData = d.saved.Bytes()[saveXMLIndex:savedOffset]
 				if saveXMLIndex == 0 {
-					p.saved = nil
+					d.saved = nil
 				}
 			}
 			break Loop
@@ -614,7 +614,7 @@ func copyValue(dst reflect.Value, src []byte) (err error) {
 // The consumed result tells whether XML elements have been consumed
 // from the Decoder until start's matching end element, or if it's
 // still untouched because start is uninteresting for sv's fields.
-func (p *Decoder) unmarshalPath(tinfo *typeInfo, sv reflect.Value, parents []string, start *StartElement) (consumed bool, err error) {
+func (d *Decoder) unmarshalPath(tinfo *typeInfo, sv reflect.Value, parents []string, start *StartElement) (consumed bool, err error) {
 	recurse := false
 Loop:
 	for i := range tinfo.fields {
@@ -629,7 +629,7 @@ Loop:
 		}
 		if len(finfo.parents) == len(parents) && finfo.name == start.Name.Local {
 			// It's a perfect match, unmarshal the field.
-			return true, p.unmarshal(finfo.value(sv), start)
+			return true, d.unmarshal(finfo.value(sv), start)
 		}
 		if len(finfo.parents) > len(parents) && finfo.parents[len(parents)] == start.Name.Local {
 			// It's a prefix for the field. Break and recurse
@@ -652,18 +652,18 @@ Loop:
 	// prefix. Recurse and attempt to match these.
 	for {
 		var tok Token
-		tok, err = p.Token()
+		tok, err = d.Token()
 		if err != nil {
 			return true, err
 		}
 		switch t := tok.(type) {
 		case StartElement:
-			consumed2, err := p.unmarshalPath(tinfo, sv, parents, &t)
+			consumed2, err := d.unmarshalPath(tinfo, sv, parents, &t)
 			if err != nil {
 				return true, err
 			}
 			if !consumed2 {
-				if err := p.Skip(); err != nil {
+				if err := d.Skip(); err != nil {
 					return true, err
 				}
 			}
