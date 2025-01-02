@@ -458,6 +458,7 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 						saveXMLIndex = p.savedOffset()
 					}
 				}
+			default:
 			}
 		}
 	}
