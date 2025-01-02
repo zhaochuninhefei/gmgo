@@ -366,9 +366,9 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 			if ncap < 4 {
 				ncap = 4
 			}
-			new := reflect.MakeSlice(typ, n, ncap)
-			reflect.Copy(new, v)
-			v.Set(new)
+			newVal := reflect.MakeSlice(typ, n, ncap)
+			reflect.Copy(newVal, v)
+			v.Set(newVal)
 		}
 		v.SetLen(n + 1)
 
