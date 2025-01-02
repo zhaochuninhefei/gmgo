@@ -543,6 +543,7 @@ Loop:
 		t.SetString(string(comment))
 	case reflect.Slice:
 		t.Set(reflect.ValueOf(comment))
+	default:
 	}
 
 	switch t := saveXML; t.Kind() {
@@ -550,6 +551,7 @@ Loop:
 		t.SetString(string(saveXMLData))
 	case reflect.Slice:
 		t.Set(reflect.ValueOf(saveXMLData))
+	default:
 	}
 
 	return nil
