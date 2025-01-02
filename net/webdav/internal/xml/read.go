@@ -260,7 +260,7 @@ func (p *Decoder) unmarshalAttr(val reflect.Value, attr Attr) error {
 		}
 	}
 
-	copyValue(val, []byte(attr.Value))
+	_ = copyValue(val, []byte(attr.Value))
 	return nil
 }
 
