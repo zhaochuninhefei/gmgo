@@ -204,7 +204,7 @@ func (p *Decoder) unmarshalInterface(val Unmarshaler, start *StartElement) error
 // unmarshalTextInterface unmarshals a single XML element into val.
 // The chardata contained in the element (but not its children)
 // is passed to the text unmarshaler.
-func (p *Decoder) unmarshalTextInterface(val encoding.TextUnmarshaler, start *StartElement) error {
+func (p *Decoder) unmarshalTextInterface(val encoding.TextUnmarshaler, _ *StartElement) error {
 	var buf []byte
 	depth := 1
 	for depth > 0 {
