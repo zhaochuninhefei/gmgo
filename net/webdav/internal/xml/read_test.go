@@ -676,7 +676,7 @@ func (m *MyCharData) UnmarshalXML(d *Decoder, _ StartElement) error {
 
 var _ Unmarshaler = (*MyCharData)(nil)
 
-func (m *MyCharData) UnmarshalXMLAttr(attr Attr) error {
+func (m *MyCharData) UnmarshalXMLAttr(_ Attr) error {
 	panic("must not call")
 }
 
