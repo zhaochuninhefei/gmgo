@@ -121,6 +121,7 @@ type Text struct {
 	Body string `xml:",chardata"`
 }
 
+//goland:noinspection HttpUrlsUsage
 var atomFeed = Feed{
 	XMLName: Name{"http://www.w3.org/2005/Atom", "feed"},
 	Title:   "Code Review - My issues",
