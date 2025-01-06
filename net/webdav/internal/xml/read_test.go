@@ -658,7 +658,7 @@ type MyCharData struct {
 }
 
 //goland:noinspection GoStandardMethods
-func (m *MyCharData) UnmarshalXML(d *Decoder, start StartElement) error {
+func (m *MyCharData) UnmarshalXML(d *Decoder, _ StartElement) error {
 	for {
 		t, err := d.Token()
 		if err == io.EOF { // found end of element
