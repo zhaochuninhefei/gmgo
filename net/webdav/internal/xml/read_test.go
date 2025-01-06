@@ -27,6 +27,9 @@ func TestUnmarshalFeed(t *testing.T) {
 }
 
 // hget http://codereview.appspot.com/rss/mine/rsc
+//
+//goland:noinspection HttpUrlsUs
+//goland:noinspection HttpUrlsUsage
 const atomFeedString = `
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en-us" updated="2009-10-04T01:35:58+00:00"><title>Code Review - My issues</title><link href="http://codereview.appspot.com/" rel="alternate"></link><link href="http://codereview.appspot.com/rss/mine/rsc" rel="self"></link><id>http://codereview.appspot.com/</id><author><name>rietveld&lt;&gt;</name></author><entry><title>rietveld: an attempt at pubsubhubbub
@@ -118,6 +121,7 @@ type Text struct {
 	Body string `xml:",chardata"`
 }
 
+//goland:noinspection HttpUrlsUsage
 var atomFeed = Feed{
 	XMLName: Name{"http://www.w3.org/2005/Atom", "feed"},
 	Title:   "Code Review - My issues",
@@ -504,9 +508,9 @@ func TestRoundTrip(t *testing.T) {
 				fmt.Println("failed:", err)
 				return
 			}
-			e.EncodeToken(t)
+			_ = e.EncodeToken(t)
 		}
-		e.Flush()
+		_ = e.Flush()
 		in = out
 	}
 	if got := in.String(); got != s {
@@ -657,7 +661,8 @@ type MyCharData struct {
 	body string
 }
 
-func (m *MyCharData) UnmarshalXML(d *Decoder, start StartElement) error {
+//goland:noinspection GoStandardMethods
+func (m *MyCharData) UnmarshalXML(d *Decoder, _ StartElement) error {
 	for {
 		t, err := d.Token()
 		if err == io.EOF { // found end of element
@@ -675,7 +680,7 @@ func (m *MyCharData) UnmarshalXML(d *Decoder, start StartElement) error {
 
 var _ Unmarshaler = (*MyCharData)(nil)
 
-func (m *MyCharData) UnmarshalXMLAttr(attr Attr) error {
+func (m *MyCharData) UnmarshalXMLAttr(_ Attr) error {
 	panic("must not call")
 }
 

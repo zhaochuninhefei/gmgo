@@ -303,9 +303,9 @@ var _ Marshaler = (*MyMarshalerTest)(nil)
 
 //goland:noinspection GoStandardMethods
 func (m *MyMarshalerTest) MarshalXML(e *Encoder, start StartElement) error {
-	e.EncodeToken(start)
-	e.EncodeToken(CharData("hello world"))
-	e.EncodeToken(EndElement{start.Name})
+	_ = e.EncodeToken(start)
+	_ = e.EncodeToken(CharData("hello world"))
+	_ = e.EncodeToken(EndElement{start.Name})
 	return nil
 }
 
@@ -1418,7 +1418,7 @@ func TestEncodeElement(t *testing.T) {
 func BenchmarkMarshal(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		Marshal(atomValue)
+		_, _ = Marshal(atomValue)
 	}
 }
 
@@ -1426,7 +1426,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 	b.ReportAllocs()
 	xml := []byte(atomXml)
 	for i := 0; i < b.N; i++ {
-		Unmarshal(xml, &Feed{})
+		_ = Unmarshal(xml, &Feed{})
 	}
 }
 
@@ -1873,7 +1873,7 @@ func TestRace9796(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
 		go func() {
-			Marshal(B{[]A{{}}})
+			_, _ = Marshal(B{[]A{{}}})
 			wg.Done()
 		}()
 	}
