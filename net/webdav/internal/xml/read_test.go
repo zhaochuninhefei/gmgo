@@ -504,9 +504,9 @@ func TestRoundTrip(t *testing.T) {
 				fmt.Println("failed:", err)
 				return
 			}
-			e.EncodeToken(t)
+			_ = e.EncodeToken(t)
 		}
-		e.Flush()
+		_ = e.Flush()
 		in = out
 	}
 	if got := in.String(); got != s {
