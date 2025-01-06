@@ -657,6 +657,7 @@ type MyCharData struct {
 	body string
 }
 
+//goland:noinspection GoStandardMethods
 func (m *MyCharData) UnmarshalXML(d *Decoder, start StartElement) error {
 	for {
 		t, err := d.Token()
