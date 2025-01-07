@@ -408,11 +408,13 @@ func TestUnmarshalAttr(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 type Tables struct {
 	HTable string `xml:"http://www.w3.org/TR/html4/ table"`
 	FTable string `xml:"http://www.w3schools.com/furniture table"`
 }
 
+//goland:noinspection HttpUrlsUsage
 var tables = []struct {
 	xml string
 	tab Tables
