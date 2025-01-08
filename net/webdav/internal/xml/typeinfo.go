@@ -258,7 +258,7 @@ func lookupXMLName(typ reflect.Type) (xmlname *fieldInfo) {
 	return nil
 }
 
-func min(a, b int) int {
+func minInts(a, b int) int {
 	if a <= b {
 		return a
 	}
@@ -284,7 +284,7 @@ Loop:
 		if oldf.xmlns != "" && newf.xmlns != "" && oldf.xmlns != newf.xmlns {
 			continue
 		}
-		minl := min(len(newf.parents), len(oldf.parents))
+		minl := minInts(len(newf.parents), len(oldf.parents))
 		for p := 0; p < minl; p++ {
 			if oldf.parents[p] != newf.parents[p] {
 				continue Loop
