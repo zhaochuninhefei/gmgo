@@ -1840,6 +1840,9 @@ var htmlEntity = map[string]string{
 
 // HTMLAutoClose is the set of HTML elements that
 // should be considered to close automatically.
+//
+//goland:noinspection GoUnusedGlobalVaria
+//goland:noinspection GoUnusedGlobalVariable
 var HTMLAutoClose = htmlAutoClose
 
 var htmlAutoClose = []string{
