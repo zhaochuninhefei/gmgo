@@ -149,7 +149,7 @@ func (p ProcInst) Copy() ProcInst {
 // The bytes do not include the <! and > markers.
 type Directive []byte
 
-func (d Directive) Copy() Directive { return Directive(makeCopy(d)) }
+func (d Directive) Copy() Directive { return makeCopy(d) }
 
 // CopyToken returns a copy of a Token.
 func CopyToken(t Token) Token {
