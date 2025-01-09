@@ -698,6 +698,7 @@ func (d *Decoder) rawToken() (Token, error) {
 			}
 		HandleB:
 			d.buf.WriteByte(b)
+			//goland:noinspection GoDfaConstantCondition
 			switch {
 			case b == inquote:
 				inquote = 0
