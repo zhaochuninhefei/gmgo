@@ -126,13 +126,13 @@ func makeCopy(b []byte) []byte {
 	return b1
 }
 
-func (c CharData) Copy() CharData { return CharData(makeCopy(c)) }
+func (c CharData) Copy() CharData { return makeCopy(c) }
 
 // A Comment represents an XML comment of the form <!--comment-->.
 // The bytes do not include the <!-- and --> comment markers.
 type Comment []byte
 
-func (c Comment) Copy() Comment { return Comment(makeCopy(c)) }
+func (c Comment) Copy() Comment { return makeCopy(c) }
 
 // A ProcInst represents an XML processing instruction of the form <?target inst?>
 type ProcInst struct {
