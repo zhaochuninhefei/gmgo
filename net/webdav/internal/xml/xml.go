@@ -1964,11 +1964,11 @@ func (p *printer) EscapeString(s string) {
 			}
 			continue
 		}
-		p.WriteString(s[last : i-width])
-		p.Write(esc)
+		_, _ = p.WriteString(s[last : i-width])
+		_, _ = p.Write(esc)
 		last = i
 	}
-	p.WriteString(s[last:])
+	_, _ = p.WriteString(s[last:])
 }
 
 // Escape is like EscapeText but omits the error return value.
