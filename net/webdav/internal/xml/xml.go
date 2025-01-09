@@ -1975,7 +1975,7 @@ func (p *printer) EscapeString(s string) {
 // It is provided for backwards compatibility with Go 1.0.
 // Code targeting Go 1.1 or later should use EscapeText.
 func Escape(w io.Writer, s []byte) {
-	EscapeText(w, s)
+	_ = EscapeText(w, s)
 }
 
 // procInst parses the `param="..."` or `param='...'`
