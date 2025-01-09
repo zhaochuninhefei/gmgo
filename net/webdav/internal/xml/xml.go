@@ -1571,6 +1571,9 @@ var second = &unicode.RangeTable{
 
 // HTMLEntity is an entity map containing translations for the
 // standard HTML entity characters.
+//
+//goland:noinspection GoUnusedGlobalVaria
+//goland:noinspection GoUnusedGlobalVariable
 var HTMLEntity = htmlEntity
 
 var htmlEntity = map[string]string{
