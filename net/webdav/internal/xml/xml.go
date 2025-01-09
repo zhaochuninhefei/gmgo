@@ -1869,6 +1869,7 @@ var htmlAutoClose = []string{
 	"meta",
 }
 
+//goland:noinspection GoSnakeCaseUsage
 var (
 	esc_quot = []byte("&#34;") // shorter than "&quot;"
 	esc_apos = []byte("&#39;") // shorter than "&apos;"
