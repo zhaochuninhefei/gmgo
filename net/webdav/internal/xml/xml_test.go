@@ -654,6 +654,7 @@ func TestDisallowedCharacters(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedType
 type procInstEncodingTest struct {
 	expect, got string
 }
