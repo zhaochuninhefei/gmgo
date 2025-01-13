@@ -649,7 +649,8 @@ func TestDisallowedCharacters(t *testing.T) {
 		for err == nil {
 			_, err = d.Token()
 		}
-		synerr, ok := err.(*SyntaxError)
+		var synerr *SyntaxError
+		ok := errors.As(err, &synerr)
 		if !ok {
 			t.Fatalf("input %d d.Token() = _, %v, want _, *SyntaxError", i, err)
 		}
