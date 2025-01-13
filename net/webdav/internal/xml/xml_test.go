@@ -6,6 +6,7 @@ package xml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -184,6 +185,7 @@ const nonStrictInput = `
 <tag>&0a;</tag>
 `
 
+//goland:noinspection GoUnusedGlobalVariable
 var nonStringEntity = map[string]string{"": "oops!", "0a": "oops!"}
 
 var nonStrictTokens = []Token{
@@ -241,8 +243,9 @@ func (d *downCaser) ReadByte() (c byte, err error) {
 	return
 }
 
-func (d *downCaser) Read(p []byte) (int, error) {
+func (d *downCaser) Read(_ []byte) (int, error) {
 	d.t.Fatalf("unexpected Read call on downCaser reader")
+	//goland:noinspection GoUnreachableCode
 	panic("unreachable")
 }
 
@@ -393,7 +396,8 @@ func TestSyntax(t *testing.T) {
 		var err error
 		for _, err = d.Token(); err == nil; _, err = d.Token() {
 		}
-		if _, ok := err.(*SyntaxError); !ok {
+		var syntaxError *SyntaxError
+		if !errors.As(err, &syntaxError) {
 			t.Fatalf(`xmlInput "%s": expected SyntaxError not received`, xmlInput[i])
 		}
 	}
@@ -481,7 +485,7 @@ func TestAllScalars(t *testing.T) {
 }
 
 type item struct {
-	Field_a string
+	FieldA string
 }
 
 func TestIssue569(t *testing.T) {
@@ -489,7 +493,7 @@ func TestIssue569(t *testing.T) {
 	var i item
 	err := Unmarshal([]byte(data), &i)
 
-	if err != nil || i.Field_a != "abcd" {
+	if err != nil || i.FieldA != "abcd" {
 		t.Fatal("Expecting abcd")
 	}
 }
@@ -499,7 +503,8 @@ func TestUnquotedAttrs(t *testing.T) {
 	d := NewDecoder(strings.NewReader(data))
 	d.Strict = false
 	token, err := d.Token()
-	if _, ok := err.(*SyntaxError); ok {
+	var syntaxError *SyntaxError
+	if errors.As(err, &syntaxError) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	if token.(StartElement).Name.Local != "tag" {
@@ -525,7 +530,8 @@ func TestValuelessAttrs(t *testing.T) {
 		d := NewDecoder(strings.NewReader(test[0]))
 		d.Strict = false
 		token, err := d.Token()
-		if _, ok := err.(*SyntaxError); ok {
+		var syntaxError *SyntaxError
+		if errors.As(err, &syntaxError) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 		if token.(StartElement).Name.Local != test[1] {
@@ -576,7 +582,8 @@ func TestSyntaxErrorLineNum(t *testing.T) {
 	var err error
 	for _, err = d.Token(); err == nil; _, err = d.Token() {
 	}
-	synerr, ok := err.(*SyntaxError)
+	var synerr *SyntaxError
+	ok := errors.As(err, &synerr)
 	if !ok {
 		t.Error("Expected SyntaxError.")
 	}
@@ -642,7 +649,8 @@ func TestDisallowedCharacters(t *testing.T) {
 		for err == nil {
 			_, err = d.Token()
 		}
-		synerr, ok := err.(*SyntaxError)
+		var synerr *SyntaxError
+		ok := errors.As(err, &synerr)
 		if !ok {
 			t.Fatalf("input %d d.Token() = _, %v, want _, *SyntaxError", i, err)
 		}
@@ -652,6 +660,7 @@ func TestDisallowedCharacters(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnusedType
 type procInstEncodingTest struct {
 	expect, got string
 }
@@ -714,7 +723,7 @@ func TestDirectivesWithComments(t *testing.T) {
 // Writer whose Write method always returns an error.
 type errWriter struct{}
 
-func (errWriter) Write(p []byte) (n int, err error) { return 0, fmt.Errorf("unwritable") }
+func (errWriter) Write(_ []byte) (n int, err error) { return 0, fmt.Errorf("unwritable") }
 
 func TestEscapeTextIOErrors(t *testing.T) {
 	expectErr := "unwritable"

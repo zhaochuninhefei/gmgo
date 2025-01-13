@@ -69,6 +69,7 @@ type StartElement struct {
 	Attr []Attr
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (e StartElement) Copy() StartElement {
 	attrs := make([]Attr, len(e.Attr))
 	copy(attrs, e.Attr)
@@ -77,12 +78,16 @@ func (e StartElement) Copy() StartElement {
 }
 
 // End returns the corresponding XML end element.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (e StartElement) End() EndElement {
 	return EndElement{e.Name}
 }
 
 // setDefaultNamespace sets the namespace of the element
 // as the default for all elements contained within it.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (e *StartElement) setDefaultNamespace() {
 	if e.Name.Space == "" {
 		// If there's no namespace on the element, don't
@@ -121,13 +126,13 @@ func makeCopy(b []byte) []byte {
 	return b1
 }
 
-func (c CharData) Copy() CharData { return CharData(makeCopy(c)) }
+func (c CharData) Copy() CharData { return makeCopy(c) }
 
 // A Comment represents an XML comment of the form <!--comment-->.
 // The bytes do not include the <!-- and --> comment markers.
 type Comment []byte
 
-func (c Comment) Copy() Comment { return Comment(makeCopy(c)) }
+func (c Comment) Copy() Comment { return makeCopy(c) }
 
 // A ProcInst represents an XML processing instruction of the form <?target inst?>
 type ProcInst struct {
@@ -144,7 +149,7 @@ func (p ProcInst) Copy() ProcInst {
 // The bytes do not include the <! and > markers.
 type Directive []byte
 
-func (d Directive) Copy() Directive { return Directive(makeCopy(d)) }
+func (d Directive) Copy() Directive { return makeCopy(d) }
 
 // CopyToken returns a copy of a Token.
 func CopyToken(t Token) Token {
@@ -698,6 +703,7 @@ func (d *Decoder) rawToken() (Token, error) {
 			}
 		HandleB:
 			d.buf.WriteByte(b)
+			//goland:noinspection GoDfaConstantCondition
 			switch {
 			case b == inquote:
 				inquote = 0
@@ -1570,6 +1576,8 @@ var second = &unicode.RangeTable{
 
 // HTMLEntity is an entity map containing translations for the
 // standard HTML entity characters.
+//
+//goland:noinspection GoUnusedGlobalVariable
 var HTMLEntity = htmlEntity
 
 var htmlEntity = map[string]string{
@@ -1837,6 +1845,8 @@ var htmlEntity = map[string]string{
 
 // HTMLAutoClose is the set of HTML elements that
 // should be considered to close automatically.
+//
+//goland:noinspection GoUnusedGlobalVariable
 var HTMLAutoClose = htmlAutoClose
 
 var htmlAutoClose = []string{
@@ -1859,6 +1869,7 @@ var htmlAutoClose = []string{
 	"meta",
 }
 
+//goland:noinspection GoSnakeCaseUsage
 var (
 	esc_quot = []byte("&#34;") // shorter than "&quot;"
 	esc_apos = []byte("&#39;") // shorter than "&apos;"
@@ -1959,18 +1970,18 @@ func (p *printer) EscapeString(s string) {
 			}
 			continue
 		}
-		p.WriteString(s[last : i-width])
-		p.Write(esc)
+		_, _ = p.WriteString(s[last : i-width])
+		_, _ = p.Write(esc)
 		last = i
 	}
-	p.WriteString(s[last:])
+	_, _ = p.WriteString(s[last:])
 }
 
 // Escape is like EscapeText but omits the error return value.
 // It is provided for backwards compatibility with Go 1.0.
 // Code targeting Go 1.1 or later should use EscapeText.
 func Escape(w io.Writer, s []byte) {
-	EscapeText(w, s)
+	_ = EscapeText(w, s)
 }
 
 // procInst parses the `param="..."` or `param='...'`

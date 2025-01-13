@@ -408,11 +408,13 @@ func TestUnmarshalAttr(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 type Tables struct {
 	HTable string `xml:"http://www.w3.org/TR/html4/ table"`
 	FTable string `xml:"http://www.w3schools.com/furniture table"`
 }
 
+//goland:noinspection HttpUrlsUsage
 var tables = []struct {
 	xml string
 	tab Tables
@@ -524,6 +526,7 @@ func TestMarshalNS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
+	//goland:noinspection HttpUrlsUsage
 	want := `<Tables><table xmlns="http://www.w3.org/TR/html4/">hello</table><table xmlns="http://www.w3schools.com/furniture">world</table></Tables>`
 	str := string(data)
 	if str != want {
@@ -535,6 +538,7 @@ type TableAttrs struct {
 	TAttr TAttr
 }
 
+//goland:noinspection HttpUrlsUsage
 type TAttr struct {
 	HTable string `xml:"http://www.w3.org/TR/html4/ table,attr"`
 	FTable string `xml:"http://www.w3schools.com/furniture table,attr"`
@@ -545,6 +549,7 @@ type TAttr struct {
 	Other4 string `xml:"http://golang.org/2/json/ other,attr,omitempty"`
 }
 
+//goland:noinspection HttpUrlsUsage
 var tableAttrs = []struct {
 	xml string
 	tab TableAttrs
@@ -641,6 +646,7 @@ func TestMarshalNSAttr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
+	//goland:noinspection HttpUrlsUsage
 	want := `<TableAttrs><TAttr xmlns:json_1="http://golang.org/2/json/" xmlns:json="http://golang.org/json/" xmlns:_xmlfoo="http://golang.org/xmlfoo/" xmlns:_xml="http://golang.org/xml/" xmlns:furniture="http://www.w3schools.com/furniture" xmlns:html4="http://www.w3.org/TR/html4/" html4:table="hello" furniture:table="world" xml:lang="en_US" _xml:other="other1" _xmlfoo:other="other2" json:other="other3" json_1:other="other4"></TAttr></TableAttrs>`
 	str := string(data)
 	if str != want {
