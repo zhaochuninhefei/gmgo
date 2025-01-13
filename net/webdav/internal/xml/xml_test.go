@@ -242,7 +242,7 @@ func (d *downCaser) ReadByte() (c byte, err error) {
 	return
 }
 
-func (d *downCaser) Read(p []byte) (int, error) {
+func (d *downCaser) Read(_ []byte) (int, error) {
 	d.t.Fatalf("unexpected Read call on downCaser reader")
 	panic("unreachable")
 }
