@@ -717,7 +717,7 @@ func TestDirectivesWithComments(t *testing.T) {
 // Writer whose Write method always returns an error.
 type errWriter struct{}
 
-func (errWriter) Write(p []byte) (n int, err error) { return 0, fmt.Errorf("unwritable") }
+func (errWriter) Write(_ []byte) (n int, err error) { return 0, fmt.Errorf("unwritable") }
 
 func TestEscapeTextIOErrors(t *testing.T) {
 	expectErr := "unwritable"
