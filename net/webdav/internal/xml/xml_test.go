@@ -530,7 +530,8 @@ func TestValuelessAttrs(t *testing.T) {
 		d := NewDecoder(strings.NewReader(test[0]))
 		d.Strict = false
 		token, err := d.Token()
-		if _, ok := err.(*SyntaxError); ok {
+		var syntaxError *SyntaxError
+		if errors.As(err, &syntaxError) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 		if token.(StartElement).Name.Local != test[1] {
