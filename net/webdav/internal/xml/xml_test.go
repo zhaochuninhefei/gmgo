@@ -244,6 +244,7 @@ func (d *downCaser) ReadByte() (c byte, err error) {
 
 func (d *downCaser) Read(_ []byte) (int, error) {
 	d.t.Fatalf("unexpected Read call on downCaser reader")
+	//goland:noinspection GoUnreachableCode
 	panic("unreachable")
 }
 
