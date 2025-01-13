@@ -582,7 +582,8 @@ func TestSyntaxErrorLineNum(t *testing.T) {
 	var err error
 	for _, err = d.Token(); err == nil; _, err = d.Token() {
 	}
-	synerr, ok := err.(*SyntaxError)
+	var synerr *SyntaxError
+	ok := errors.As(err, &synerr)
 	if !ok {
 		t.Error("Expected SyntaxError.")
 	}
