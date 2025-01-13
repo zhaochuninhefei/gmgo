@@ -6,6 +6,7 @@ package xml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -395,7 +396,8 @@ func TestSyntax(t *testing.T) {
 		var err error
 		for _, err = d.Token(); err == nil; _, err = d.Token() {
 		}
-		if _, ok := err.(*SyntaxError); !ok {
+		var syntaxError *SyntaxError
+		if !errors.As(err, &syntaxError) {
 			t.Fatalf(`xmlInput "%s": expected SyntaxError not received`, xmlInput[i])
 		}
 	}
