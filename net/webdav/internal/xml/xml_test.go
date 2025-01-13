@@ -503,7 +503,8 @@ func TestUnquotedAttrs(t *testing.T) {
 	d := NewDecoder(strings.NewReader(data))
 	d.Strict = false
 	token, err := d.Token()
-	if _, ok := err.(*SyntaxError); ok {
+	var syntaxError *SyntaxError
+	if errors.As(err, &syntaxError) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	if token.(StartElement).Name.Local != "tag" {
