@@ -184,6 +184,7 @@ const nonStrictInput = `
 <tag>&0a;</tag>
 `
 
+//goland:noinspection GoUnusedGlobalVariable
 var nonStringEntity = map[string]string{"": "oops!", "0a": "oops!"}
 
 var nonStrictTokens = []Token{
