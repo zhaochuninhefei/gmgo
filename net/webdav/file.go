@@ -79,14 +79,14 @@ func (d Dir) resolve(name string) string {
 	return filepath.Join(dir, filepath.FromSlash(slashClean(name)))
 }
 
-func (d Dir) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
+func (d Dir) Mkdir(_ context.Context, name string, perm os.FileMode) error {
 	if name = d.resolve(name); name == "" {
 		return os.ErrNotExist
 	}
 	return os.Mkdir(name, perm)
 }
 
-func (d Dir) OpenFile(ctx context.Context, name string, flag int, perm os.FileMode) (File, error) {
+func (d Dir) OpenFile(_ context.Context, name string, flag int, perm os.FileMode) (File, error) {
 	if name = d.resolve(name); name == "" {
 		return nil, os.ErrNotExist
 	}
@@ -97,7 +97,7 @@ func (d Dir) OpenFile(ctx context.Context, name string, flag int, perm os.FileMo
 	return f, nil
 }
 
-func (d Dir) RemoveAll(ctx context.Context, name string) error {
+func (d Dir) RemoveAll(_ context.Context, name string) error {
 	if name = d.resolve(name); name == "" {
 		return os.ErrNotExist
 	}
@@ -108,7 +108,7 @@ func (d Dir) RemoveAll(ctx context.Context, name string) error {
 	return os.RemoveAll(name)
 }
 
-func (d Dir) Rename(ctx context.Context, oldName, newName string) error {
+func (d Dir) Rename(_ context.Context, oldName, newName string) error {
 	if oldName = d.resolve(oldName); oldName == "" {
 		return os.ErrNotExist
 	}
@@ -122,7 +122,7 @@ func (d Dir) Rename(ctx context.Context, oldName, newName string) error {
 	return os.Rename(oldName, newName)
 }
 
-func (d Dir) Stat(ctx context.Context, name string) (os.FileInfo, error) {
+func (d Dir) Stat(_ context.Context, name string) (os.FileInfo, error) {
 	if name = d.resolve(name); name == "" {
 		return nil, os.ErrNotExist
 	}
@@ -164,6 +164,8 @@ type memFS struct {
 //   - "/", "foo", false
 //   - "/foo/", "bar", false
 //   - "/foo/bar/", "x", true
+//
+// The frag argument will be empty only if dir is the root node and the w
 // The frag argument will be empty only if dir is the root node and the walk
 // ends at that root node.
 func (fs *memFS) walk(op, fullname string, f func(dir *memFSNode, frag string, final bool) error) error {
@@ -240,7 +242,7 @@ func (fs *memFS) find(op, fullname string) (parent *memFSNode, frag string, err 
 	return parent, frag, err
 }
 
-func (fs *memFS) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
+func (fs *memFS) Mkdir(_ context.Context, name string, perm os.FileMode) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -263,7 +265,7 @@ func (fs *memFS) Mkdir(ctx context.Context, name string, perm os.FileMode) error
 	return nil
 }
 
-func (fs *memFS) OpenFile(ctx context.Context, name string, flag int, perm os.FileMode) (File, error) {
+func (fs *memFS) OpenFile(_ context.Context, name string, flag int, perm os.FileMode) (File, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -323,7 +325,7 @@ func (fs *memFS) OpenFile(ctx context.Context, name string, flag int, perm os.Fi
 	}, nil
 }
 
-func (fs *memFS) RemoveAll(ctx context.Context, name string) error {
+func (fs *memFS) RemoveAll(_ context.Context, name string) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -339,7 +341,7 @@ func (fs *memFS) RemoveAll(ctx context.Context, name string) error {
 	return nil
 }
 
-func (fs *memFS) Rename(ctx context.Context, oldName, newName string) error {
+func (fs *memFS) Rename(_ context.Context, oldName, newName string) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -390,7 +392,7 @@ func (fs *memFS) Rename(ctx context.Context, oldName, newName string) error {
 	return nil
 }
 
-func (fs *memFS) Stat(ctx context.Context, name string) (os.FileInfo, error) {
+func (fs *memFS) Stat(_ context.Context, name string) (os.FileInfo, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
