@@ -678,7 +678,9 @@ func copyFiles(ctx context.Context, fs FileSystem, src, dst string, overwrite bo
 		}
 		return http.StatusInternalServerError, err
 	}
-	defer srcFile.Close()
+	defer func(srcFile File) {
+		_ = srcFile.Close()
+	}(srcFile)
 	srcStat, err := srcFile.Stat()
 	if err != nil {
 		if os.IsNotExist(err) {
