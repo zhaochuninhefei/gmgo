@@ -548,6 +548,7 @@ func (f *memFile) Seek(offset int64, whence int) (int64, error) {
 	defer f.n.mu.Unlock()
 	npos := f.pos
 	// TODO: How to handle offsets greater than the size of system int?
+	//goland:noinspection GoDeprecation
 	switch whence {
 	case os.SEEK_SET:
 		npos = int(offset)
