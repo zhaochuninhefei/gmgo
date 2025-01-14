@@ -783,7 +783,7 @@ func walkFS(ctx context.Context, fs FileSystem, depth int, name string, info os.
 		return walkFn(name, info, err)
 	}
 	fileInfos, err := f.Readdir(0)
-	f.Close()
+	_ = f.Close()
 	if err != nil {
 		return walkFn(name, info, err)
 	}
