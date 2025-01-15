@@ -848,7 +848,7 @@ func BenchmarkMemFileWrite(b *testing.B) {
 			b.Fatalf("OpenFile: %v", err)
 		}
 		for j := 0; j < 100; j++ {
-			f.Write(xxx)
+			_, _ = f.Write(xxx)
 		}
 		if err := f.Close(); err != nil {
 			b.Fatalf("Close: %v", err)
