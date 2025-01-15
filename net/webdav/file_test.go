@@ -582,7 +582,9 @@ func TestMemFileReaddir(t *testing.T) {
 		if err != nil {
 			t.Fatalf("OpenFile: %v", err)
 		}
-		defer f.Close()
+		defer func(f File) {
+			_ = f.Close()
+		}(f)
 		return f.Readdir(count)
 	}
 	if got, err := readdir(-1); len(got) != 0 || err != nil {
