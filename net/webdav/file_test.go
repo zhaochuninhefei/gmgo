@@ -550,7 +550,9 @@ func TestMemFSRoot(t *testing.T) {
 		if err != nil {
 			t.Fatalf("i=%d: OpenFile: %v", i, err)
 		}
-		defer f.Close()
+		defer func(f File) {
+			_ = f.Close()
+		}(f)
 		children, err := f.Readdir(-1)
 		if err != nil {
 			t.Fatalf("i=%d: Readdir: %v", i, err)
