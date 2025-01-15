@@ -672,7 +672,9 @@ func TestMemFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenFile: %v", err)
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 
 	for i, tc := range testCases {
 		j := strings.IndexByte(tc, ' ')
