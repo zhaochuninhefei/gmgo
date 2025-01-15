@@ -1176,14 +1176,14 @@ func buildTestFS(buildfs []string) (FileSystem, error) {
 			if err != nil {
 				return nil, err
 			}
-			f.Close()
+			_ = f.Close()
 		case "write":
 			f, err := fs.OpenFile(ctx, op[1], os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return nil, err
 			}
 			_, err = f.Write([]byte(op[2]))
-			f.Close()
+			_ = f.Close()
 			if err != nil {
 				return nil, err
 			}
