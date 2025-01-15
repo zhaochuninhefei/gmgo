@@ -524,7 +524,9 @@ func TestDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(td)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(td)
 	testFS(t, Dir(td))
 }
 
