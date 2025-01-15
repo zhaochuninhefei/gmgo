@@ -245,7 +245,9 @@ func find(ctx context.Context, ss []string, fs FileSystem, name string) ([]strin
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
+		defer func(f File) {
+			_ = f.Close()
+		}(f)
 		children, err := f.Readdir(-1)
 		if err != nil {
 			return nil, err
