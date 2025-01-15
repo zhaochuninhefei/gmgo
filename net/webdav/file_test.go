@@ -814,7 +814,9 @@ func TestMemFileWriteAllocs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenFile: %v", err)
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 
 	xxx := make([]byte, 1024)
 	for i := range xxx {
@@ -822,7 +824,7 @@ func TestMemFileWriteAllocs(t *testing.T) {
 	}
 
 	a := testing.AllocsPerRun(100, func() {
-		f.Write(xxx)
+		_, _ = f.Write(xxx)
 	})
 	// AllocsPerRun returns an integral value, so we compare the rounded-down
 	// number to zero.
