@@ -806,6 +806,7 @@ func TestMemFile(t *testing.T) {
 // memFile doesn't allocate a new buffer for each of those N times. Otherwise,
 // calling io.Copy(aMemFile, src) is likely to have quadratic complexity.
 func TestMemFileWriteAllocs(t *testing.T) {
+	//goland:noinspection GoBoolExpressions
 	if runtime.Compiler == "gccgo" {
 		t.Skip("gccgo allocates here")
 	}
