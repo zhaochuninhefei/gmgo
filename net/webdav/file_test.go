@@ -465,6 +465,7 @@ func testFS(t *testing.T, fs FileSystem) {
 			}
 
 			got, opErr := "", error(nil)
+			//goland:noinspection GoDfaConstantCondition
 			switch op {
 			case "copy__":
 				depth := 0
