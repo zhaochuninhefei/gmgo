@@ -551,6 +551,7 @@ func TestMemFSRoot(t *testing.T) {
 		if err != nil {
 			t.Fatalf("i=%d: OpenFile: %v", i, err)
 		}
+		//goland:noinspection GoDeferInLoop
 		defer func(f File) {
 			_ = f.Close()
 		}(f)
