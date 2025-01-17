@@ -9,7 +9,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -770,7 +769,7 @@ func TestMemFile(t *testing.T) {
 			if err != nil {
 				t.Fatalf("test case #%d %q: OpenFile: %v", i, tc, err)
 			}
-			gotBytes, err := ioutil.ReadAll(g)
+			gotBytes, err := io.ReadAll(g)
 			if err != nil {
 				t.Fatalf("test case #%d %q: ReadAll: %v", i, tc, err)
 			}
