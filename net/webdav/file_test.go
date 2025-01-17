@@ -521,7 +521,7 @@ func TestDir(t *testing.T) {
 		t.Skip("see golang.org/issue/11453")
 	}
 
-	td, err := ioutil.TempDir("", "webdav-test")
+	td, err := os.MkdirTemp("", "webdav-test")
 	if err != nil {
 		t.Fatal(err)
 	}
