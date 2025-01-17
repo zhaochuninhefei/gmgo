@@ -7,6 +7,7 @@ package webdav
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"io"
 	"os"
 	"path"
@@ -79,14 +80,14 @@ func (d Dir) resolve(name string) string {
 	return filepath.Join(dir, filepath.FromSlash(slashClean(name)))
 }
 
-func (d Dir) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
+func (d Dir) Mkdir(_ context.Context, name string, perm os.FileMode) error {
 	if name = d.resolve(name); name == "" {
 		return os.ErrNotExist
 	}
 	return os.Mkdir(name, perm)
 }
 
-func (d Dir) OpenFile(ctx context.Context, name string, flag int, perm os.FileMode) (File, error) {
+func (d Dir) OpenFile(_ context.Context, name string, flag int, perm os.FileMode) (File, error) {
 	if name = d.resolve(name); name == "" {
 		return nil, os.ErrNotExist
 	}
@@ -97,7 +98,7 @@ func (d Dir) OpenFile(ctx context.Context, name string, flag int, perm os.FileMo
 	return f, nil
 }
 
-func (d Dir) RemoveAll(ctx context.Context, name string) error {
+func (d Dir) RemoveAll(_ context.Context, name string) error {
 	if name = d.resolve(name); name == "" {
 		return os.ErrNotExist
 	}
@@ -108,7 +109,7 @@ func (d Dir) RemoveAll(ctx context.Context, name string) error {
 	return os.RemoveAll(name)
 }
 
-func (d Dir) Rename(ctx context.Context, oldName, newName string) error {
+func (d Dir) Rename(_ context.Context, oldName, newName string) error {
 	if oldName = d.resolve(oldName); oldName == "" {
 		return os.ErrNotExist
 	}
@@ -122,7 +123,7 @@ func (d Dir) Rename(ctx context.Context, oldName, newName string) error {
 	return os.Rename(oldName, newName)
 }
 
-func (d Dir) Stat(ctx context.Context, name string) (os.FileInfo, error) {
+func (d Dir) Stat(_ context.Context, name string) (os.FileInfo, error) {
 	if name = d.resolve(name); name == "" {
 		return nil, os.ErrNotExist
 	}
@@ -164,6 +165,8 @@ type memFS struct {
 //   - "/", "foo", false
 //   - "/foo/", "bar", false
 //   - "/foo/bar/", "x", true
+//
+// The frag argument will be empty only if dir is the root node and the w
 // The frag argument will be empty only if dir is the root node and the walk
 // ends at that root node.
 func (fs *memFS) walk(op, fullname string, f func(dir *memFSNode, frag string, final bool) error) error {
@@ -240,7 +243,7 @@ func (fs *memFS) find(op, fullname string) (parent *memFSNode, frag string, err 
 	return parent, frag, err
 }
 
-func (fs *memFS) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
+func (fs *memFS) Mkdir(_ context.Context, name string, perm os.FileMode) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -263,7 +266,7 @@ func (fs *memFS) Mkdir(ctx context.Context, name string, perm os.FileMode) error
 	return nil
 }
 
-func (fs *memFS) OpenFile(ctx context.Context, name string, flag int, perm os.FileMode) (File, error) {
+func (fs *memFS) OpenFile(_ context.Context, name string, flag int, perm os.FileMode) (File, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -323,7 +326,7 @@ func (fs *memFS) OpenFile(ctx context.Context, name string, flag int, perm os.Fi
 	}, nil
 }
 
-func (fs *memFS) RemoveAll(ctx context.Context, name string) error {
+func (fs *memFS) RemoveAll(_ context.Context, name string) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -339,7 +342,7 @@ func (fs *memFS) RemoveAll(ctx context.Context, name string) error {
 	return nil
 }
 
-func (fs *memFS) Rename(ctx context.Context, oldName, newName string) error {
+func (fs *memFS) Rename(_ context.Context, oldName, newName string) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -390,7 +393,7 @@ func (fs *memFS) Rename(ctx context.Context, oldName, newName string) error {
 	return nil
 }
 
-func (fs *memFS) Stat(ctx context.Context, name string) (os.FileInfo, error) {
+func (fs *memFS) Stat(_ context.Context, name string) (os.FileInfo, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -546,6 +549,7 @@ func (f *memFile) Seek(offset int64, whence int) (int64, error) {
 	defer f.n.mu.Unlock()
 	npos := f.pos
 	// TODO: How to handle offsets greater than the size of system int?
+	//goland:noinspection GoDeprecation
 	switch whence {
 	case os.SEEK_SET:
 		npos = int(offset)
@@ -675,7 +679,9 @@ func copyFiles(ctx context.Context, fs FileSystem, src, dst string, overwrite bo
 		}
 		return http.StatusInternalServerError, err
 	}
-	defer srcFile.Close()
+	defer func(srcFile File) {
+		_ = srcFile.Close()
+	}(srcFile)
 	srcStat, err := srcFile.Stat()
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -760,7 +766,7 @@ func walkFS(ctx context.Context, fs FileSystem, depth int, name string, info os.
 	// This implementation is based on Walk's code in the standard path/filepath package.
 	err := walkFn(name, info, nil)
 	if err != nil {
-		if info.IsDir() && err == filepath.SkipDir {
+		if info.IsDir() && errors.Is(err, filepath.SkipDir) {
 			return nil
 		}
 		return err
@@ -778,7 +784,7 @@ func walkFS(ctx context.Context, fs FileSystem, depth int, name string, info os.
 		return walkFn(name, info, err)
 	}
 	fileInfos, err := f.Readdir(0)
-	f.Close()
+	_ = f.Close()
 	if err != nil {
 		return walkFn(name, info, err)
 	}
@@ -787,13 +793,13 @@ func walkFS(ctx context.Context, fs FileSystem, depth int, name string, info os.
 		filename := path.Join(name, fileInfo.Name())
 		fileInfo, err := fs.Stat(ctx, filename)
 		if err != nil {
-			if err := walkFn(filename, fileInfo, err); err != nil && err != filepath.SkipDir {
+			if err := walkFn(filename, fileInfo, err); err != nil && !errors.Is(err, filepath.SkipDir) {
 				return err
 			}
 		} else {
 			err = walkFS(ctx, fs, depth, filename, fileInfo, walkFn)
 			if err != nil {
-				if !fileInfo.IsDir() || err != filepath.SkipDir {
+				if !fileInfo.IsDir() || !errors.Is(err, filepath.SkipDir) {
 					return err
 				}
 			}

@@ -9,7 +9,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -245,7 +244,9 @@ func find(ctx context.Context, ss []string, fs FileSystem, name string) ([]strin
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
+		defer func(f File) {
+			_ = f.Close()
+		}(f)
 		children, err := f.Readdir(-1)
 		if err != nil {
 			return nil, err
@@ -463,6 +464,7 @@ func testFS(t *testing.T, fs FileSystem) {
 			}
 
 			got, opErr := "", error(nil)
+			//goland:noinspection GoDfaConstantCondition
 			switch op {
 			case "copy__":
 				depth := 0
@@ -518,11 +520,13 @@ func TestDir(t *testing.T) {
 		t.Skip("see golang.org/issue/11453")
 	}
 
-	td, err := ioutil.TempDir("", "webdav-test")
+	td, err := os.MkdirTemp("", "webdav-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(td)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(td)
 	testFS(t, Dir(td))
 }
 
@@ -546,7 +550,10 @@ func TestMemFSRoot(t *testing.T) {
 		if err != nil {
 			t.Fatalf("i=%d: OpenFile: %v", i, err)
 		}
-		defer f.Close()
+		//goland:noinspection GoDeferInLoop
+		defer func(f File) {
+			_ = f.Close()
+		}(f)
 		children, err := f.Readdir(-1)
 		if err != nil {
 			t.Fatalf("i=%d: Readdir: %v", i, err)
@@ -576,7 +583,9 @@ func TestMemFileReaddir(t *testing.T) {
 		if err != nil {
 			t.Fatalf("OpenFile: %v", err)
 		}
-		defer f.Close()
+		defer func(f File) {
+			_ = f.Close()
+		}(f)
 		return f.Readdir(count)
 	}
 	if got, err := readdir(-1); len(got) != 0 || err != nil {
@@ -664,7 +673,9 @@ func TestMemFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenFile: %v", err)
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 
 	for i, tc := range testCases {
 		j := strings.IndexByte(tc, ' ')
@@ -711,11 +722,11 @@ func TestMemFile(t *testing.T) {
 			default:
 				t.Fatalf("test case #%d %q: invalid seek whence", i, tc)
 			case "set":
-				whence = os.SEEK_SET
+				whence = io.SeekStart
 			case "cur":
-				whence = os.SEEK_CUR
+				whence = io.SeekCurrent
 			case "end":
-				whence = os.SEEK_END
+				whence = io.SeekEnd
 			}
 			offset, err := strconv.Atoi(parts[1])
 			if err != nil {
@@ -758,7 +769,7 @@ func TestMemFile(t *testing.T) {
 			if err != nil {
 				t.Fatalf("test case #%d %q: OpenFile: %v", i, tc, err)
 			}
-			gotBytes, err := ioutil.ReadAll(g)
+			gotBytes, err := io.ReadAll(g)
 			if err != nil {
 				t.Fatalf("test case #%d %q: ReadAll: %v", i, tc, err)
 			}
@@ -795,6 +806,7 @@ func TestMemFile(t *testing.T) {
 // memFile doesn't allocate a new buffer for each of those N times. Otherwise,
 // calling io.Copy(aMemFile, src) is likely to have quadratic complexity.
 func TestMemFileWriteAllocs(t *testing.T) {
+	//goland:noinspection GoBoolExpressions
 	if runtime.Compiler == "gccgo" {
 		t.Skip("gccgo allocates here")
 	}
@@ -804,7 +816,9 @@ func TestMemFileWriteAllocs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenFile: %v", err)
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 
 	xxx := make([]byte, 1024)
 	for i := range xxx {
@@ -812,7 +826,7 @@ func TestMemFileWriteAllocs(t *testing.T) {
 	}
 
 	a := testing.AllocsPerRun(100, func() {
-		f.Write(xxx)
+		_, _ = f.Write(xxx)
 	})
 	// AllocsPerRun returns an integral value, so we compare the rounded-down
 	// number to zero.
@@ -836,7 +850,7 @@ func BenchmarkMemFileWrite(b *testing.B) {
 			b.Fatalf("OpenFile: %v", err)
 		}
 		for j := 0; j < 100; j++ {
-			f.Write(xxx)
+			_, _ = f.Write(xxx)
 		}
 		if err := f.Close(); err != nil {
 			b.Fatalf("Close: %v", err)
@@ -1164,14 +1178,14 @@ func buildTestFS(buildfs []string) (FileSystem, error) {
 			if err != nil {
 				return nil, err
 			}
-			f.Close()
+			_ = f.Close()
 		case "write":
 			f, err := fs.OpenFile(ctx, op[1], os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return nil, err
 			}
 			_, err = f.Write([]byte(op[2]))
-			f.Close()
+			_ = f.Close()
 			if err != nil {
 				return nil, err
 			}
