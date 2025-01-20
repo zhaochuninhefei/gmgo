@@ -13,6 +13,7 @@ import (
 func TestParseIfHeader(t *testing.T) {
 	// The "section x.y.z" test cases come from section x.y.z of the spec at
 	// http://www.webdav.org/specs/rfc4918.html
+	//goland:noinspection HttpUrlsUsage
 	testCases := []struct {
 		desc  string
 		input string
