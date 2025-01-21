@@ -68,9 +68,9 @@ var lockTestDurations = []time.Duration{
 
 // lockTestNames are the names of a set of mutually compatible locks. For each
 // name fragment:
-//	- _ means no explicit lock.
-//	- i means an infinite-depth lock,
-//	- z means a zero-depth lock,
+//   - _ means no explicit lock.
+//   - i means an infinite-depth lock,
+//   - z means a zero-depth lock,
 var lockTestNames = []string{
 	"/_/_/_/_/z",
 	"/_/_/i",
@@ -386,6 +386,7 @@ func TestMemLSExpiry(t *testing.T) {
 			}
 			dur := time.Unix(0, 0).Add(time.Duration(d) * time.Second).Sub(now)
 
+			//goland:noinspection GoDfaConstantCondition
 			switch op {
 			case "create":
 				token, err := m.Create(now, LockDetails{
