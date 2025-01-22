@@ -314,7 +314,9 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	if dph, ok := f.(DeadPropsHolder); ok {
 		ret, err := dph.Patch(patches)
 		if err != nil {
