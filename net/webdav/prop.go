@@ -172,7 +172,9 @@ func props(ctx context.Context, fs FileSystem, ls LockSystem, name string, pname
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -220,7 +222,9 @@ func propnames(ctx context.Context, fs FileSystem, ls LockSystem, name string) (
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, err
