@@ -418,7 +418,9 @@ func findContentType(ctx context.Context, fs FileSystem, ls LockSystem, name str
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	// This implementation is based on serveContent's code in the standard net/http package.
 	ctype := mime.TypeByExtension(filepath.Ext(name))
 	if ctype != "" {
