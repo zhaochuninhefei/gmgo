@@ -436,7 +436,7 @@ func TestMemLSExpiry(t *testing.T) {
 			}
 			m.mu.Unlock()
 			sort.Strings(got)
-			want := []string{}
+			var want []string
 			if arg != "" {
 				want = strings.Split(arg, " ")
 			}
