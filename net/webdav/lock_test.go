@@ -5,6 +5,7 @@
 package webdav
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"path"
@@ -230,7 +231,7 @@ func TestMemLSConfirm(t *testing.T) {
 
 	// Test a mismatch between name and condition.
 	_, err = m.Confirm(now, "/tweedle/dee", "", Condition{Token: alice})
-	if err != ErrConfirmationFailed {
+	if !errors.Is(err, ErrConfirmationFailed) {
 		t.Fatalf("Confirm (mismatch): got %v, want ErrConfirmationFailed", err)
 	}
 	if err := m.consistent(); err != nil {
