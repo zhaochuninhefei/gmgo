@@ -357,7 +357,7 @@ func escapeXML(s string) string {
 		}
 		// Otherwise, go through the full escaping process.
 		var buf bytes.Buffer
-		xml.EscapeText(&buf, []byte(s))
+		_ = xml.EscapeText(&buf, []byte(s))
 		return buf.String()
 	}
 	return s
