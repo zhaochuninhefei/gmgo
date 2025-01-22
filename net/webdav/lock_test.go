@@ -730,7 +730,7 @@ func TestParseTimeout(t *testing.T) {
 
 	for _, tc := range testCases {
 		got, gotErr := parseTimeout(tc.s)
-		if got != tc.want || gotErr != tc.wantErr {
+		if got != tc.want || !errors.Is(gotErr, tc.wantErr) {
 			t.Errorf("parsing %q:\ngot  %v, %v\nwant %v, %v", tc.s, got, gotErr, tc.want, tc.wantErr)
 		}
 	}
