@@ -283,7 +283,7 @@ func TestMemLSConfirm(t *testing.T) {
 
 	// Test that you can't unlock a held lock.
 	err = m.Unlock(now, tweedle)
-	if err != ErrLocked {
+	if !errors.Is(err, ErrLocked) {
 		t.Fatalf("Unlock (sequence #4): got %v, want ErrLocked", err)
 	}
 
