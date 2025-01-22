@@ -261,7 +261,7 @@ func TestMemLSConfirm(t *testing.T) {
 	}
 
 	_, err = m.Confirm(now, "/tweedle/dum", "", Condition{Token: tweedle})
-	if err != ErrConfirmationFailed {
+	if !errors.Is(err, ErrConfirmationFailed) {
 		t.Fatalf("Confirm (sequence #1): got %v, want ErrConfirmationFailed", err)
 	}
 	if err := m.consistent(); err != nil {
