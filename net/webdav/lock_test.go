@@ -5,6 +5,7 @@
 package webdav
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"path"
@@ -68,9 +69,9 @@ var lockTestDurations = []time.Duration{
 
 // lockTestNames are the names of a set of mutually compatible locks. For each
 // name fragment:
-//	- _ means no explicit lock.
-//	- i means an infinite-depth lock,
-//	- z means a zero-depth lock,
+//   - _ means no explicit lock.
+//   - i means an infinite-depth lock,
+//   - z means a zero-depth lock,
 var lockTestNames = []string{
 	"/_/_/_/_/z",
 	"/_/_/i",
@@ -230,7 +231,7 @@ func TestMemLSConfirm(t *testing.T) {
 
 	// Test a mismatch between name and condition.
 	_, err = m.Confirm(now, "/tweedle/dee", "", Condition{Token: alice})
-	if err != ErrConfirmationFailed {
+	if !errors.Is(err, ErrConfirmationFailed) {
 		t.Fatalf("Confirm (mismatch): got %v, want ErrConfirmationFailed", err)
 	}
 	if err := m.consistent(); err != nil {
@@ -260,7 +261,7 @@ func TestMemLSConfirm(t *testing.T) {
 	}
 
 	_, err = m.Confirm(now, "/tweedle/dum", "", Condition{Token: tweedle})
-	if err != ErrConfirmationFailed {
+	if !errors.Is(err, ErrConfirmationFailed) {
 		t.Fatalf("Confirm (sequence #1): got %v, want ErrConfirmationFailed", err)
 	}
 	if err := m.consistent(); err != nil {
@@ -282,7 +283,7 @@ func TestMemLSConfirm(t *testing.T) {
 
 	// Test that you can't unlock a held lock.
 	err = m.Unlock(now, tweedle)
-	if err != ErrLocked {
+	if !errors.Is(err, ErrLocked) {
 		t.Fatalf("Unlock (sequence #4): got %v, want ErrLocked", err)
 	}
 
@@ -386,6 +387,7 @@ func TestMemLSExpiry(t *testing.T) {
 			}
 			dur := time.Unix(0, 0).Add(time.Duration(d) * time.Second).Sub(now)
 
+			//goland:noinspection GoDfaConstantCondition
 			switch op {
 			case "create":
 				token, err := m.Create(now, LockDetails{
@@ -434,7 +436,7 @@ func TestMemLSExpiry(t *testing.T) {
 			}
 			m.mu.Unlock()
 			sort.Strings(got)
-			want := []string{}
+			var want []string
 			if arg != "" {
 				want = strings.Split(arg, " ")
 			}
@@ -728,7 +730,7 @@ func TestParseTimeout(t *testing.T) {
 
 	for _, tc := range testCases {
 		got, gotErr := parseTimeout(tc.s)
-		if got != tc.want || gotErr != tc.wantErr {
+		if got != tc.want || !errors.Is(gotErr, tc.wantErr) {
 			t.Errorf("parsing %q:\ngot  %v, %v\nwant %v, %v", tc.s, got, gotErr, tc.want, tc.wantErr)
 		}
 	}

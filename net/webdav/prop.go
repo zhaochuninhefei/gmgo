@@ -172,7 +172,9 @@ func props(ctx context.Context, fs FileSystem, ls LockSystem, name string, pname
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -215,12 +217,14 @@ func props(ctx context.Context, fs FileSystem, ls LockSystem, name string, pname
 }
 
 // Propnames returns the property names defined for resource name.
-func propnames(ctx context.Context, fs FileSystem, ls LockSystem, name string) ([]xml.Name, error) {
+func propnames(ctx context.Context, fs FileSystem, _ LockSystem, name string) ([]xml.Name, error) {
 	f, err := fs.OpenFile(ctx, name, os.O_RDONLY, 0)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -275,7 +279,7 @@ func allprop(ctx context.Context, fs FileSystem, ls LockSystem, name string, inc
 
 // Patch patches the properties of resource name. The return values are
 // constrained in the same manner as DeadPropsHolder.Patch.
-func patch(ctx context.Context, fs FileSystem, ls LockSystem, name string, patches []Proppatch) ([]Propstat, error) {
+func patch(ctx context.Context, fs FileSystem, _ LockSystem, name string, patches []Proppatch) ([]Propstat, error) {
 	conflict := false
 loop:
 	for _, patch := range patches {
@@ -310,7 +314,9 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	if dph, ok := f.(DeadPropsHolder); ok {
 		ret, err := dph.Patch(patches)
 		if err != nil {
@@ -351,13 +357,13 @@ func escapeXML(s string) string {
 		}
 		// Otherwise, go through the full escaping process.
 		var buf bytes.Buffer
-		xml.EscapeText(&buf, []byte(s))
+		_ = xml.EscapeText(&buf, []byte(s))
 		return buf.String()
 	}
 	return s
 }
 
-func findResourceType(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findResourceType(_ context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	if fi.IsDir() {
 		return `<D:collection xmlns:D="DAV:"/>`, nil
 	}
@@ -412,7 +418,9 @@ func findContentType(ctx context.Context, fs FileSystem, ls LockSystem, name str
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	// This implementation is based on serveContent's code in the standard net/http package.
 	ctype := mime.TypeByExtension(filepath.Ext(name))
 	if ctype != "" {
