@@ -363,7 +363,7 @@ func escapeXML(s string) string {
 	return s
 }
 
-func findResourceType(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findResourceType(_ context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	if fi.IsDir() {
 		return `<D:collection xmlns:D="DAV:"/>`, nil
 	}
