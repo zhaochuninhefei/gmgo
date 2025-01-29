@@ -429,7 +429,7 @@ func findContentType(ctx context.Context, fs FileSystem, _ LockSystem, name stri
 	// Read a chunk to decide between utf-8 text and binary.
 	var buf [512]byte
 	n, err := io.ReadFull(f, buf[:])
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+	if err != nil && err != io.EOF && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return "", err
 	}
 	ctype = http.DetectContentType(buf[:n])
