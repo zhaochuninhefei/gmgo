@@ -407,7 +407,7 @@ type ContentTyper interface {
 	ContentType(ctx context.Context) (string, error)
 }
 
-func findContentType(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findContentType(ctx context.Context, fs FileSystem, _ LockSystem, name string, fi os.FileInfo) (string, error) {
 	if do, ok := fi.(ContentTyper); ok {
 		ctype, err := do.ContentType(ctx)
 		if err != ErrNotImplemented {
