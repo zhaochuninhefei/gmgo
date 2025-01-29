@@ -370,7 +370,7 @@ func findResourceType(_ context.Context, _ FileSystem, _ LockSystem, _ string, f
 	return "", nil
 }
 
-func findDisplayName(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findDisplayName(_ context.Context, _ FileSystem, _ LockSystem, name string, fi os.FileInfo) (string, error) {
 	if slashClean(name) == "/" {
 		// Hide the real name of a possibly prefixed root directory.
 		return "", nil
