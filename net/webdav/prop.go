@@ -382,7 +382,7 @@ func findContentLength(_ context.Context, _ FileSystem, _ LockSystem, _ string, 
 	return strconv.FormatInt(fi.Size(), 10), nil
 }
 
-func findLastModified(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findLastModified(_ context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	return fi.ModTime().UTC().Format(http.TimeFormat), nil
 }
 
