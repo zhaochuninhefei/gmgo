@@ -456,7 +456,7 @@ type ETager interface {
 	ETag(ctx context.Context) (string, error)
 }
 
-func findETag(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findETag(ctx context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	if do, ok := fi.(ETager); ok {
 		etag, err := do.ETag(ctx)
 		if err != ErrNotImplemented {
