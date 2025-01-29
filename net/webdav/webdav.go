@@ -290,7 +290,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	return http.StatusCreated, nil
 }
 
-func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status int, err error) {
+func (h *Handler) handleMkcol(_ http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if err != nil {
 		return status, err
