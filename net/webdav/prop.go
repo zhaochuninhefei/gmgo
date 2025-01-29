@@ -459,7 +459,7 @@ type ETager interface {
 func findETag(ctx context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	if do, ok := fi.(ETager); ok {
 		etag, err := do.ETag(ctx)
-		if err != ErrNotImplemented {
+		if !errors.Is(err, ErrNotImplemented) {
 			return etag, err
 		}
 	}
