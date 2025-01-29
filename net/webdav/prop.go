@@ -469,7 +469,7 @@ func findETag(ctx context.Context, _ FileSystem, _ LockSystem, _ string, fi os.F
 	return fmt.Sprintf(`"%x%x"`, fi.ModTime().UnixNano(), fi.Size()), nil
 }
 
-func findSupportedLock(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findSupportedLock(_ context.Context, _ FileSystem, _ LockSystem, _ string, _ os.FileInfo) (string, error) {
 	return `` +
 		`<D:lockentry xmlns:D="DAV:">` +
 		`<D:lockscope><D:exclusive/></D:lockscope>` +
