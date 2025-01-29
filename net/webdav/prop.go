@@ -378,7 +378,7 @@ func findDisplayName(_ context.Context, _ FileSystem, _ LockSystem, name string,
 	return escapeXML(fi.Name()), nil
 }
 
-func findContentLength(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findContentLength(_ context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	return strconv.FormatInt(fi.Size(), 10), nil
 }
 
