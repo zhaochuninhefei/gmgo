@@ -410,7 +410,7 @@ type ContentTyper interface {
 func findContentType(ctx context.Context, fs FileSystem, _ LockSystem, name string, fi os.FileInfo) (string, error) {
 	if do, ok := fi.(ContentTyper); ok {
 		ctype, err := do.ContentType(ctx)
-		if err != ErrNotImplemented {
+		if !errors.Is(err, ErrNotImplemented) {
 			return ctype, err
 		}
 	}
