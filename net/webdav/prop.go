@@ -370,7 +370,7 @@ func findResourceType(_ context.Context, _ FileSystem, _ LockSystem, _ string, f
 	return "", nil
 }
 
-func findDisplayName(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findDisplayName(_ context.Context, _ FileSystem, _ LockSystem, name string, fi os.FileInfo) (string, error) {
 	if slashClean(name) == "/" {
 		// Hide the real name of a possibly prefixed root directory.
 		return "", nil
@@ -378,11 +378,11 @@ func findDisplayName(ctx context.Context, fs FileSystem, ls LockSystem, name str
 	return escapeXML(fi.Name()), nil
 }
 
-func findContentLength(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findContentLength(_ context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	return strconv.FormatInt(fi.Size(), 10), nil
 }
 
-func findLastModified(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findLastModified(_ context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	return fi.ModTime().UTC().Format(http.TimeFormat), nil
 }
 
@@ -407,10 +407,10 @@ type ContentTyper interface {
 	ContentType(ctx context.Context) (string, error)
 }
 
-func findContentType(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findContentType(ctx context.Context, fs FileSystem, _ LockSystem, name string, fi os.FileInfo) (string, error) {
 	if do, ok := fi.(ContentTyper); ok {
 		ctype, err := do.ContentType(ctx)
-		if err != ErrNotImplemented {
+		if !errors.Is(err, ErrNotImplemented) {
 			return ctype, err
 		}
 	}
@@ -429,12 +429,12 @@ func findContentType(ctx context.Context, fs FileSystem, ls LockSystem, name str
 	// Read a chunk to decide between utf-8 text and binary.
 	var buf [512]byte
 	n, err := io.ReadFull(f, buf[:])
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+	if err != nil && err != io.EOF && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return "", err
 	}
 	ctype = http.DetectContentType(buf[:n])
 	// Rewind file.
-	_, err = f.Seek(0, os.SEEK_SET)
+	_, err = f.Seek(0, io.SeekStart)
 	return ctype, err
 }
 
@@ -456,10 +456,10 @@ type ETager interface {
 	ETag(ctx context.Context) (string, error)
 }
 
-func findETag(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findETag(ctx context.Context, _ FileSystem, _ LockSystem, _ string, fi os.FileInfo) (string, error) {
 	if do, ok := fi.(ETager); ok {
 		etag, err := do.ETag(ctx)
-		if err != ErrNotImplemented {
+		if !errors.Is(err, ErrNotImplemented) {
 			return etag, err
 		}
 	}
@@ -469,7 +469,7 @@ func findETag(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi
 	return fmt.Sprintf(`"%x%x"`, fi.ModTime().UnixNano(), fi.Size()), nil
 }
 
-func findSupportedLock(ctx context.Context, fs FileSystem, ls LockSystem, name string, fi os.FileInfo) (string, error) {
+func findSupportedLock(_ context.Context, _ FileSystem, _ LockSystem, _ string, _ os.FileInfo) (string, error) {
 	return `` +
 		`<D:lockentry xmlns:D="DAV:">` +
 		`<D:lockscope><D:exclusive/></D:lockscope>` +

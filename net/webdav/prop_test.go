@@ -619,7 +619,7 @@ type overrideContentType struct {
 	err         error
 }
 
-func (o *overrideContentType) ContentType(ctx context.Context) (string, error) {
+func (o *overrideContentType) ContentType(_ context.Context) (string, error) {
 	return o.contentType, o.err
 }
 
@@ -670,7 +670,7 @@ type overrideETag struct {
 	err  error
 }
 
-func (o *overrideETag) ETag(ctx context.Context) (string, error) {
+func (o *overrideETag) ETag(_ context.Context) (string, error) {
 	return o.eTag, o.err
 }
 
