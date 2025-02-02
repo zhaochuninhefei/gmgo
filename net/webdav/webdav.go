@@ -89,7 +89,7 @@ func (h *Handler) lock(now time.Time, root string) (token string, status int, er
 		ZeroDepth: true,
 	})
 	if err != nil {
-		if err == ErrLocked {
+		if errors.Is(err, ErrLocked) {
 			return "", StatusLocked, err
 		}
 		return "", http.StatusInternalServerError, err
