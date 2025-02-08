@@ -124,7 +124,7 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string) (release func()
 
 		return func() {
 			if dstToken != "" {
-				h.LockSystem.Unlock(now, dstToken)
+				_ = h.LockSystem.Unlock(now, dstToken)
 			}
 			if srcToken != "" {
 				h.LockSystem.Unlock(now, srcToken)
