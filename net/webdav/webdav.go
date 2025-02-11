@@ -203,7 +203,9 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 	if err != nil {
 		return http.StatusNotFound, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	fi, err := f.Stat()
 	if err != nil {
 		return http.StatusNotFound, err
