@@ -455,7 +455,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		}
 		defer func() {
 			if retErr != nil {
-				h.LockSystem.Unlock(now, token)
+				_ = h.LockSystem.Unlock(now, token)
 			}
 		}()
 
