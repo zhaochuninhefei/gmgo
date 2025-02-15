@@ -258,7 +258,9 @@ func TestFilenameEscape(t *testing.T) {
 		if err != nil {
 			return "", "", err
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 
 		b, err := ioutil.ReadAll(res.Body)
 		if err != nil {
