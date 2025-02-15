@@ -127,7 +127,7 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string) (release func()
 				_ = h.LockSystem.Unlock(now, dstToken)
 			}
 			if srcToken != "" {
-				h.LockSystem.Unlock(now, srcToken)
+				_ = h.LockSystem.Unlock(now, srcToken)
 			}
 		}, 0, nil
 	}
@@ -155,7 +155,7 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string) (release func()
 			}
 		}
 		release, err = h.LockSystem.Confirm(time.Now(), lsrc, dst, l.conditions...)
-		if err == ErrConfirmationFailed {
+		if errors.Is(err, ErrConfirmationFailed) {
 			continue
 		}
 		if err != nil {
@@ -203,7 +203,9 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 	if err != nil {
 		return http.StatusNotFound, err
 	}
-	defer f.Close()
+	defer func(f File) {
+		_ = f.Close()
+	}(f)
 	fi, err := f.Stat()
 	if err != nil {
 		return http.StatusNotFound, err
@@ -416,7 +418,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		}
 		ld, err = h.LockSystem.Refresh(now, token, duration)
 		if err != nil {
-			if err == ErrNoSuchLock {
+			if errors.Is(err, ErrNoSuchLock) {
 				return http.StatusPreconditionFailed, err
 			}
 			return http.StatusInternalServerError, err
@@ -446,14 +448,14 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		}
 		token, err = h.LockSystem.Create(now, ld)
 		if err != nil {
-			if err == ErrLocked {
+			if errors.Is(err, ErrLocked) {
 				return StatusLocked, err
 			}
 			return http.StatusInternalServerError, err
 		}
 		defer func() {
 			if retErr != nil {
-				h.LockSystem.Unlock(now, token)
+				_ = h.LockSystem.Unlock(now, token)
 			}
 		}()
 
@@ -464,7 +466,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 				// TODO: detect missing intermediate dirs and return http.StatusConflict?
 				return http.StatusInternalServerError, err
 			}
-			f.Close()
+			_ = f.Close()
 			created = true
 		}
 
@@ -480,7 +482,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		// and Handler.ServeHTTP would otherwise write "Created".
 		w.WriteHeader(http.StatusCreated)
 	}
-	writeLockInfo(w, token, ld)
+	_, _ = writeLockInfo(w, token, ld)
 	return 0, nil
 }
 
@@ -493,14 +495,14 @@ func (h *Handler) handleUnlock(_ http.ResponseWriter, r *http.Request) (status i
 	}
 	t = t[1 : len(t)-1]
 
-	switch err = h.LockSystem.Unlock(time.Now(), t); err {
-	case nil:
+	switch err = h.LockSystem.Unlock(time.Now(), t); {
+	case err == nil:
 		return http.StatusNoContent, err
-	case ErrForbidden:
+	case errors.Is(err, ErrForbidden):
 		return http.StatusForbidden, err
-	case ErrLocked:
+	case errors.Is(err, ErrLocked):
 		return StatusLocked, err
-	case ErrNoSuchLock:
+	case errors.Is(err, ErrNoSuchLock):
 		return http.StatusConflict, err
 	default:
 		return http.StatusInternalServerError, err

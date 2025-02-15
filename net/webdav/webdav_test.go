@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"reflect"
@@ -28,6 +27,7 @@ func TestPrefix(t *testing.T) {
 	const dst, blah = "Destination", "blah blah blah"
 
 	// createLockBody comes from the example in Section 9.10.7.
+	//goland:noinspection HttpUrlsUsage
 	const createLockBody = `<?xml version="1.0" encoding="utf-8" ?>
 		<D:lockinfo xmlns:D='DAV:'>
 			<D:lockscope><D:exclusive/></D:lockscope>
@@ -55,7 +55,9 @@ func TestPrefix(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != wantStatusCode {
 			return nil, fmt.Errorf("got status code %d, want %d", res.StatusCode, wantStatusCode)
 		}
@@ -81,6 +83,7 @@ func TestPrefix(t *testing.T) {
 		}
 		mux.Handle(prefix, h)
 		srv := httptest.NewServer(mux)
+		//goland:noinspection GoDeferInLoop
 		defer srv.Close()
 
 		// The script is:
@@ -256,17 +259,21 @@ func TestFilenameEscape(t *testing.T) {
 		if err != nil {
 			return "", "", err
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 
-		b, err := ioutil.ReadAll(res.Body)
+		b, err := io.ReadAll(res.Body)
 		if err != nil {
 			return "", "", err
 		}
 		hrefMatch := hrefRe.FindStringSubmatch(string(b))
 		if len(hrefMatch) != 2 {
+			//goland:noinspection GoErrorStringFormat
 			return "", "", errors.New("D:href not found")
 		}
 		displayNameMatch := displayNameRe.FindStringSubmatch(string(b))
+		//goland:noinspection GoErrorStringFormat
 		if len(displayNameMatch) != 2 {
 			return "", "", errors.New("D:displayname not found")
 		}
@@ -318,7 +325,7 @@ func TestFilenameEscape(t *testing.T) {
 				if err != nil {
 					t.Fatalf("name=%q: OpenFile: %v", tc.name, err)
 				}
-				f.Close()
+				_ = f.Close()
 			}
 		}
 	}
