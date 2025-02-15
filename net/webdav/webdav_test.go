@@ -321,7 +321,7 @@ func TestFilenameEscape(t *testing.T) {
 				if err != nil {
 					t.Fatalf("name=%q: OpenFile: %v", tc.name, err)
 				}
-				f.Close()
+				_ = f.Close()
 			}
 		}
 	}
