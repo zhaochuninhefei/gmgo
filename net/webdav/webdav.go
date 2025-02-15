@@ -466,7 +466,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 				// TODO: detect missing intermediate dirs and return http.StatusConflict?
 				return http.StatusInternalServerError, err
 			}
-			f.Close()
+			_ = f.Close()
 			created = true
 		}
 
