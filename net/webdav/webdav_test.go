@@ -273,6 +273,7 @@ func TestFilenameEscape(t *testing.T) {
 			return "", "", errors.New("D:href not found")
 		}
 		displayNameMatch := displayNameRe.FindStringSubmatch(string(b))
+		//goland:noinspection GoErrorStringFormat
 		if len(displayNameMatch) != 2 {
 			return "", "", errors.New("D:displayname not found")
 		}
