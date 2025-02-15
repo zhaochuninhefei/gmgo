@@ -448,7 +448,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		}
 		token, err = h.LockSystem.Create(now, ld)
 		if err != nil {
-			if err == ErrLocked {
+			if errors.Is(err, ErrLocked) {
 				return StatusLocked, err
 			}
 			return http.StatusInternalServerError, err
