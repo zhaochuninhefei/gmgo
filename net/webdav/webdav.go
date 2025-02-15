@@ -495,14 +495,14 @@ func (h *Handler) handleUnlock(_ http.ResponseWriter, r *http.Request) (status i
 	}
 	t = t[1 : len(t)-1]
 
-	switch err = h.LockSystem.Unlock(time.Now(), t); err {
-	case nil:
+	switch err = h.LockSystem.Unlock(time.Now(), t); {
+	case err == nil:
 		return http.StatusNoContent, err
-	case ErrForbidden:
+	case errors.Is(err, ErrForbidden):
 		return http.StatusForbidden, err
-	case ErrLocked:
+	case errors.Is(err, ErrLocked):
 		return StatusLocked, err
-	case ErrNoSuchLock:
+	case errors.Is(err, ErrNoSuchLock):
 		return http.StatusConflict, err
 	default:
 		return http.StatusInternalServerError, err
