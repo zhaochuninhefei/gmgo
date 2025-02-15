@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"reflect"
@@ -262,7 +261,7 @@ func TestFilenameEscape(t *testing.T) {
 			_ = Body.Close()
 		}(res.Body)
 
-		b, err := ioutil.ReadAll(res.Body)
+		b, err := io.ReadAll(res.Body)
 		if err != nil {
 			return "", "", err
 		}
