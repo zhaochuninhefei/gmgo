@@ -269,6 +269,7 @@ func TestFilenameEscape(t *testing.T) {
 		}
 		hrefMatch := hrefRe.FindStringSubmatch(string(b))
 		if len(hrefMatch) != 2 {
+			//goland:noinspection GoErrorStringFormat
 			return "", "", errors.New("D:href not found")
 		}
 		displayNameMatch := displayNameRe.FindStringSubmatch(string(b))
