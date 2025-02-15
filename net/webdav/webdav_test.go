@@ -83,6 +83,7 @@ func TestPrefix(t *testing.T) {
 		}
 		mux.Handle(prefix, h)
 		srv := httptest.NewServer(mux)
+		//goland:noinspection GoDeferInLoop
 		defer srv.Close()
 
 		// The script is:
