@@ -55,7 +55,9 @@ func TestPrefix(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
 		if res.StatusCode != wantStatusCode {
 			return nil, fmt.Errorf("got status code %d, want %d", res.StatusCode, wantStatusCode)
 		}
