@@ -27,6 +27,7 @@ func TestPrefix(t *testing.T) {
 	const dst, blah = "Destination", "blah blah blah"
 
 	// createLockBody comes from the example in Section 9.10.7.
+	//goland:noinspection HttpUrlsUsage
 	const createLockBody = `<?xml version="1.0" encoding="utf-8" ?>
 		<D:lockinfo xmlns:D='DAV:'>
 			<D:lockscope><D:exclusive/></D:lockscope>
