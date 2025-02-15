@@ -418,7 +418,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		}
 		ld, err = h.LockSystem.Refresh(now, token, duration)
 		if err != nil {
-			if err == ErrNoSuchLock {
+			if errors.Is(err, ErrNoSuchLock) {
 				return http.StatusPreconditionFailed, err
 			}
 			return http.StatusInternalServerError, err
