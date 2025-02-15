@@ -482,7 +482,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		// and Handler.ServeHTTP would otherwise write "Created".
 		w.WriteHeader(http.StatusCreated)
 	}
-	writeLockInfo(w, token, ld)
+	_, _ = writeLockInfo(w, token, ld)
 	return 0, nil
 }
 
