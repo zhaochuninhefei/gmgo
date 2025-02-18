@@ -141,6 +141,8 @@ type propfindProps []xml.Name
 //
 // It returns an error if start does not contain any properties or if
 // properties contain values. Character data between properties is ignored.
+//
+//goland:noinspection GoStandardMethods
 func (pn *propfindProps) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement) error {
 	for {
 		t, err := next(d)
