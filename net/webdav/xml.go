@@ -262,6 +262,8 @@ type ixmlPropstat struct {
 
 // MarshalXML prepends the "D:" namespace prefix on properties in the DAV: namespace
 // before encoding. See multistatusWriter.
+//
+//goland:noinspection GoStandardMethods
 func (ps propstat) MarshalXML(e *ixml.Encoder, start ixml.StartElement) error {
 	// Convert from a propstat to an ixmlPropstat.
 	ixmlPs := ixmlPropstat{
