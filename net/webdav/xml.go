@@ -418,6 +418,7 @@ func xmlLang(s ixml.StartElement, d string) string {
 
 type xmlValue []byte
 
+//goland:noinspection GoStandardMethods
 func (v *xmlValue) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement) error {
 	// The XML value of a property can be arbitrary, mixed-content XML.
 	// To make sure that the unmarshalled value contains all required
