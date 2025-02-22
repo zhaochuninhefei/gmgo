@@ -107,7 +107,7 @@ func escape(s string) string {
 		switch s[i] {
 		case '"', '&', '\'', '<', '>':
 			b := bytes.NewBuffer(nil)
-			ixml.EscapeText(b, []byte(s))
+			_ = ixml.EscapeText(b, []byte(s))
 			return b.String()
 		}
 	}
@@ -141,6 +141,8 @@ type propfindProps []xml.Name
 //
 // It returns an error if start does not contain any properties or if
 // properties contain values. Character data between properties is ignored.
+//
+//goland:noinspection GoStandardMethods
 func (pn *propfindProps) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement) error {
 	for {
 		t, err := next(d)
@@ -260,6 +262,8 @@ type ixmlPropstat struct {
 
 // MarshalXML prepends the "D:" namespace prefix on properties in the DAV: namespace
 // before encoding. See multistatusWriter.
+//
+//goland:noinspection GoStandardMethods
 func (ps propstat) MarshalXML(e *ixml.Encoder, start ixml.StartElement) error {
 	// Convert from a propstat to an ixmlPropstat.
 	ixmlPs := ixmlPropstat{
@@ -414,6 +418,7 @@ func xmlLang(s ixml.StartElement, d string) string {
 
 type xmlValue []byte
 
+//goland:noinspection GoStandardMethods
 func (v *xmlValue) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement) error {
 	// The XML value of a property can be arbitrary, mixed-content XML.
 	// To make sure that the unmarshalled value contains all required
@@ -452,6 +457,8 @@ type proppatchProps []Property
 //
 // UnmarshalXML returns an error if start does not contain any properties or if
 // property values contain syntactically incorrect XML.
+//
+//goland:noinspection GoStandardMethods
 func (ps *proppatchProps) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement) error {
 	lang := xmlLang(start, "")
 	for {
