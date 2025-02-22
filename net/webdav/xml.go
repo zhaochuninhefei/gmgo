@@ -457,6 +457,8 @@ type proppatchProps []Property
 //
 // UnmarshalXML returns an error if start does not contain any properties or if
 // property values contain syntactically incorrect XML.
+//
+//goland:noinspection GoStandardMethods
 func (ps *proppatchProps) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement) error {
 	lang := xmlLang(start, "")
 	for {
