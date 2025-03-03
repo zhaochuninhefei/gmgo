@@ -7,6 +7,7 @@ package webdav
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -579,7 +580,7 @@ loop:
 		}
 		for _, r := range tc.responses {
 			if err := w.write(&r); err != nil {
-				if err != tc.wantErr {
+				if !errors.Is(err, tc.wantErr) {
 					t.Errorf("%s: got write error %v, want %v",
 						tc.desc, err, tc.wantErr)
 				}
