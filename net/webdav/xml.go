@@ -477,7 +477,7 @@ func (ps *proppatchProps) UnmarshalXML(d *ixml.Decoder, start ixml.StartElement)
 				XMLName: xml.Name(t.(ixml.StartElement).Name),
 				Lang:    xmlLang(t.(ixml.StartElement), lang),
 			}
-			err = d.DecodeElement(((*xmlValue)(&p.InnerXML)), &elem)
+			err = d.DecodeElement((*xmlValue)(&p.InnerXML), &elem)
 			if err != nil {
 				return err
 			}
