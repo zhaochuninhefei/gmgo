@@ -587,7 +587,7 @@ loop:
 				continue loop
 			}
 		}
-		if err := w.close(); err != tc.wantErr {
+		if err := w.close(); !errors.Is(err, tc.wantErr) {
 			t.Errorf("%s: got close error %v, want %v",
 				tc.desc, err, tc.wantErr)
 			continue
