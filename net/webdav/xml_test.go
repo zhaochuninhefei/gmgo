@@ -624,6 +624,7 @@ func TestReadProppatch(t *testing.T) {
 		return "[" + strings.Join(outer, ", ") + "]"
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	testCases := []struct {
 		desc       string
 		input      string
