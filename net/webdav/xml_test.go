@@ -732,6 +732,7 @@ func TestReadProppatch(t *testing.T) {
 }
 
 func TestUnmarshalXMLValue(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	testCases := []struct {
 		desc    string
 		input   string
