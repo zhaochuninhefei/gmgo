@@ -7,6 +7,7 @@ package webdav
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -579,14 +580,14 @@ loop:
 		}
 		for _, r := range tc.responses {
 			if err := w.write(&r); err != nil {
-				if err != tc.wantErr {
+				if !errors.Is(err, tc.wantErr) {
 					t.Errorf("%s: got write error %v, want %v",
 						tc.desc, err, tc.wantErr)
 				}
 				continue loop
 			}
 		}
-		if err := w.close(); err != tc.wantErr {
+		if err := w.close(); !errors.Is(err, tc.wantErr) {
 			t.Errorf("%s: got close error %v, want %v",
 				tc.desc, err, tc.wantErr)
 			continue
@@ -623,6 +624,7 @@ func TestReadProppatch(t *testing.T) {
 		return "[" + strings.Join(outer, ", ") + "]"
 	}
 
+	//goland:noinspection HttpUrlsUsage
 	testCases := []struct {
 		desc       string
 		input      string
@@ -730,6 +732,7 @@ func TestReadProppatch(t *testing.T) {
 }
 
 func TestUnmarshalXMLValue(t *testing.T) {
+	//goland:noinspection HttpUrlsUsage
 	testCases := []struct {
 		desc    string
 		input   string
