@@ -9,8 +9,6 @@ import (
 	"io"
 	"net"
 	"net/url"
-
-	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 )
 
 // DialError is an error that occurs while dialling a websocket server.
@@ -35,7 +33,7 @@ func NewConfig(server, origin string) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	config.Header = http.Header(make(map[string][]string))
+	config.Header = make(map[string][]string)
 	return
 }
 
