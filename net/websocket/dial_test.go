@@ -37,7 +37,8 @@ func TestDialConfigTLSWithDialer(t *testing.T) {
 	if !ok {
 		t.Fatalf("DialError expected, got %#v", err)
 	}
-	neterr, ok := dialerr.Err.(*net.OpError)
+	var neterr *net.OpError
+	ok = errors.As(dialerr.Err, &neterr)
 	if !ok {
 		t.Fatalf("net.OpError error expected, got %#v", dialerr.Err)
 	}
