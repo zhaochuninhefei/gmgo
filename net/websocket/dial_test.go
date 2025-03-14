@@ -5,6 +5,7 @@
 package websocket
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -31,11 +32,13 @@ func TestDialConfigTLSWithDialer(t *testing.T) {
 		InsecureSkipVerify: true,
 	}
 	_, err := DialConfig(config)
-	dialerr, ok := err.(*DialError)
+	var dialerr *DialError
+	ok := errors.As(err, &dialerr)
 	if !ok {
 		t.Fatalf("DialError expected, got %#v", err)
 	}
-	neterr, ok := dialerr.Err.(*net.OpError)
+	var neterr *net.OpError
+	ok = errors.As(dialerr.Err, &neterr)
 	if !ok {
 		t.Fatalf("net.OpError error expected, got %#v", dialerr.Err)
 	}
