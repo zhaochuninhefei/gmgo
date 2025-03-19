@@ -42,6 +42,7 @@ const (
 	maxControlFramePayloadLength = 125
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	ErrBadMaskingKey         = &ProtocolError{"bad masking key"}
 	ErrBadPongMessage        = &ProtocolError{"bad pong message"}
