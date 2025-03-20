@@ -229,17 +229,17 @@ func (frame *hybiFrameWriter) Write(msg []byte) (n int, err error) {
 			return 0, ErrBadMaskingKey
 		}
 		header = append(header, frame.header.MaskingKey...)
-		frame.writer.Write(header)
+		_, _ = frame.writer.Write(header)
 		data := make([]byte, length)
 		for i := range data {
 			data[i] = msg[i] ^ frame.header.MaskingKey[i%4]
 		}
-		frame.writer.Write(data)
+		_, _ = frame.writer.Write(data)
 		err = frame.writer.Flush()
 		return length, err
 	}
-	frame.writer.Write(header)
-	frame.writer.Write(msg)
+	_, _ = frame.writer.Write(header)
+	_, _ = frame.writer.Write(msg)
 	err = frame.writer.Flush()
 	return length, err
 }
