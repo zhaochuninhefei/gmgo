@@ -14,7 +14,7 @@ import (
 
 // Echo the data received on the WebSocket.
 func EchoServer(ws *websocket.Conn) {
-	io.Copy(ws, ws)
+	_, _ = io.Copy(ws, ws)
 }
 
 // This example demonstrates a trivial echo server.

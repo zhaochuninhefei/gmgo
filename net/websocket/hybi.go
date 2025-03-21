@@ -23,6 +23,7 @@ import (
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	websocketGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -41,6 +42,7 @@ const (
 	maxControlFramePayloadLength = 125
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	ErrBadMaskingKey         = &ProtocolError{"bad masking key"}
 	ErrBadPongMessage        = &ProtocolError{"bad pong message"}
@@ -227,17 +229,17 @@ func (frame *hybiFrameWriter) Write(msg []byte) (n int, err error) {
 			return 0, ErrBadMaskingKey
 		}
 		header = append(header, frame.header.MaskingKey...)
-		frame.writer.Write(header)
+		_, _ = frame.writer.Write(header)
 		data := make([]byte, length)
 		for i := range data {
 			data[i] = msg[i] ^ frame.header.MaskingKey[i%4]
 		}
-		frame.writer.Write(data)
+		_, _ = frame.writer.Write(data)
 		err = frame.writer.Flush()
 		return length, err
 	}
-	frame.writer.Write(header)
-	frame.writer.Write(msg)
+	_, _ = frame.writer.Write(header)
+	_, _ = frame.writer.Write(msg)
 	err = frame.writer.Flush()
 	return length, err
 }
@@ -269,13 +271,13 @@ func (handler *hybiFrameHandler) HandleFrame(frame frameReader) (frameReader, er
 	if handler.conn.IsServerConn() {
 		// The client MUST mask all frames sent to the server.
 		if frame.(*hybiFrameReader).header.MaskingKey == nil {
-			handler.WriteClose(closeStatusProtocolError)
+			_ = handler.WriteClose(closeStatusProtocolError)
 			return nil, io.EOF
 		}
 	} else {
 		// The server MUST NOT mask all frames.
 		if frame.(*hybiFrameReader).header.MaskingKey != nil {
-			handler.WriteClose(closeStatusProtocolError)
+			_ = handler.WriteClose(closeStatusProtocolError)
 			return nil, io.EOF
 		}
 	}
