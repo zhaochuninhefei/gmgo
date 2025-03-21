@@ -271,13 +271,13 @@ func (handler *hybiFrameHandler) HandleFrame(frame frameReader) (frameReader, er
 	if handler.conn.IsServerConn() {
 		// The client MUST mask all frames sent to the server.
 		if frame.(*hybiFrameReader).header.MaskingKey == nil {
-			handler.WriteClose(closeStatusProtocolError)
+			_ = handler.WriteClose(closeStatusProtocolError)
 			return nil, io.EOF
 		}
 	} else {
 		// The server MUST NOT mask all frames.
 		if frame.(*hybiFrameReader).header.MaskingKey != nil {
-			handler.WriteClose(closeStatusProtocolError)
+			_ = handler.WriteClose(closeStatusProtocolError)
 			return nil, io.EOF
 		}
 	}
