@@ -318,7 +318,7 @@ func (handler *hybiFrameHandler) WriteClose(status int) (err error) {
 	msg := make([]byte, 2)
 	binary.BigEndian.PutUint16(msg, uint16(status))
 	_, err = w.Write(msg)
-	w.Close()
+	_ = w.Close()
 	return err
 }
 
