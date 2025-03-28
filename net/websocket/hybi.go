@@ -16,7 +16,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"strings"
 
@@ -282,7 +281,7 @@ func (handler *hybiFrameHandler) HandleFrame(frame frameReader) (frameReader, er
 		}
 	}
 	if header := frame.HeaderReader(); header != nil {
-		io.Copy(ioutil.Discard, header)
+		_, _ = io.Copy(io.Discard, header)
 	}
 	switch frame.PayloadType() {
 	case ContinuationFrame:
@@ -297,7 +296,7 @@ func (handler *hybiFrameHandler) HandleFrame(frame frameReader) (frameReader, er
 		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return nil, err
 		}
-		io.Copy(ioutil.Discard, frame)
+		_, _ = io.Copy(io.Discard, frame)
 		if frame.PayloadType() == PingFrame {
 			if _, err := handler.WritePong(b[:n]); err != nil {
 				return nil, err
@@ -318,7 +317,7 @@ func (handler *hybiFrameHandler) WriteClose(status int) (err error) {
 	msg := make([]byte, 2)
 	binary.BigEndian.PutUint16(msg, uint16(status))
 	_, err = w.Write(msg)
-	w.Close()
+	_ = w.Close()
 	return err
 }
 
@@ -330,7 +329,7 @@ func (handler *hybiFrameHandler) WritePong(msg []byte) (n int, err error) {
 		return 0, err
 	}
 	n, err = w.Write(msg)
-	w.Close()
+	_ = w.Close()
 	return n, err
 }
 
@@ -406,28 +405,28 @@ func getNonceAccept(nonce []byte) (expected []byte, err error) {
 
 // Client handshake described in draft-ietf-hybi-thewebsocket-protocol-17
 func hybiClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) (err error) {
-	bw.WriteString("GET " + config.Location.RequestURI() + " HTTP/1.1\r\n")
+	_, _ = bw.WriteString("GET " + config.Location.RequestURI() + " HTTP/1.1\r\n")
 
 	// According to RFC 6874, an HTTP client, proxy, or other
 	// intermediary must remove any IPv6 zone identifier attached
 	// to an outgoing URI.
-	bw.WriteString("Host: " + removeZone(config.Location.Host) + "\r\n")
-	bw.WriteString("Upgrade: websocket\r\n")
-	bw.WriteString("Connection: Upgrade\r\n")
+	_, _ = bw.WriteString("Host: " + removeZone(config.Location.Host) + "\r\n")
+	_, _ = bw.WriteString("Upgrade: websocket\r\n")
+	_, _ = bw.WriteString("Connection: Upgrade\r\n")
 	nonce := generateNonce()
 	if config.handshakeData != nil {
 		nonce = []byte(config.handshakeData["key"])
 	}
-	bw.WriteString("Sec-WebSocket-Key: " + string(nonce) + "\r\n")
-	bw.WriteString("Origin: " + strings.ToLower(config.Origin.String()) + "\r\n")
+	_, _ = bw.WriteString("Sec-WebSocket-Key: " + string(nonce) + "\r\n")
+	_, _ = bw.WriteString("Origin: " + strings.ToLower(config.Origin.String()) + "\r\n")
 
 	if config.Version != ProtocolVersionHybi13 {
 		return ErrBadProtocolVersion
 	}
 
-	bw.WriteString("Sec-WebSocket-Version: " + fmt.Sprintf("%d", config.Version) + "\r\n")
+	_, _ = bw.WriteString("Sec-WebSocket-Version: " + fmt.Sprintf("%d", config.Version) + "\r\n")
 	if len(config.Protocol) > 0 {
-		bw.WriteString("Sec-WebSocket-Protocol: " + strings.Join(config.Protocol, ", ") + "\r\n")
+		_, _ = bw.WriteString("Sec-WebSocket-Protocol: " + strings.Join(config.Protocol, ", ") + "\r\n")
 	}
 	// TODO(ukai): send Sec-WebSocket-Extensions.
 	err = config.Header.WriteSubset(bw, handshakeHeader)
@@ -435,7 +434,7 @@ func hybiClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) (er
 		return err
 	}
 
-	bw.WriteString("\r\n")
+	_, _ = bw.WriteString("\r\n")
 	if err = bw.Flush(); err != nil {
 		return err
 	}
