@@ -489,7 +489,7 @@ type hybiServerHandshaker struct {
 	accept []byte
 }
 
-func (c *hybiServerHandshaker) ReadHandshake(buf *bufio.Reader, req *http.Request) (code int, err error) {
+func (c *hybiServerHandshaker) ReadHandshake(_ *bufio.Reader, req *http.Request) (code int, err error) {
 	c.Version = ProtocolVersionHybi13
 	if req.Method != "GET" {
 		return http.StatusMethodNotAllowed, ErrBadRequestMethod
