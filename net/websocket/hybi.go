@@ -557,12 +557,12 @@ func (c *hybiServerHandshaker) AcceptHandshake(buf *bufio.Writer) (err error) {
 			return ErrBadWebSocketProtocol
 		}
 	}
-	buf.WriteString("HTTP/1.1 101 Switching Protocols\r\n")
-	buf.WriteString("Upgrade: websocket\r\n")
-	buf.WriteString("Connection: Upgrade\r\n")
-	buf.WriteString("Sec-WebSocket-Accept: " + string(c.accept) + "\r\n")
+	_, _ = buf.WriteString("HTTP/1.1 101 Switching Protocols\r\n")
+	_, _ = buf.WriteString("Upgrade: websocket\r\n")
+	_, _ = buf.WriteString("Connection: Upgrade\r\n")
+	_, _ = buf.WriteString("Sec-WebSocket-Accept: " + string(c.accept) + "\r\n")
 	if len(c.Protocol) > 0 {
-		buf.WriteString("Sec-WebSocket-Protocol: " + c.Protocol[0] + "\r\n")
+		_, _ = buf.WriteString("Sec-WebSocket-Protocol: " + c.Protocol[0] + "\r\n")
 	}
 	// TODO(ukai): send Sec-WebSocket-Extensions.
 	if c.Header != nil {
@@ -571,7 +571,7 @@ func (c *hybiServerHandshaker) AcceptHandshake(buf *bufio.Writer) (err error) {
 			return err
 		}
 	}
-	buf.WriteString("\r\n")
+	_, _ = buf.WriteString("\r\n")
 	return buf.Flush()
 }
 
