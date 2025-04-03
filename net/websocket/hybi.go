@@ -14,6 +14,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -293,7 +294,7 @@ func (handler *hybiFrameHandler) HandleFrame(frame frameReader) (frameReader, er
 	case PingFrame, PongFrame:
 		b := make([]byte, maxControlFramePayloadLength)
 		n, err := io.ReadFull(frame, b)
-		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		if err != nil && err != io.EOF && !errors.Is(err, io.ErrUnexpectedEOF) {
 			return nil, err
 		}
 		_, _ = io.Copy(io.Discard, frame)
