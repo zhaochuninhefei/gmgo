@@ -14,6 +14,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -293,7 +294,7 @@ func (handler *hybiFrameHandler) HandleFrame(frame frameReader) (frameReader, er
 	case PingFrame, PongFrame:
 		b := make([]byte, maxControlFramePayloadLength)
 		n, err := io.ReadFull(frame, b)
-		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		if err != nil && err != io.EOF && !errors.Is(err, io.ErrUnexpectedEOF) {
 			return nil, err
 		}
 		_, _ = io.Copy(io.Discard, frame)
@@ -489,7 +490,7 @@ type hybiServerHandshaker struct {
 	accept []byte
 }
 
-func (c *hybiServerHandshaker) ReadHandshake(buf *bufio.Reader, req *http.Request) (code int, err error) {
+func (c *hybiServerHandshaker) ReadHandshake(_ *bufio.Reader, req *http.Request) (code int, err error) {
 	c.Version = ProtocolVersionHybi13
 	if req.Method != "GET" {
 		return http.StatusMethodNotAllowed, ErrBadRequestMethod
@@ -557,12 +558,12 @@ func (c *hybiServerHandshaker) AcceptHandshake(buf *bufio.Writer) (err error) {
 			return ErrBadWebSocketProtocol
 		}
 	}
-	buf.WriteString("HTTP/1.1 101 Switching Protocols\r\n")
-	buf.WriteString("Upgrade: websocket\r\n")
-	buf.WriteString("Connection: Upgrade\r\n")
-	buf.WriteString("Sec-WebSocket-Accept: " + string(c.accept) + "\r\n")
+	_, _ = buf.WriteString("HTTP/1.1 101 Switching Protocols\r\n")
+	_, _ = buf.WriteString("Upgrade: websocket\r\n")
+	_, _ = buf.WriteString("Connection: Upgrade\r\n")
+	_, _ = buf.WriteString("Sec-WebSocket-Accept: " + string(c.accept) + "\r\n")
 	if len(c.Protocol) > 0 {
-		buf.WriteString("Sec-WebSocket-Protocol: " + c.Protocol[0] + "\r\n")
+		_, _ = buf.WriteString("Sec-WebSocket-Protocol: " + c.Protocol[0] + "\r\n")
 	}
 	// TODO(ukai): send Sec-WebSocket-Extensions.
 	if c.Header != nil {
@@ -571,7 +572,7 @@ func (c *hybiServerHandshaker) AcceptHandshake(buf *bufio.Writer) (err error) {
 			return err
 		}
 	}
-	buf.WriteString("\r\n")
+	_, _ = buf.WriteString("\r\n")
 	return buf.Flush()
 }
 
