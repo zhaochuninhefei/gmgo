@@ -296,7 +296,7 @@ func testHybiFrame(t *testing.T, testHeader, testPayload, testMaskedPayload []by
 	w, _ := frameWriterFactory.NewFrameWriter(TextFrame)
 	w.(*hybiFrameWriter).header = frameHeader
 	_, err := w.Write(testPayload)
-	w.Close()
+	_ = w.Close()
 	if err != nil {
 		t.Errorf("Write error %q", err)
 	}
