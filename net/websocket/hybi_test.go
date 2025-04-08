@@ -127,7 +127,7 @@ Sec-WebSocket-Protocol: chat
 	config.Protocol = append(config.Protocol, "chat")
 	config.Protocol = append(config.Protocol, "superchat")
 	config.Version = ProtocolVersionHybi13
-	config.Header = http.Header(make(map[string][]string))
+	config.Header = make(map[string][]string)
 	config.Header.Add("User-Agent", "test")
 
 	config.handshakeData = map[string]string{
