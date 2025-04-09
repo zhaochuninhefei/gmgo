@@ -7,6 +7,7 @@ package websocket
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -282,7 +283,7 @@ Sec-WebSocket-Version: 9
 		t.Fatal("request", err)
 	}
 	code, err := handshaker.ReadHandshake(br, req)
-	if err != ErrBadWebSocketVersion {
+	if !errors.Is(err, ErrBadWebSocketVersion) {
 		t.Errorf("handshake expected err %q but got %q", ErrBadWebSocketVersion, err)
 	}
 	if code != http.StatusBadRequest {
