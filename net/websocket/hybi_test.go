@@ -7,6 +7,7 @@ package websocket
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -127,7 +128,7 @@ Sec-WebSocket-Protocol: chat
 	config.Protocol = append(config.Protocol, "chat")
 	config.Protocol = append(config.Protocol, "superchat")
 	config.Version = ProtocolVersionHybi13
-	config.Header = http.Header(make(map[string][]string))
+	config.Header = make(map[string][]string)
 	config.Header.Add("User-Agent", "test")
 
 	config.handshakeData = map[string]string{
@@ -282,7 +283,7 @@ Sec-WebSocket-Version: 9
 		t.Fatal("request", err)
 	}
 	code, err := handshaker.ReadHandshake(br, req)
-	if err != ErrBadWebSocketVersion {
+	if !errors.Is(err, ErrBadWebSocketVersion) {
 		t.Errorf("handshake expected err %q but got %q", ErrBadWebSocketVersion, err)
 	}
 	if code != http.StatusBadRequest {
@@ -296,7 +297,7 @@ func testHybiFrame(t *testing.T, testHeader, testPayload, testMaskedPayload []by
 	w, _ := frameWriterFactory.NewFrameWriter(TextFrame)
 	w.(*hybiFrameWriter).header = frameHeader
 	_, err := w.Write(testPayload)
-	w.Close()
+	_ = w.Close()
 	if err != nil {
 		t.Errorf("Write error %q", err)
 	}

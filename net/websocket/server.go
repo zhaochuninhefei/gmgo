@@ -6,8 +6,10 @@ package websocket
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
 )
@@ -15,37 +17,37 @@ import (
 func newServerConn(rwc io.ReadWriteCloser, buf *bufio.ReadWriter, req *http.Request, config *Config, handshake func(*Config, *http.Request) error) (conn *Conn, err error) {
 	var hs serverHandshaker = &hybiServerHandshaker{Config: config}
 	code, err := hs.ReadHandshake(buf.Reader, req)
-	if err == ErrBadWebSocketVersion {
-		fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-		fmt.Fprintf(buf, "Sec-WebSocket-Version: %s\r\n", SupportedProtocolVersion)
-		buf.WriteString("\r\n")
-		buf.WriteString(err.Error())
-		buf.Flush()
+	if errors.Is(err, ErrBadWebSocketVersion) {
+		_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+		_, _ = fmt.Fprintf(buf, "Sec-WebSocket-Version: %s\r\n", SupportedProtocolVersion)
+		_, _ = buf.WriteString("\r\n")
+		_, _ = buf.WriteString(err.Error())
+		_ = buf.Flush()
 		return
 	}
 	if err != nil {
-		fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-		buf.WriteString("\r\n")
-		buf.WriteString(err.Error())
-		buf.Flush()
+		_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+		_, _ = buf.WriteString("\r\n")
+		_, _ = buf.WriteString(err.Error())
+		_ = buf.Flush()
 		return
 	}
 	if handshake != nil {
 		err = handshake(config, req)
 		if err != nil {
 			code = http.StatusForbidden
-			fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-			buf.WriteString("\r\n")
-			buf.Flush()
+			_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+			_, _ = buf.WriteString("\r\n")
+			_ = buf.Flush()
 			return
 		}
 	}
 	err = hs.AcceptHandshake(buf.Writer)
 	if err != nil {
 		code = http.StatusBadRequest
-		fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-		buf.WriteString("\r\n")
-		buf.Flush()
+		_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+		_, _ = buf.WriteString("\r\n")
+		_ = buf.Flush()
 		return
 	}
 	conn = hs.NewServerConn(buf, rwc, req)
@@ -79,7 +81,9 @@ func (s Server) serveWebSocket(w http.ResponseWriter, req *http.Request) {
 	// The server should abort the WebSocket connection if it finds
 	// the client did not send a handshake that matches with protocol
 	// specification.
-	defer rwc.Close()
+	defer func(rwc net.Conn) {
+		_ = rwc.Close()
+	}(rwc)
 	conn, err := newServerConn(rwc, buf, req, &s.Config, s.Handshake)
 	if err != nil {
 		return
