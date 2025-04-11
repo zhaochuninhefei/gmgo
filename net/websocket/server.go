@@ -17,36 +17,36 @@ func newServerConn(rwc io.ReadWriteCloser, buf *bufio.ReadWriter, req *http.Requ
 	var hs serverHandshaker = &hybiServerHandshaker{Config: config}
 	code, err := hs.ReadHandshake(buf.Reader, req)
 	if errors.Is(err, ErrBadWebSocketVersion) {
-		fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-		fmt.Fprintf(buf, "Sec-WebSocket-Version: %s\r\n", SupportedProtocolVersion)
-		buf.WriteString("\r\n")
-		buf.WriteString(err.Error())
-		buf.Flush()
+		_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+		_, _ = fmt.Fprintf(buf, "Sec-WebSocket-Version: %s\r\n", SupportedProtocolVersion)
+		_, _ = buf.WriteString("\r\n")
+		_, _ = buf.WriteString(err.Error())
+		_ = buf.Flush()
 		return
 	}
 	if err != nil {
-		fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-		buf.WriteString("\r\n")
-		buf.WriteString(err.Error())
-		buf.Flush()
+		_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+		_, _ = buf.WriteString("\r\n")
+		_, _ = buf.WriteString(err.Error())
+		_ = buf.Flush()
 		return
 	}
 	if handshake != nil {
 		err = handshake(config, req)
 		if err != nil {
 			code = http.StatusForbidden
-			fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-			buf.WriteString("\r\n")
-			buf.Flush()
+			_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+			_, _ = buf.WriteString("\r\n")
+			_ = buf.Flush()
 			return
 		}
 	}
 	err = hs.AcceptHandshake(buf.Writer)
 	if err != nil {
 		code = http.StatusBadRequest
-		fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
-		buf.WriteString("\r\n")
-		buf.Flush()
+		_, _ = fmt.Fprintf(buf, "HTTP/1.1 %03d %s\r\n", code, http.StatusText(code))
+		_, _ = buf.WriteString("\r\n")
+		_ = buf.Flush()
 		return
 	}
 	conn = hs.NewServerConn(buf, rwc, req)
