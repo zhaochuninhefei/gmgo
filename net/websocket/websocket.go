@@ -8,8 +8,8 @@
 // This package currently lacks some features found in alternative
 // and more actively maintained WebSocket packages:
 //
-//     https://godoc.org/github.com/gorilla/websocket
-//     https://godoc.org/nhooyr.io/websocket
+//	https://godoc.org/github.com/gorilla/websocket
+//	https://godoc.org/nhooyr.io/websocket
 package websocket // import "gitee.com/zhaochuninhefei/gmgo/net/websocket"
 
 import (
@@ -28,6 +28,7 @@ import (
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	ProtocolVersionHybi13    = 13
 	ProtocolVersionHybi      = ProtocolVersionHybi13
@@ -418,7 +419,6 @@ Trivial usage:
 	// send binary frame
 	data = []byte{0, 1, 2}
 	websocket.Message.Send(ws, data)
-
 */
 var Message = Codec{marshal, unmarshal}
 
