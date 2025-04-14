@@ -52,6 +52,7 @@ type ProtocolError struct {
 
 func (err *ProtocolError) Error() string { return err.ErrorString }
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	ErrBadProtocolVersion   = &ProtocolError{"bad protocol version"}
 	ErrBadScheme            = &ProtocolError{"bad scheme"}
