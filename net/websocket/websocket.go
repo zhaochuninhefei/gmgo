@@ -213,7 +213,7 @@ again:
 	n, err = ws.frameReader.Read(msg)
 	if err == io.EOF {
 		if trailer := ws.frameReader.TrailerReader(); trailer != nil {
-			_, _ = io.Copy(ioutil.Discard, trailer)
+			_, _ = io.Copy(io.Discard, trailer)
 		}
 		ws.frameReader = nil
 		goto again
