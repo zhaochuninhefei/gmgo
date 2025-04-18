@@ -8,8 +8,8 @@
 // This package currently lacks some features found in alternative
 // and more actively maintained WebSocket packages:
 //
-//     https://godoc.org/github.com/gorilla/websocket
-//     https://godoc.org/nhooyr.io/websocket
+//	https://godoc.org/github.com/gorilla/websocket
+//	https://godoc.org/nhooyr.io/websocket
 package websocket // import "gitee.com/zhaochuninhefei/gmgo/net/websocket"
 
 import (
@@ -28,6 +28,7 @@ import (
 	tls "gitee.com/zhaochuninhefei/gmgo/gmtls"
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	ProtocolVersionHybi13    = 13
 	ProtocolVersionHybi      = ProtocolVersionHybi13
@@ -51,6 +52,7 @@ type ProtocolError struct {
 
 func (err *ProtocolError) Error() string { return err.ErrorString }
 
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	ErrBadProtocolVersion   = &ProtocolError{"bad protocol version"}
 	ErrBadScheme            = &ProtocolError{"bad scheme"}
@@ -211,7 +213,7 @@ again:
 	n, err = ws.frameReader.Read(msg)
 	if err == io.EOF {
 		if trailer := ws.frameReader.TrailerReader(); trailer != nil {
-			io.Copy(ioutil.Discard, trailer)
+			_, _ = io.Copy(io.Discard, trailer)
 		}
 		ws.frameReader = nil
 		goto again
@@ -229,7 +231,7 @@ func (ws *Conn) Write(msg []byte) (n int, err error) {
 		return 0, err
 	}
 	n, err = w.Write(msg)
-	w.Close()
+	_ = w.Close()
 	return n, err
 }
 
@@ -418,7 +420,6 @@ Trivial usage:
 	// send binary frame
 	data = []byte{0, 1, 2}
 	websocket.Message.Send(ws, data)
-
 */
 var Message = Codec{marshal, unmarshal}
 
