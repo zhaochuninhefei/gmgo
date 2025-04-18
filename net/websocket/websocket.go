@@ -231,7 +231,7 @@ func (ws *Conn) Write(msg []byte) (n int, err error) {
 		return 0, err
 	}
 	n, err = w.Write(msg)
-	w.Close()
+	_ = w.Close()
 	return n, err
 }
 
