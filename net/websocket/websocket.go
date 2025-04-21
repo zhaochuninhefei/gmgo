@@ -335,7 +335,7 @@ func (cd Codec) Receive(ws *Conn, v interface{}) (err error) {
 	ws.rio.Lock()
 	defer ws.rio.Unlock()
 	if ws.frameReader != nil {
-		_, err = io.Copy(ioutil.Discard, ws.frameReader)
+		_, err = io.Copy(io.Discard, ws.frameReader)
 		if err != nil {
 			return err
 		}
