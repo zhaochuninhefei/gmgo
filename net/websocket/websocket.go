@@ -321,7 +321,7 @@ func (cd Codec) Send(ws *Conn, v interface{}) (err error) {
 		return err
 	}
 	_, err = w.Write(data)
-	w.Close()
+	_ = w.Close()
 	return err
 }
 
