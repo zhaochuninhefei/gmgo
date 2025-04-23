@@ -383,7 +383,7 @@ func marshal(v interface{}) (msg []byte, payloadType byte, err error) {
 	return nil, UnknownFrame, ErrNotSupported
 }
 
-func unmarshal(msg []byte, payloadType byte, v interface{}) (err error) {
+func unmarshal(msg []byte, _ byte, v interface{}) (err error) {
 	switch data := v.(type) {
 	case *string:
 		*data = string(msg)
