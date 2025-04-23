@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"sync"
@@ -367,7 +366,7 @@ again:
 		return ErrFrameTooLarge
 	}
 	payloadType := frame.PayloadType()
-	data, err := ioutil.ReadAll(frame)
+	data, err := io.ReadAll(frame)
 	if err != nil {
 		return err
 	}
