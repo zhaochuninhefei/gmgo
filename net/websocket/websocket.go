@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"sync"
@@ -321,7 +320,7 @@ func (cd Codec) Send(ws *Conn, v interface{}) (err error) {
 		return err
 	}
 	_, err = w.Write(data)
-	w.Close()
+	_ = w.Close()
 	return err
 }
 
@@ -335,7 +334,7 @@ func (cd Codec) Receive(ws *Conn, v interface{}) (err error) {
 	ws.rio.Lock()
 	defer ws.rio.Unlock()
 	if ws.frameReader != nil {
-		_, err = io.Copy(ioutil.Discard, ws.frameReader)
+		_, err = io.Copy(io.Discard, ws.frameReader)
 		if err != nil {
 			return err
 		}
@@ -367,7 +366,7 @@ again:
 		return ErrFrameTooLarge
 	}
 	payloadType := frame.PayloadType()
-	data, err := ioutil.ReadAll(frame)
+	data, err := io.ReadAll(frame)
 	if err != nil {
 		return err
 	}
@@ -384,7 +383,7 @@ func marshal(v interface{}) (msg []byte, payloadType byte, err error) {
 	return nil, UnknownFrame, ErrNotSupported
 }
 
-func unmarshal(msg []byte, payloadType byte, v interface{}) (err error) {
+func unmarshal(msg []byte, _ byte, v interface{}) (err error) {
 	switch data := v.(type) {
 	case *string:
 		*data = string(msg)
@@ -428,7 +427,7 @@ func jsonMarshal(v interface{}) (msg []byte, payloadType byte, err error) {
 	return msg, TextFrame, err
 }
 
-func jsonUnmarshal(msg []byte, payloadType byte, v interface{}) (err error) {
+func jsonUnmarshal(msg []byte, _ byte, v interface{}) (err error) {
 	return json.Unmarshal(msg, v)
 }
 
