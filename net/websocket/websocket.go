@@ -427,7 +427,7 @@ func jsonMarshal(v interface{}) (msg []byte, payloadType byte, err error) {
 	return msg, TextFrame, err
 }
 
-func jsonUnmarshal(msg []byte, payloadType byte, v interface{}) (err error) {
+func jsonUnmarshal(msg []byte, _ byte, v interface{}) (err error) {
 	return json.Unmarshal(msg, v)
 }
 
