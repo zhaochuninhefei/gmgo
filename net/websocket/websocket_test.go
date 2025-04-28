@@ -28,8 +28,10 @@ var serverAddr string
 var once sync.Once
 
 func echoServer(ws *Conn) {
-	defer ws.Close()
-	io.Copy(ws, ws)
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
+	_, _ = io.Copy(ws, ws)
 }
 
 type Count struct {
