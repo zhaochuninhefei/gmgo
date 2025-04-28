@@ -40,7 +40,9 @@ type Count struct {
 }
 
 func countServer(ws *Conn) {
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 	for {
 		var count Count
 		err := JSON.Receive(ws, &count)
