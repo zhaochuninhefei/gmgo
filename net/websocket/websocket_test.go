@@ -70,7 +70,7 @@ func (h *testCtrlAndDataHandler) WritePing(b []byte) (int, error) {
 		return 0, err
 	}
 	n, err := w.Write(b)
-	w.Close()
+	_ = w.Close()
 	return n, err
 }
 
