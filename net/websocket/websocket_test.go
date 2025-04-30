@@ -28,8 +28,10 @@ var serverAddr string
 var once sync.Once
 
 func echoServer(ws *Conn) {
-	defer ws.Close()
-	io.Copy(ws, ws)
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
+	_, _ = io.Copy(ws, ws)
 }
 
 type Count struct {
@@ -38,7 +40,9 @@ type Count struct {
 }
 
 func countServer(ws *Conn) {
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 	for {
 		var count Count
 		err := JSON.Receive(ws, &count)
@@ -66,7 +70,7 @@ func (h *testCtrlAndDataHandler) WritePing(b []byte) (int, error) {
 		return 0, err
 	}
 	n, err := w.Write(b)
-	w.Close()
+	_ = w.Close()
 	return n, err
 }
 

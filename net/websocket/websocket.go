@@ -147,7 +147,7 @@ type frameReaderFactory interface {
 
 // frameWriter is an interface to write a WebSocket frame.
 type frameWriter interface {
-	// Writer is to write payload of the frame.
+	// WriteCloser is to write payload of the frame.
 	io.WriteCloser
 }
 
