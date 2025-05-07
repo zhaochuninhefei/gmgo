@@ -75,7 +75,9 @@ func (h *testCtrlAndDataHandler) WritePing(b []byte) (int, error) {
 }
 
 func ctrlAndDataServer(ws *Conn) {
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 	h := &testCtrlAndDataHandler{hybiFrameHandler: hybiFrameHandler{conn: ws}}
 	ws.frameHandler = h
 
