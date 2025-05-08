@@ -587,7 +587,9 @@ func TestCtrlAndData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 
 	h := &testCtrlAndDataHandler{hybiFrameHandler: hybiFrameHandler{conn: ws}}
 	ws.frameHandler = h
