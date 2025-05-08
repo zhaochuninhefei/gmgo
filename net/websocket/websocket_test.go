@@ -423,7 +423,7 @@ func TestSmallBuffer(t *testing.T) {
 	if !bytes.Equal(msg[len(small_msg):], second_msg) {
 		t.Errorf("Echo: expected %q got %q", msg[len(small_msg):], second_msg)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 var parseAuthorityTests = []struct {
