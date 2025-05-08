@@ -284,7 +284,7 @@ func testWithProtocol(t *testing.T, subproto []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ws.Close()
+	_ = ws.Close()
 	return string(msg[:n]), nil
 }
 
