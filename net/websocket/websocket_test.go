@@ -667,7 +667,9 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 	for i, p := range payloads {
 		if err := Message.Send(ws, p); err != nil {
 			t.Fatalf("payload #%d (size %d): %v", i, len(p), err)
