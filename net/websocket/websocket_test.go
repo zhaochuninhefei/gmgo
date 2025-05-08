@@ -171,7 +171,7 @@ func TestEcho(t *testing.T) {
 	if !bytes.Equal(msg, actual_msg) {
 		t.Errorf("Echo: expected %q got %q", msg, actual_msg)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func TestAddr(t *testing.T) {
