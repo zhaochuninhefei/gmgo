@@ -530,7 +530,7 @@ func TestClose(t *testing.T) {
 
 	// set the deadline to ten minutes ago, which will have expired by the time
 	// client.Close sends the close status frame.
-	conn.SetDeadline(time.Now().Add(-10 * time.Minute))
+	_ = conn.SetDeadline(time.Now().Add(-10 * time.Minute))
 
 	if err := client.Close(); err == nil {
 		t.Errorf("ws.Close(): expected error, got %v", err)
