@@ -261,7 +261,7 @@ func TestWithQuery(t *testing.T) {
 		t.Errorf("WebSocket handshake: %v", err)
 		return
 	}
-	ws.Close()
+	_ = ws.Close()
 }
 
 func testWithProtocol(t *testing.T, subproto []string) (string, error) {
