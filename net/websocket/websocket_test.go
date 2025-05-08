@@ -109,7 +109,7 @@ func ctrlAndDataServer(ws *Conn) {
 	}
 }
 
-func subProtocolHandshake(config *Config, req *http.Request) error {
+func subProtocolHandshake(config *Config, _ *http.Request) error {
 	for _, proto := range config.Protocol {
 		if proto == "chat" {
 			config.Protocol = []string{proto}
