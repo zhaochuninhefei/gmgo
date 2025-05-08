@@ -634,7 +634,9 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 	limitedHandler := func(ws *Conn) {
 		defer close(handlerDone)
 		ws.MaxPayloadBytes = limit
-		defer ws.Close()
+		defer func(ws *Conn) {
+			_ = ws.Close()
+		}(ws)
 		for i, p := range payloads {
 			t.Logf("payload #%d (size %d, exceeds limit: %v)", i, len(p), len(p) > limit)
 			var recv []byte
