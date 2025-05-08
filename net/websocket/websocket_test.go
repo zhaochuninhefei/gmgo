@@ -196,7 +196,7 @@ func TestAddr(t *testing.T) {
 	if !strings.HasPrefix(la, "http://") {
 		t.Errorf("Bad local addr: %v", la)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func TestCount(t *testing.T) {
