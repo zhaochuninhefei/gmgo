@@ -627,7 +627,7 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 		2048, // this one is to make sure next receive recovers discarding leftovers
 	} {
 		b := make([]byte, size)
-		rand.Read(b)
+		_, _ = rand.Read(b)
 		payloads = append(payloads, b)
 	}
 	handlerDone := make(chan struct{})
