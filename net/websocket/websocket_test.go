@@ -239,7 +239,7 @@ func TestCount(t *testing.T) {
 	if count.S != "hellohello" {
 		t.Errorf("count: expected %q got %q", "hellohello", count.S)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func TestWithQuery(t *testing.T) {
