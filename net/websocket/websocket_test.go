@@ -348,7 +348,7 @@ func TestTrailingSpaces(t *testing.T) {
 			t.Errorf("Dial #%d failed: %v", i, err)
 			break
 		}
-		ws.Close()
+		_ = ws.Close()
 	}
 }
 
