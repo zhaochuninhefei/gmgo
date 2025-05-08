@@ -139,7 +139,7 @@ func startServer() {
 	log.Print("Test WebSocket server listening on ", serverAddr)
 }
 
-func newConfig(t *testing.T, path string) *Config {
+func newConfig(_ *testing.T, path string) *Config {
 	config, _ := NewConfig(fmt.Sprintf("ws://%s%s", serverAddr, path), "http://localhost")
 	return config
 }
