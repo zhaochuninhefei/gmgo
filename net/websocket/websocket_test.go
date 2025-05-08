@@ -121,7 +121,7 @@ func subProtocolHandshake(config *Config, _ *http.Request) error {
 
 func subProtoServer(ws *Conn) {
 	for _, proto := range ws.Config().Protocol {
-		io.WriteString(ws, proto)
+		_, _ = io.WriteString(ws, proto)
 	}
 }
 
