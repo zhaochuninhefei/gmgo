@@ -75,7 +75,9 @@ func (h *testCtrlAndDataHandler) WritePing(b []byte) (int, error) {
 }
 
 func ctrlAndDataServer(ws *Conn) {
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 	h := &testCtrlAndDataHandler{hybiFrameHandler: hybiFrameHandler{conn: ws}}
 	ws.frameHandler = h
 
@@ -107,7 +109,7 @@ func ctrlAndDataServer(ws *Conn) {
 	}
 }
 
-func subProtocolHandshake(config *Config, req *http.Request) error {
+func subProtocolHandshake(config *Config, _ *http.Request) error {
 	for _, proto := range config.Protocol {
 		if proto == "chat" {
 			config.Protocol = []string{proto}
@@ -119,7 +121,7 @@ func subProtocolHandshake(config *Config, req *http.Request) error {
 
 func subProtoServer(ws *Conn) {
 	for _, proto := range ws.Config().Protocol {
-		io.WriteString(ws, proto)
+		_, _ = io.WriteString(ws, proto)
 	}
 }
 
@@ -137,7 +139,7 @@ func startServer() {
 	log.Print("Test WebSocket server listening on ", serverAddr)
 }
 
-func newConfig(t *testing.T, path string) *Config {
+func newConfig(_ *testing.T, path string) *Config {
 	config, _ := NewConfig(fmt.Sprintf("ws://%s%s", serverAddr, path), "http://localhost")
 	return config
 }
@@ -160,16 +162,16 @@ func TestEcho(t *testing.T) {
 	if _, err := conn.Write(msg); err != nil {
 		t.Errorf("Write: %v", err)
 	}
-	var actual_msg = make([]byte, 512)
-	n, err := conn.Read(actual_msg)
+	var actualMsg = make([]byte, 512)
+	n, err := conn.Read(actualMsg)
 	if err != nil {
 		t.Errorf("Read: %v", err)
 	}
-	actual_msg = actual_msg[0:n]
-	if !bytes.Equal(msg, actual_msg) {
-		t.Errorf("Echo: expected %q got %q", msg, actual_msg)
+	actualMsg = actualMsg[0:n]
+	if !bytes.Equal(msg, actualMsg) {
+		t.Errorf("Echo: expected %q got %q", msg, actualMsg)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func TestAddr(t *testing.T) {
@@ -194,7 +196,7 @@ func TestAddr(t *testing.T) {
 	if !strings.HasPrefix(la, "http://") {
 		t.Errorf("Bad local addr: %v", la)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func TestCount(t *testing.T) {
@@ -237,7 +239,7 @@ func TestCount(t *testing.T) {
 	if count.S != "hellohello" {
 		t.Errorf("count: expected %q got %q", "hellohello", count.S)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func TestWithQuery(t *testing.T) {
@@ -259,7 +261,7 @@ func TestWithQuery(t *testing.T) {
 		t.Errorf("WebSocket handshake: %v", err)
 		return
 	}
-	ws.Close()
+	_ = ws.Close()
 }
 
 func testWithProtocol(t *testing.T, subproto []string) (string, error) {
@@ -282,7 +284,7 @@ func testWithProtocol(t *testing.T, subproto []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ws.Close()
+	_ = ws.Close()
 	return string(msg[:n]), nil
 }
 
@@ -346,7 +348,7 @@ func TestTrailingSpaces(t *testing.T) {
 			t.Errorf("Dial #%d failed: %v", i, err)
 			break
 		}
-		ws.Close()
+		_ = ws.Close()
 	}
 }
 
@@ -421,7 +423,7 @@ func TestSmallBuffer(t *testing.T) {
 	if !bytes.Equal(msg[len(small_msg):], second_msg) {
 		t.Errorf("Echo: expected %q got %q", msg[len(small_msg):], second_msg)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 var parseAuthorityTests = []struct {
@@ -528,7 +530,7 @@ func TestClose(t *testing.T) {
 
 	// set the deadline to ten minutes ago, which will have expired by the time
 	// client.Close sends the close status frame.
-	conn.SetDeadline(time.Now().Add(-10 * time.Minute))
+	_ = conn.SetDeadline(time.Now().Add(-10 * time.Minute))
 
 	if err := client.Close(); err == nil {
 		t.Errorf("ws.Close(): expected error, got %v", err)
@@ -585,7 +587,9 @@ func TestCtrlAndData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 
 	h := &testCtrlAndDataHandler{hybiFrameHandler: hybiFrameHandler{conn: ws}}
 	ws.frameHandler = h
@@ -623,14 +627,16 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 		2048, // this one is to make sure next receive recovers discarding leftovers
 	} {
 		b := make([]byte, size)
-		rand.Read(b)
+		_, _ = rand.Read(b)
 		payloads = append(payloads, b)
 	}
 	handlerDone := make(chan struct{})
 	limitedHandler := func(ws *Conn) {
 		defer close(handlerDone)
 		ws.MaxPayloadBytes = limit
-		defer ws.Close()
+		defer func(ws *Conn) {
+			_ = ws.Close()
+		}(ws)
 		for i, p := range payloads {
 			t.Logf("payload #%d (size %d, exceeds limit: %v)", i, len(p), len(p) > limit)
 			var recv []byte
@@ -661,7 +667,9 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ws.Close()
+	defer func(ws *Conn) {
+		_ = ws.Close()
+	}(ws)
 	for i, p := range payloads {
 		if err := Message.Send(ws, p); err != nil {
 			t.Fatalf("payload #%d (size %d): %v", i, len(p), err)
