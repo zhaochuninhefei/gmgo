@@ -162,14 +162,14 @@ func TestEcho(t *testing.T) {
 	if _, err := conn.Write(msg); err != nil {
 		t.Errorf("Write: %v", err)
 	}
-	var actual_msg = make([]byte, 512)
-	n, err := conn.Read(actual_msg)
+	var actualMsg = make([]byte, 512)
+	n, err := conn.Read(actualMsg)
 	if err != nil {
 		t.Errorf("Read: %v", err)
 	}
-	actual_msg = actual_msg[0:n]
-	if !bytes.Equal(msg, actual_msg) {
-		t.Errorf("Echo: expected %q got %q", msg, actual_msg)
+	actualMsg = actualMsg[0:n]
+	if !bytes.Equal(msg, actualMsg) {
+		t.Errorf("Echo: expected %q got %q", msg, actualMsg)
 	}
 	_ = conn.Close()
 }
