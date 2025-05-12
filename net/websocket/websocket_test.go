@@ -193,7 +193,8 @@ func TestAddr(t *testing.T) {
 		t.Errorf("Bad remote addr: %v", ra)
 	}
 	la := conn.LocalAddr().String()
-	if !strings.HasPrefix(la, "http://") {
+	if //goland:noinspection HttpUrlsUsage
+	!strings.HasPrefix(la, "http://") {
 		t.Errorf("Bad local addr: %v", la)
 	}
 	_ = conn.Close()
