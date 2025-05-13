@@ -7,6 +7,7 @@ package websocket
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -311,7 +312,7 @@ func TestWithTwoProtocol(t *testing.T) {
 
 func TestWithBadProtocol(t *testing.T) {
 	_, err := testWithProtocol(t, []string{"test"})
-	if err != ErrBadStatus {
+	if !errors.Is(err, ErrBadStatus) {
 		t.Errorf("SubProto: expected %v, got %v", ErrBadStatus, err)
 	}
 }
