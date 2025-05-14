@@ -323,6 +323,7 @@ func TestHTTP(t *testing.T) {
 	// If the client did not send a handshake that matches the protocol
 	// specification, the server MUST return an HTTP response with an
 	// appropriate error code (such as 400 Bad Request)
+	//goland:noinspection HttpUrlsUsage
 	resp, err := http.Get(fmt.Sprintf("http://%s/echo", serverAddr))
 	if err != nil {
 		t.Errorf("Get: error %#v", err)
