@@ -364,7 +364,7 @@ func TestDialConfigBadVersion(t *testing.T) {
 
 	var dialerr *DialError
 	if errors.As(err, &dialerr) {
-		if dialerr.Err != ErrBadProtocolVersion {
+		if !errors.Is(dialerr.Err, ErrBadProtocolVersion) {
 			t.Errorf("dial expected err %q but got %q", ErrBadProtocolVersion, dialerr.Err)
 		}
 	}
