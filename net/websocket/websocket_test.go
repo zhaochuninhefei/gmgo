@@ -546,6 +546,7 @@ func TestClose(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 var originTests = []struct {
 	req    *http.Request
 	origin *url.URL
