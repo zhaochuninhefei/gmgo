@@ -648,9 +648,9 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 			t.Logf("payload #%d (size %d, exceeds limit: %v)", i, len(p), len(p) > limit)
 			var recv []byte
 			err := Message.Receive(ws, &recv)
-			switch err {
-			case nil:
-			case ErrFrameTooLarge:
+			switch {
+			case err == nil:
+			case errors.Is(err, ErrFrameTooLarge):
 				if len(p) <= limit {
 					t.Fatalf("unexpected frame size limit: expected %d bytes of payload having limit at %d", len(p), limit)
 				}
