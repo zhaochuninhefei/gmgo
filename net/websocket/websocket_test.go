@@ -383,7 +383,7 @@ func TestDialConfigWithDialer(t *testing.T) {
 		t.Fatalf("DialError expected, got %#v", err)
 	}
 	var neterr *net.OpError
-	ok := errors.As(dialerr.Err, &neterr)
+	ok = errors.As(dialerr.Err, &neterr)
 	if !ok {
 		t.Fatalf("net.OpError error expected, got %#v", dialerr.Err)
 	}
