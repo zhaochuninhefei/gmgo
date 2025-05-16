@@ -7,6 +7,7 @@ package websocket
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -193,7 +194,8 @@ func TestAddr(t *testing.T) {
 		t.Errorf("Bad remote addr: %v", ra)
 	}
 	la := conn.LocalAddr().String()
-	if !strings.HasPrefix(la, "http://") {
+	if //goland:noinspection HttpUrlsUsage
+	!strings.HasPrefix(la, "http://") {
 		t.Errorf("Bad local addr: %v", la)
 	}
 	_ = conn.Close()
@@ -310,7 +312,7 @@ func TestWithTwoProtocol(t *testing.T) {
 
 func TestWithBadProtocol(t *testing.T) {
 	_, err := testWithProtocol(t, []string{"test"})
-	if err != ErrBadStatus {
+	if !errors.Is(err, ErrBadStatus) {
 		t.Errorf("SubProto: expected %v, got %v", ErrBadStatus, err)
 	}
 }
@@ -321,6 +323,7 @@ func TestHTTP(t *testing.T) {
 	// If the client did not send a handshake that matches the protocol
 	// specification, the server MUST return an HTTP response with an
 	// appropriate error code (such as 400 Bad Request)
+	//goland:noinspection HttpUrlsUsage
 	resp, err := http.Get(fmt.Sprintf("http://%s/echo", serverAddr))
 	if err != nil {
 		t.Errorf("Get: error %#v", err)
@@ -359,8 +362,9 @@ func TestDialConfigBadVersion(t *testing.T) {
 
 	_, err := DialConfig(config)
 
-	if dialerr, ok := err.(*DialError); ok {
-		if dialerr.Err != ErrBadProtocolVersion {
+	var dialerr *DialError
+	if errors.As(err, &dialerr) {
+		if !errors.Is(dialerr.Err, ErrBadProtocolVersion) {
 			t.Errorf("dial expected err %q but got %q", ErrBadProtocolVersion, dialerr.Err)
 		}
 	}
@@ -373,11 +377,13 @@ func TestDialConfigWithDialer(t *testing.T) {
 		Deadline: time.Now().Add(-time.Minute),
 	}
 	_, err := DialConfig(config)
-	dialerr, ok := err.(*DialError)
+	var dialerr *DialError
+	ok := errors.As(err, &dialerr)
 	if !ok {
 		t.Fatalf("DialError expected, got %#v", err)
 	}
-	neterr, ok := dialerr.Err.(*net.OpError)
+	var neterr *net.OpError
+	ok = errors.As(dialerr.Err, &neterr)
 	if !ok {
 		t.Fatalf("net.OpError error expected, got %#v", dialerr.Err)
 	}
@@ -406,22 +412,22 @@ func TestSmallBuffer(t *testing.T) {
 	if _, err := conn.Write(msg); err != nil {
 		t.Errorf("Write: %v", err)
 	}
-	var small_msg = make([]byte, 8)
-	n, err := conn.Read(small_msg)
+	var smallMsg = make([]byte, 8)
+	n, err := conn.Read(smallMsg)
 	if err != nil {
 		t.Errorf("Read: %v", err)
 	}
-	if !bytes.Equal(msg[:len(small_msg)], small_msg) {
-		t.Errorf("Echo: expected %q got %q", msg[:len(small_msg)], small_msg)
+	if !bytes.Equal(msg[:len(smallMsg)], smallMsg) {
+		t.Errorf("Echo: expected %q got %q", msg[:len(smallMsg)], smallMsg)
 	}
-	var second_msg = make([]byte, len(msg))
-	n, err = conn.Read(second_msg)
+	var secondMsg = make([]byte, len(msg))
+	n, err = conn.Read(secondMsg)
 	if err != nil {
 		t.Errorf("Read: %v", err)
 	}
-	second_msg = second_msg[0:n]
-	if !bytes.Equal(msg[len(small_msg):], second_msg) {
-		t.Errorf("Echo: expected %q got %q", msg[len(small_msg):], second_msg)
+	secondMsg = secondMsg[0:n]
+	if !bytes.Equal(msg[len(smallMsg):], secondMsg) {
+		t.Errorf("Echo: expected %q got %q", msg[len(smallMsg):], secondMsg)
 	}
 	_ = conn.Close()
 }
@@ -540,6 +546,7 @@ func TestClose(t *testing.T) {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
 var originTests = []struct {
 	req    *http.Request
 	origin *url.URL
@@ -641,9 +648,9 @@ func TestCodec_ReceiveLimited(t *testing.T) {
 			t.Logf("payload #%d (size %d, exceeds limit: %v)", i, len(p), len(p) > limit)
 			var recv []byte
 			err := Message.Receive(ws, &recv)
-			switch err {
-			case nil:
-			case ErrFrameTooLarge:
+			switch {
+			case err == nil:
+			case errors.Is(err, ErrFrameTooLarge):
 				if len(p) <= limit {
 					t.Fatalf("unexpected frame size limit: expected %d bytes of payload having limit at %d", len(p), limit)
 				}
