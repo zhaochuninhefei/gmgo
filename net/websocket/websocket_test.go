@@ -412,13 +412,13 @@ func TestSmallBuffer(t *testing.T) {
 	if _, err := conn.Write(msg); err != nil {
 		t.Errorf("Write: %v", err)
 	}
-	var small_msg = make([]byte, 8)
-	n, err := conn.Read(small_msg)
+	var smallMsg = make([]byte, 8)
+	n, err := conn.Read(smallMsg)
 	if err != nil {
 		t.Errorf("Read: %v", err)
 	}
-	if !bytes.Equal(msg[:len(small_msg)], small_msg) {
-		t.Errorf("Echo: expected %q got %q", msg[:len(small_msg)], small_msg)
+	if !bytes.Equal(msg[:len(smallMsg)], smallMsg) {
+		t.Errorf("Echo: expected %q got %q", msg[:len(smallMsg)], smallMsg)
 	}
 	var second_msg = make([]byte, len(msg))
 	n, err = conn.Read(second_msg)
@@ -426,8 +426,8 @@ func TestSmallBuffer(t *testing.T) {
 		t.Errorf("Read: %v", err)
 	}
 	second_msg = second_msg[0:n]
-	if !bytes.Equal(msg[len(small_msg):], second_msg) {
-		t.Errorf("Echo: expected %q got %q", msg[len(small_msg):], second_msg)
+	if !bytes.Equal(msg[len(smallMsg):], second_msg) {
+		t.Errorf("Echo: expected %q got %q", msg[len(smallMsg):], second_msg)
 	}
 	_ = conn.Close()
 }
