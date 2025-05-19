@@ -30,6 +30,8 @@ func clean(s string) string {
 // key is a secret key for your application; it must be non-empty.
 // userID is an optional unique identifier for the user.
 // actionID is an optional action the user is taking (e.g. POSTing to a particular path).
+//
+//goland:noinspection GoUnusedExportedFunction
 func Generate(key, userID, actionID string) string {
 	return generateTokenAtTime(key, userID, actionID, time.Now())
 }
