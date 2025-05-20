@@ -45,7 +45,7 @@ func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
 	milliTime := (now.UnixNano() + 1e6 - 1) / 1e6
 
 	h := hmac.New(sha1.New, []byte(key))
-	fmt.Fprintf(h, "%s:%s:%d", clean(userID), clean(actionID), milliTime)
+	_, _ = fmt.Fprintf(h, "%s:%s:%d", clean(userID), clean(actionID), milliTime)
 
 	// Get the padded base64 string then removing the padding.
 	tok := string(h.Sum(nil))
