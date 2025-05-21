@@ -57,6 +57,9 @@ func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
 
 // Valid reports whether a token is a valid, unexpired token returned by Generate.
 // The token is considered to be expired and invalid if it is older than the default Timeout.
+//
+//goland:noinspection GoUnusedExportedFunct
+//goland:noinspection GoUnusedExportedFunction
 func Valid(token, key, userID, actionID string) bool {
 	return validTokenAtTime(token, key, userID, actionID, time.Now(), Timeout)
 }
