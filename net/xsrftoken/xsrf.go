@@ -66,6 +66,8 @@ func Valid(token, key, userID, actionID string) bool {
 
 // ValidFor reports whether a token is a valid, unexpired token returned by Generate.
 // The token is considered to be expired and invalid if it is older than the timeout duration.
+//
+//goland:noinspection GoUnusedExportedFunction
 func ValidFor(token, key, userID, actionID string, timeout time.Duration) bool {
 	return validTokenAtTime(token, key, userID, actionID, time.Now(), timeout)
 }
