@@ -18,6 +18,8 @@ package expfmt
 type Format string
 
 // Constants to assemble the Content-Type values for the different wire protocols.
+//
+//goland:noinspection GoUnusedConst
 const (
 	TextVersion        = "0.0.4"
 	ProtoType          = `application/vnd.google.protobuf`
