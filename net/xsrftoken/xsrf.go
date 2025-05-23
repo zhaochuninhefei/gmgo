@@ -30,6 +30,8 @@ func clean(s string) string {
 // key is a secret key for your application; it must be non-empty.
 // userID is an optional unique identifier for the user.
 // actionID is an optional action the user is taking (e.g. POSTing to a particular path).
+//
+//goland:noinspection GoUnusedExportedFunction
 func Generate(key, userID, actionID string) string {
 	return generateTokenAtTime(key, userID, actionID, time.Now())
 }
@@ -43,7 +45,7 @@ func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
 	milliTime := (now.UnixNano() + 1e6 - 1) / 1e6
 
 	h := hmac.New(sha1.New, []byte(key))
-	fmt.Fprintf(h, "%s:%s:%d", clean(userID), clean(actionID), milliTime)
+	_, _ = fmt.Fprintf(h, "%s:%s:%d", clean(userID), clean(actionID), milliTime)
 
 	// Get the padded base64 string then removing the padding.
 	tok := string(h.Sum(nil))
@@ -55,12 +57,17 @@ func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
 
 // Valid reports whether a token is a valid, unexpired token returned by Generate.
 // The token is considered to be expired and invalid if it is older than the default Timeout.
+//
+//goland:noinspection GoUnusedExportedFunct
+//goland:noinspection GoUnusedExportedFunction
 func Valid(token, key, userID, actionID string) bool {
 	return validTokenAtTime(token, key, userID, actionID, time.Now(), Timeout)
 }
 
 // ValidFor reports whether a token is a valid, unexpired token returned by Generate.
 // The token is considered to be expired and invalid if it is older than the timeout duration.
+//
+//goland:noinspection GoUnusedExportedFunction
 func ValidFor(token, key, userID, actionID string, timeout time.Duration) bool {
 	return validTokenAtTime(token, key, userID, actionID, time.Now(), timeout)
 }
