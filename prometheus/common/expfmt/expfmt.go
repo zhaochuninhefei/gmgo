@@ -37,6 +37,7 @@ const (
 	FmtOpenMetrics  Format = OpenMetricsType + `; version=` + OpenMetricsVersion + `; charset=utf-8`
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	hdrContentType = "Content-Type"
 	hdrAccept      = "Accept"
