@@ -151,6 +151,7 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 
 	// Finally the samples, one line for each.
 	for _, metric := range in.Metric {
+		//goland:noinspection GoDfaConstantCondition
 		switch metricType {
 		case dto.MetricType_COUNTER:
 			if metric.Counter == nil {
