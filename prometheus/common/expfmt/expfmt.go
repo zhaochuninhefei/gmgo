@@ -28,7 +28,7 @@ const (
 	OpenMetricsType    = `application/openmetrics-text`
 	OpenMetricsVersion = "0.0.1"
 
-	// The Content-Type values for the different wire protocols.
+	// FmtUnknown The Content-Type values for the different wire protocols.
 	FmtUnknown      Format = `<unknown>`
 	FmtText         Format = `text/plain; version=` + TextVersion + `; charset=utf-8`
 	FmtProtoDelim   Format = ProtoFmt + ` encoding=delimited`
@@ -37,6 +37,7 @@ const (
 	FmtOpenMetrics  Format = OpenMetricsType + `; version=` + OpenMetricsVersion + `; charset=utf-8`
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	hdrContentType = "Content-Type"
 	hdrAccept      = "Accept"

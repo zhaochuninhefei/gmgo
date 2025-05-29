@@ -17,7 +17,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"strconv"
 	"strings"
@@ -44,7 +43,7 @@ const (
 var (
 	bufPool = sync.Pool{
 		New: func() interface{} {
-			return bufio.NewWriter(ioutil.Discard)
+			return bufio.NewWriter(io.Discard)
 		},
 	}
 	numBufPool = sync.Pool{
@@ -152,6 +151,7 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 
 	// Finally the samples, one line for each.
 	for _, metric := range in.Metric {
+		//goland:noinspection GoDfaConstantCondition
 		switch metricType {
 		case dto.MetricType_COUNTER:
 			if metric.Counter == nil {
