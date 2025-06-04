@@ -45,7 +45,7 @@ import (
 	"strings"
 )
 
-// Structure to represent a clause in an HTTP Accept Header
+// Accept Structure to represent a clause in an HTTP Accept Header
 type Accept struct {
 	Type, SubType string
 	Q             float64
