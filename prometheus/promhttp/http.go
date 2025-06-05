@@ -163,7 +163,9 @@ func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
 			defer gzipPool.Put(gz)
 
 			gz.Reset(w)
-			defer gz.Close()
+			defer func(gz *gzip.Writer) {
+				_ = gz.Close()
+			}(gz)
 
 			w = gz
 		}
