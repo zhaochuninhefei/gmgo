@@ -248,10 +248,9 @@ func InstrumentMetricHandler(reg prometheus.Registerer, handler http.Handler) ht
 	cnt.WithLabelValues("500")
 	cnt.WithLabelValues("503")
 	if err := reg.Register(cnt); err != nil {
-		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+		var are prometheus.AlreadyRegisteredError
+		if errors.As(err, &are) {
 			cnt = are.ExistingCollector.(*prometheus.CounterVec)
-		} else {
-			panic(err)
 		}
 	}
 
