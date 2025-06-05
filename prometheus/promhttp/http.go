@@ -191,6 +191,7 @@ func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
 				// something to rsp already. But at least we can
 				// stop sending.
 				return true
+			default:
 			}
 			// Do nothing in all other cases, including ContinueOnError.
 			return false
