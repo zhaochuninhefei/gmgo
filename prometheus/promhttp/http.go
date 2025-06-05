@@ -275,7 +275,7 @@ type HandlerErrorHandling int
 // These constants cause handlers serving metrics to behave as described if
 // errors are encountered.
 const (
-	// Serve an HTTP status code 500 upon the first error
+	// HTTPErrorOnError Serve an HTTP status code 500 upon the first error
 	// encountered. Report the error message in the body. Note that HTTP
 	// errors cannot be served anymore once the beginning of a regular
 	// payload has been sent. Thus, in the (unlikely) case that encoding the
