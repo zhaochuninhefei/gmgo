@@ -96,6 +96,7 @@ func ParseAccept(header string) (accept []Accept) {
 
 		mrp := strings.Split(part, ";")
 
+		//goland:noinspection GoSnakeCaseUsage
 		media_range := mrp[0]
 		sp := strings.Split(media_range, "/")
 		a.Type = strings.Trim(sp[0], " ")
