@@ -53,6 +53,8 @@ type Accept struct {
 }
 
 // For internal use, so that we can use the sort interface
+//
+//goland:noinspection GoSnakeCaseUsage
 type accept_slice []Accept
 
 func (accept accept_slice) Len() int {
