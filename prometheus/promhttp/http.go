@@ -33,6 +33,7 @@ package promhttp
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -106,10 +107,9 @@ func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
 		errCnt.WithLabelValues("gathering")
 		errCnt.WithLabelValues("encoding")
 		if err := opts.Registry.Register(errCnt); err != nil {
-			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			var are prometheus.AlreadyRegisteredError
+			if errors.As(err, &are) {
 				errCnt = are.ExistingCollector.(*prometheus.CounterVec)
-			} else {
-				panic(err)
 			}
 		}
 	}
