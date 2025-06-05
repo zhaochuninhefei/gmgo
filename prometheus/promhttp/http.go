@@ -293,7 +293,7 @@ const (
 	// "promhttp_metric_handler_errors_total", which can be used for
 	// alerts.
 	ContinueOnError
-	// Panic upon the first error encountered (useful for "crash only" apps).
+	// PanicOnError Panic upon the first error encountered (useful for "crash only" apps).
 	PanicOnError
 )
 
