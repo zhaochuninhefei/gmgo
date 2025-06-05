@@ -33,6 +33,7 @@ package promhttp
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -71,6 +72,9 @@ var gzipPool = sync.Pool{
 // anything that requires more customization (including using a non-default
 // Gatherer, different instrumentation, and non-default HandlerOpts), use the
 // HandlerFor function. See there for details.
+//
+//goland:noinspection GoUnusedExportedFunct
+//goland:noinspection GoUnusedExportedFunction
 func Handler() http.Handler {
 	return InstrumentMetricHandler(
 		prometheus.DefaultRegisterer, HandlerFor(prometheus.DefaultGatherer, HandlerOpts{}),
@@ -103,10 +107,9 @@ func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
 		errCnt.WithLabelValues("gathering")
 		errCnt.WithLabelValues("encoding")
 		if err := opts.Registry.Register(errCnt); err != nil {
-			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			var are prometheus.AlreadyRegisteredError
+			if errors.As(err, &are) {
 				errCnt = are.ExistingCollector.(*prometheus.CounterVec)
-			} else {
-				panic(err)
 			}
 		}
 	}
@@ -160,7 +163,9 @@ func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
 			defer gzipPool.Put(gz)
 
 			gz.Reset(w)
-			defer gz.Close()
+			defer func(gz *gzip.Writer) {
+				_ = gz.Close()
+			}(gz)
 
 			w = gz
 		}
@@ -186,6 +191,7 @@ func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
 				// something to rsp already. But at least we can
 				// stop sending.
 				return true
+			default:
 			}
 			// Do nothing in all other cases, including ContinueOnError.
 			return false
@@ -242,10 +248,9 @@ func InstrumentMetricHandler(reg prometheus.Registerer, handler http.Handler) ht
 	cnt.WithLabelValues("500")
 	cnt.WithLabelValues("503")
 	if err := reg.Register(cnt); err != nil {
-		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+		var are prometheus.AlreadyRegisteredError
+		if errors.As(err, &are) {
 			cnt = are.ExistingCollector.(*prometheus.CounterVec)
-		} else {
-			panic(err)
 		}
 	}
 
@@ -254,10 +259,9 @@ func InstrumentMetricHandler(reg prometheus.Registerer, handler http.Handler) ht
 		Help: "Current number of scrapes being served.",
 	})
 	if err := reg.Register(gge); err != nil {
-		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+		var are prometheus.AlreadyRegisteredError
+		if errors.As(err, &are) {
 			gge = are.ExistingCollector.(prometheus.Gauge)
-		} else {
-			panic(err)
 		}
 	}
 
@@ -271,7 +275,7 @@ type HandlerErrorHandling int
 // These constants cause handlers serving metrics to behave as described if
 // errors are encountered.
 const (
-	// Serve an HTTP status code 500 upon the first error
+	// HTTPErrorOnError Serve an HTTP status code 500 upon the first error
 	// encountered. Report the error message in the body. Note that HTTP
 	// errors cannot be served anymore once the beginning of a regular
 	// payload has been sent. Thus, in the (unlikely) case that encoding the
@@ -279,7 +283,7 @@ const (
 	// will simply be aborted. Set an ErrorLog in HandlerOpts to detect
 	// those errors.
 	HTTPErrorOnError HandlerErrorHandling = iota
-	// Ignore errors and try to serve as many metrics as possible.  However,
+	// ContinueOnError Ignore errors and try to serve as many metrics as possible.  However,
 	// if no metrics can be served, serve an HTTP status code 500 and the
 	// last error message in the body. Only use this in deliberate "best
 	// effort" metrics collection scenarios. In this case, it is highly
@@ -289,7 +293,7 @@ const (
 	// "promhttp_metric_handler_errors_total", which can be used for
 	// alerts.
 	ContinueOnError
-	// Panic upon the first error encountered (useful for "crash only" apps).
+	// PanicOnError Panic upon the first error encountered (useful for "crash only" apps).
 	PanicOnError
 )
 
