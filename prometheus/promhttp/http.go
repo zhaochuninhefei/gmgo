@@ -283,7 +283,7 @@ const (
 	// will simply be aborted. Set an ErrorLog in HandlerOpts to detect
 	// those errors.
 	HTTPErrorOnError HandlerErrorHandling = iota
-	// Ignore errors and try to serve as many metrics as possible.  However,
+	// ContinueOnError Ignore errors and try to serve as many metrics as possible.  However,
 	// if no metrics can be served, serve an HTTP status code 500 and the
 	// last error message in the body. Only use this in deliberate "best
 	// effort" metrics collection scenarios. In this case, it is highly
