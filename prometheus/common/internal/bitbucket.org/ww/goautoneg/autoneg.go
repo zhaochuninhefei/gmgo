@@ -140,7 +140,7 @@ func ParseAccept(header string) (accept []Accept) {
 // Negotiate the most appropriate content_type given the accept header
 // and a list of alternatives.
 //
-//goland:noinspection GoUnusedExportedFunction
+//goland:noinspection GoUnusedExportedFunction,GoSnakeCaseUsage
 func Negotiate(header string, alternatives []string) (content_type string) {
 	asp := make([][]string, 0, len(alternatives))
 	for _, ctype := range alternatives {
