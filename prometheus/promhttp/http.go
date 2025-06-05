@@ -71,6 +71,9 @@ var gzipPool = sync.Pool{
 // anything that requires more customization (including using a non-default
 // Gatherer, different instrumentation, and non-default HandlerOpts), use the
 // HandlerFor function. See there for details.
+//
+//goland:noinspection GoUnusedExportedFunct
+//goland:noinspection GoUnusedExportedFunction
 func Handler() http.Handler {
 	return InstrumentMetricHandler(
 		prometheus.DefaultRegisterer, HandlerFor(prometheus.DefaultGatherer, HandlerOpts{}),
