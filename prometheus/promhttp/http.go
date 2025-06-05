@@ -259,10 +259,9 @@ func InstrumentMetricHandler(reg prometheus.Registerer, handler http.Handler) ht
 		Help: "Current number of scrapes being served.",
 	})
 	if err := reg.Register(gge); err != nil {
-		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+		var are prometheus.AlreadyRegisteredError
+		if errors.As(err, &are) {
 			gge = are.ExistingCollector.(prometheus.Gauge)
-		} else {
-			panic(err)
 		}
 	}
 
