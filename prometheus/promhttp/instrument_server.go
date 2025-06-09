@@ -129,6 +129,8 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 // if used with Go1.9+.
 //
 // See the example for InstrumentHandlerDuration for example usage.
+//
+//goland:noinspection GoUnusedExportedFunction
 func InstrumentHandlerTimeToWriteHeader(obs prometheus.ObserverVec, next http.Handler) http.HandlerFunc {
 	code, method := checkLabels(obs)
 
