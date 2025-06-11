@@ -196,6 +196,9 @@ func InstrumentHandlerRequestSize(obs prometheus.ObserverVec, next http.Handler)
 // If the wrapped Handler panics, no values are reported.
 //
 // See the example for InstrumentHandlerDuration for example usage.
+//
+//goland:noinspection GoUnusedExportedFunct
+//goland:noinspection GoUnusedExportedFunction
 func InstrumentHandlerResponseSize(obs prometheus.ObserverVec, next http.Handler) http.Handler {
 	code, method := checkLabels(obs)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
