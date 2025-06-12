@@ -57,17 +57,19 @@ func InstrumentHandlerInFlight(g prometheus.Gauge, next http.Handler) http.Handl
 //
 // Note that this method is only guaranteed to never observe negative durations
 // if used with Go1.9+.
+//
+//goland:noinspection GoUnusedExportedFunction
 func InstrumentHandlerDuration(obs prometheus.ObserverVec, next http.Handler) http.HandlerFunc {
 	code, method := checkLabels(obs)
 
 	if code {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			now := time.Now()
 			d := newDelegator(w, nil)
 			next.ServeHTTP(d, r)
 
 			obs.With(labels(code, method, r.Method, d.Status())).Observe(time.Since(now).Seconds())
-		})
+		}
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,6 +129,8 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 // if used with Go1.9+.
 //
 // See the example for InstrumentHandlerDuration for example usage.
+//
+//goland:noinspection GoUnusedExportedFunction
 func InstrumentHandlerTimeToWriteHeader(obs prometheus.ObserverVec, next http.Handler) http.HandlerFunc {
 	code, method := checkLabels(obs)
 
@@ -155,6 +159,8 @@ func InstrumentHandlerTimeToWriteHeader(obs prometheus.ObserverVec, next http.Ha
 // If the wrapped Handler panics, no values are reported.
 //
 // See the example for InstrumentHandlerDuration for example usage.
+//
+//goland:noinspection GoUnusedExportedFunction
 func InstrumentHandlerRequestSize(obs prometheus.ObserverVec, next http.Handler) http.HandlerFunc {
 	code, method := checkLabels(obs)
 
@@ -190,6 +196,9 @@ func InstrumentHandlerRequestSize(obs prometheus.ObserverVec, next http.Handler)
 // If the wrapped Handler panics, no values are reported.
 //
 // See the example for InstrumentHandlerDuration for example usage.
+//
+//goland:noinspection GoUnusedExportedFunct
+//goland:noinspection GoUnusedExportedFunction
 func InstrumentHandlerResponseSize(obs prometheus.ObserverVec, next http.Handler) http.Handler {
 	code, method := checkLabels(obs)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
