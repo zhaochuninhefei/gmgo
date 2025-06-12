@@ -63,13 +63,13 @@ func InstrumentHandlerDuration(obs prometheus.ObserverVec, next http.Handler) ht
 	code, method := checkLabels(obs)
 
 	if code {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			now := time.Now()
 			d := newDelegator(w, nil)
 			next.ServeHTTP(d, r)
 
 			obs.With(labels(code, method, r.Method, d.Status())).Observe(time.Since(now).Seconds())
-		})
+		}
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
