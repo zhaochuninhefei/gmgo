@@ -72,11 +72,11 @@ func InstrumentHandlerDuration(obs prometheus.ObserverVec, next http.Handler) ht
 		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		next.ServeHTTP(w, r)
 		obs.With(labels(code, method, r.Method, 0)).Observe(time.Since(now).Seconds())
-	})
+	}
 }
 
 // InstrumentHandlerCounter is a middleware that wraps the provided http.Handler
