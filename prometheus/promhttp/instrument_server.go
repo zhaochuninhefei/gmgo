@@ -173,11 +173,11 @@ func InstrumentHandlerRequestSize(obs prometheus.ObserverVec, next http.Handler)
 		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 		size := computeApproximateRequestSize(r)
 		obs.With(labels(code, method, r.Method, 0)).Observe(float64(size))
-	})
+	}
 }
 
 // InstrumentHandlerResponseSize is a middleware that wraps the provided
