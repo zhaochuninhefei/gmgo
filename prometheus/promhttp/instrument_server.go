@@ -97,11 +97,11 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 	code, method := checkLabels(counter)
 
 	if code {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			d := newDelegator(w, nil)
 			next.ServeHTTP(d, r)
 			counter.With(labels(code, method, r.Method, d.Status())).Inc()
-		})
+		}
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
