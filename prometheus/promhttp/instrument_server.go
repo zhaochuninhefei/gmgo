@@ -104,10 +104,10 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 		counter.With(labels(code, method, r.Method, 0)).Inc()
-	})
+	}
 }
 
 // InstrumentHandlerTimeToWriteHeader is a middleware that wraps the provided
