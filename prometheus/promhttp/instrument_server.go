@@ -165,12 +165,12 @@ func InstrumentHandlerRequestSize(obs prometheus.ObserverVec, next http.Handler)
 	code, method := checkLabels(obs)
 
 	if code {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			d := newDelegator(w, nil)
 			next.ServeHTTP(d, r)
 			size := computeApproximateRequestSize(r)
 			obs.With(labels(code, method, r.Method, d.Status())).Observe(float64(size))
-		})
+		}
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
