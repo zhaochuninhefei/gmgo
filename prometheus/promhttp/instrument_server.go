@@ -134,13 +134,13 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 func InstrumentHandlerTimeToWriteHeader(obs prometheus.ObserverVec, next http.Handler) http.HandlerFunc {
 	code, method := checkLabels(obs)
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		d := newDelegator(w, func(status int) {
 			obs.With(labels(code, method, r.Method, status)).Observe(time.Since(now).Seconds())
 		})
 		next.ServeHTTP(d, r)
-	})
+	}
 }
 
 // InstrumentHandlerRequestSize is a middleware that wraps the provided
