@@ -72,7 +72,7 @@ func TestSm2(t *testing.T) {
 	fmt.Printf("私钥解密结果(C1C2C3) : %s\n", d3)
 
 	// 从文件读取消息
-	msg, _ = ioutil.ReadFile("testdata/msg")
+	msg, _ = os.ReadFile("testdata/msg")
 	hashFunc := sm3.New()
 	hashFunc.Write(msg)
 	digest := hashFunc.Sum(nil)
