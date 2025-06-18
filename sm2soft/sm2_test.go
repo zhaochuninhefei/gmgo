@@ -83,7 +83,7 @@ func TestSm2(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 签名写入文件
-	err = ioutil.WriteFile("testdata/signdata", sign, os.FileMode(0644))
+	err = os.WriteFile("testdata/signdata", sign, os.FileMode(0644))
 	if err != nil {
 		t.Fatal(err)
 	}
