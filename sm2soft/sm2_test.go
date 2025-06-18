@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -88,7 +87,7 @@ func TestSm2(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 读取签名文件
-	signdata, _ := ioutil.ReadFile("testdata/signdata")
+	signdata, _ := os.ReadFile("testdata/signdata")
 	// 公钥验签
 	ok := pub.Verify(digest, signdata)
 	if ok != true {
