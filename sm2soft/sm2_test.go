@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -72,7 +71,7 @@ func TestSm2(t *testing.T) {
 	fmt.Printf("私钥解密结果(C1C2C3) : %s\n", d3)
 
 	// 从文件读取消息
-	msg, _ = ioutil.ReadFile("testdata/msg")
+	msg, _ = os.ReadFile("testdata/msg")
 	hashFunc := sm3.New()
 	hashFunc.Write(msg)
 	digest := hashFunc.Sum(nil)
@@ -83,12 +82,12 @@ func TestSm2(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 签名写入文件
-	err = ioutil.WriteFile("testdata/signdata", sign, os.FileMode(0644))
+	err = os.WriteFile("testdata/signdata", sign, os.FileMode(0644))
 	if err != nil {
 		t.Fatal(err)
 	}
 	// 读取签名文件
-	signdata, _ := ioutil.ReadFile("testdata/signdata")
+	signdata, _ := os.ReadFile("testdata/signdata")
 	// 公钥验签
 	ok := pub.Verify(digest, signdata)
 	if ok != true {

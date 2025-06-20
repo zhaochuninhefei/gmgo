@@ -89,9 +89,10 @@ var two = new(big.Int).SetInt64(2)
 
 // Sign 使用priv私钥对签名内容摘要做SM2签名，参数signer目前没有使用，但仍要求传入外部对明文消息做摘要的散列算法。
 // 返回的签名为DER字节数组，对(r,s)做了asn1编码。
-//  - random : 随机数获取用, 如 rand.Reader
-//  - signContentDigest : 签名内容摘要(散列值)
-//  - signer : 外部对签名内容进行摘要计算使用的散列函数
+//   - random : 随机数获取用, 如 rand.Reader
+//   - signContentDigest : 签名内容摘要(散列值)
+//   - signer : 外部对签名内容进行摘要计算使用的散列函数
+//
 //goland:noinspection GoUnusedParameter
 func (priv *PrivateKey) Sign(random io.Reader, signContentDigest []byte, signer crypto.SignerOpts) ([]byte, error) {
 	r, s, err := Sm2Sign(priv, signContentDigest, nil, random)
@@ -108,14 +109,15 @@ func (priv *PrivateKey) Sign(random io.Reader, signContentDigest []byte, signer 
 
 // SignASN1 使用私钥priv对一个hash值进行签名。
 // 返回的签名为DER字节数组，对(r,s)做了asn1编码。
+//
 //goland:noinspection GoUnusedExportedFunction
 func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
 	return priv.Sign(rand, hash, nil)
 }
 
 // Verify 使用pub公钥对签名sig做验签。
-//  - signContentDigest : 签名内容摘要(散列值)
-//  - sig : 签名DER字节数组(对(r,s)做了asn1编码，因此会先做asn1解码)
+//   - signContentDigest : 签名内容摘要(散列值)
+//   - sig : 签名DER字节数组(对(r,s)做了asn1编码，因此会先做asn1解码)
 func (pub *PublicKey) Verify(signContentDigest []byte, sig []byte) bool {
 	var (
 		r, s  = &big.Int{}, &big.Int{}
@@ -133,9 +135,10 @@ func (pub *PublicKey) Verify(signContentDigest []byte, sig []byte) bool {
 }
 
 // VerifyASN1 使用公钥pub对hash和sig进行验签。
-//  - pub 公钥
-//  - hash 签名内容摘要(散列值)
-//  - sig 签名DER字节数组(对(r,s)做了asn1编码，因此会先做asn1解码)
+//   - pub 公钥
+//   - hash 签名内容摘要(散列值)
+//   - sig 签名DER字节数组(对(r,s)做了asn1编码，因此会先做asn1解码)
+//
 //goland:noinspection GoUnusedExportedFunction
 func VerifyASN1(pub *PublicKey, hash, sig []byte) bool {
 	return pub.Verify(hash, sig)
@@ -187,10 +190,10 @@ func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, 
 //****************************************************************************//
 
 // Sm2Sign SM2签名
-//  - priv : 签名私钥 *sm2.PrivateKey
-//  - signContentDigest : 签名内容摘要(散列值)
-//  - uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
-//  - random : 随机数获取用
+//   - priv : 签名私钥 *sm2.PrivateKey
+//   - signContentDigest : 签名内容摘要(散列值)
+//   - uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
+//   - random : 随机数获取用
 func Sm2Sign(priv *PrivateKey, signContentDigest, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	// 对签名内容进行摘要计算
 	digest, err := priv.PublicKey.Sm3Digest(signContentDigest, uid)
@@ -248,10 +251,10 @@ func Sm2Sign(priv *PrivateKey, signContentDigest, uid []byte, random io.Reader) 
 }
 
 // Sm2Verify SM2验签
-//  - pub : 验签公钥, *sm2.PublicKey
-//  - signContentDigest : 签名内容摘要(散列值)
-//  - uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
-//  - r, s : 签名
+//   - pub : 验签公钥, *sm2.PublicKey
+//   - signContentDigest : 签名内容摘要(散列值)
+//   - uid : 内部混合摘要计算用uid, 长度16的字节数组，可以传 nil
+//   - r, s : 签名
 func Sm2Verify(pub *PublicKey, signContentDigest, uid []byte, r, s *big.Int) bool {
 	c := pub.Curve
 	N := c.Params().N
@@ -297,9 +300,10 @@ func Sm2Verify(pub *PublicKey, signContentDigest, uid []byte, r, s *big.Int) boo
 }
 
 // Verify SM2验签
-//  - pub : 验签公钥, *sm2.PublicKey
-//  - hash : 签名内容摘要(散列值)
-//  - r, s : 签名
+//   - pub : 验签公钥, *sm2.PublicKey
+//   - hash : 签名内容摘要(散列值)
+//   - r, s : 签名
+//
 //goland:noinspection GoUnusedExportedFunction
 func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	return Sm2Verify(pub, hash, nil, r, s)
@@ -622,11 +626,12 @@ func DecryptAsn1(pub *PrivateKey, data []byte) ([]byte, error) {
 }
 
 // CipherMarshal sm2密文转asn.1编码格式
-//  sm2密文结构如下:
-//  - x
-//  - y
-//  - hash
-//  - CipherText
+//
+//	sm2密文结构如下:
+//	- x
+//	- y
+//	- hash
+//	- CipherText
 func CipherMarshal(data []byte) ([]byte, error) {
 	data = data[1:]
 	x := new(big.Int).SetBytes(data[:32])
@@ -646,13 +651,13 @@ func CipherUnmarshal(data []byte) ([]byte, error) {
 	x := cipher.XCoordinate.Bytes()
 	y := cipher.YCoordinate.Bytes()
 	hash := cipher.HASH
-	if err != nil {
-		return nil, err
-	}
+	//if err != nil {
+	//	return nil, err
+	//}
 	cipherText := cipher.CipherText
-	if err != nil {
-		return nil, err
-	}
+	//if err != nil {
+	//	return nil, err
+	//}
 	if n := len(x); n < 32 {
 		x = append(zeroByteSlice()[:32-n], x...)
 	}

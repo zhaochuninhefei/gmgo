@@ -72,11 +72,11 @@ func InstrumentHandlerDuration(obs prometheus.ObserverVec, next http.Handler) ht
 		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		next.ServeHTTP(w, r)
 		obs.With(labels(code, method, r.Method, 0)).Observe(time.Since(now).Seconds())
-	})
+	}
 }
 
 // InstrumentHandlerCounter is a middleware that wraps the provided http.Handler
@@ -97,17 +97,17 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 	code, method := checkLabels(counter)
 
 	if code {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			d := newDelegator(w, nil)
 			next.ServeHTTP(d, r)
 			counter.With(labels(code, method, r.Method, d.Status())).Inc()
-		})
+		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 		counter.With(labels(code, method, r.Method, 0)).Inc()
-	})
+	}
 }
 
 // InstrumentHandlerTimeToWriteHeader is a middleware that wraps the provided
@@ -134,13 +134,13 @@ func InstrumentHandlerCounter(counter *prometheus.CounterVec, next http.Handler)
 func InstrumentHandlerTimeToWriteHeader(obs prometheus.ObserverVec, next http.Handler) http.HandlerFunc {
 	code, method := checkLabels(obs)
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		d := newDelegator(w, func(status int) {
 			obs.With(labels(code, method, r.Method, status)).Observe(time.Since(now).Seconds())
 		})
 		next.ServeHTTP(d, r)
-	})
+	}
 }
 
 // InstrumentHandlerRequestSize is a middleware that wraps the provided
@@ -165,19 +165,19 @@ func InstrumentHandlerRequestSize(obs prometheus.ObserverVec, next http.Handler)
 	code, method := checkLabels(obs)
 
 	if code {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			d := newDelegator(w, nil)
 			next.ServeHTTP(d, r)
 			size := computeApproximateRequestSize(r)
 			obs.With(labels(code, method, r.Method, d.Status())).Observe(float64(size))
-		})
+		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 		size := computeApproximateRequestSize(r)
 		obs.With(labels(code, method, r.Method, 0)).Observe(float64(size))
-	})
+	}
 }
 
 // InstrumentHandlerResponseSize is a middleware that wraps the provided

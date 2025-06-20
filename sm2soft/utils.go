@@ -18,6 +18,7 @@ import (
 	"math/big"
 )
 
+//goland:noinspection GoUnusedExportedFunction
 func Decompress(a []byte) *PublicKey {
 	var aa, xx, xx3 sm2P256FieldElement
 
