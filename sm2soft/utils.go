@@ -60,6 +60,7 @@ type sm2Signature struct {
 	R, S *big.Int
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func SignDigitToSignData(r, s *big.Int) ([]byte, error) {
 	return asn1.Marshal(sm2Signature{r, s})
 }
