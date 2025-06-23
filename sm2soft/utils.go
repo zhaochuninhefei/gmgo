@@ -44,6 +44,7 @@ func Decompress(a []byte) *PublicKey {
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func Compress(a *PublicKey) []byte {
 	buf := []byte{}
 	yp := getLastBit(a.Y)
