@@ -65,6 +65,7 @@ func SignDigitToSignData(r, s *big.Int) ([]byte, error) {
 	return asn1.Marshal(sm2Signature{r, s})
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func SignDataToSignDigit(sign []byte) (*big.Int, *big.Int, error) {
 	var sm2Sign sm2Signature
 
