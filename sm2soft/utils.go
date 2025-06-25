@@ -46,7 +46,7 @@ func Decompress(a []byte) *PublicKey {
 
 //goland:noinspection GoUnusedExportedFunction
 func Compress(a *PublicKey) []byte {
-	buf := []byte{}
+	var buf []byte
 	yp := getLastBit(a.Y)
 	buf = append(buf, a.X.Bytes()...)
 	if n := len(a.X.Bytes()); n < 32 {
