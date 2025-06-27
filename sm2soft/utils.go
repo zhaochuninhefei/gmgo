@@ -44,8 +44,9 @@ func Decompress(a []byte) *PublicKey {
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func Compress(a *PublicKey) []byte {
-	buf := []byte{}
+	var buf []byte
 	yp := getLastBit(a.Y)
 	buf = append(buf, a.X.Bytes()...)
 	if n := len(a.X.Bytes()); n < 32 {
@@ -59,10 +60,12 @@ type sm2Signature struct {
 	R, S *big.Int
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func SignDigitToSignData(r, s *big.Int) ([]byte, error) {
 	return asn1.Marshal(sm2Signature{r, s})
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func SignDataToSignDigit(sign []byte) (*big.Int, *big.Int, error) {
 	var sm2Sign sm2Signature
 
