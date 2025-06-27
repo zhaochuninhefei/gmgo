@@ -39,14 +39,42 @@ func toBytes(curve elliptic.Curve, value *big.Int) []byte {
 }
 
 // 将曲线上的点座标(x,y)转为未压缩字节数组
-//  参考: GB/T 32918.1-2016 4.2.9
+//
+//	参考: GB/T 32918.1-2016 4.2.9
 func point2UncompressedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
-	return elliptic.Marshal(curve, x, y)
+	return Marshal(curve, x, y)
+}
+
+func Marshal(curve elliptic.Curve, x, y *big.Int) []byte {
+	panicIfNotOnCurve(curve, x, y)
+
+	byteLen := (curve.Params().BitSize + 7) / 8
+
+	ret := make([]byte, 1+2*byteLen)
+	ret[0] = 4 // uncompressed point
+
+	x.FillBytes(ret[1 : 1+byteLen])
+	y.FillBytes(ret[1+byteLen : 1+2*byteLen])
+
+	return ret
+}
+
+func panicIfNotOnCurve(curve elliptic.Curve, x, y *big.Int) {
+	// (0, 0) is the point at infinity by convention. It's ok to operate on it,
+	// although IsOnCurve is documented to return false for it. See Issue 37294.
+	if x.Sign() == 0 && y.Sign() == 0 {
+		return
+	}
+
+	if !curve.IsOnCurve(x, y) {
+		panic("crypto/elliptic: attempted operation on invalid point")
+	}
 }
 
 // 将曲线上的点座标(x,y)转为压缩字节数组
-//  返回的字节数组长度33, 第一位是C1压缩标识, 2代表y是偶数, 3代表y是奇数
-//  参考: GB/T 32918.1-2016 4.2.9
+//
+//	返回的字节数组长度33, 第一位是C1压缩标识, 2代表y是偶数, 3代表y是奇数
+//	参考: GB/T 32918.1-2016 4.2.9
 func point2CompressedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
 	// buffer长度: (曲线位数(256) + 7) / 8 + 1 = 33
 	buffer := make([]byte, (curve.Params().BitSize+7)>>3+1)
@@ -66,7 +94,8 @@ func point2CompressedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
 }
 
 // 将曲线上的点座标(x,y)转为混合字节数组
-//  参考: GB/T 32918.1-2016 4.2.9
+//
+//	参考: GB/T 32918.1-2016 4.2.9
 func point2MixedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
 	// buffer是未做压缩的序列化字节数组, 长度65, 4 + x字节数组(32个) + y字节数组(32个)
 	buffer := elliptic.Marshal(curve, x, y)
@@ -83,8 +112,9 @@ func point2MixedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
 }
 
 // 获取y最后一位的值
-//  x坐标为0时，直接返回0
-//  参考: GB/T 32918.1-2016 A.5.2
+//
+//	x坐标为0时，直接返回0
+//	参考: GB/T 32918.1-2016 A.5.2
 func getLastBitOfY(x, y *big.Int) uint {
 	// x坐标为0时，直接返回0
 	if x.Cmp(zero) == 0 {
@@ -99,7 +129,8 @@ func toPointXY(bytes []byte) *big.Int {
 }
 
 // 根据x坐标计算y坐标
-//  参考: GB/T 32918.1-2016 A.5.2 B.1.4
+//
+//	参考: GB/T 32918.1-2016 A.5.2 B.1.4
 func calculatePrimeCurveY(curve elliptic.Curve, x *big.Int) (*big.Int, error) {
 	// x3 : x^3
 	x3 := new(big.Int).Mul(x, x)
@@ -123,8 +154,9 @@ func calculatePrimeCurveY(curve elliptic.Curve, x *big.Int) (*big.Int, error) {
 }
 
 // 字节数组转为曲线上的点坐标
-//  返回x,y数值，以及字节数组长度(未压缩/混合:65, 压缩:33)
-//  参考: GB/T 32918.1-2016 4.2.10 A.5.2
+//
+//	返回x,y数值，以及字节数组长度(未压缩/混合:65, 压缩:33)
+//	参考: GB/T 32918.1-2016 4.2.10 A.5.2
 func bytes2Point(curve elliptic.Curve, bytes []byte) (*big.Int, *big.Int, int, error) {
 	if len(bytes) < 1+(curve.Params().BitSize/8) {
 		return nil, nil, 0, fmt.Errorf("invalid bytes length %d", len(bytes))
@@ -226,9 +258,10 @@ func ConvertECPriv2SM2Priv(ecPriv *ecdsa.PrivateKey) (*PrivateKey, error) {
 // SM2公私钥与hex相互转换
 
 // ReadSm2PrivFromHex 将hex字符串转为sm2私钥
-//  @param Dhex 16进制字符串，对应sm2.PrivateKey.D
-//  @return *PrivateKey sm2私钥
-//  @return error
+//
+//	@param Dhex 16进制字符串，对应sm2.PrivateKey.D
+//	@return *PrivateKey sm2私钥
+//	@return error
 func ReadSm2PrivFromHex(Dhex string) (*PrivateKey, error) {
 	c := P256Sm2()
 	d, err := hex.DecodeString(Dhex)
@@ -250,16 +283,18 @@ func ReadSm2PrivFromHex(Dhex string) (*PrivateKey, error) {
 }
 
 // WriteSm2PrivToHex 将sm2私钥D转为hex字符串
-//  @param key sm2私钥
-//  @return string
+//
+//	@param key sm2私钥
+//	@return string
 func WriteSm2PrivToHex(key *PrivateKey) string {
 	return key.D.Text(16)
 }
 
 // ReadSm2PubFromHex 将hex字符串转为sm2公钥
-//  @param Qhex sm2公钥座标x,y的字节数组拼接后的hex转码字符串
-//  @return *PublicKey sm2公钥
-//  @return error
+//
+//	@param Qhex sm2公钥座标x,y的字节数组拼接后的hex转码字符串
+//	@return *PublicKey sm2公钥
+//	@return error
 func ReadSm2PubFromHex(Qhex string) (*PublicKey, error) {
 	q, err := hex.DecodeString(Qhex)
 	if err != nil {
@@ -279,8 +314,9 @@ func ReadSm2PubFromHex(Qhex string) (*PublicKey, error) {
 }
 
 // WriteSm2PubToHex 将sm2公钥转为hex字符串
-//  @param key sm2公钥
-//  @return string
+//
+//	@param key sm2公钥
+//	@return string
 func WriteSm2PubToHex(key *PublicKey) string {
 	x := key.X.Bytes()
 	y := key.Y.Bytes()
