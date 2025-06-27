@@ -100,7 +100,7 @@ func point2CompressedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
 //	参考: GB/T 32918.1-2016 4.2.9
 func point2MixedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
 	// buffer是未做压缩的序列化字节数组, 长度65, 4 + x字节数组(32个) + y字节数组(32个)
-	buffer := elliptic.Marshal(curve, x, y)
+	buffer := Marshal(curve, x, y)
 	// 修改首位的压缩标识
 	// TODO: 混合模式有何意义? C1实际并未压缩，把首位标识改为混合标识有啥用?
 	if getLastBitOfY(x, y) > 0 {
