@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"io"
+	"math/big"
 	"testing"
 	"time"
 )
@@ -44,7 +45,8 @@ func TestFuzz(t *testing.T) {
 		}
 
 		x, y := p256.ScalarBaseMult(scalar1[:])
-		x2, y2 := p256Generic.ScalarBaseMult(scalar1[:])
+		//x2, y2 := p256Generic.ScalarBaseMult(scalar1[:])
+		x2, y2 := ScalarBaseMult(p256Generic, scalar1[:])
 
 		xx, yy := p256.ScalarMult(x, y, scalar2[:])
 		xx2, yy2 := p256Generic.ScalarMult(x2, y2, scalar2[:])
@@ -57,4 +59,23 @@ func TestFuzz(t *testing.T) {
 			t.Fatalf("ScalarMult does not match reference result with scalars: %x and %x, please report this error to https://gitee.com/zhaochuninhefei/gmgo/issues", scalar1, scalar2)
 		}
 	}
+}
+
+func ScalarBaseMult(curve *elliptic.CurveParams, k []byte) (*big.Int, *big.Int) {
+	// If there is a dedicated constant-time implementation for this curve operation,
+	// use that instead of the generic one.
+	if specific, ok := matchesSpecificCurve(curve); ok {
+		return specific.ScalarBaseMult(k)
+	}
+
+	return curve.ScalarMult(curve.Gx, curve.Gy, k)
+}
+
+func matchesSpecificCurve(params *elliptic.CurveParams) (elliptic.Curve, bool) {
+	for _, c := range []elliptic.Curve{elliptic.P224(), elliptic.P256(), elliptic.P384(), elliptic.P521()} {
+		if params == c.Params() {
+			return c, true
+		}
+	}
+	return nil, false
 }
