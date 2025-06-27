@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -247,7 +246,7 @@ func Test_sm2keyWithOtherLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ioutil.WriteFile("testdata/sm2_pub_key.der", derPub, 0644)
+	err = os.WriteFile("testdata/sm2_pub_key.der", derPub, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
