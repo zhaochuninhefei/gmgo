@@ -42,6 +42,8 @@ func toBytes(curve elliptic.Curve, value *big.Int) []byte {
 //
 //	参考: GB/T 32918.1-2016 4.2.9
 func point2UncompressedBytes(curve elliptic.Curve, x, y *big.Int) []byte {
+	// elliptic.Marshal 已经废弃使用,因此将 elliptic.Marshal 移动到本包内
+	//return elliptic.Marshal(curve, x, y)
 	return Marshal(curve, x, y)
 }
 
