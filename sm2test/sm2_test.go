@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -237,7 +238,7 @@ func Test_sm2keyWithOtherLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ioutil.WriteFile("testdata/sm2_pri_key.der", derPriv, 0644)
+	err = os.WriteFile("testdata/sm2_pri_key.der", derPriv, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
