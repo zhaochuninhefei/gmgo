@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -186,7 +185,7 @@ func TestSm3(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 读取msg文件
-	msg, err = ioutil.ReadFile("testdata/msg")
+	msg, err = os.ReadFile("testdata/msg")
 	if err != nil {
 		t.Fatal(err)
 	}
