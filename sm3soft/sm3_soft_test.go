@@ -16,7 +16,6 @@ package sm3soft
 import (
 	"crypto/sha512"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -62,7 +61,7 @@ func TestSm3(t *testing.T) {
 }
 
 func TestSm3AndSHA256(t *testing.T) {
-	msg, err := ioutil.ReadFile("testdata/msg")
+	msg, err := os.ReadFile("testdata/msg")
 	if err != nil {
 		t.Fatal(err)
 	}
