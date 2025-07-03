@@ -16,7 +16,6 @@ package sm3soft
 import (
 	"crypto/sha512"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -35,12 +34,12 @@ func byteToString(b []byte) string {
 func TestSm3(t *testing.T) {
 	msg := []byte("天行健君子以自强不息")
 	// 生成msg文件
-	err := ioutil.WriteFile("testdata/msg", msg, os.FileMode(0644))
+	err := os.WriteFile("testdata/msg", msg, os.FileMode(0644))
 	if err != nil {
 		t.Fatal(err)
 	}
 	// 读取msg文件
-	msg, err = ioutil.ReadFile("testdata/msg")
+	msg, err = os.ReadFile("testdata/msg")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +61,7 @@ func TestSm3(t *testing.T) {
 }
 
 func TestSm3AndSHA256(t *testing.T) {
-	msg, err := ioutil.ReadFile("testdata/msg")
+	msg, err := os.ReadFile("testdata/msg")
 	if err != nil {
 		t.Fatal(err)
 	}

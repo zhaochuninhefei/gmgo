@@ -144,7 +144,7 @@ func convertBag(bag *safeBag, password []byte) (*pem.Block, error) {
 
 	for _, attribute := range bag.Attributes {
 		k, v, err := convertAttribute(&attribute)
-		if err == errUnknownAttributeOID {
+		if errors.Is(err, errUnknownAttributeOID) {
 			continue
 		}
 		if err != nil {
@@ -307,7 +307,7 @@ func getSafeContents(p12Data, password []byte) (bags []safeBag, updatedPassword 
 	}
 
 	if err := verifyMac(&pfx.MacData, pfx.AuthSafe.Content.Bytes, password); err != nil {
-		if err == ErrIncorrectPassword && len(password) == 2 && password[0] == 0 && password[1] == 0 {
+		if errors.Is(err, ErrIncorrectPassword) && len(password) == 2 && password[0] == 0 && password[1] == 0 {
 			// some implementations use an empty byte array
 			// for the empty string password try one more
 			// time with empty-empty password
