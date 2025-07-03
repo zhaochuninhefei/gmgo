@@ -144,7 +144,7 @@ func convertBag(bag *safeBag, password []byte) (*pem.Block, error) {
 
 	for _, attribute := range bag.Attributes {
 		k, v, err := convertAttribute(&attribute)
-		if err == errUnknownAttributeOID {
+		if errors.Is(err, errUnknownAttributeOID) {
 			continue
 		}
 		if err != nil {
