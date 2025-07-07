@@ -6,6 +6,7 @@ package pkcs12
 
 import (
 	"encoding/asn1"
+	"errors"
 	"testing"
 )
 
@@ -23,7 +24,8 @@ func TestVerifyMac(t *testing.T) {
 
 	td.Mac.Algorithm.Algorithm = []int{1, 2, 3}
 	err := verifyMac(&td, message, password)
-	if _, ok := err.(NotImplementedError); !ok {
+	var notImplementedError NotImplementedError
+	if !errors.As(err, &notImplementedError) {
 		t.Errorf("err: %v", err)
 	}
 
