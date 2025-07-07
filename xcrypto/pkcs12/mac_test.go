@@ -21,7 +21,7 @@ func TestVerifyMac(t *testing.T) {
 	message := []byte{11, 12, 13, 14, 15}
 	password, _ := bmpString("")
 
-	td.Mac.Algorithm.Algorithm = asn1.ObjectIdentifier([]int{1, 2, 3})
+	td.Mac.Algorithm.Algorithm = []int{1, 2, 3}
 	err := verifyMac(&td, message, password)
 	if _, ok := err.(NotImplementedError); !ok {
 		t.Errorf("err: %v", err)
