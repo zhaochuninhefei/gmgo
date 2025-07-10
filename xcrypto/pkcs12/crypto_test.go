@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"errors"
 	"testing"
 )
 
@@ -28,7 +29,8 @@ func TestPbDecrypterFor(t *testing.T) {
 	pass, _ := bmpString("Sesame open")
 
 	_, _, err := pbDecrypterFor(alg, pass)
-	if _, ok := err.(NotImplementedError); !ok {
+	var notImplementedError NotImplementedError
+	if !errors.As(err, &notImplementedError) {
 		t.Errorf("expected not implemented error, got: %T %s", err, err)
 	}
 

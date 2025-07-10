@@ -5,7 +5,7 @@
 package pkcs12
 
 import (
-	"encoding/asn1"
+	"errors"
 	"testing"
 )
 
@@ -21,15 +21,16 @@ func TestVerifyMac(t *testing.T) {
 	message := []byte{11, 12, 13, 14, 15}
 	password, _ := bmpString("")
 
-	td.Mac.Algorithm.Algorithm = asn1.ObjectIdentifier([]int{1, 2, 3})
+	td.Mac.Algorithm.Algorithm = []int{1, 2, 3}
 	err := verifyMac(&td, message, password)
-	if _, ok := err.(NotImplementedError); !ok {
+	var notImplementedError NotImplementedError
+	if !errors.As(err, &notImplementedError) {
 		t.Errorf("err: %v", err)
 	}
 
-	td.Mac.Algorithm.Algorithm = asn1.ObjectIdentifier([]int{1, 3, 14, 3, 2, 26})
+	td.Mac.Algorithm.Algorithm = []int{1, 3, 14, 3, 2, 26}
 	err = verifyMac(&td, message, password)
-	if err != ErrIncorrectPassword {
+	if !errors.Is(err, ErrIncorrectPassword) {
 		t.Errorf("Expected incorrect password, got err: %v", err)
 	}
 
