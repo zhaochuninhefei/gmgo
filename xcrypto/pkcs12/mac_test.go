@@ -30,7 +30,7 @@ func TestVerifyMac(t *testing.T) {
 
 	td.Mac.Algorithm.Algorithm = []int{1, 3, 14, 3, 2, 26}
 	err = verifyMac(&td, message, password)
-	if err != ErrIncorrectPassword {
+	if !errors.Is(err, ErrIncorrectPassword) {
 		t.Errorf("Expected incorrect password, got err: %v", err)
 	}
 
