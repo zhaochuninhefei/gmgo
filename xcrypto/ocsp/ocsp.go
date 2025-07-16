@@ -292,6 +292,7 @@ func getOIDFromHashAlgorithm(target x509.Hash) asn1.ObjectIdentifier {
 // This is the exposed reflection of the internal OCSP structures.
 
 // The status values that can be expressed in OCSP.  See RFC 6960.
+//
 //goland:noinspection GoUnusedConst
 const (
 	// Good means that the certificate is valid.
