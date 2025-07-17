@@ -308,6 +308,7 @@ const (
 )
 
 // The enumerated reasons for revoking a certificate.  See RFC 5280.
+//goland:noinspection GoUnusedConst
 const (
 	Unspecified          = 0
 	KeyCompromise        = 1
