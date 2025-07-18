@@ -408,6 +408,7 @@ type Response struct {
 // defined by OCSP. The Unauthorized code in particular can be used by an OCSP
 // responder that supports only pre-signed responses as a response to requests
 // for certificates with unknown status. See RFC 5019.
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	MalformedRequestErrorResponse = []byte{0x30, 0x03, 0x0A, 0x01, 0x01}
 	InternalErrorErrorResponse    = []byte{0x30, 0x03, 0x0A, 0x01, 0x02}
