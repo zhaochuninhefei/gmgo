@@ -292,6 +292,8 @@ func getOIDFromHashAlgorithm(target x509.Hash) asn1.ObjectIdentifier {
 // This is the exposed reflection of the internal OCSP structures.
 
 // The status values that can be expressed in OCSP.  See RFC 6960.
+//
+//goland:noinspection GoUnusedConst
 const (
 	// Good means that the certificate is valid.
 	Good = iota
@@ -306,6 +308,8 @@ const (
 )
 
 // The enumerated reasons for revoking a certificate.  See RFC 5280.
+//
+//goland:noinspection GoUnusedConst
 const (
 	Unspecified          = 0
 	KeyCompromise        = 1
@@ -404,6 +408,8 @@ type Response struct {
 // defined by OCSP. The Unauthorized code in particular can be used by an OCSP
 // responder that supports only pre-signed responses as a response to requests
 // for certificates with unknown status. See RFC 5019.
+//
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	MalformedRequestErrorResponse = []byte{0x30, 0x03, 0x0A, 0x01, 0x01}
 	InternalErrorErrorResponse    = []byte{0x30, 0x03, 0x0A, 0x01, 0x02}

@@ -16,7 +16,7 @@ import (
 	"encoding/binary"
 )
 
-// The rc2 block size in bytes
+// BlockSize : The rc2 block size in bytes
 const BlockSize = 8
 
 type rc2Cipher struct {

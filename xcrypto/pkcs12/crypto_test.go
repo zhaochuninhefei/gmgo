@@ -95,7 +95,7 @@ func TestPbDecrypt(t *testing.T) {
 		password, _ := bmpString("sesame")
 
 		plaintext, err := pbDecrypt(decryptable, password)
-		if err != test.expectedError {
+		if !errors.Is(err, test.expectedError) {
 			t.Errorf("#%d: got error %q, but wanted %q", i, err, test.expectedError)
 			continue
 		}
