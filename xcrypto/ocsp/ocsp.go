@@ -437,6 +437,7 @@ func (p ParseError) Error() string {
 // ParseRequest parses an OCSP request in DER form. It only supports
 // requests for a single certificate. Signed requests are not supported.
 // If a request includes a signature, it will result in a ParseError.
+//
 //goland:noinspection GoUnusedExportedFunction
 func ParseRequest(bytes []byte) (*Request, error) {
 	var req ocspRequest
