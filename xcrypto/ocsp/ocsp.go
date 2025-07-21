@@ -482,6 +482,7 @@ func ParseRequest(bytes []byte) (*Request, error) {
 //
 // Invalid responses and parse failures will result in a ParseError.
 // Error responses will result in a ResponseError.
+//goland:noinspection GoUnusedExportedFunction
 func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
 	return ParseResponseForCert(bytes, nil, issuer)
 }
