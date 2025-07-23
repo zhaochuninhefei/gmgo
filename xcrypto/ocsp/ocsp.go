@@ -647,6 +647,7 @@ func (opts *RequestOptions) hash() x509.Hash {
 
 // CreateRequest returns a DER-encoded, OCSP request for the status of cert. If
 // opts is nil then sensible defaults are used.
+//
 //goland:noinspection GoUnusedExportedFunction
 func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
 	hashFunc := opts.hash()
