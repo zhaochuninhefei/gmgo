@@ -703,6 +703,7 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 // If template.IssuerHash is not set, SHA1 will be used.
 //
 // The ProducedAt date is automatically set to the current date, to the nearest minute.
+//goland:noinspection GoUnusedExportedFunction
 func CreateResponse(issuer, responderCert *x509.Certificate, template Response, priv crypto.Signer) ([]byte, error) {
 	var publicKeyInfo struct {
 		Algorithm pkix.AlgorithmIdentifier
