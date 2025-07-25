@@ -758,6 +758,7 @@ func CreateResponse(issuer, responderCert *x509.Certificate, template Response, 
 			RevocationTime: template.RevokedAt.UTC(),
 			Reason:         asn1.Enumerated(template.RevocationReason),
 		}
+	default:
 	}
 
 	rawResponderID := asn1.RawValue{
