@@ -437,6 +437,8 @@ func (p ParseError) Error() string {
 // ParseRequest parses an OCSP request in DER form. It only supports
 // requests for a single certificate. Signed requests are not supported.
 // If a request includes a signature, it will result in a ParseError.
+//
+//goland:noinspection GoUnusedExportedFunction
 func ParseRequest(bytes []byte) (*Request, error) {
 	var req ocspRequest
 	rest, err := asn1.Unmarshal(bytes, &req)
@@ -480,6 +482,8 @@ func ParseRequest(bytes []byte) (*Request, error) {
 //
 // Invalid responses and parse failures will result in a ParseError.
 // Error responses will result in a ResponseError.
+//
+//goland:noinspection GoUnusedExportedFunction
 func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
 	return ParseResponseForCert(bytes, nil, issuer)
 }
@@ -643,6 +647,8 @@ func (opts *RequestOptions) hash() x509.Hash {
 
 // CreateRequest returns a DER-encoded, OCSP request for the status of cert. If
 // opts is nil then sensible defaults are used.
+//
+//goland:noinspection GoUnusedExportedFunction
 func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
 	hashFunc := opts.hash()
 
@@ -697,6 +703,8 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 // If template.IssuerHash is not set, SHA1 will be used.
 //
 // The ProducedAt date is automatically set to the current date, to the nearest minute.
+//
+//goland:noinspection GoUnusedExportedFunction
 func CreateResponse(issuer, responderCert *x509.Certificate, template Response, priv crypto.Signer) ([]byte, error) {
 	var publicKeyInfo struct {
 		Algorithm pkix.AlgorithmIdentifier
@@ -750,6 +758,7 @@ func CreateResponse(issuer, responderCert *x509.Certificate, template Response, 
 			RevocationTime: template.RevokedAt.UTC(),
 			Reason:         asn1.Enumerated(template.RevocationReason),
 		}
+	default:
 	}
 
 	rawResponderID := asn1.RawValue{
