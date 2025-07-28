@@ -40,7 +40,7 @@ const (
 	Malformed     ResponseStatus = 1
 	InternalError ResponseStatus = 2
 	TryLater      ResponseStatus = 3
-	// Status code four is unused in OCSP. See
+	// SignatureRequired Status code four is unused in OCSP. See
 	// https://tools.ietf.org/html/rfc6960#section-4.2.1
 	SignatureRequired ResponseStatus = 5
 	Unauthorized      ResponseStatus = 6
