@@ -336,6 +336,7 @@ type Request struct {
 func (req *Request) Marshal() ([]byte, error) {
 	hashAlg := getOIDFromHashAlgorithm(req.HashAlgorithm)
 	if hashAlg == nil {
+		//goland:noinspection GoErrorStringFormat
 		return nil, errors.New("Unknown hash algorithm")
 	}
 	return asn1.Marshal(ocspRequest{
