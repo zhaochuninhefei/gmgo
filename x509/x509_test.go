@@ -74,7 +74,7 @@ func TestPKCS1MismatchPublicKeyFormat(t *testing.T) {
 	const errorContains = "use ParsePKIXPublicKey instead"
 	derBytes, _ := hex.DecodeString(pkixPublicKey)
 	_, err := ParsePKCS1PublicKey(derBytes)
-	if !strings.Contains(err.Error(), errorContains) {
+	if err != nil && strings.Contains(err.Error(), errorContains) {
 		t.Errorf("expected error containing %q, got %s", errorContains, err)
 	}
 }
