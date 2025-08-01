@@ -10,7 +10,6 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -21,7 +20,7 @@ import (
 )
 
 func TestClearTestdata(t *testing.T) {
-	dir, _ := ioutil.ReadDir("testdata")
+	dir, _ := os.ReadDir("testdata")
 	for _, f := range dir {
 		err := os.Remove(path.Join("testdata", f.Name()))
 		if err != nil {
