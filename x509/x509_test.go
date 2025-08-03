@@ -2396,7 +2396,7 @@ func TestPKCS1MismatchKeyFormat(t *testing.T) {
 	for i, test := range pkcs1MismatchKeyTests {
 		derBytes, _ := hex.DecodeString(test.hexKey)
 		_, err := ParsePKCS1PrivateKey(derBytes)
-		if !strings.Contains(err.Error(), test.errorContains) {
+		if err != nil && !strings.Contains(err.Error(), test.errorContains) {
 			t.Errorf("#%d: expected error containing %q, got %s", i, test.errorContains, err)
 		}
 	}
