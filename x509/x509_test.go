@@ -2700,6 +2700,24 @@ func TestRSAPSAParameters(t *testing.T) {
 			hashOID = oidSHA384
 		case SHA512:
 			hashOID = oidSHA512
+		case MD4:
+		case MD5:
+		case SHA1:
+		case SHA224:
+		case MD5SHA1:
+		case RIPEMD160:
+		case SHA3_224:
+		case SHA3_256:
+		case SHA3_384:
+		case SHA3_512:
+		case SHA512_224:
+		case SHA512_256:
+		case BLAKE2s_256:
+		case BLAKE2b_256:
+		case BLAKE2b_384:
+		case BLAKE2b_512:
+		case SM3:
+		case maxHash:
 		}
 
 		params := pssParameters{
