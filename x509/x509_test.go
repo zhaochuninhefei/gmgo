@@ -20,9 +20,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"net"
@@ -34,6 +31,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -2768,7 +2769,7 @@ func TestUnknownExtKey(t *testing.T) {
 		ExtKeyUsage:  []ExtKeyUsage{ExtKeyUsage(-1)},
 	}
 	signer, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
+	if err != nil || signer == nil {
 		t.Errorf("failed to generate key for TestUnknownExtKey")
 	}
 
