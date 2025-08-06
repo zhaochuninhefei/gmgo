@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -1798,7 +1799,7 @@ func TestASN1BitLength(t *testing.T) {
 }
 
 func TestVerifyEmptyCertificate(t *testing.T) {
-	if _, err := new(Certificate).Verify(VerifyOptions{}); err != errNotParsed {
+	if _, err := new(Certificate).Verify(VerifyOptions{}); !errors.Is(err, errNotParsed) {
 		t.Errorf("Verifying empty certificate resulted in unexpected error: %q (wanted %q)", err, errNotParsed)
 	}
 }
