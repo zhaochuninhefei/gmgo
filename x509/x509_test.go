@@ -1869,7 +1869,8 @@ func TestMD5(t *testing.T) {
 	if err = cert.CheckSignatureFrom(cert); err == nil {
 		t.Fatalf("certificate verification succeeded incorrectly")
 	}
-	if _, ok := err.(InsecureAlgorithmError); !ok {
+	var insecureAlgorithmError InsecureAlgorithmError
+	if !errors.As(err, &insecureAlgorithmError) {
 		t.Fatalf("certificate verification returned %v (%T), wanted InsecureAlgorithmError", err, err)
 	}
 }
