@@ -19,10 +19,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"net"
@@ -34,6 +32,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -1797,7 +1799,7 @@ func TestASN1BitLength(t *testing.T) {
 }
 
 func TestVerifyEmptyCertificate(t *testing.T) {
-	if _, err := new(Certificate).Verify(VerifyOptions{}); err != errNotParsed {
+	if _, err := new(Certificate).Verify(VerifyOptions{}); !errors.Is(err, errNotParsed) {
 		t.Errorf("Verifying empty certificate resulted in unexpected error: %q (wanted %q)", err, errNotParsed)
 	}
 }
@@ -1867,7 +1869,8 @@ func TestMD5(t *testing.T) {
 	if err = cert.CheckSignatureFrom(cert); err == nil {
 		t.Fatalf("certificate verification succeeded incorrectly")
 	}
-	if _, ok := err.(InsecureAlgorithmError); !ok {
+	var insecureAlgorithmError InsecureAlgorithmError
+	if !errors.As(err, &insecureAlgorithmError) {
 		t.Fatalf("certificate verification returned %v (%T), wanted InsecureAlgorithmError", err, err)
 	}
 }
@@ -2396,7 +2399,7 @@ func TestPKCS1MismatchKeyFormat(t *testing.T) {
 	for i, test := range pkcs1MismatchKeyTests {
 		derBytes, _ := hex.DecodeString(test.hexKey)
 		_, err := ParsePKCS1PrivateKey(derBytes)
-		if !strings.Contains(err.Error(), test.errorContains) {
+		if err != nil && !strings.Contains(err.Error(), test.errorContains) {
 			t.Errorf("#%d: expected error containing %q, got %s", i, test.errorContains, err)
 		}
 	}
@@ -2700,6 +2703,24 @@ func TestRSAPSAParameters(t *testing.T) {
 			hashOID = oidSHA384
 		case SHA512:
 			hashOID = oidSHA512
+		case MD4:
+		case MD5:
+		case SHA1:
+		case SHA224:
+		case MD5SHA1:
+		case RIPEMD160:
+		case SHA3_224:
+		case SHA3_256:
+		case SHA3_384:
+		case SHA3_512:
+		case SHA512_224:
+		case SHA512_256:
+		case BLAKE2s_256:
+		case BLAKE2b_256:
+		case BLAKE2b_384:
+		case BLAKE2b_512:
+		case SM3:
+		case maxHash:
 		}
 
 		params := pssParameters{
@@ -2750,7 +2771,7 @@ func TestUnknownExtKey(t *testing.T) {
 		ExtKeyUsage:  []ExtKeyUsage{ExtKeyUsage(-1)},
 	}
 	signer, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
+	if err != nil || signer == nil {
 		t.Errorf("failed to generate key for TestUnknownExtKey")
 	}
 
