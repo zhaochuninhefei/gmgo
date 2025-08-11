@@ -44,9 +44,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecbase"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"net"
@@ -54,6 +51,10 @@ import (
 	"strconv"
 	"time"
 	"unicode"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
@@ -496,10 +497,10 @@ var signatureAlgorithmDetails = []struct {
 // hashToPSSParameters contains the DER encoded RSA PSS parameters for the
 // SHA256, SHA384, and SHA512 hashes as defined in RFC 3447, Appendix A.2.3.
 // The parameters contain the following values:
-//   * hashAlgorithm contains the associated hash identifier with NULL parameters
-//   * maskGenAlgorithm always contains the default mgf1SHA1 identifier
-//   * saltLength contains the length of the associated hash
-//   * trailerField always contains the default trailerFieldBC value
+//   - hashAlgorithm contains the associated hash identifier with NULL parameters
+//   - maskGenAlgorithm always contains the default mgf1SHA1 identifier
+//   - saltLength contains the length of the associated hash
+//   - trailerField always contains the default trailerFieldBC value
 var hashToPSSParameters = map[Hash]asn1.RawValue{
 	SHA256: {FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 5, 0, 162, 3, 2, 1, 32}},
 	SHA384: {FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 2, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 2, 5, 0, 162, 3, 2, 1, 48}},
@@ -580,17 +581,19 @@ func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm
 // RFC 3279, 2.3 Public Key Algorithms
 //
 // pkcs-1 OBJECT IDENTIFIER ::== { iso(1) member-body(2) us(840)
-//    rsadsi(113549) pkcs(1) 1 }
+//
+//	rsadsi(113549) pkcs(1) 1 }
 //
 // rsaEncryption OBJECT IDENTIFIER ::== { pkcs1-1 1 }
 //
 // id-dsa OBJECT IDENTIFIER ::== { iso(1) member-body(2) us(840)
-//    x9-57(10040) x9cm(4) 1 }
 //
-// RFC 5480, 2.1.1 Unrestricted Algorithm Identifier and Parameters
+//	x9-57(10040) x9cm(4) 1 }
 //
-// id-ecPublicKey OBJECT IDENTIFIER ::= {
-//       iso(1) member-body(2) us(840) ansi-X9-62(10045) keyType(2) 1 }
+// # RFC 5480, 2.1.1 Unrestricted Algorithm Identifier and Parameters
+//
+//	id-ecPublicKey OBJECT IDENTIFIER ::= {
+//	      iso(1) member-body(2) us(840) ansi-X9-62(10045) keyType(2) 1 }
 var (
 	oidPublicKeyRSA   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
 	oidPublicKeyDSA   = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
@@ -625,18 +628,18 @@ func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm 
 
 // RFC 5480, 2.1.1.1. Named Curve
 //
-// secp224r1 OBJECT IDENTIFIER ::= {
-//   iso(1) identified-organization(3) certicom(132) curve(0) 33 }
+//	secp224r1 OBJECT IDENTIFIER ::= {
+//	  iso(1) identified-organization(3) certicom(132) curve(0) 33 }
 //
-// secp256r1 OBJECT IDENTIFIER ::= {
-//   iso(1) member-body(2) us(840) ansi-X9-62(10045) curves(3)
-//   prime(1) 7 }
+//	secp256r1 OBJECT IDENTIFIER ::= {
+//	  iso(1) member-body(2) us(840) ansi-X9-62(10045) curves(3)
+//	  prime(1) 7 }
 //
-// secp384r1 OBJECT IDENTIFIER ::= {
-//   iso(1) identified-organization(3) certicom(132) curve(0) 34 }
+//	secp384r1 OBJECT IDENTIFIER ::= {
+//	  iso(1) identified-organization(3) certicom(132) curve(0) 34 }
 //
-// secp521r1 OBJECT IDENTIFIER ::= {
-//   iso(1) identified-organization(3) certicom(132) curve(0) 35 }
+//	secp521r1 OBJECT IDENTIFIER ::= {
+//	  iso(1) identified-organization(3) certicom(132) curve(0) 35 }
 //
 // NB: secp256r1 is equivalent to prime256v1
 var (
@@ -791,7 +794,8 @@ func oidFromExtKeyUsage(eku ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
 }
 
 // Certificate gmx509证书结构体
-//  A Certificate represents an X.509 certificate.
+//
+//	A Certificate represents an X.509 certificate.
 type Certificate struct {
 	// 完整的 ASN1 DER 证书字节数组(证书+签名算法+签名)
 	// Complete ASN.1 DER content (certificate, signature algorithm and signature).
@@ -985,9 +989,9 @@ func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
 }
 
 // CheckSignature 使用c的公钥检查签名是否有效
-//  - algo : 签名算法
-//  - signed : 签名内容
-//  - signature : 签名DER字节数组
+//   - algo : 签名算法
+//   - signed : 签名内容
+//   - signature : 签名DER字节数组
 //
 // CheckSignature verifies that signature is a valid signature over signed from
 // c's public key.
@@ -1648,9 +1652,10 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 }
 
 // signingParamsForPublicKey 根据传入的公钥与签名算法获取签名参数(签名算法、散列算法与签名算法参数)
-//  根据传入的公钥获取默认的签名参数，再根据传入的requestedSigAlgo从内建定义的签名算法列表中检查公钥类型是否匹配，并获取定义好的签名参数，覆盖之前的默认值。
-//  当requestedSigAlgo传入0时，即只根据公钥获取默认的签名参数。
-//  注意公钥必须是签署者使用的私钥对应的公钥，并不是证书拥有者的公钥。
+//
+//	根据传入的公钥获取默认的签名参数，再根据传入的requestedSigAlgo从内建定义的签名算法列表中检查公钥类型是否匹配，并获取定义好的签名参数，覆盖之前的默认值。
+//	当requestedSigAlgo传入0时，即只根据公钥获取默认的签名参数。
+//	注意公钥必须是签署者使用的私钥对应的公钥，并不是证书拥有者的公钥。
 func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (signOpts crypto.SignerOpts, hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
@@ -1779,48 +1784,48 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 var emptyASN1Subject = []byte{0x30, 0}
 
 // CreateCertificate 根据证书模板生成gmx509证书(v3)的DER字节数组
-//  - template : 证书模板
-//  - parent : 父证书(自签名时与template传入相同参数即可)
-//  - pub : 证书拥有者的公钥
-//  - priv : 签名者的私钥(有父证书的话，就是父证书拥有者的私钥)
+//   - template : 证书模板
+//   - parent : 父证书(自签名时与template传入相同参数即可)
+//   - pub : 证书拥有者的公钥
+//   - priv : 签名者的私钥(有父证书的话，就是父证书拥有者的私钥)
 //
 // 当父证书中含有公钥时，必须确保签名者私钥中的公钥与其一致。
 //
 // CreateCertificate creates a new X.509 v3 certificate based on a template.
 // The following members of template are currently used:
 //
-//  - AuthorityKeyId
-//  - BasicConstraintsValid
-//  - CRLDistributionPoints
-//  - DNSNames
-//  - EmailAddresses
-//  - ExcludedDNSDomains
-//  - ExcludedEmailAddresses
-//  - ExcludedIPRanges
-//  - ExcludedURIDomains
-//  - ExtKeyUsage
-//  - ExtraExtensions
-//  - IPAddresses
-//  - IsCA
-//  - IssuingCertificateURL
-//  - KeyUsage
-//  - MaxPathLen
-//  - MaxPathLenZero
-//  - NotAfter
-//  - NotBefore
-//  - OCSPServer
-//  - PermittedDNSDomains
-//  - PermittedDNSDomainsCritical
-//  - PermittedEmailAddresses
-//  - PermittedIPRanges
-//  - PermittedURIDomains
-//  - PolicyIdentifiers
-//  - SerialNumber
-//  - SignatureAlgorithm
-//  - Subject
-//  - SubjectKeyId
-//  - URIs
-//  - UnknownExtKeyUsage
+//   - AuthorityKeyId
+//   - BasicConstraintsValid
+//   - CRLDistributionPoints
+//   - DNSNames
+//   - EmailAddresses
+//   - ExcludedDNSDomains
+//   - ExcludedEmailAddresses
+//   - ExcludedIPRanges
+//   - ExcludedURIDomains
+//   - ExtKeyUsage
+//   - ExtraExtensions
+//   - IPAddresses
+//   - IsCA
+//   - IssuingCertificateURL
+//   - KeyUsage
+//   - MaxPathLen
+//   - MaxPathLenZero
+//   - NotAfter
+//   - NotBefore
+//   - OCSPServer
+//   - PermittedDNSDomains
+//   - PermittedDNSDomainsCritical
+//   - PermittedEmailAddresses
+//   - PermittedIPRanges
+//   - PermittedURIDomains
+//   - PolicyIdentifiers
+//   - SerialNumber
+//   - SignatureAlgorithm
+//   - Subject
+//   - SubjectKeyId
+//   - URIs
+//   - UnknownExtKeyUsage
 //
 // The certificate is signed by parent. If parent is equal to template then the
 // certificate is self-signed. The parameter pub is the public key of the
@@ -2031,8 +2036,8 @@ func ParseDERCRL(derBytes []byte) (*pkix.CertificateList, error) {
 }
 
 // CreateCRL 创建一个CRL
-//  - priv : 撤销证书列表的签署者私钥, 如果是ecdsa私钥，那么这里并不支持low-s处理，验签时对应也不需要low-s检查。
-//  - revokedCerts : 撤销证书列表
+//   - priv : 撤销证书列表的签署者私钥, 如果是ecdsa私钥，那么这里并不支持low-s处理，验签时对应也不需要low-s检查。
+//   - revokedCerts : 撤销证书列表
 //
 // CreateCRL returns a DER encoded CRL, signed by this Certificate, that
 // contains the given list of revoked certificates.
@@ -2255,21 +2260,21 @@ func parseCSRExtensions(rawAttributes []asn1.RawValue) ([]pkix.Extension, error)
 
 // CreateCertificateRequest 基于证书申请模板生成一个新的证书申请。
 // 注意，证书申请内部的公钥信息就是签名者的公钥，即，证书申请是申请者自签名的。
-//  - rand : 随机数获取用
-//  - template : 证书申请模板
-//  - priv : 申请者私钥
+//   - rand : 随机数获取用
+//   - template : 证书申请模板
+//   - priv : 申请者私钥
 //
 // CreateCertificateRequest creates a new certificate request based on a
 // template. The following members of template are used:
 //
-//  - SignatureAlgorithm
-//  - Subject
-//  - DNSNames
-//  - EmailAddresses
-//  - IPAddresses
-//  - URIs
-//  - ExtraExtensions
-//  - Attributes (deprecated)
+//   - SignatureAlgorithm
+//   - Subject
+//   - DNSNames
+//   - EmailAddresses
+//   - IPAddresses
+//   - URIs
+//   - ExtraExtensions
+//   - Attributes (deprecated)
 //
 // priv is the private key to sign the CSR with, and the corresponding public
 // key will be included in the CSR. It must implement crypto.Signer and its
@@ -2663,7 +2668,8 @@ type RevocationList struct {
 }
 
 // CreateRevocationList 创建x509 v2版本的证书撤销列表
-//   注意，私钥是ecdsa类型时，不支持low-s处理。
+//
+//	注意，私钥是ecdsa类型时，不支持low-s处理。
 //
 // creates a new X.509 v2 Certificate Revocation List,
 // according to RFC 5280, based on template.
