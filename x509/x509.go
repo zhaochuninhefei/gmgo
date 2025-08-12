@@ -25,6 +25,7 @@ ParseCertificateRequest : 将DER字节数组转为单个证书申请
  csr.CheckSignature : 检查证书申请c的签名是否有效
 */
 
+//goland:noinspection GoVulnerablePackageImport
 import (
 	"bytes"
 	"crypto"
