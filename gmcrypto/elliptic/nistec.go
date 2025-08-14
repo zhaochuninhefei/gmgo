@@ -5,9 +5,11 @@
 package elliptic
 
 import (
-	"crypto/internal/nistec"
 	"errors"
 	"math/big"
+
+	//"crypto/internal/nistec"
+	"gitee.com/zhaochuninhefei/gmgo/gmcrypto/internal/nistec"
 )
 
 var p224 = &nistCurve[*nistec.P224Point]{

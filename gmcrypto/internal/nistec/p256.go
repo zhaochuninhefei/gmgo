@@ -9,7 +9,8 @@
 package nistec
 
 import (
-	"crypto/internal/nistec/fiat"
+	//"crypto/internal/nistec/fiat"
+	"gitee.com/zhaochuninhefei/gmgo/gmcrypto/internal/nistec/fiat"
 	"crypto/subtle"
 	"errors"
 	"sync"

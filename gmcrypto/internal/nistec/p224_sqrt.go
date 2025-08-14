@@ -5,8 +5,10 @@
 package nistec
 
 import (
-	"crypto/internal/nistec/fiat"
 	"sync"
+
+	//"crypto/internal/nistec/fiat"
+	"gitee.com/zhaochuninhefei/gmgo/gmcrypto/internal/nistec/fiat"
 )
 
 var p224GG *[96]fiat.P224Element
