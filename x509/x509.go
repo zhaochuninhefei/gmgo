@@ -57,6 +57,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
+	//gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
 
