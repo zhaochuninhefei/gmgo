@@ -104,7 +104,7 @@ func GenerateKey(curve Curve, rand io.Reader) (priv []byte, x, y *big.Int, err e
 // SEC 1, Version 2.0, Section 2.3.3. If the point is not on the curve (or is
 // the conventional point at infinity), the behavior is undefined.
 //
-// Deprecated: for ECDH, use the crypto/ecdh package. This function returns an
+// This function was deprecated in Go 1.22: for ECDH, use the crypto/ecdh package. This function returns an
 // encoding equivalent to that of PublicKey.Bytes in crypto/ecdh.
 func Marshal(curve Curve, x, y *big.Int) []byte {
 	panicIfNotOnCurve(curve, x, y)
