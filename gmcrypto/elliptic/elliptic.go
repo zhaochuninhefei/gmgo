@@ -237,6 +237,7 @@ func initAll() {
 //goland:noinspection GoUnusedExportedFunction
 func ToStandardCurve(curve Curve) elliptic.Curve {
 	// Check if it's already a standard curve
+	//goland:noinspection GoVetImpossibleInterfaceToInterfaceAssertion
 	if stdCurve, ok := curve.(elliptic.Curve); ok {
 		return stdCurve
 	}
