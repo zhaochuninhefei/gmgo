@@ -252,6 +252,7 @@ func ToStandardCurve(curve Curve) elliptic.Curve {
 //goland:noinspection GoUnusedExportedFunction
 func FromStandardCurve(curve elliptic.Curve) Curve {
 	// Check if it's already a gmcrypto curve
+	//goland:noinspection GoVetImpossibleInterfaceToInterfaceAssertion
 	if gmCurve, ok := curve.(Curve); ok {
 		return gmCurve
 	}
