@@ -247,6 +247,7 @@ func ToStandardCurve(curve Curve) elliptic.Curve {
 
 // FromStandardCurve converts a crypto/elliptic Curve to a gmcrypto/elliptic Curve.
 // This function allows using standard library curves with gmcrypto functions.
+//
 //goland:noinspection GoUnusedExportedFunction
 func FromStandardCurve(curve elliptic.Curve) Curve {
 	// Check if it's already a gmcrypto curve
