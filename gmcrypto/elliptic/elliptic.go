@@ -231,6 +231,57 @@ func initAll() {
 	initP521()
 }
 
+// P224 returns a [Curve] which implements NIST P-224 (FIPS 186-3, section D.2.2),
+// also known as secp224r1. The CurveParams.Name of this [Curve] is "P-224".
+//
+// Multiple invocations of this function will return the same value, so it can
+// be used for equality checks and switch statements.
+//
+// The cryptographic operations are implemented using constant-time algorithms.
+func P224() Curve {
+	initonce.Do(initAll)
+	return p224
+}
+
+// P256 returns a [Curve] which implements NIST P-256 (FIPS 186-3, section D.2.3),
+// also known as secp256r1 or prime256v1. The CurveParams.Name of this [Curve] is
+// "P-256".
+//
+// Multiple invocations of this function will return the same value, so it can
+// be used for equality checks and switch statements.
+//
+// The cryptographic operations are implemented using constant-time algorithms.
+func P256() Curve {
+	initonce.Do(initAll)
+	return p256
+}
+
+// P384 returns a [Curve] which implements NIST P-384 (FIPS 186-3, section D.2.4),
+// also known as secp384r1. The CurveParams.Name of this [Curve] is "P-384".
+//
+// Multiple invocations of this function will return the same value, so it can
+// be used for equality checks and switch statements.
+//
+// The cryptographic operations are implemented using constant-time algorithms.
+func P384() Curve {
+	initonce.Do(initAll)
+	return p384
+}
+
+// P521 returns a [Curve] which implements NIST P-521 (FIPS 186-3, section D.2.5),
+// also known as secp521r1. The CurveParams.Name of this [Curve] is "P-521".
+//
+// Multiple invocations of this function will return the same value, so it can
+// be used for equality checks and switch statements.
+//
+// The cryptographic operations are implemented using constant-time algorithms.
+func P521() Curve {
+	initonce.Do(initAll)
+	return p521
+}
+
+// Added by zhaochun for gmcrypto
+
 // ToStandardCurve converts a gmcrypto/elliptic Curve to a crypto/elliptic Curve.
 // This function allows interoperability between gmcrypto curves and standard library curves.
 //
@@ -334,53 +385,4 @@ func (w *stdCurveWrapper) ScalarMult(x1, y1 *big.Int, k []byte) (x, y *big.Int) 
 
 func (w *stdCurveWrapper) ScalarBaseMult(k []byte) (x, y *big.Int) {
 	return w.Curve.ScalarBaseMult(k)
-}
-
-// P224 returns a [Curve] which implements NIST P-224 (FIPS 186-3, section D.2.2),
-// also known as secp224r1. The CurveParams.Name of this [Curve] is "P-224".
-//
-// Multiple invocations of this function will return the same value, so it can
-// be used for equality checks and switch statements.
-//
-// The cryptographic operations are implemented using constant-time algorithms.
-func P224() Curve {
-	initonce.Do(initAll)
-	return p224
-}
-
-// P256 returns a [Curve] which implements NIST P-256 (FIPS 186-3, section D.2.3),
-// also known as secp256r1 or prime256v1. The CurveParams.Name of this [Curve] is
-// "P-256".
-//
-// Multiple invocations of this function will return the same value, so it can
-// be used for equality checks and switch statements.
-//
-// The cryptographic operations are implemented using constant-time algorithms.
-func P256() Curve {
-	initonce.Do(initAll)
-	return p256
-}
-
-// P384 returns a [Curve] which implements NIST P-384 (FIPS 186-3, section D.2.4),
-// also known as secp384r1. The CurveParams.Name of this [Curve] is "P-384".
-//
-// Multiple invocations of this function will return the same value, so it can
-// be used for equality checks and switch statements.
-//
-// The cryptographic operations are implemented using constant-time algorithms.
-func P384() Curve {
-	initonce.Do(initAll)
-	return p384
-}
-
-// P521 returns a [Curve] which implements NIST P-521 (FIPS 186-3, section D.2.5),
-// also known as secp521r1. The CurveParams.Name of this [Curve] is "P-521".
-//
-// Multiple invocations of this function will return the same value, so it can
-// be used for equality checks and switch statements.
-//
-// The cryptographic operations are implemented using constant-time algorithms.
-func P521() Curve {
-	initonce.Do(initAll)
-	return p521
 }
