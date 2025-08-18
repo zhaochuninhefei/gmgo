@@ -12,6 +12,7 @@
 package elliptic
 
 import (
+	"crypto/elliptic"
 	"io"
 	"math/big"
 	"sync"
@@ -228,6 +229,105 @@ func initAll() {
 	initP256()
 	initP384()
 	initP521()
+}
+
+// ToStandardCurve converts a gmcrypto/elliptic Curve to a crypto/elliptic Curve.
+// This function allows interoperability between gmcrypto curves and standard library curves.
+func ToStandardCurve(curve Curve) elliptic.Curve {
+	// Check if it's already a standard curve
+	if stdCurve, ok := curve.(elliptic.Curve); ok {
+		return stdCurve
+	}
+	
+	// For our own curves, we need a wrapper
+	return &curveWrapper{curve}
+}
+
+// FromStandardCurve converts a crypto/elliptic Curve to a gmcrypto/elliptic Curve.
+// This function allows using standard library curves with gmcrypto functions.
+func FromStandardCurve(curve elliptic.Curve) Curve {
+	// Check if it's already a gmcrypto curve
+	if gmCurve, ok := curve.(Curve); ok {
+		return gmCurve
+	}
+	
+	// For standard curves, we need a wrapper
+	return &stdCurveWrapper{curve}
+}
+
+// curveWrapper wraps a gmcrypto Curve to implement the standard elliptic.Curve interface
+type curveWrapper struct {
+	Curve
+}
+
+func (w *curveWrapper) Params() *elliptic.CurveParams {
+	return &elliptic.CurveParams{
+		P:       w.Curve.Params().P,
+		N:       w.Curve.Params().N,
+		B:       w.Curve.Params().B,
+		Gx:      w.Curve.Params().Gx,
+		Gy:      w.Curve.Params().Gy,
+		BitSize: w.Curve.Params().BitSize,
+		Name:    w.Curve.Params().Name,
+	}
+}
+
+func (w *curveWrapper) IsOnCurve(x, y *big.Int) bool {
+	return w.Curve.IsOnCurve(x, y)
+}
+
+func (w *curveWrapper) Add(x1, y1, x2, y2 *big.Int) (x, y *big.Int) {
+	return w.Curve.Add(x1, y1, x2, y2)
+}
+
+func (w *curveWrapper) Double(x1, y1 *big.Int) (x, y *big.Int) {
+	return w.Curve.Double(x1, y1)
+}
+
+func (w *curveWrapper) ScalarMult(x1, y1 *big.Int, k []byte) (x, y *big.Int) {
+	return w.Curve.ScalarMult(x1, y1, k)
+}
+
+func (w *curveWrapper) ScalarBaseMult(k []byte) (x, y *big.Int) {
+	return w.Curve.ScalarBaseMult(k)
+}
+
+// stdCurveWrapper wraps a standard elliptic.Curve to implement the gmcrypto Curve interface
+type stdCurveWrapper struct {
+	elliptic.Curve
+}
+
+func (w *stdCurveWrapper) Params() *CurveParams {
+	params := w.Curve.Params()
+	return &CurveParams{
+		P:       params.P,
+		N:       params.N,
+		B:       params.B,
+		Gx:      params.Gx,
+		Gy:      params.Gy,
+		BitSize: params.BitSize,
+		Name:    params.Name,
+	}
+}
+
+func (w *stdCurveWrapper) IsOnCurve(x, y *big.Int) bool {
+	return w.Curve.IsOnCurve(x, y)
+}
+
+func (w *stdCurveWrapper) Add(x1, y1, x2, y2 *big.Int) (x, y *big.Int) {
+	return w.Curve.Add(x1, y1, x2, y2)
+}
+
+func (w *stdCurveWrapper) Double(x1, y1 *big.Int) (x, y *big.Int) {
+	return w.Curve.Double(x1, y1)
+}
+
+func (w *stdCurveWrapper) ScalarMult(x1, y1 *big.Int, k []byte) (x, y *big.Int) {
+	return w.Curve.ScalarMult(x1, y1, k)
+}
+
+func (w *stdCurveWrapper) ScalarBaseMult(k []byte) (x, y *big.Int) {
+	return w.Curve.ScalarBaseMult(k)
 }
 
 // P224 returns a [Curve] which implements NIST P-224 (FIPS 186-3, section D.2.2),
