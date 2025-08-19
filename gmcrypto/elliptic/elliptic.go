@@ -386,3 +386,11 @@ func (w *stdCurveWrapper) ScalarMult(x1, y1 *big.Int, k []byte) (x, y *big.Int) 
 func (w *stdCurveWrapper) ScalarBaseMult(k []byte) (x, y *big.Int) {
 	return w.Curve.ScalarBaseMult(k)
 }
+
+// StdMarshal converts a point on the standard library curve into the uncompressed form specified in
+// SEC 1, Version 2.0, Section 2.3.3. If the point is not on the curve (or is
+// the conventional point at infinity), the behavior is undefined.
+func StdMarshal(curve elliptic.Curve, x, y *big.Int) []byte {
+	gmCurve := FromStandardCurve(curve)
+	return Marshal(gmCurve, x, y)
+}
