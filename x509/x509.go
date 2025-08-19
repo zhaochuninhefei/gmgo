@@ -55,9 +55,9 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
-	//gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
 
@@ -115,7 +115,7 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 	switch pub := pub.(type) {
 	case *sm2.PublicKey:
 		// 将椭圆曲线、公钥座标转换为字节数组
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		publicKeyBytes = gmelliptic.StdMarshal(pub.Curve, pub.X, pub.Y)
 		// 获取椭圆曲线oid，注意，国标目前没有给出sm2椭圆曲线的oid，这里使用SM2算法的oid代替
 		oid, ok := oidFromNamedCurve(pub.Curve)
 		if !ok {
