@@ -923,7 +923,7 @@ TEXT ·p256OrdMul<>(SB), NOSPLIT, $0
 #undef K0
 
 // ---------------------------------------
-// p256MulInternal
+// gmP256MulInternal
 // V0-V3,V30,V31 - Not Modified
 // V4-V15 - Volatile
 
@@ -1066,7 +1066,7 @@ TEXT ·p256OrdMul<>(SB), NOSPLIT, $0
  *
  * Last 'group' needs to RED2||RED1 shifted less
  */
-TEXT p256MulInternal<>(SB), NOSPLIT, $0-0
+TEXT gmP256MulInternal<>(SB), NOSPLIT, $0-0
 	VL 32(CPOOL), SEL1
 	VL 48(CPOOL), SEL2
 	VL 64(CPOOL), SEL3
@@ -1319,17 +1319,17 @@ TEXT p256MulInternal<>(SB), NOSPLIT, $0-0
 #define Y0    V2
 #define Y1    V3
 
-TEXT p256SqrInternal<>(SB), NOFRAME|NOSPLIT, $0
+TEXT gmP256SqrInternal<>(SB), NOFRAME|NOSPLIT, $0
 	VLR X0, Y0
 	VLR X1, Y1
-	BR  p256MulInternal<>(SB)
+	BR  gmP256MulInternal<>(SB)
 
 #undef X0
 #undef X1
 #undef Y0
 #undef Y1
 
-#define p256SubInternal(T1, T0, X1, X0, Y1, Y0) \
+#define gmP256SubInternal(T1, T0, X1, X0, Y1, Y0) \
 	VZERO   ZER                \
 	VSCBIQ  Y0, X0, CAR1       \
 	VSQ     Y0, X0, T0         \
@@ -1420,7 +1420,7 @@ TEXT ·p256Mul(SB), NOSPLIT, $0
 	VL   16(CPOOL), P0
 	VL   0(CPOOL), P1
 
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	VPDI $0x4, T0, T0, T0
 	VST  T0, (0*16)(res_ptr)
@@ -1476,7 +1476,7 @@ TEXT ·p256Sqr(SB), NOSPLIT, $0
 	VL   0(CPOOL), P1
 
 loop:
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 	VLR  T0, X0
 	VLR  T1, X1
 	ADDW $1, COUNT
@@ -1646,12 +1646,12 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X0, X0, X0
 	VLR  X0, Y0
 	VLR  X1, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// X=T ; Y-  ; MUL; T2=T // T2 = T1*Z1    T1   T2
 	VLR  T0, X0
 	VLR  T1, X1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T2L
 	VLR  T1, T2H
 
@@ -1660,7 +1660,7 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	VPDI $0x4, Y1, Y1, Y1
 	VL   0(P2ptr), Y0        // X2L
 	VPDI $0x4, Y0, Y0, Y0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T1L
 	VLR  T1, T1H
 
@@ -1669,28 +1669,28 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	VLR  T2H, X1
 	VLR  Y2L, Y0
 	VLR  Y2H, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// SUB(T2<T-Y1)          // T2 = T2-Y1    T1   T2
 	VL   48(P1ptr), Y1H
 	VPDI $0x4, Y1H, Y1H, Y1H
 	VL   32(P1ptr), Y1L
 	VPDI $0x4, Y1L, Y1L, Y1L
-	p256SubInternal(T2H,T2L,T1,T0,Y1H,Y1L)
+	gmP256SubInternal(T2H,T2L,T1,T0,Y1H,Y1L)
 
 	// SUB(Y<T1-X1)          // T1 = T1-X1    T1   T2
 	VL   16(P1ptr), X1H
 	VPDI $0x4, X1H, X1H, X1H
 	VL   0(P1ptr), X1L
 	VPDI $0x4, X1L, X1L, X1L
-	p256SubInternal(Y1,Y0,T1H,T1L,X1H,X1L)
+	gmP256SubInternal(Y1,Y0,T1H,T1L,X1H,X1L)
 
 	// X=Z1; Y- ;  MUL; Z3:=T// Z3 = Z1*T1         T2
 	VL   80(P1ptr), X1       // Z1H
 	VPDI $0x4, X1, X1, X1
 	VL   64(P1ptr), X0       // Z1L
 	VPDI $0x4, X0, X0, X0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// VST T1, 64(P3ptr)
 	// VST T0, 80(P3ptr)
@@ -1700,12 +1700,12 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	// X=Y;  Y- ;  MUL; X=T  // T3 = T1*T1         T2
 	VLR  Y0, X0
 	VLR  Y1, X1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 	VLR  T0, X0
 	VLR  T1, X1
 
 	// X- ;  Y- ;  MUL; T4=T // T4 = T3*T1         T2        T4
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T4L
 	VLR  T1, T4H
 
@@ -1714,7 +1714,7 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	VPDI $0x4, Y1, Y1, Y1
 	VL   0(P1ptr), Y0        // X1L
 	VPDI $0x4, Y0, Y0, Y0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T3L
 	VLR  T1, T3H
 
@@ -1726,21 +1726,21 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	VLR  T2H, X1
 	VLR  T2L, Y0
 	VLR  T2H, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// SUB(T<T-T1)           // X3 = X3-T1    T1   T2   T3   T4  (T1 = X3)
-	p256SubInternal(T1,T0,T1,T0,T1H,T1L)
+	gmP256SubInternal(T1,T0,T1,T0,T1H,T1L)
 
 	// SUB(T<T-T4) X3:=T     // X3 = X3-T4         T2   T3   T4
-	p256SubInternal(T1,T0,T1,T0,T4H,T4L)
+	gmP256SubInternal(T1,T0,T1,T0,T4H,T4L)
 	VLR T0, X3L
 	VLR T1, X3H
 
 	// SUB(X<T3-T)           // T3 = T3-X3         T2   T3   T4
-	p256SubInternal(X1,X0,T3H,T3L,T1,T0)
+	gmP256SubInternal(X1,X0,T3H,T3L,T1,T0)
 
 	// X- ;  Y- ;  MUL; T3=T // T3 = T3*T2         T2   T3   T4
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T3L
 	VLR  T1, T3H
 
@@ -1751,10 +1751,10 @@ TEXT ·p256PointAddAffineAsm(SB), NOSPLIT, $0
 	VPDI $0x4, Y1, Y1, Y1
 	VL   32(P1ptr), Y0       // Y1L
 	VPDI $0x4, Y0, Y0, Y0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// SUB(T<T3-T) Y3:=T     // Y3 = T3-T4              T3   T4  (T3 = Y3)
-	p256SubInternal(Y3H,Y3L,T3H,T3L,T1,T0)
+	gmP256SubInternal(Y3H,Y3L,T3H,T3L,T1,T0)
 
 	//	if (sel == 0) {
 	//		copy(P3.x[:], X1)
@@ -1975,20 +1975,20 @@ TEXT ·p256PointDoubleAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X0, X0, X0
 	VLR  X0, Y0
 	VLR  X1, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// SUB(X<X1-T)            // T2 = X1-T1
 	VL   16(P1ptr), X1H
 	VPDI $0x4, X1H, X1H, X1H
 	VL   0(P1ptr), X1L
 	VPDI $0x4, X1L, X1L, X1L
-	p256SubInternal(X1,X0,X1H,X1L,T1,T0)
+	gmP256SubInternal(X1,X0,X1H,X1L,T1,T0)
 
 	// ADD(Y<X1+T)            // T1 = X1+T1
 	p256AddInternal(Y1,Y0,X1H,X1L,T1,T0)
 
 	// X-  ; Y-  ; MUL; T-    // T2 = T2*T1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// ADD(T2<T+T); ADD(T2<T2+T)  // T2 = 3*T2
 	p256AddInternal(T2H,T2L,T1,T0,T1,T0)
@@ -2006,7 +2006,7 @@ TEXT ·p256PointDoubleAsm(SB), NOSPLIT, $0
 	VPDI $0x4, Y1, Y1, Y1
 	VL   64(P1ptr), Y0        // Z1L
 	VPDI $0x4, Y0, Y0, Y0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VPDI $0x4, T1, T1, TT1
 	VST  TT1, 80(P3ptr)
 	VPDI $0x4, T0, T0, TT0
@@ -2015,7 +2015,7 @@ TEXT ·p256PointDoubleAsm(SB), NOSPLIT, $0
 	// X-  ; Y=X ; MUL; T-    // Y3 = Y3²
 	VLR  X0, Y0
 	VLR  X1, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// X=T ; Y=X1; MUL; T3=T  // T3 = Y3*X1
 	VLR  T0, X0
@@ -2024,14 +2024,14 @@ TEXT ·p256PointDoubleAsm(SB), NOSPLIT, $0
 	VPDI $0x4, Y1, Y1, Y1
 	VL   0(P1ptr), Y0
 	VPDI $0x4, Y0, Y0, Y0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T3L
 	VLR  T1, T3H
 
 	// X-  ; Y=X ; MUL; T-    // Y3 = Y3²
 	VLR  X0, Y0
 	VLR  X1, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// HAL(Y3<T)              // Y3 = half*Y3
 	p256HalfInternal(Y3H,Y3L, T1,T0)
@@ -2041,26 +2041,26 @@ TEXT ·p256PointDoubleAsm(SB), NOSPLIT, $0
 	VLR  T2H, X1
 	VLR  T2L, Y0
 	VLR  T2H, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// ADD(T1<T3+T3)          // T1 = 2*T3
 	p256AddInternal(T1H,T1L,T3H,T3L,T3H,T3L)
 
 	// SUB(X3<T-T1) X3:=X3    // X3 = X3-T1
-	p256SubInternal(X3H,X3L,T1,T0,T1H,T1L)
+	gmP256SubInternal(X3H,X3L,T1,T0,T1H,T1L)
 	VPDI $0x4, X3H, X3H, TT1
 	VST  TT1, 16(P3ptr)
 	VPDI $0x4, X3L, X3L, TT0
 	VST  TT0, 0(P3ptr)
 
 	// SUB(X<T3-X3)           // T1 = T3-X3
-	p256SubInternal(X1,X0,T3H,T3L,X3H,X3L)
+	gmP256SubInternal(X1,X0,T3H,T3L,X3H,X3L)
 
 	// X-  ; Y-  ; MUL; T-    // T1 = T1*T2
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// SUB(Y3<T-Y3)           // Y3 = T1-Y3
-	p256SubInternal(Y3H,Y3L,T1,T0,Y3H,Y3L)
+	gmP256SubInternal(Y3H,Y3L,T1,T0,Y3H,Y3L)
 
 	VPDI $0x4, Y3H, Y3H, Y3H
 	VST  Y3H, 48(P3ptr)
@@ -2228,12 +2228,12 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X0, X0, X0
 	VLR  X0, Y0
 	VLR  X1, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// X-  ; Y=T ; MUL; R=T  // R  = Z1*T1
 	VLR  T0, Y0
 	VLR  T1, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, RL
 	VLR  T1, RH
 
@@ -2242,7 +2242,7 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X1, X1, X1
 	VL   0(P2ptr), X0        // X2L
 	VPDI $0x4, X0, X0, X0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, HL
 	VLR  T1, HH
 
@@ -2253,12 +2253,12 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X0, X0, X0
 	VLR  X0, Y0
 	VLR  X1, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// X-  ; Y=T ; MUL; S1=T // S1 = Z2*T2
 	VLR  T0, Y0
 	VLR  T1, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, S1L
 	VLR  T1, S1H
 
@@ -2267,12 +2267,12 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X1, X1, X1
 	VL   0(P1ptr), X0        // X1L
 	VPDI $0x4, X0, X0, X0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, U1L
 	VLR  T1, U1H
 
 	// SUB(H<H-T)            // H  = H-U1
-	p256SubInternal(HH,HL,HH,HL,T1,T0)
+	gmP256SubInternal(HH,HL,HH,HL,T1,T0)
 
 	// if H == 0 or H^P == 0 then ret=1 else ret=0
 	// clobbers T1H and T1L
@@ -2298,14 +2298,14 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, Y1, Y1, Y1
 	VL   64(P2ptr), Y0       // Z2L
 	VPDI $0x4, Y0, Y0, Y0
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// X=T ; Y=H ; MUL; Z3:=T// Z3 = Z3*H
 	VLR  T0, X0
 	VLR  T1, X1
 	VLR  HL, Y0
 	VLR  HH, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VPDI $0x4, T1, T1, TT1
 	VST  TT1, 80(P3ptr)
 	VPDI $0x4, T0, T0, TT0
@@ -2318,7 +2318,7 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X0, X0, X0
 	VLR  S1L, Y0
 	VLR  S1H, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, S1L
 	VLR  T1, S1H
 
@@ -2329,10 +2329,10 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VPDI $0x4, X0, X0, X0
 	VLR  RL, Y0
 	VLR  RH, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// SUB(R<T-S1)           // R  = T-S1
-	p256SubInternal(RH,RL,T1,T0,S1H,S1L)
+	gmP256SubInternal(RH,RL,T1,T0,S1H,S1L)
 
 	// if R == 0 or R^P == 0 then ret=ret else ret=0
 	// clobbers T1H and T1L
@@ -2355,19 +2355,19 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VLR  HH, X1
 	VLR  HL, Y0
 	VLR  HH, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// X-  ; Y=T ; MUL; T2=T // T2 = H*T1
 	VLR  T0, Y0
 	VLR  T1, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, T2L
 	VLR  T1, T2H
 
 	// X=U1; Y-  ; MUL; U1=T // U1 = U1*T1
 	VLR  U1L, X0
 	VLR  U1H, X1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, U1L
 	VLR  T1, U1H
 
@@ -2376,28 +2376,28 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VLR  RH, X1
 	VLR  RL, Y0
 	VLR  RH, Y1
-	CALL p256SqrInternal<>(SB)
+	CALL gmP256SqrInternal<>(SB)
 
 	// SUB(T<T-T2)           // X3 = X3-T2
-	p256SubInternal(T1,T0,T1,T0,T2H,T2L)
+	gmP256SubInternal(T1,T0,T1,T0,T2H,T2L)
 
 	// ADD(X<U1+U1)          // T1 = 2*U1
 	p256AddInternal(X1,X0,U1H,U1L,U1H,U1L)
 
 	// SUB(T<T-X) X3:=T      // X3 = X3-T1 << store-out X3 result reg
-	p256SubInternal(T1,T0,T1,T0,X1,X0)
+	gmP256SubInternal(T1,T0,T1,T0,X1,X0)
 	VPDI $0x4, T1, T1, TT1
 	VST  TT1, 16(P3ptr)
 	VPDI $0x4, T0, T0, TT0
 	VST  TT0, 0(P3ptr)
 
 	// SUB(Y<U1-T)           // Y3 = U1-X3
-	p256SubInternal(Y1,Y0,U1H,U1L,T1,T0)
+	gmP256SubInternal(Y1,Y0,U1H,U1L,T1,T0)
 
 	// X=R ; Y-  ; MUL; U1=T // Y3 = R*Y3
 	VLR  RL, X0
 	VLR  RH, X1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 	VLR  T0, U1L
 	VLR  T1, U1H
 
@@ -2406,10 +2406,10 @@ TEXT ·p256PointAddAsm(SB), NOSPLIT, $0
 	VLR  S1H, X1
 	VLR  T2L, Y0
 	VLR  T2H, Y1
-	CALL p256MulInternal<>(SB)
+	CALL gmP256MulInternal<>(SB)
 
 	// SUB(T<U1-T); Y3:=T    // Y3 = Y3-T2 << store-out Y3 result reg
-	p256SubInternal(T1,T0,U1H,U1L,T1,T0)
+	gmP256SubInternal(T1,T0,U1H,U1L,T1,T0)
 	VPDI $0x4, T1, T1, T1
 	VST  T1, 48(P3ptr)
 	VPDI $0x4, T0, T0, T0
