@@ -227,6 +227,7 @@ func (n Name) appendRDNs(in RDNSequence, values []string, oid asn1.ObjectIdentif
 //   - PostalCode
 //
 // Each ExtraNames entry is encoded as an individual RDN.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (n Name) ToRDNSequence() (ret RDNSequence) {
 	ret = n.appendRDNs(ret, n.Country, oidCountry)
