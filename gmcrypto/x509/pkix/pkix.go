@@ -141,6 +141,7 @@ type Name struct {
 // FillFromRDNSequence populates n from the provided [RDNSequence].
 // Multi-entry RDNs are flattened, all entries are added to the
 // relevant n fields, and the grouping is not preserved.
+//goland:noinspection GoMixedReceiverTypes
 func (n *Name) FillFromRDNSequence(rdns *RDNSequence) {
 	for _, rdn := range *rdns {
 		if len(rdn) == 0 {
