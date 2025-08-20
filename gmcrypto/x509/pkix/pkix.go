@@ -199,6 +199,7 @@ var (
 // and returns the new value. The relativeDistinguishedNameSET contains an
 // attributeTypeAndValue for each of the given values. See RFC 5280, A.1, and
 // search for AttributeTypeAndValue.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (n Name) appendRDNs(in RDNSequence, values []string, oid asn1.ObjectIdentifier) RDNSequence {
 	if len(values) == 0 || oidInAttributeTypeAndValue(oid, n.ExtraNames) {
@@ -226,6 +227,7 @@ func (n Name) appendRDNs(in RDNSequence, values []string, oid asn1.ObjectIdentif
 //   - PostalCode
 //
 // Each ExtraNames entry is encoded as an individual RDN.
+//goland:noinspection GoMixedReceiverTypes
 func (n Name) ToRDNSequence() (ret RDNSequence) {
 	ret = n.appendRDNs(ret, n.Country, oidCountry)
 	ret = n.appendRDNs(ret, n.Province, oidProvince)
