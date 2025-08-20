@@ -141,6 +141,7 @@ type Name struct {
 // FillFromRDNSequence populates n from the provided [RDNSequence].
 // Multi-entry RDNs are flattened, all entries are added to the
 // relevant n fields, and the grouping is not preserved.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (n *Name) FillFromRDNSequence(rdns *RDNSequence) {
 	for _, rdn := range *rdns {
@@ -198,6 +199,7 @@ var (
 // and returns the new value. The relativeDistinguishedNameSET contains an
 // attributeTypeAndValue for each of the given values. See RFC 5280, A.1, and
 // search for AttributeTypeAndValue.
+//goland:noinspection GoMixedReceiverTypes
 func (n Name) appendRDNs(in RDNSequence, values []string, oid asn1.ObjectIdentifier) RDNSequence {
 	if len(values) == 0 || oidInAttributeTypeAndValue(oid, n.ExtraNames) {
 		return in
