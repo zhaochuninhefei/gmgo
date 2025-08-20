@@ -56,6 +56,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
+	gmpkix "gitee.com/zhaochuninhefei/gmgo/gmcrypto/x509/pkix"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -1141,8 +1142,8 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 
 // CheckCRLSignature 检查证书撤销列表CRL是否由c签名。
 // CheckCRLSignature checks that the signature in crl is from c.
-func (c *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
-	algo := getSignatureAlgorithmFromAI(crl.SignatureAlgorithm)
+func (c *Certificate) CheckCRLSignature(crl *gmpkix.CertificateList) error {
+	algo := getSignatureAlgorithmFromAI(pkix.AlgorithmIdentifier(crl.SignatureAlgorithm))
 	return c.CheckSignature(algo, crl.TBSCertList.Raw, crl.SignatureValue.RightAlign())
 }
 

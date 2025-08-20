@@ -284,7 +284,7 @@ func oidInAttributeTypeAndValue(oid asn1.ObjectIdentifier, atv []AttributeTypeAn
 // 5280, section 5.1. Use Certificate.CheckCRLSignature to verify the
 // signature.
 //
-// Deprecated: x509.RevocationList should be used instead.
+// Be deprecated in go1.22: x509.RevocationList should be used instead.
 type CertificateList struct {
 	TBSCertList        TBSCertificateList
 	SignatureAlgorithm AlgorithmIdentifier
@@ -299,7 +299,7 @@ func (certList *CertificateList) HasExpired(now time.Time) bool {
 // TBSCertificateList represents the ASN.1 structure of the same name. See RFC
 // 5280, section 5.1.
 //
-// Deprecated: x509.RevocationList should be used instead.
+// Be deprecated in go1.22: x509.RevocationList should be used instead.
 type TBSCertificateList struct {
 	Raw                 asn1.RawContent
 	Version             int `asn1:"optional,default:0"`
