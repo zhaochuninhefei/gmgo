@@ -252,6 +252,7 @@ func (n Name) ToRDNSequence() (ret RDNSequence) {
 
 // String returns the string form of n, roughly following
 // the RFC 2253 Distinguished Names syntax.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (n Name) String() string {
 	var rdns RDNSequence
