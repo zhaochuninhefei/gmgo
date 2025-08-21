@@ -74,12 +74,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecbase"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"io"
 	"math/big"
 	"strings"
 	"sync"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecbase"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
 	"golang.org/x/crypto/cryptobyte"
@@ -176,6 +177,7 @@ func GenerateKey(rand io.Reader) (*PrivateKey, error) {
 var errZeroParam = errors.New("zero parameter")
 
 // IsSM2PublicKey check if given public key is a SM2 public key or not
+//
 //goland:noinspection GoUnusedExportedFunction
 func IsSM2PublicKey(publicKey interface{}) bool {
 	pub, ok := publicKey.(*PublicKey)
@@ -193,6 +195,7 @@ var defaultUID = []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x
 // SM2SignerOption sm2签名参数
 // SM2SignerOption implements crypto.SignerOpts interface.
 // It is specific for SM2, used in private key's Sign method.
+//
 //goland:noinspection GoNameStartsWithPackageName
 type SM2SignerOption struct {
 	ecbase.EcSignerOpts
@@ -205,7 +208,8 @@ type SM2SignerOption struct {
 }
 
 // NewSM2SignerOption 生成一个新的sm2签名参数
-//  forceZA为true而uid为空时，使用defaultUID
+//
+//	forceZA为true而uid为空时，使用defaultUID
 func NewSM2SignerOption(forceZA bool, uid []byte) *SM2SignerOption {
 	opt := &SM2SignerOption{
 		// sm2签名不能做low-s处理,因为sm2的验签算法会对s值做额外检查,s高低值不能混用
@@ -241,27 +245,33 @@ type Signer interface {
 }
 
 // SignWithZA 为sm2.PrivateKey实现SignWithZA方法。
-//  该方法强制对msg做ZA混合散列，签名使用low-s值
+//
+//	该方法强制对msg做ZA混合散列，签名使用low-s值
 func (priv *PrivateKey) SignWithZA(rand io.Reader, uid, msg []byte) ([]byte, error) {
 	return priv.Sign(rand, msg, NewSM2SignerOption(true, uid))
 }
 
 // SignASN1WithOpts SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
-//  是否对hash做ZA混合散列取决于opts类型是否*sm2.SM2SignerOption且opts.ForceGMSign为true。
-//  如果opts传nil，则对hash做ZA混合散列。
+//
+//	是否对hash做ZA混合散列取决于opts类型是否*sm2.SM2SignerOption且opts.ForceGMSign为true。
+//	如果opts传nil，则对hash做ZA混合散列。
+//
 //goland:noinspection GoUnusedExportedFunction
 func SignASN1WithOpts(rand io.Reader, priv *PrivateKey, hash []byte, opts crypto.SignerOpts) ([]byte, error) {
 	return priv.Sign(rand, hash, opts)
 }
 
 // SignASN1 SignASN1使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
-//  会对hash做ZA混合散列。
+//
+//	会对hash做ZA混合散列。
 func SignASN1(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error) {
 	return priv.Sign(rand, hash, nil)
 }
 
 // Sign 为sm2.PrivateKey实现Sign方法。
-//  如果opts类型是*sm2.SM2SignerOption且opts.ForceGMSign为true，或opts传nil，
+//
+//	如果opts类型是*sm2.SM2SignerOption且opts.ForceGMSign为true，或opts传nil，
+//
 // 则将对digest进行ZA混合散列后再对其进行签名。
 func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	zclog.Debugf("sm2priv.Sign digest长度: %d", len(digest))
@@ -301,7 +311,8 @@ func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 }
 
 // Sign Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
-//  会对hash做ZA混合散列。
+//
+//	会对hash做ZA混合散列。
 func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error) {
 	zclog.Debugf("sm2.Sign内部执行ZA混合散列, 传入hash长度: %d", len(hash))
 	//utils.PrintStack("sm2.Sign打印调用栈")
@@ -310,7 +321,9 @@ func Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err err
 }
 
 // Sm2Sign Sm2Sign使用私钥priv对签名摘要hash进行签名，并将签名转为asn1格式字节数组。
-//  会对hash做ZA混合散列。
+//
+//	会对hash做ZA混合散列。
+//
 //goland:noinspection GoUnusedExportedFunction,GoNameStartsWithPackageName,GoUnusedParameter
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	//utils.PrintStack("sm2.Sm2Sign打印调用栈")
@@ -320,7 +333,9 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 }
 
 // SignWithZA 对msg做ZA混合散列后再对得到的校验和进行签名。
-//  混合散列使用sm3
+//
+//	混合散列使用sm3
+//
 // SignWithZA follow sm2 dsa standards for hash part, compliance with GB/T 32918.2-2016.
 func SignWithZA(rand io.Reader, priv *PrivateKey, uid, msg []byte) (r, s *big.Int, err error) {
 	if len(uid) == 0 {
@@ -340,8 +355,9 @@ func SignWithZA(rand io.Reader, priv *PrivateKey, uid, msg []byte) (r, s *big.In
 }
 
 // SignAfterZA sm2签名函数
-//   1.内部不对签名内容hash进行混入ZA的散列处理。
-//   2.内部会根据rand与hash使用aes生成一个后续签名生成随机数用的csprng，即本函数在签名时获取随机数时不是直接使用rand。
+//
+//	1.内部不对签名内容hash进行混入ZA的散列处理。
+//	2.内部会根据rand与hash使用aes生成一个后续签名生成随机数用的csprng，即本函数在签名时获取随机数时不是直接使用rand。
 func SignAfterZA(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error) {
 	// 为避免获取相同的随机数?
 	maybeReadByte(rand)
@@ -440,14 +456,16 @@ func signGeneric(priv *PrivateKey, csprng *cipher.StreamReader, hash []byte) (r,
 }
 
 // Verify sm2公钥验签
-//  对msg做ZA混合散列
+//
+//	对msg做ZA混合散列
 func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 	zclog.Debugf("sm2Pub.Verify内部固定使用ZA散列, 接收msg长度: %d", len(msg))
 	return VerifyASN1(pub, msg, sig)
 }
 
 // EcVerify 实现`ecbase.EcVerifier`接口
-//  根据opts决定是否需要做ZA混合散列，默认做
+//
+//	根据opts决定是否需要做ZA混合散列，默认做
 func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts) (bool, error) {
 	zclog.Debugf("sm2Pub.EcVerify 接收msg长度: %d", len(msg))
 	if opts == nil {
@@ -476,7 +494,8 @@ func (pub *PublicKey) EcVerify(msg []byte, sig []byte, opts ecbase.EcSignerOpts)
 }
 
 // VerifyASN1 VerifyASN1将asn1格式字节数组的签名转为(r,s)在调用sm2的验签函数。
-//  对msg做ZA混合散列
+//
+//	对msg做ZA混合散列
 func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 	//var (
 	//	r, s  = &big.Int{}, &big.Int{}
@@ -500,6 +519,7 @@ func VerifyASN1(pub *PublicKey, msg, sig []byte) bool {
 
 // VerifyASN1WithoutZA 将asn1格式字节数组的签名转为(r,s)，再做验签。
 // 不对hash再做ZA混合散列。
+//
 //goland:noinspection GoUnusedExportedFunction
 func VerifyASN1WithoutZA(pub *PublicKey, hash, sig []byte) bool {
 	//var (
@@ -522,14 +542,18 @@ func VerifyASN1WithoutZA(pub *PublicKey, hash, sig []byte) bool {
 }
 
 // Verify sm2验签
-//  对msg做ZA混合散列
+//
+//	对msg做ZA混合散列
+//
 //goland:noinspection GoUnusedExportedFunction
 func Verify(pub *PublicKey, msg []byte, r, s *big.Int) bool {
 	return VerifyWithZA(pub, nil, msg, r, s)
 }
 
 // Sm2Verify sm2验签
-//  对msg做ZA混合散列
+//
+//	对msg做ZA混合散列
+//
 //goland:noinspection GoUnusedExportedFunction,GoNameStartsWithPackageName
 func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 	return VerifyWithZA(pub, uid, msg, r, s)
@@ -553,7 +577,8 @@ func VerifyWithZA(pub *PublicKey, uid, msg []byte, r, s *big.Int) bool {
 }
 
 // sm2验签的具体实现。
-//  如果有ZA混合散列，则在调用该函数之前处理。
+//
+//	如果有ZA混合散列，则在调用该函数之前处理。
 func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	// 获取公钥对应曲线及其参数N
 	c := pub.Curve
@@ -604,20 +629,23 @@ func verifyGeneric(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 }
 
 // CalculateZA ZA计算。
-//  SM2签名与验签之前，先对签名内容做一次混入ZA的散列。
-//  ZA的值是根据公钥与uid计算出来的。
-//  CalculateZA ZA = H256(ENTLA || IDA || a || b || xG || yG || xA || yA).
-//  Compliance with GB/T 32918.2-2016 5.5
+//
+//	SM2签名与验签之前，先对签名内容做一次混入ZA的散列。
+//	ZA的值是根据公钥与uid计算出来的。
+//	CalculateZA ZA = H256(ENTLA || IDA || a || b || xG || yG || xA || yA).
+//	Compliance with GB/T 32918.2-2016 5.5
+//
 //goland:noinspection GoUnusedExportedFunction
 func CalculateZA(pub *PublicKey, uid []byte) ([]byte, error) {
 	return calculateZA(pub, uid)
 }
 
 // ZA计算。
-//  SM2签名与验签之前，先对签名内容做一次混入ZA的散列。
-//  ZA的值是根据公钥与uid计算出来的。
-//  calculateZA ZA = H256(ENTLA || IDA || a || b || xG || yG || xA || yA)
-//  Compliance with GB/T 32918.2-2016 5.5
+//
+//	SM2签名与验签之前，先对签名内容做一次混入ZA的散列。
+//	ZA的值是根据公钥与uid计算出来的。
+//	calculateZA ZA = H256(ENTLA || IDA || a || b || xG || yG || xA || yA)
+//	Compliance with GB/T 32918.2-2016 5.5
 func calculateZA(pub *PublicKey, uid []byte) ([]byte, error) {
 	uidLen := len(uid)
 	if uidLen >= 0x2000 {
@@ -719,44 +747,53 @@ func (priv *PrivateKey) DecryptAsn1(data []byte) ([]byte, error) {
 }
 
 // Encrypt sm2公钥加密
-//  opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
+//
+//	opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
 func (pub *PublicKey) Encrypt(rand io.Reader, msg []byte, opts *EncrypterOpts) (ciphertext []byte, err error) {
 	return encryptGeneric(rand, pub, msg, opts)
 }
 
 // Decrypt sm2私钥解密
-//  opts传nil代表C1C3C2模式
+//
+//	opts传nil代表C1C3C2模式
+//
 //goland:noinspection GoUnusedParameter
 func (priv *PrivateKey) Decrypt(rand io.Reader, msg []byte, opts *DecrypterOpts) (plaintext []byte, err error) {
 	return decryptGeneric(priv, msg, opts)
 }
 
 // Encrypt sm2公钥加密
-//  opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
+//
+//	opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
 func Encrypt(pub *PublicKey, data []byte, random io.Reader, opts *EncrypterOpts) ([]byte, error) {
 	return encryptGeneric(random, pub, data, opts)
 }
 
 // Decrypt sm2私钥解密
-//  opts传nil代表C1C3C2模式
+//
+//	opts传nil代表C1C3C2模式
 func Decrypt(priv *PrivateKey, data []byte, opts *DecrypterOpts) ([]byte, error) {
 	return decryptGeneric(priv, data, opts)
 }
 
 // EncryptDefault sm2公钥加密
-//  默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
+//
+//	默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
+//
 //goland:noinspection GoUnusedExportedFunction
 func EncryptDefault(pub *PublicKey, data []byte, random io.Reader) ([]byte, error) {
 	return encryptGeneric(random, pub, data, nil)
 }
 
 // EncryptAsn1 sm2公钥加密
-//  默认模式: C1C3C2, C1不压缩, C3C2做ASN1转码
+//
+//	默认模式: C1C3C2, C1不压缩, C3C2做ASN1转码
 func EncryptAsn1(pub *PublicKey, data []byte, random io.Reader) ([]byte, error) {
 	return encryptGeneric(random, pub, data, ASN1EncrypterOpts)
 }
 
 // DecryptDefault sm2私钥解密, C1C3C2模式
+//
 //goland:noinspection GoUnusedExportedFunction
 func DecryptDefault(priv *PrivateKey, ciphertext []byte) ([]byte, error) {
 	return decryptGeneric(priv, ciphertext, nil)
@@ -768,8 +805,9 @@ func DecryptAsn1(priv *PrivateKey, ciphertext []byte) ([]byte, error) {
 }
 
 // encryptGeneric sm2公钥加密实现
-//  opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
-//  参考: GB/T 32918.4-2016 chapter 6
+//
+//	opts传nil代表默认模式: C1C3C2, C1不压缩, C3C2不做ASN1转码
+//	参考: GB/T 32918.4-2016 chapter 6
 func encryptGeneric(random io.Reader, pub *PublicKey, msg []byte, opts *EncrypterOpts) ([]byte, error) {
 	// 获取公钥对应曲线
 	curve := pub.Curve
@@ -832,7 +870,8 @@ func encryptGeneric(random io.Reader, pub *PublicKey, msg []byte, opts *Encrypte
 }
 
 // sm2私钥解密
-//  参考: GB/T 32918.4-2016 chapter 7.
+//
+//	参考: GB/T 32918.4-2016 chapter 7.
 func decryptGeneric(priv *PrivateKey, ciphertext []byte, opts *DecrypterOpts) ([]byte, error) {
 	// 默认拼接顺序C1C3C2
 	splicingOrder := C1C3C2
