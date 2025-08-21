@@ -2016,7 +2016,7 @@ var pemType = "X509 CRL"
 // encoded CRLs will appear where they should be DER encoded, so this function
 // will transparently handle PEM encoding as long as there isn't any leading
 // garbage.
-func ParseCRL(crlBytes []byte) (*pkix.CertificateList, error) {
+func ParseCRL(crlBytes []byte) (*gmpkix.CertificateList, error) {
 	if bytes.HasPrefix(crlBytes, pemCRLPrefix) {
 		block, _ := pem.Decode(crlBytes)
 		if block != nil && block.Type == pemType {
@@ -2028,8 +2028,8 @@ func ParseCRL(crlBytes []byte) (*pkix.CertificateList, error) {
 
 // ParseDERCRL 将DER字节数组转为CRL。
 // ParseDERCRL parses a DER encoded CRL from the given bytes.
-func ParseDERCRL(derBytes []byte) (*pkix.CertificateList, error) {
-	certList := new(pkix.CertificateList)
+func ParseDERCRL(derBytes []byte) (*gmpkix.CertificateList, error) {
+	certList := new(gmpkix.CertificateList)
 	if rest, err := asn1.Unmarshal(derBytes, certList); err != nil {
 		return nil, err
 	} else if len(rest) != 0 {
