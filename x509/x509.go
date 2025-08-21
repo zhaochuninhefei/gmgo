@@ -2065,9 +2065,9 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 		revokedCertsUTC[i] = rc
 	}
 
-	tbsCertList := pkix.TBSCertificateList{
+	tbsCertList := gmpkix.TBSCertificateList{
 		Version:             1,
-		Signature:           signatureAlgorithm,
+		Signature:           gmpkix.AlgorithmIdentifier(signatureAlgorithm),
 		Issuer:              c.Subject.ToRDNSequence(),
 		ThisUpdate:          now.UTC(),
 		NextUpdate:          expiry.UTC(),
