@@ -55,9 +55,10 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/ecbase"
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
+	gmpkix "gitee.com/zhaochuninhefei/gmgo/gmcrypto/x509/pkix"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
-	//gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/sm3"
 
@@ -115,7 +116,7 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 	switch pub := pub.(type) {
 	case *sm2.PublicKey:
 		// 将椭圆曲线、公钥座标转换为字节数组
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		publicKeyBytes = gmelliptic.StdMarshal(pub.Curve, pub.X, pub.Y)
 		// 获取椭圆曲线oid，注意，国标目前没有给出sm2椭圆曲线的oid，这里使用SM2算法的oid代替
 		oid, ok := oidFromNamedCurve(pub.Curve)
 		if !ok {
@@ -143,7 +144,7 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 		// RFC 3279, Section 2.3.1.
 		publicKeyAlgorithm.Parameters = asn1.NullRawValue
 	case *ecdsa.PublicKey:
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		publicKeyBytes = gmelliptic.StdMarshal(pub.Curve, pub.X, pub.Y)
 		oid, ok := oidFromNamedCurve(pub.Curve)
 		if !ok {
 			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported elliptic curve")
@@ -156,7 +157,7 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 		}
 		publicKeyAlgorithm.Parameters.FullBytes = paramBytes
 	case *ecdsa_ext.PublicKey:
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		publicKeyBytes = gmelliptic.StdMarshal(pub.Curve, pub.X, pub.Y)
 		oid, ok := oidFromNamedCurve(pub.Curve)
 		if !ok {
 			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported elliptic curve")
@@ -1141,8 +1142,8 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 
 // CheckCRLSignature 检查证书撤销列表CRL是否由c签名。
 // CheckCRLSignature checks that the signature in crl is from c.
-func (c *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
-	algo := getSignatureAlgorithmFromAI(crl.SignatureAlgorithm)
+func (c *Certificate) CheckCRLSignature(crl *gmpkix.CertificateList) error {
+	algo := getSignatureAlgorithmFromAI(pkix.AlgorithmIdentifier(crl.SignatureAlgorithm))
 	return c.CheckSignature(algo, crl.TBSCertList.Raw, crl.SignatureValue.RightAlign())
 }
 
@@ -2015,7 +2016,7 @@ var pemType = "X509 CRL"
 // encoded CRLs will appear where they should be DER encoded, so this function
 // will transparently handle PEM encoding as long as there isn't any leading
 // garbage.
-func ParseCRL(crlBytes []byte) (*pkix.CertificateList, error) {
+func ParseCRL(crlBytes []byte) (*gmpkix.CertificateList, error) {
 	if bytes.HasPrefix(crlBytes, pemCRLPrefix) {
 		block, _ := pem.Decode(crlBytes)
 		if block != nil && block.Type == pemType {
@@ -2027,8 +2028,8 @@ func ParseCRL(crlBytes []byte) (*pkix.CertificateList, error) {
 
 // ParseDERCRL 将DER字节数组转为CRL。
 // ParseDERCRL parses a DER encoded CRL from the given bytes.
-func ParseDERCRL(derBytes []byte) (*pkix.CertificateList, error) {
-	certList := new(pkix.CertificateList)
+func ParseDERCRL(derBytes []byte) (*gmpkix.CertificateList, error) {
+	certList := new(gmpkix.CertificateList)
 	if rest, err := asn1.Unmarshal(derBytes, certList); err != nil {
 		return nil, err
 	} else if len(rest) != 0 {
@@ -2064,13 +2065,13 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 		revokedCertsUTC[i] = rc
 	}
 
-	tbsCertList := pkix.TBSCertificateList{
+	tbsCertList := gmpkix.TBSCertificateList{
 		Version:             1,
-		Signature:           signatureAlgorithm,
-		Issuer:              c.Subject.ToRDNSequence(),
+		Signature:           gmpkix.AlgorithmIdentifier(signatureAlgorithm),
+		Issuer:              gmpkix.FromStdRDNSequence(c.Subject.ToRDNSequence()),
 		ThisUpdate:          now.UTC(),
 		NextUpdate:          expiry.UTC(),
-		RevokedCertificates: revokedCertsUTC,
+		RevokedCertificates: gmpkix.FromStdRevokedCertificates(revokedCertsUTC),
 	}
 
 	// Authority Key Id
@@ -2081,7 +2082,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 		if err != nil {
 			return
 		}
-		tbsCertList.Extensions = append(tbsCertList.Extensions, aki)
+		tbsCertList.Extensions = append(tbsCertList.Extensions, gmpkix.FromStdExtension(aki))
 	}
 
 	tbsCertListContents, err := asn1.Marshal(tbsCertList)
@@ -2120,9 +2121,9 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	//	}
 	//}
 
-	return asn1.Marshal(pkix.CertificateList{
+	return asn1.Marshal(gmpkix.CertificateList{
 		TBSCertList:        tbsCertList,
-		SignatureAlgorithm: signatureAlgorithm,
+		SignatureAlgorithm: gmpkix.AlgorithmIdentifier(signatureAlgorithm),
 		SignatureValue:     asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
 	})
 }
