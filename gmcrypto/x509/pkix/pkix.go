@@ -401,3 +401,29 @@ func ToStdRevokedCertificates(certs []RevokedCertificate) []pkix.RevokedCertific
 	}
 	return result
 }
+
+// FromStdExtensions converts from []crypto/x509/pkix.Extension to []gmcrypto/x509/pkix.Extension
+func FromStdExtensions(stdExts []pkix.Extension) []Extension {
+	result := make([]Extension, len(stdExts))
+	for i, ext := range stdExts {
+		result[i] = Extension{
+			Id:       ext.Id,
+			Critical: ext.Critical,
+			Value:    ext.Value,
+		}
+	}
+	return result
+}
+
+// ToStdExtensions converts from []gmcrypto/x509/pkix.Extension to []crypto/x509/pkix.Extension
+func ToStdExtensions(exts []Extension) []pkix.Extension {
+	result := make([]pkix.Extension, len(exts))
+	for i, ext := range exts {
+		result[i] = pkix.Extension{
+			Id:       ext.Id,
+			Critical: ext.Critical,
+			Value:    ext.Value,
+		}
+	}
+	return result
+}
