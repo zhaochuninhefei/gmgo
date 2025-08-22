@@ -359,3 +359,45 @@ func (seq RDNSequence) ToStdRDNSequence() pkix.RDNSequence {
 	}
 	return result
 }
+
+// FromStdRevokedCertificates converts from []crypto/x509/pkix.RevokedCertificate to []gmcrypto/x509/pkix.RevokedCertificate
+func FromStdRevokedCertificates(stdCerts []pkix.RevokedCertificate) []RevokedCertificate {
+	result := make([]RevokedCertificate, len(stdCerts))
+	for i, stdCert := range stdCerts {
+		extensions := make([]Extension, len(stdCert.Extensions))
+		for j, ext := range stdCert.Extensions {
+			extensions[j] = Extension{
+				Id:       ext.Id,
+				Critical: ext.Critical,
+				Value:    ext.Value,
+			}
+		}
+		result[i] = RevokedCertificate{
+			SerialNumber:   stdCert.SerialNumber,
+			RevocationTime: stdCert.RevocationTime,
+			Extensions:     extensions,
+		}
+	}
+	return result
+}
+
+// ToStdRevokedCertificates converts from []gmcrypto/x509/pkix.RevokedCertificate to []crypto/x509/pkix.RevokedCertificate
+func (certs []RevokedCertificate) ToStdRevokedCertificates() []pkix.RevokedCertificate {
+	result := make([]pkix.RevokedCertificate, len(certs))
+	for i, cert := range certs {
+		extensions := make([]pkix.Extension, len(cert.Extensions))
+		for j, ext := range cert.Extensions {
+			extensions[j] = pkix.Extension{
+				Id:       ext.Id,
+				Critical: ext.Critical,
+				Value:    ext.Value,
+			}
+		}
+		result[i] = pkix.RevokedCertificate{
+			SerialNumber:   cert.SerialNumber,
+			RevocationTime: cert.RevocationTime,
+			Extensions:     extensions,
+		}
+	}
+	return result
+}
