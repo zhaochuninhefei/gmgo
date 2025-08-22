@@ -2071,7 +2071,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 		Issuer:              gmpkix.FromStdRDNSequence(c.Subject.ToRDNSequence()),
 		ThisUpdate:          now.UTC(),
 		NextUpdate:          expiry.UTC(),
-		RevokedCertificates: revokedCertsUTC,
+		RevokedCertificates: gmpkix.FromStdRevokedCertificates(revokedCertsUTC),
 	}
 
 	// Authority Key Id
