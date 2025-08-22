@@ -419,3 +419,67 @@ func ToStdExtension(ext Extension) pkix.Extension {
 		Value:    ext.Value,
 	}
 }
+
+// FromStdTBSCertificateList converts from crypto/x509/pkix.TBSCertificateList to gmcrypto/x509/pkix.TBSCertificateList
+func FromStdTBSCertificateList(stdTBSCertList pkix.TBSCertificateList) TBSCertificateList {
+	extensions := make([]Extension, len(stdTBSCertList.Extensions))
+	for i, ext := range stdTBSCertList.Extensions {
+		extensions[i] = FromStdExtension(ext)
+	}
+
+	revokedCerts := make([]RevokedCertificate, len(stdTBSCertList.RevokedCertificates))
+	for i, cert := range stdTBSCertList.RevokedCertificates {
+		certExtensions := make([]Extension, len(cert.Extensions))
+		for j, certExt := range cert.Extensions {
+			certExtensions[j] = FromStdExtension(certExt)
+		}
+		revokedCerts[i] = RevokedCertificate{
+			SerialNumber:   cert.SerialNumber,
+			RevocationTime: cert.RevocationTime,
+			Extensions:     certExtensions,
+		}
+	}
+
+	return TBSCertificateList{
+		Raw:                 stdTBSCertList.Raw,
+		Version:             stdTBSCertList.Version,
+		Signature:           AlgorithmIdentifier{Algorithm: stdTBSCertList.Signature.Algorithm, Parameters: stdTBSCertList.Signature.Parameters},
+		Issuer:              FromStdRDNSequence(stdTBSCertList.Issuer),
+		ThisUpdate:          stdTBSCertList.ThisUpdate,
+		NextUpdate:          stdTBSCertList.NextUpdate,
+		RevokedCertificates: revokedCerts,
+		Extensions:          extensions,
+	}
+}
+
+// ToStdTBSCertificateList converts from gmcrypto/x509/pkix.TBSCertificateList to crypto/x509/pkix.TBSCertificateList
+func ToStdTBSCertificateList(tbsCertList TBSCertificateList) pkix.TBSCertificateList {
+	extensions := make([]pkix.Extension, len(tbsCertList.Extensions))
+	for i, ext := range tbsCertList.Extensions {
+		extensions[i] = ToStdExtension(ext)
+	}
+
+	revokedCerts := make([]pkix.RevokedCertificate, len(tbsCertList.RevokedCertificates))
+	for i, cert := range tbsCertList.RevokedCertificates {
+		certExtensions := make([]pkix.Extension, len(cert.Extensions))
+		for j, certExt := range cert.Extensions {
+			certExtensions[j] = ToStdExtension(certExt)
+		}
+		revokedCerts[i] = pkix.RevokedCertificate{
+			SerialNumber:   cert.SerialNumber,
+			RevocationTime: cert.RevocationTime,
+			Extensions:     certExtensions,
+		}
+	}
+
+	return pkix.TBSCertificateList{
+		Raw:                 tbsCertList.Raw,
+		Version:             tbsCertList.Version,
+		Signature:           pkix.AlgorithmIdentifier{Algorithm: tbsCertList.Signature.Algorithm, Parameters: tbsCertList.Signature.Parameters},
+		Issuer:              tbsCertList.Issuer.ToStdRDNSequence(),
+		ThisUpdate:          tbsCertList.ThisUpdate,
+		NextUpdate:          tbsCertList.NextUpdate,
+		RevokedCertificates: revokedCerts,
+		Extensions:          extensions,
+	}
+}
