@@ -2082,7 +2082,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 		if err != nil {
 			return
 		}
-		tbsCertList.Extensions = append(tbsCertList.Extensions, aki)
+		tbsCertList.Extensions = append(tbsCertList.Extensions, gmpkix.FromStdExtension(aki))
 	}
 
 	tbsCertListContents, err := asn1.Marshal(tbsCertList)
