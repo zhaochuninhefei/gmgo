@@ -7,6 +7,7 @@
 package pkix
 
 import (
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -325,4 +326,36 @@ type RevokedCertificate struct {
 	SerialNumber   *big.Int
 	RevocationTime time.Time
 	Extensions     []Extension `asn1:"optional"`
+}
+
+// FromStdRDNSequence converts from crypto/x509/pkix.RDNSequence to gmcrypto/x509/pkix.RDNSequence
+func FromStdRDNSequence(stdSeq pkix.RDNSequence) RDNSequence {
+	result := make(RDNSequence, len(stdSeq))
+	for i, stdRdn := range stdSeq {
+		rdn := make([]AttributeTypeAndValue, len(stdRdn))
+		for j, stdAtv := range stdRdn {
+			rdn[j] = AttributeTypeAndValue{
+				Type:  stdAtv.Type,
+				Value: stdAtv.Value,
+			}
+		}
+		result[i] = rdn
+	}
+	return result
+}
+
+// ToStdRDNSequence converts from gmcrypto/x509/pkix.RDNSequence to crypto/x509/pkix.RDNSequence
+func (seq RDNSequence) ToStdRDNSequence() pkix.RDNSequence {
+	result := make(pkix.RDNSequence, len(seq))
+	for i, rdn := range seq {
+		stdRdn := make([]pkix.AttributeTypeAndValue, len(rdn))
+		for j, atv := range rdn {
+			stdRdn[j] = pkix.AttributeTypeAndValue{
+				Type:  atv.Type,
+				Value: atv.Value,
+			}
+		}
+		result[i] = stdRdn
+	}
+	return result
 }
