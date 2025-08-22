@@ -37,6 +37,7 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
+	gmpkix "gitee.com/zhaochuninhefei/gmgo/gmcrypto/x509/pkix"
 	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
@@ -45,6 +46,48 @@ func TestMain(m *testing.M) {
 	zclog.Level = zclog.LOG_LEVEL_DEBUG
 	zclog.Debug("TestMain")
 	os.Exit(m.Run())
+}
+
+// equalExtensions compares []gmpkix.Extension with []pkix.Extension
+func equalExtensions(gmExts []gmpkix.Extension, stdExts []pkix.Extension) bool {
+	if len(gmExts) != len(stdExts) {
+		return false
+	}
+	for i := 0; i < len(gmExts); i++ {
+		gmExt := gmExts[i]
+		stdExt := stdExts[i]
+		if !gmExt.Id.Equal(stdExt.Id) {
+			return false
+		}
+		if gmExt.Critical != stdExt.Critical {
+			return false
+		}
+		if !bytes.Equal(gmExt.Value, stdExt.Value) {
+			return false
+		}
+	}
+	return true
+}
+
+// equalRevokedCertificates compares []gmpkix.RevokedCertificate with []pkix.RevokedCertificate
+func equalRevokedCertificates(gmCerts []gmpkix.RevokedCertificate, stdCerts []pkix.RevokedCertificate) bool {
+	if len(gmCerts) != len(stdCerts) {
+		return false
+	}
+	for i := 0; i < len(gmCerts); i++ {
+		gmCert := gmCerts[i]
+		stdCert := stdCerts[i]
+		if gmCert.SerialNumber.Cmp(stdCert.SerialNumber) != 0 {
+			return false
+		}
+		if !gmCert.RevocationTime.Equal(stdCert.RevocationTime) {
+			return false
+		}
+		if !equalExtensions(gmCert.Extensions, stdCert.Extensions) {
+			return false
+		}
+	}
+	return true
 }
 
 func TestParsePKCS1PrivateKey(t *testing.T) {
@@ -1294,7 +1337,7 @@ func TestCRLCreation(t *testing.T) {
 		if err != nil {
 			t.Errorf("%s: error reparsing CRL: %s", test.name, err)
 		}
-		if !reflect.DeepEqual(parsedCRL.TBSCertList.RevokedCertificates, expectedCerts) {
+		if !equalRevokedCertificates(parsedCRL.TBSCertList.RevokedCertificates, expectedCerts) {
 			t.Errorf("%s: RevokedCertificates mismatch: got %v; want %v.", test.name,
 				parsedCRL.TBSCertList.RevokedCertificates, expectedCerts)
 		}
@@ -2647,7 +2690,7 @@ func TestCreateRevocationList(t *testing.T) {
 					tc.template.SignatureAlgorithm)
 			}
 
-			if !reflect.DeepEqual(parsedCRL.TBSCertList.RevokedCertificates, tc.template.RevokedCertificates) {
+			if !equalRevokedCertificates(parsedCRL.TBSCertList.RevokedCertificates, tc.template.RevokedCertificates) {
 				t.Fatalf("RevokedCertificates mismatch: got %v; want %v.",
 					parsedCRL.TBSCertList.RevokedCertificates, tc.template.RevokedCertificates)
 			}
@@ -2663,7 +2706,7 @@ func TestCreateRevocationList(t *testing.T) {
 				Id:    oidExtensionAuthorityKeyId,
 				Value: expectedAKI,
 			}
-			if !reflect.DeepEqual(parsedCRL.TBSCertList.Extensions[0], akiExt) {
+			if !equalExtensions([]gmpkix.Extension{parsedCRL.TBSCertList.Extensions[0]}, []pkix.Extension{akiExt}) {
 				t.Fatalf("Unexpected first extension: got %v, want %v",
 					parsedCRL.TBSCertList.Extensions[0], akiExt)
 			}
@@ -2675,7 +2718,7 @@ func TestCreateRevocationList(t *testing.T) {
 				Id:    oidExtensionCRLNumber,
 				Value: expectedNum,
 			}
-			if !reflect.DeepEqual(parsedCRL.TBSCertList.Extensions[1], crlExt) {
+			if !equalExtensions([]gmpkix.Extension{parsedCRL.TBSCertList.Extensions[1]}, []pkix.Extension{crlExt}) {
 				t.Fatalf("Unexpected second extension: got %v, want %v",
 					parsedCRL.TBSCertList.Extensions[1], crlExt)
 			}
@@ -2684,9 +2727,11 @@ func TestCreateRevocationList(t *testing.T) {
 				// hit a [] != nil false positive below.
 				return
 			}
-			if !reflect.DeepEqual(parsedCRL.TBSCertList.Extensions[2:], tc.template.ExtraExtensions) {
+			gmExtraExts := parsedCRL.TBSCertList.Extensions[2:]
+			stdExtraExts := tc.template.ExtraExtensions
+			if !equalExtensions(gmExtraExts, stdExtraExts) {
 				t.Fatalf("Extensions mismatch: got %v; want %v.",
-					parsedCRL.TBSCertList.Extensions[2:], tc.template.ExtraExtensions)
+					gmExtraExts, stdExtraExts)
 			}
 		})
 	}
