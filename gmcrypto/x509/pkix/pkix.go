@@ -382,7 +382,7 @@ func FromStdRevokedCertificates(stdCerts []pkix.RevokedCertificate) []RevokedCer
 }
 
 // ToStdRevokedCertificates converts from []gmcrypto/x509/pkix.RevokedCertificate to []crypto/x509/pkix.RevokedCertificate
-func (certs []RevokedCertificate) ToStdRevokedCertificates() []pkix.RevokedCertificate {
+func ToStdRevokedCertificates(certs []RevokedCertificate) []pkix.RevokedCertificate {
 	result := make([]pkix.RevokedCertificate, len(certs))
 	for i, cert := range certs {
 		extensions := make([]pkix.Extension, len(cert.Extensions))
