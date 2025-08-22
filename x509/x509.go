@@ -2121,9 +2121,9 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	//	}
 	//}
 
-	return asn1.Marshal(pkix.CertificateList{
+	return asn1.Marshal(gmpkix.CertificateList{
 		TBSCertList:        tbsCertList,
-		SignatureAlgorithm: signatureAlgorithm,
+		SignatureAlgorithm: gmpkix.AlgorithmIdentifier(signatureAlgorithm),
 		SignatureValue:     asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
 	})
 }
