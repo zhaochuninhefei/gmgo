@@ -345,9 +345,9 @@ func FromStdRDNSequence(stdSeq pkix.RDNSequence) RDNSequence {
 }
 
 // ToStdRDNSequence converts from gmcrypto/x509/pkix.RDNSequence to crypto/x509/pkix.RDNSequence
-func (seq RDNSequence) ToStdRDNSequence() pkix.RDNSequence {
-	result := make(pkix.RDNSequence, len(seq))
-	for i, rdn := range seq {
+func (r RDNSequence) ToStdRDNSequence() pkix.RDNSequence {
+	result := make(pkix.RDNSequence, len(r))
+	for i, rdn := range r {
 		stdRdn := make([]pkix.AttributeTypeAndValue, len(rdn))
 		for j, atv := range rdn {
 			stdRdn[j] = pkix.AttributeTypeAndValue{
