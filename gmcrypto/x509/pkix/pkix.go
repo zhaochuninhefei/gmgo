@@ -382,6 +382,7 @@ func FromStdRevokedCertificates(stdCerts []pkix.RevokedCertificate) []RevokedCer
 }
 
 // ToStdRevokedCertificates converts from []gmcrypto/x509/pkix.RevokedCertificate to []crypto/x509/pkix.RevokedCertificate
+//
 //goland:noinspection GoUnusedExportedFunction
 func ToStdRevokedCertificates(certs []RevokedCertificate) []pkix.RevokedCertificate {
 	result := make([]pkix.RevokedCertificate, len(certs))
