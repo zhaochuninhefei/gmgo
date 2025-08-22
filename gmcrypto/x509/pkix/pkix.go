@@ -414,6 +414,7 @@ func FromStdExtension(stdExt pkix.Extension) Extension {
 }
 
 // ToStdExtension converts from gmcrypto/x509/pkix.Extension to crypto/x509/pkix.Extension
+//
 //goland:noinspection GoUnusedExportedFunction
 func ToStdExtension(ext Extension) pkix.Extension {
 	return pkix.Extension{
