@@ -2540,7 +2540,7 @@ func TestCreateRevocationList(t *testing.T) {
 			},
 			template: &RevocationList{
 				SignatureAlgorithm: SHA256WithRSA,
-				RevokedCertificates: []pkix.RevokedCertificate{
+				RevokedCertificates: []gmpkix.RevokedCertificate{
 					{
 						SerialNumber:   big.NewInt(2),
 						RevocationTime: time.Time{}.Add(time.Hour),
@@ -2563,7 +2563,7 @@ func TestCreateRevocationList(t *testing.T) {
 				SubjectKeyId: []byte{1, 2, 3},
 			},
 			template: &RevocationList{
-				RevokedCertificates: []pkix.RevokedCertificate{
+				RevokedCertificates: []gmpkix.RevokedCertificate{
 					{
 						SerialNumber:   big.NewInt(2),
 						RevocationTime: time.Time{}.Add(time.Hour),
@@ -2585,7 +2585,7 @@ func TestCreateRevocationList(t *testing.T) {
 				SubjectKeyId: []byte{1, 2, 3},
 			},
 			template: &RevocationList{
-				RevokedCertificates: []pkix.RevokedCertificate{
+				RevokedCertificates: []gmpkix.RevokedCertificate{
 					{
 						SerialNumber:   big.NewInt(2),
 						RevocationTime: time.Time{}.Add(time.Hour),
@@ -2608,7 +2608,7 @@ func TestCreateRevocationList(t *testing.T) {
 			},
 			template: &RevocationList{
 				SignatureAlgorithm: ECDSAWithSHA512,
-				RevokedCertificates: []pkix.RevokedCertificate{
+				RevokedCertificates: []gmpkix.RevokedCertificate{
 					{
 						SerialNumber:   big.NewInt(2),
 						RevocationTime: time.Time{}.Add(time.Hour),
@@ -2630,7 +2630,7 @@ func TestCreateRevocationList(t *testing.T) {
 				SubjectKeyId: []byte{1, 2, 3},
 			},
 			template: &RevocationList{
-				RevokedCertificates: []pkix.RevokedCertificate{
+				RevokedCertificates: []gmpkix.RevokedCertificate{
 					{
 						SerialNumber:   big.NewInt(2),
 						RevocationTime: time.Time{}.Add(time.Hour),
@@ -2639,7 +2639,7 @@ func TestCreateRevocationList(t *testing.T) {
 				Number:     big.NewInt(5),
 				ThisUpdate: time.Time{}.Add(time.Hour * 24),
 				NextUpdate: time.Time{}.Add(time.Hour * 48),
-				ExtraExtensions: []pkix.Extension{
+				ExtraExtensions: []gmpkix.Extension{
 					{
 						Id:    []int{2, 5, 29, 99},
 						Value: []byte{5, 0},
@@ -2690,7 +2690,7 @@ func TestCreateRevocationList(t *testing.T) {
 					tc.template.SignatureAlgorithm)
 			}
 
-			if !equalRevokedCertificates(parsedCRL.TBSCertList.RevokedCertificates, tc.template.RevokedCertificates) {
+			if !reflect.DeepEqual(parsedCRL.TBSCertList.RevokedCertificates, tc.template.RevokedCertificates) {
 				t.Fatalf("RevokedCertificates mismatch: got %v; want %v.",
 					parsedCRL.TBSCertList.RevokedCertificates, tc.template.RevokedCertificates)
 			}
@@ -2729,7 +2729,7 @@ func TestCreateRevocationList(t *testing.T) {
 			}
 			gmExtraExts := parsedCRL.TBSCertList.Extensions[2:]
 			stdExtraExts := tc.template.ExtraExtensions
-			if !equalExtensions(gmExtraExts, stdExtraExts) {
+			if !reflect.DeepEqual(gmExtraExts, stdExtraExts) {
 				t.Fatalf("Extensions mismatch: got %v; want %v.",
 					gmExtraExts, stdExtraExts)
 			}
