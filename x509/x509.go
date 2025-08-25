@@ -2712,7 +2712,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	}
 
 	// Force revocation times to UTC per RFC 5280.
-	revokedCertsUTC := make([]pkix.RevokedCertificate, len(template.RevokedCertificates))
+	revokedCertsUTC := make([]gmpkix.RevokedCertificate, len(template.RevokedCertificates))
 	for i, rc := range template.RevokedCertificates {
 		rc.RevocationTime = rc.RevocationTime.UTC()
 		revokedCertsUTC[i] = rc
@@ -2745,7 +2745,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		},
 	}
 	if len(revokedCertsUTC) > 0 {
-		tbsCertList.RevokedCertificates = gmpkix.FromStdRevokedCertificates(revokedCertsUTC)
+		tbsCertList.RevokedCertificates = revokedCertsUTC
 	}
 
 	//// 添加oidExtensionSignatureAlgorithm
