@@ -383,7 +383,8 @@ var verifyTests = []verifyTest{
 
 func expectHostnameError(msg string) func(*testing.T, error) {
 	return func(t *testing.T, err error) {
-		if _, ok := err.(HostnameError); !ok {
+		var hostnameError HostnameError
+		if !errors.As(err, &hostnameError) {
 			t.Fatalf("error was not a HostnameError: %v", err)
 		}
 		if !strings.Contains(err.Error(), msg) {
