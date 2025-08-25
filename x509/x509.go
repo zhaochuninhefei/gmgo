@@ -2727,13 +2727,13 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		return nil, err
 	}
 
-	tbsCertList := pkix.TBSCertificateList{
+	tbsCertList := gmpkix.TBSCertificateList{
 		Version:    1, // v2
-		Signature:  signatureAlgorithm,
-		Issuer:     issuer.Subject.ToRDNSequence(),
+		Signature:  gmpkix.AlgorithmIdentifier(signatureAlgorithm),
+		Issuer:     gmpkix.FromStdRDNSequence(issuer.Subject.ToRDNSequence()),
 		ThisUpdate: template.ThisUpdate.UTC(),
 		NextUpdate: template.NextUpdate.UTC(),
-		Extensions: []pkix.Extension{
+		Extensions: []gmpkix.Extension{
 			{
 				Id:    oidExtensionAuthorityKeyId,
 				Value: aki,
@@ -2745,7 +2745,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		},
 	}
 	if len(revokedCertsUTC) > 0 {
-		tbsCertList.RevokedCertificates = revokedCertsUTC
+		tbsCertList.RevokedCertificates = gmpkix.FromStdRevokedCertificates(revokedCertsUTC)
 	}
 
 	//// 添加oidExtensionSignatureAlgorithm
