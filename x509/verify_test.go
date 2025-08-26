@@ -1614,6 +1614,7 @@ func TestUnknownAuthorityError(t *testing.T) {
 		if der == nil {
 			t.Errorf("#%d: Unable to decode PEM block", i)
 		}
+		//goland:noinspection GoMaybeNil
 		c, err := ParseCertificate(der.Bytes)
 		if err != nil {
 			t.Errorf("#%d: Unable to parse certificate -> %v", i, err)
