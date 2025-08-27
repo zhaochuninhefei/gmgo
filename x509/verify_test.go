@@ -394,7 +394,8 @@ func expectHostnameError(msg string) func(*testing.T, error) {
 }
 
 func expectExpired(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != Expired {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != Expired {
 		t.Fatalf("error was not Expired: %v", err)
 	}
 }
