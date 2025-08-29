@@ -442,7 +442,8 @@ func expectNotAuthorizedError(t *testing.T, err error) {
 }
 
 func expectUnhandledCriticalExtension(t *testing.T, err error) {
-	if _, ok := err.(UnhandledCriticalExtension); !ok {
+	var unhandledCriticalExtension UnhandledCriticalExtension
+	if !errors.As(err, &unhandledCriticalExtension) {
 		t.Fatalf("error was not an UnhandledCriticalExtension: %v", err)
 	}
 }
