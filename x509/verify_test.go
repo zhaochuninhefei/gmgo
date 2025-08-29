@@ -383,7 +383,8 @@ var verifyTests = []verifyTest{
 
 func expectHostnameError(msg string) func(*testing.T, error) {
 	return func(t *testing.T, err error) {
-		if _, ok := err.(HostnameError); !ok {
+		var hostnameError HostnameError
+		if !errors.As(err, &hostnameError) {
 			t.Fatalf("error was not a HostnameError: %v", err)
 		}
 		if !strings.Contains(err.Error(), msg) {
@@ -393,19 +394,22 @@ func expectHostnameError(msg string) func(*testing.T, error) {
 }
 
 func expectExpired(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != Expired {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != Expired {
 		t.Fatalf("error was not Expired: %v", err)
 	}
 }
 
 func expectUsageError(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != IncompatibleUsage {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != IncompatibleUsage {
 		t.Fatalf("error was not IncompatibleUsage: %v", err)
 	}
 }
 
 func expectAuthorityUnknown(t *testing.T, err error) {
-	e, ok := err.(UnknownAuthorityError)
+	var e UnknownAuthorityError
+	ok := errors.As(err, &e)
 	if !ok {
 		t.Fatalf("error was not UnknownAuthorityError: %v", err)
 	}
@@ -424,19 +428,22 @@ func expectHashError(t *testing.T, err error) {
 }
 
 func expectNameConstraintsError(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != CANotAuthorizedForThisName {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != CANotAuthorizedForThisName {
 		t.Fatalf("error was not a CANotAuthorizedForThisName: %v", err)
 	}
 }
 
 func expectNotAuthorizedError(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != NotAuthorizedToSign {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != NotAuthorizedToSign {
 		t.Fatalf("error was not a NotAuthorizedToSign: %v", err)
 	}
 }
 
 func expectUnhandledCriticalExtension(t *testing.T, err error) {
-	if _, ok := err.(UnhandledCriticalExtension); !ok {
+	var unhandledCriticalExtension UnhandledCriticalExtension
+	if !errors.As(err, &unhandledCriticalExtension) {
 		t.Fatalf("error was not an UnhandledCriticalExtension: %v", err)
 	}
 }
@@ -1613,6 +1620,7 @@ func TestUnknownAuthorityError(t *testing.T) {
 		if der == nil {
 			t.Errorf("#%d: Unable to decode PEM block", i)
 		}
+		//goland:noinspection GoMaybeNil
 		c, err := ParseCertificate(der.Bytes)
 		if err != nil {
 			t.Errorf("#%d: Unable to parse certificate -> %v", i, err)
@@ -1958,7 +1966,8 @@ func TestSystemRootsError(t *testing.T) {
 	systemRoots = nil
 
 	_, err = leaf.Verify(opts)
-	if _, ok := err.(SystemRootsError); !ok {
+	var systemRootsError SystemRootsError
+	if !errors.As(err, &systemRootsError) {
 		t.Errorf("error was not SystemRootsError: %v", err)
 	}
 }

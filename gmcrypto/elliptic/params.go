@@ -280,7 +280,7 @@ func (curve *CurveParams) doubleJacobian(x, y, z *big.Int) (*big.Int, *big.Int, 
 
 // ScalarMult implements [Curve.ScalarMult].
 //
-// Deprecated: the [CurveParams] methods are deprecated and are not guaranteed to
+// It's deprecated in go1.22: the [CurveParams] methods are deprecated and are not guaranteed to
 // provide any security property. For ECDH, use the [crypto/ecdh] package.
 // For ECDSA, use the [crypto/ecdsa] package with a [Curve] value returned directly
 // from [P224], [P256], [P384], or [P521].
@@ -295,13 +295,13 @@ func (curve *CurveParams) ScalarMult(Bx, By *big.Int, k []byte) (*big.Int, *big.
 	Bz := new(big.Int).SetInt64(1)
 	x, y, z := new(big.Int), new(big.Int), new(big.Int)
 
-	for _, byte := range k {
+	for _, oneByte := range k {
 		for bitNum := 0; bitNum < 8; bitNum++ {
 			x, y, z = curve.doubleJacobian(x, y, z)
-			if byte&0x80 == 0x80 {
+			if oneByte&0x80 == 0x80 {
 				x, y, z = curve.addJacobian(Bx, By, Bz, x, y, z)
 			}
-			byte <<= 1
+			oneByte <<= 1
 		}
 	}
 
@@ -310,7 +310,7 @@ func (curve *CurveParams) ScalarMult(Bx, By *big.Int, k []byte) (*big.Int, *big.
 
 // ScalarBaseMult implements [Curve.ScalarBaseMult].
 //
-// Deprecated: the [CurveParams] methods are deprecated and are not guaranteed to
+// It's deprecated in go1.22: the [CurveParams] methods are deprecated and are not guaranteed to
 // provide any security property. For ECDH, use the [crypto/ecdh] package.
 // For ECDSA, use the [crypto/ecdsa] package with a [Curve] value returned directly
 // from [P224], [P256], [P384], or [P521].

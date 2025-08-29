@@ -2652,7 +2652,7 @@ type RevocationList struct {
 	// RevokedCertificates is used to populate the revokedCertificates
 	// sequence in the CRL, it may be empty. RevokedCertificates may be nil,
 	// in which case an empty CRL will be created.
-	RevokedCertificates []pkix.RevokedCertificate
+	RevokedCertificates []gmpkix.RevokedCertificate
 
 	// Number is used to populate the X.509 v2 cRLNumber extension in the CRL,
 	// which should be a monotonically increasing sequence number for a given
@@ -2667,7 +2667,7 @@ type RevocationList struct {
 	NextUpdate time.Time
 	// ExtraExtensions contains any additional extensions to add directly to
 	// the CRL.
-	ExtraExtensions []pkix.Extension
+	ExtraExtensions []gmpkix.Extension
 }
 
 // CreateRevocationList 创建x509 v2版本的证书撤销列表
@@ -2712,7 +2712,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	}
 
 	// Force revocation times to UTC per RFC 5280.
-	revokedCertsUTC := make([]pkix.RevokedCertificate, len(template.RevokedCertificates))
+	revokedCertsUTC := make([]gmpkix.RevokedCertificate, len(template.RevokedCertificates))
 	for i, rc := range template.RevokedCertificates {
 		rc.RevocationTime = rc.RevocationTime.UTC()
 		revokedCertsUTC[i] = rc
@@ -2727,13 +2727,13 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 		return nil, err
 	}
 
-	tbsCertList := pkix.TBSCertificateList{
+	tbsCertList := gmpkix.TBSCertificateList{
 		Version:    1, // v2
-		Signature:  signatureAlgorithm,
-		Issuer:     issuer.Subject.ToRDNSequence(),
+		Signature:  gmpkix.AlgorithmIdentifier(signatureAlgorithm),
+		Issuer:     gmpkix.FromStdRDNSequence(issuer.Subject.ToRDNSequence()),
 		ThisUpdate: template.ThisUpdate.UTC(),
 		NextUpdate: template.NextUpdate.UTC(),
-		Extensions: []pkix.Extension{
+		Extensions: []gmpkix.Extension{
 			{
 				Id:    oidExtensionAuthorityKeyId,
 				Value: aki,
@@ -2799,9 +2799,9 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	//	}
 	//}
 
-	return asn1.Marshal(pkix.CertificateList{
+	return asn1.Marshal(gmpkix.CertificateList{
 		TBSCertList:        tbsCertList,
-		SignatureAlgorithm: signatureAlgorithm,
+		SignatureAlgorithm: gmpkix.AlgorithmIdentifier(signatureAlgorithm),
 		SignatureValue:     asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
 	})
 }
