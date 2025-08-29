@@ -401,7 +401,8 @@ func expectExpired(t *testing.T, err error) {
 }
 
 func expectUsageError(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != IncompatibleUsage {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != IncompatibleUsage {
 		t.Fatalf("error was not IncompatibleUsage: %v", err)
 	}
 }
