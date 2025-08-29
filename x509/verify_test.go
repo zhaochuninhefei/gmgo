@@ -1966,7 +1966,8 @@ func TestSystemRootsError(t *testing.T) {
 	systemRoots = nil
 
 	_, err = leaf.Verify(opts)
-	if _, ok := err.(SystemRootsError); !ok {
+	var systemRootsError SystemRootsError
+	if !errors.As(err, &systemRootsError) {
 		t.Errorf("error was not SystemRootsError: %v", err)
 	}
 }
