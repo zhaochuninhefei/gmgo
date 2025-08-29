@@ -428,7 +428,8 @@ func expectHashError(t *testing.T, err error) {
 }
 
 func expectNameConstraintsError(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != CANotAuthorizedForThisName {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != CANotAuthorizedForThisName {
 		t.Fatalf("error was not a CANotAuthorizedForThisName: %v", err)
 	}
 }
