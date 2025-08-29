@@ -408,7 +408,8 @@ func expectUsageError(t *testing.T, err error) {
 }
 
 func expectAuthorityUnknown(t *testing.T, err error) {
-	e, ok := err.(UnknownAuthorityError)
+	var e UnknownAuthorityError
+	ok := errors.As(err, &e)
 	if !ok {
 		t.Fatalf("error was not UnknownAuthorityError: %v", err)
 	}
