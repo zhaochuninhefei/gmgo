@@ -435,7 +435,8 @@ func expectNameConstraintsError(t *testing.T, err error) {
 }
 
 func expectNotAuthorizedError(t *testing.T, err error) {
-	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != NotAuthorizedToSign {
+	var inval CertificateInvalidError
+	if !errors.As(err, &inval) || inval.Reason != NotAuthorizedToSign {
 		t.Fatalf("error was not a NotAuthorizedToSign: %v", err)
 	}
 }
