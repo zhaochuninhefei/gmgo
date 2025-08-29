@@ -310,7 +310,7 @@ func (curve *CurveParams) ScalarMult(Bx, By *big.Int, k []byte) (*big.Int, *big.
 
 // ScalarBaseMult implements [Curve.ScalarBaseMult].
 //
-// Deprecated: the [CurveParams] methods are deprecated and are not guaranteed to
+// It's deprecated in go1.22: the [CurveParams] methods are deprecated and are not guaranteed to
 // provide any security property. For ECDH, use the [crypto/ecdh] package.
 // For ECDSA, use the [crypto/ecdsa] package with a [Curve] value returned directly
 // from [P224], [P256], [P384], or [P521].
