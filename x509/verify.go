@@ -905,6 +905,7 @@ func (c *Certificate) buildChains(cache map[*Certificate][][]*Certificate, curre
 			// 将candidate的信任链加入c的信任链
 			chains = append(chains, childChains...)
 			return false
+		default:
 		}
 		return false
 	}
