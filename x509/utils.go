@@ -77,7 +77,7 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 		return nil, errors.New("ReadPrivateKeyFromPem: pem decode failed")
 	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
-	if block == nil || !strings.HasSuffix(blockType, "PRIVATE KEY") {
+	if !strings.HasSuffix(blockType, "PRIVATE KEY") {
 		return nil, errors.New("failed to decode private key")
 	}
 	var der []byte
