@@ -632,7 +632,7 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 	}
 	// 证书c是中间证书或根证书，且证书c有名称约束，且子证书有SAN扩展字段时，进行对SAN扩展字段检查
 	if (certType == intermediateCertificate || certType == rootCertificate) &&
-		c.hasNameConstraints() && leaf.hasSANExtension() {
+		c.hasNameConstraints() && leaf != nil && leaf.hasSANExtension() {
 		err := forEachSAN(leaf.getSANExtension(), func(tag int, data []byte) error {
 			switch tag {
 			case nameTypeEmail:
