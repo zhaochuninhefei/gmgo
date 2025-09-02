@@ -3,9 +3,10 @@ package x509
 import (
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestWriteKeyToPemFile(t *testing.T) {
