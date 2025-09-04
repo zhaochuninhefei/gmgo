@@ -264,7 +264,7 @@ func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 //     @return interface{}
 //     @return error
 func ReadPublicKeyFromPemFile(FileName string) (interface{}, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
