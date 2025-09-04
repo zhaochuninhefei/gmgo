@@ -464,7 +464,7 @@ func ReadCertificateFromPem(certPem []byte) (*Certificate, error) {
 //	@return *Certificate
 //	@return error
 func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
