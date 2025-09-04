@@ -635,7 +635,7 @@ func ReadKeyFromPem(data []byte, pwd []byte) ([]byte, error) {
 
 // ReadKeyFromPemFile 从pem文件读取对称加密密钥
 func ReadKeyFromPemFile(FileName string, pwd []byte) ([]byte, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
