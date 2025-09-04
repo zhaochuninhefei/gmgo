@@ -118,7 +118,7 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 //     @return interface{} 返回私钥
 //     @return error
 func ReadPrivateKeyFromPemFile(FileName string, pwd []byte) (interface{}, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
