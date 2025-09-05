@@ -50,7 +50,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"
@@ -667,7 +666,7 @@ func WriteKeyToPemFile(FileName string, key []byte, pwd []byte) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(FileName, pemBytes, 0666)
+	err = os.WriteFile(FileName, pemBytes, 0666)
 	if err != nil {
 		return err
 	}
