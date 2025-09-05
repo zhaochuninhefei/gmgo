@@ -50,12 +50,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
@@ -64,11 +64,11 @@ import (
 // 私钥与pem相互转换
 
 // ReadPrivateKeyFromPem 将pem字节数组转为对应私钥
-//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
-//  @param privateKeyPem 私钥pem字节数组
-//  @param pwd pem解密口令
-//  @return interface{} 返回私钥
-//  @return error
+//   - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+//     @param privateKeyPem 私钥pem字节数组
+//     @param pwd pem解密口令
+//     @return interface{} 返回私钥
+//     @return error
 func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error) {
 	var block *pem.Block
 	block, _ = pem.Decode(privateKeyPem)
@@ -76,7 +76,7 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 		return nil, errors.New("ReadPrivateKeyFromPem: pem decode failed")
 	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
-	if block == nil || !strings.HasSuffix(blockType, "PRIVATE KEY") {
+	if !strings.HasSuffix(blockType, "PRIVATE KEY") {
 		return nil, errors.New("failed to decode private key")
 	}
 	var der []byte
@@ -111,13 +111,13 @@ func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (interface{}, error
 }
 
 // ReadPrivateKeyFromPemFile 将pem文件转为对应私钥
-//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
-//  @param FileName pem文件路径
-//  @param pwd pem解密口令
-//  @return interface{} 返回私钥
-//  @return error
+//   - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+//     @param FileName pem文件路径
+//     @param pwd pem解密口令
+//     @return interface{} 返回私钥
+//     @return error
 func ReadPrivateKeyFromPemFile(FileName string, pwd []byte) (interface{}, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
@@ -125,11 +125,11 @@ func ReadPrivateKeyFromPemFile(FileName string, pwd []byte) (interface{}, error)
 }
 
 // WritePrivateKeyToPem 将私钥转为pem字节数组
-//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
-//  @param key 私钥
-//  @param pwd pem加密口令
-//  @return []byte 私钥pem字节数组
-//  @return error
+//   - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+//     @param key 私钥
+//     @param pwd pem加密口令
+//     @return []byte 私钥pem字节数组
+//     @return error
 func WritePrivateKeyToPem(key interface{}, pwd []byte) ([]byte, error) {
 	var block *pem.Block
 	der, err := MarshalPKCS8PrivateKey(key)
@@ -167,12 +167,12 @@ func WritePrivateKeyToPem(key interface{}, pwd []byte) ([]byte, error) {
 }
 
 // WritePrivateKeytoPemFile 将私钥转为pem文件
-//  - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
-//  @param FileName pem文件路径
-//  @param key 私钥
-//  @param pwd pem加密口令
-//  @return bool 成功与否
-//  @return error
+//   - 私钥类型: *sm2.PrivateKey, *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey
+//     @param FileName pem文件路径
+//     @param key 私钥
+//     @param pwd pem加密口令
+//     @return bool 成功与否
+//     @return error
 func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (bool, error) {
 	var block *pem.Block
 	der, err := MarshalPKCS8PrivateKey(key)
@@ -229,10 +229,10 @@ func WritePrivateKeytoPemFile(FileName string, key interface{}, pwd []byte) (boo
 // 公钥与pem相互转换
 
 // ReadPublicKeyFromPem 将pem字节数组转为对应公钥
-//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *dsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
-//  @param publicKeyPem
-//  @return interface{}
-//  @return error
+//   - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *dsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+//     @param publicKeyPem
+//     @return interface{}
+//     @return error
 func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 	block, _ := pem.Decode(publicKeyPem)
 	if block == nil {
@@ -258,12 +258,12 @@ func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 }
 
 // ReadPublicKeyFromPemFile 将pem文件转为对应公钥
-//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *dsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
-//  @param FileName
-//  @return interface{}
-//  @return error
+//   - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *dsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+//     @param FileName
+//     @return interface{}
+//     @return error
 func ReadPublicKeyFromPemFile(FileName string) (interface{}, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
@@ -271,11 +271,12 @@ func ReadPublicKeyFromPemFile(FileName string) (interface{}, error) {
 }
 
 // WritePublicKeyToPem 将公钥转为pem字节数组
-//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
 //
-//  @param key
-//  @return []byte
-//  @return error
+//   - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+//
+//     @param key
+//     @return []byte
+//     @return error
 func WritePublicKeyToPem(key interface{}) ([]byte, error) {
 	der, err := MarshalPKIXPublicKey(key)
 	if err != nil {
@@ -305,12 +306,13 @@ func WritePublicKeyToPem(key interface{}) ([]byte, error) {
 }
 
 // WritePublicKeytoPemFile 将公钥转为pem文件
-//  - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
 //
-//  @param FileName
-//  @param key
-//  @return bool
-//  @return error
+//   - 公钥类型: *sm2.PublicKey, *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey
+//
+//     @param FileName
+//     @param key
+//     @return bool
+//     @return error
 func WritePublicKeytoPemFile(FileName string, key interface{}) (bool, error) {
 	der, err := MarshalPKIXPublicKey(key)
 	if err != nil {
@@ -360,9 +362,9 @@ func WritePublicKeytoPemFile(FileName string, key interface{}) (bool, error) {
 
 // ReadCertificateRequestFromPem 将pem字节数组转为证书申请
 //
-//  @param certPem
-//  @return *CertificateRequest
-//  @return error
+//	@param certPem
+//	@return *CertificateRequest
+//	@return error
 func ReadCertificateRequestFromPem(certPem []byte) (*CertificateRequest, error) {
 	block, _ := pem.Decode(certPem)
 	if block == nil {
@@ -373,11 +375,11 @@ func ReadCertificateRequestFromPem(certPem []byte) (*CertificateRequest, error) 
 
 // ReadCertificateRequestFromPemFile 将pem文件转为证书申请
 //
-//  @param FileName
-//  @return *CertificateRequest
-//  @return error
+//	@param FileName
+//	@return *CertificateRequest
+//	@return error
 func ReadCertificateRequestFromPemFile(FileName string) (*CertificateRequest, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
@@ -386,10 +388,10 @@ func ReadCertificateRequestFromPemFile(FileName string) (*CertificateRequest, er
 
 // CreateCertificateRequestToPem 创建证书申请并转为pem字节数组
 //
-//  @param template
-//  @param signer
-//  @return []byte
-//  @return error
+//	@param template
+//	@param signer
+//	@return []byte
+//	@return error
 func CreateCertificateRequestToPem(template *CertificateRequest, signer interface{}) ([]byte, error) {
 	der, err := CreateCertificateRequest(rand.Reader, template, signer)
 	if err != nil {
@@ -405,11 +407,11 @@ func CreateCertificateRequestToPem(template *CertificateRequest, signer interfac
 
 // CreateCertificateRequestToPemFile 创建证书申请并转为pem文件
 //
-//  @param FileName
-//  @param template
-//  @param signer
-//  @return bool
-//  @return error
+//	@param FileName
+//	@param template
+//	@param signer
+//	@return bool
+//	@return error
 func CreateCertificateRequestToPemFile(FileName string, template *CertificateRequest, signer interface{}) (bool, error) {
 	der, err := CreateCertificateRequest(rand.Reader, template, signer)
 	if err != nil {
@@ -444,9 +446,9 @@ func CreateCertificateRequestToPemFile(FileName string, template *CertificateReq
 
 // ReadCertificateFromPem 将pem字节数组转为gmx509证书
 //
-//  @param certPem
-//  @return *Certificate
-//  @return error
+//	@param certPem
+//	@return *Certificate
+//	@return error
 func ReadCertificateFromPem(certPem []byte) (*Certificate, error) {
 	block, _ := pem.Decode(certPem)
 	if block == nil {
@@ -457,11 +459,11 @@ func ReadCertificateFromPem(certPem []byte) (*Certificate, error) {
 
 // ReadCertificateFromPemFile 将pem文件转为gmx509证书
 //
-//  @param FileName
-//  @return *Certificate
-//  @return error
+//	@param FileName
+//	@return *Certificate
+//	@return error
 func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
@@ -470,12 +472,12 @@ func ReadCertificateFromPemFile(FileName string) (*Certificate, error) {
 
 // CreateCertificateToPem 创建gmx509证书并转为pem字节数组
 //
-//  @param template
-//  @param parent
-//  @param pubKey
-//  @param signer
-//  @return []byte
-//  @return error
+//	@param template
+//	@param parent
+//	@param pubKey
+//	@param signer
+//	@return []byte
+//	@return error
 func CreateCertificateToPem(template, parent *Certificate, pubKey, signer interface{}) ([]byte, error) {
 	der, err := CreateCertificate(rand.Reader, template, parent, pubKey, signer)
 	if err != nil {
@@ -491,13 +493,13 @@ func CreateCertificateToPem(template, parent *Certificate, pubKey, signer interf
 
 // CreateCertificateToPemFile 创建gmx509证书并转为pem文件
 //
-//  @param FileName
-//  @param template
-//  @param parent
-//  @param pubKey
-//  @param privKey
-//  @return bool
-//  @return error
+//	@param FileName
+//	@param template
+//	@param parent
+//	@param pubKey
+//	@param privKey
+//	@return bool
+//	@return error
 func CreateCertificateToPemFile(FileName string, template, parent *Certificate, pubKey, privKey interface{}) (bool, error) {
 	der, err := CreateCertificate(rand.Reader, template, parent, pubKey, privKey)
 	if err != nil {
@@ -522,8 +524,10 @@ func CreateCertificateToPemFile(FileName string, template, parent *Certificate, 
 }
 
 // WriteCertificateToPem 将x509证书转为pem字节数组
-//  @param cert x509证书
-//  @return []byte pem字节数组
+//
+//	@param cert x509证书
+//	@return []byte pem字节数组
+//
 //goland:noinspection GoUnusedExportedFunction
 func WriteCertificateToPem(cert *Certificate) []byte {
 	block := &pem.Block{
@@ -535,10 +539,12 @@ func WriteCertificateToPem(cert *Certificate) []byte {
 }
 
 // WriteCertificateToPemFile 将x509证书转为pem文件
-//  @param path pem文件路径
-//  @param cert x509证书
-//  @return bool
-//  @return error
+//
+//	@param path pem文件路径
+//	@param cert x509证书
+//	@return bool
+//	@return error
+//
 //goland:noinspection GoUnusedExportedFunction
 func WriteCertificateToPemFile(path string, cert *Certificate) (bool, error) {
 	block := &pem.Block{
@@ -564,9 +570,10 @@ func WriteCertificateToPemFile(path string, cert *Certificate) (bool, error) {
 
 // ParseGmx509DerToX509 将gmx509证书DER字节数组转为x509证书
 //
-//  @param asn1data
-//  @return *x509.Certificate
-//  @return error
+//	@param asn1data
+//	@return *x509.Certificate
+//	@return error
+//
 //goland:noinspection GoUnusedExportedFunction
 func ParseGmx509DerToX509(asn1data []byte) (*x509.Certificate, error) {
 	sm2Cert, err := ParseCertificate(asn1data)
@@ -578,10 +585,10 @@ func ParseGmx509DerToX509(asn1data []byte) (*x509.Certificate, error) {
 
 // CreateEllipticSKI 根据椭圆曲线公钥参数生成其SKI值
 //
-//  @param curve
-//  @param x
-//  @param y
-//  @return []byte
+//	@param curve
+//	@param x
+//	@param y
+//	@return []byte
 func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 	if curve == nil {
 		return nil
@@ -627,7 +634,7 @@ func ReadKeyFromPem(data []byte, pwd []byte) ([]byte, error) {
 
 // ReadKeyFromPemFile 从pem文件读取对称加密密钥
 func ReadKeyFromPemFile(FileName string, pwd []byte) ([]byte, error) {
-	data, err := ioutil.ReadFile(FileName)
+	data, err := os.ReadFile(FileName)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +666,7 @@ func WriteKeyToPemFile(FileName string, key []byte, pwd []byte) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(FileName, pemBytes, 0666)
+	err = os.WriteFile(FileName, pemBytes, 0666)
 	if err != nil {
 		return err
 	}
