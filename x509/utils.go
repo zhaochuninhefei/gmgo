@@ -239,7 +239,7 @@ func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 		return nil, errors.New("ReadPublicKeyFromPem: pem decode failed")
 	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
-	if block == nil || !strings.HasSuffix(blockType, "PUBLIC KEY") {
+	if !strings.HasSuffix(blockType, "PUBLIC KEY") {
 		return nil, errors.New("failed to decode public key")
 	}
 	key, err := ParsePKIXPublicKey(block.Bytes)
