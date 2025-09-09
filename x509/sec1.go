@@ -113,7 +113,7 @@ func MarshalECPrivateKey(key interface{}) ([]byte, error) {
 			Version:       ecPrivKeyVersion,
 			PrivateKey:    priv.D.FillBytes(privateKey),
 			NamedCurveOID: oid,
-			PublicKey:     asn1.BitString{Bytes: elliptic.Marshal(priv.Curve, priv.X, priv.Y)},
+			PublicKey:     asn1.BitString{Bytes: gmelliptic.StdMarshal(priv.Curve, priv.X, priv.Y)},
 			PrivType:      "sm2",
 		})
 		// var ecPriv ecPrivateKey
