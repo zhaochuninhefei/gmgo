@@ -21,16 +21,21 @@ import (
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"math/big"
 
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
 
 const ecPrivKeyVersion = 1
 
 // ecPrivateKey 椭圆曲线私钥结构体, 添加用于识别私钥类型的字段(目前支持sm2/ecdsa/ecdsa_ext)
-//  ecPrivateKey reflects an ASN.1 Elliptic Curve Private Key Structure.
+//
+//	ecPrivateKey reflects an ASN.1 Elliptic Curve Private Key Structure.
+//
 // References:
-//   RFC 5915
-//   SEC1 - http://www.secg.org/sec1-v2.pdf
+//
+//	RFC 5915
+//	SEC1 - http://www.secg.org/sec1-v2.pdf
+//
 // Per RFC 5915 the NamedCurveOID is marked as ASN.1 OPTIONAL, however in
 // most cases it is not.
 type ecPrivateKey struct {
@@ -91,7 +96,7 @@ func MarshalECPrivateKey(key interface{}) ([]byte, error) {
 			Version:       ecPrivKeyVersion,
 			PrivateKey:    priv.D.FillBytes(privateKey),
 			NamedCurveOID: oid,
-			PublicKey:     asn1.BitString{Bytes: elliptic.Marshal(priv.Curve, priv.X, priv.Y)},
+			PublicKey:     asn1.BitString{Bytes: gmelliptic.StdMarshal(priv.Curve, priv.X, priv.Y)},
 			PrivType:      "ecdsa_ext",
 		})
 	case *sm2.PrivateKey:
