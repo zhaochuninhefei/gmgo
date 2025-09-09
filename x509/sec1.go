@@ -18,8 +18,9 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"math/big"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 
 	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
