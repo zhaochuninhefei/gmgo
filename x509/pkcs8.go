@@ -138,6 +138,7 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 	var privKey pkcs8
 
+	//goland:noinspection DuplicatedCode
 	switch k := key.(type) {
 	case *sm2.PrivateKey:
 		oid, ok := oidFromNamedCurve(k.Curve)
