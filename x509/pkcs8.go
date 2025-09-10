@@ -66,6 +66,7 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 		return nil, err
 	}
 	// 根据反序列化后的公钥算法标识生成对应的私钥
+	//goland:noinspection DuplicatedCode
 	switch {
 	case privKey.Algo.Algorithm.Equal(oidPublicKeySM2):
 		bytes := privKey.Algo.Parameters.FullBytes
