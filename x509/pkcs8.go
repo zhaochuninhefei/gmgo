@@ -23,6 +23,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -44,7 +45,7 @@ const (
 )
 
 // ParsePKCS8PrivateKey 将未加密的PKCS #8, ASN.1 DER格式字节数组转为对应的私钥。
-//  - 私钥支持: sm2, ecdsa, ecdsa_ext, ed25519, rsa
+//   - 私钥支持: sm2, ecdsa, ecdsa_ext, ed25519, rsa
 //
 // ParsePKCS8PrivateKey parses an unencrypted private key in PKCS #8, ASN.1 DER form.
 //
@@ -125,7 +126,7 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 }
 
 // MarshalPKCS8PrivateKey 将私钥转为PKCS #8, ASN.1 DER字节数组
-//  - 私钥支持: sm2, ecdsa, ecdsa_ext, ed25519, rsa
+//   - 私钥支持: sm2, ecdsa, ecdsa_ext, ed25519, rsa
 //
 // MarshalPKCS8PrivateKey converts a private key to PKCS #8, ASN.1 DER form.
 //
