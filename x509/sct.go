@@ -55,7 +55,8 @@ func (sct *SignedCertificateTimestamp) String() string {
 }
 
 // Version represents the Version enum from section 3.2:
-//   enum { v1(0), (255) } Version;
+//
+//	enum { v1(0), (255) } Version;
 type Version Enum // tls:"maxval:255"
 
 // LogID holds the hash of the Log's public key (section 3.2).
@@ -470,6 +471,7 @@ func parseField(v reflect.Value, data []byte, initOffset int, info *fieldInfo) (
 		single := reflect.New(sliceType.Elem())
 		for innerOffset := 0; innerOffset < len(inner); {
 			var err error
+			//goland:noinspection GoMaybeNil
 			innerOffset, err = parseField(single.Elem(), inner, innerOffset, nil)
 			if err != nil {
 				return offset, err

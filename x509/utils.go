@@ -55,6 +55,7 @@ import (
 	"strings"
 
 	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
@@ -239,7 +240,7 @@ func ReadPublicKeyFromPem(publicKeyPem []byte) (interface{}, error) {
 		return nil, errors.New("ReadPublicKeyFromPem: pem decode failed")
 	}
 	blockType := strings.ToUpper(strings.TrimSpace(block.Type))
-	if block == nil || !strings.HasSuffix(blockType, "PUBLIC KEY") {
+	if !strings.HasSuffix(blockType, "PUBLIC KEY") {
 		return nil, errors.New("failed to decode public key")
 	}
 	key, err := ParsePKIXPublicKey(block.Bytes)
@@ -594,7 +595,7 @@ func CreateEllipticSKI(curve elliptic.Curve, x, y *big.Int) []byte {
 		return nil
 	}
 	//Marshall the public key
-	raw := elliptic.Marshal(curve, x, y)
+	raw := gmelliptic.StdMarshal(curve, x, y)
 	// Hash it 计算ski一律使用SHA256
 	hash := sha256.New()
 	hash.Write(raw)

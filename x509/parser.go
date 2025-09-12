@@ -9,6 +9,7 @@ ParseCertificate : 将DER字节数组转为gmx509证书
 ParseCertificates : 将DER字节数组转为多个gmx509证书
 */
 
+//goland:noinspection GoVulnerablePackageImport
 import (
 	"bytes"
 	"crypto/ecdsa"
@@ -20,8 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"math/big"
 	"net"
 	"net/url"
@@ -31,7 +30,10 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"golang.org/x/crypto/cryptobyte"
 	cryptobyteasn1 "golang.org/x/crypto/cryptobyte/asn1"
 )
@@ -251,7 +253,7 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 		if namedCurve == nil {
 			return nil, errors.New("x509: unsupported sm2 elliptic curve")
 		}
-		x, y := elliptic.Unmarshal(namedCurve, der)
+		x, y := gmelliptic.Unmarshal(gmelliptic.FromStandardCurve(namedCurve), der)
 		if x == nil {
 			return nil, errors.New("x509: failed to unmarshal sm2 elliptic curve point")
 		}
