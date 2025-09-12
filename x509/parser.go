@@ -20,8 +20,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"math/big"
 	"net"
 	"net/url"
@@ -30,6 +28,9 @@ import (
 	"time"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"golang.org/x/crypto/cryptobyte"
