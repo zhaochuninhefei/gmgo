@@ -9,6 +9,7 @@ ParseCertificate : 将DER字节数组转为gmx509证书
 ParseCertificates : 将DER字节数组转为多个gmx509证书
 */
 
+//goland:noinspection GoVulnerablePackageImport
 import (
 	"bytes"
 	"crypto/ecdsa"
