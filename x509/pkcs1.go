@@ -127,6 +127,7 @@ func MarshalPKCS1PrivateKey(key *rsa.PrivateKey) []byte {
 		Qinv:    key.Precomputed.Qinv,
 	}
 
+	//goland:noinspection GoDeprecation
 	priv.AdditionalPrimes = make([]pkcs1AdditionalRSAPrime, len(key.Precomputed.CRTValues))
 	for i, values := range key.Precomputed.CRTValues {
 		priv.AdditionalPrimes[i].Prime = key.Primes[2+i]
