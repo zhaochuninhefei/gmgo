@@ -7,9 +7,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/sm2"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
-	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"net"
 	"net/url"
 	"os"
@@ -17,6 +14,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gitee.com/zhaochuninhefei/gmgo/sm2"
+	"gitee.com/zhaochuninhefei/gmgo/utils"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 func TestClearTestdata(t *testing.T) {
