@@ -2313,7 +2313,6 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	}
 	// Make a copy of template.Attributes because we may alter it below.
 	attributes := make([]pkix.AttributeTypeAndValueSET, 0, len(template.Attributes))
-	//goland:noinspection GoDeprecation
 	for _, attr := range template.Attributes {
 		values := make([][]pkix.AttributeTypeAndValue, len(attr.Value))
 		copy(values, attr.Value)
