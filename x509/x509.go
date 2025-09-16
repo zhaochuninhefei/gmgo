@@ -2148,7 +2148,7 @@ type CertificateRequest struct {
 	// Attributes contains the CSR attributes that can parse as
 	// pkix.AttributeTypeAndValueSET.
 	//
-	// Deprecated: Use Extensions and ExtraExtensions instead for parsing and
+	// Use Extensions and ExtraExtensions instead for parsing and
 	// generating the requestedExtensions attribute.
 	Attributes []pkix.AttributeTypeAndValueSET
 
@@ -2312,7 +2312,6 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 		return nil, err
 	}
 	// Make a copy of template.Attributes because we may alter it below.
-	//goland:noinspection GoDeprecation
 	attributes := make([]pkix.AttributeTypeAndValueSET, 0, len(template.Attributes))
 	//goland:noinspection GoDeprecation
 	for _, attr := range template.Attributes {
