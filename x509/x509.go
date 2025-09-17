@@ -1663,6 +1663,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	var pubType PublicKeyAlgorithm
 
 	// 根据pub的公钥类型选择签名算法参数的默认值
+	//goland:noinspection DuplicatedCode
 	switch pub := pub.(type) {
 	case *sm2.PublicKey:
 		pubType = SM2
