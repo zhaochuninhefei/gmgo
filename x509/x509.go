@@ -2465,7 +2465,6 @@ func ParseCertificateRequest(asn1Data []byte) (*CertificateRequest, error) {
 }
 
 func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error) {
-	//goland:noinspection GoDeprecation
 	out := &CertificateRequest{
 		Raw:                      in.Raw,
 		RawTBSCertificateRequest: in.TBSCSR.Raw,
