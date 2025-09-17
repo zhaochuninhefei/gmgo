@@ -1576,7 +1576,6 @@ func TestCertificateRequestOverrides(t *testing.T) {
 		t.Errorf("incorrect number of attributes: %d\n", l)
 	}
 
-	//goland:noinspection GoDeprecation
 	if !csr.Attributes[0].Type.Equal(oidExtensionRequest) ||
 		len(csr.Attributes[0].Value) != 1 ||
 		len(csr.Attributes[0].Value[0]) != 2 {
