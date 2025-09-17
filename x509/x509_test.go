@@ -1588,7 +1588,6 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	}
 
 	// Extensions in Attributes should override those in ExtraExtensions.
-	//goland:noinspection GoDeprecation
 	template.Attributes[0].Value[0] = append(template.Attributes[0].Value[0], pkix.AttributeTypeAndValue{
 		Type:  oidExtensionSubjectAltName,
 		Value: sanContents2,
