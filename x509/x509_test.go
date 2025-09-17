@@ -1557,7 +1557,6 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	// extra extensions should be added to it rather than creating a CSR
 	// with two extension attributes.
 
-	//goland:noinspection GoDeprecation
 	template.Attributes = []pkix.AttributeTypeAndValueSET{
 		{
 			Type: oidExtensionRequest,
