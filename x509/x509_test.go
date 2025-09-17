@@ -1572,7 +1572,6 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	}
 
 	csr = marshalAndParseCSR(t, &template)
-	//goland:noinspection GoDeprecation
 	if l := len(csr.Attributes); l != 1 {
 		t.Errorf("incorrect number of attributes: %d\n", l)
 	}
