@@ -9,9 +9,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"math/big"
 	"net"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 )
@@ -597,6 +598,7 @@ func CertificateText(cert *Certificate) (string, error) {
 // CertificateRequestText returns a human-readable string representation
 // of the certificate request csr. The format is similar (but not identical)
 // to the OpenSSL way of printing certificates.
+//
 //goland:noinspection GoUnusedExportedFunction
 func CertificateRequestText(csr *CertificateRequest) (string, error) {
 	var buf bytes.Buffer

@@ -1557,7 +1557,6 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	// extra extensions should be added to it rather than creating a CSR
 	// with two extension attributes.
 
-	//goland:noinspection GoDeprecation
 	template.Attributes = []pkix.AttributeTypeAndValueSET{
 		{
 			Type: oidExtensionRequest,
@@ -1573,12 +1572,10 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	}
 
 	csr = marshalAndParseCSR(t, &template)
-	//goland:noinspection GoDeprecation
 	if l := len(csr.Attributes); l != 1 {
 		t.Errorf("incorrect number of attributes: %d\n", l)
 	}
 
-	//goland:noinspection GoDeprecation
 	if !csr.Attributes[0].Type.Equal(oidExtensionRequest) ||
 		len(csr.Attributes[0].Value) != 1 ||
 		len(csr.Attributes[0].Value[0]) != 2 {
@@ -1591,7 +1588,6 @@ func TestCertificateRequestOverrides(t *testing.T) {
 	}
 
 	// Extensions in Attributes should override those in ExtraExtensions.
-	//goland:noinspection GoDeprecation
 	template.Attributes[0].Value[0] = append(template.Attributes[0].Value[0], pkix.AttributeTypeAndValue{
 		Type:  oidExtensionSubjectAltName,
 		Value: sanContents2,

@@ -2,8 +2,9 @@ package x509_test
 
 import (
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 func TestCertinfo(t *testing.T) {
