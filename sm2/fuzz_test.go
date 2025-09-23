@@ -69,7 +69,7 @@ func ScalarBaseMult(curve *elliptic.CurveParams, k []byte) (*big.Int, *big.Int) 
 		return specific.ScalarBaseMult(k)
 	}
 
-	return curve.ScalarMult(curve.Gx, curve.Gy, k)
+	return gmelliptic.FromStandardCurve(curve).ScalarMult(curve.Gx, curve.Gy, k)
 }
 
 func matchesSpecificCurve(params *elliptic.CurveParams) (elliptic.Curve, bool) {
