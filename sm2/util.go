@@ -14,11 +14,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/utils"
 	"io"
 	"math/big"
 	"strings"
 	"sync"
+
+	"gitee.com/zhaochuninhefei/gmgo/utils"
 )
 
 var zero = big.NewInt(0)
