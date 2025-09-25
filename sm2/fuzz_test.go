@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"testing"
 	"time"
+
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 )
 
 var _ = elliptic.P256()
@@ -48,7 +50,7 @@ func TestFuzz(t *testing.T) {
 		x2, y2 := ScalarBaseMult(p256Generic, scalar1[:])
 
 		xx, yy := p256.ScalarMult(x, y, scalar2[:])
-		xx2, yy2 := p256Generic.ScalarMult(x2, y2, scalar2[:])
+		xx2, yy2 := gmelliptic.FromStandardCurve(p256Generic).ScalarMult(x2, y2, scalar2[:])
 
 		if x.Cmp(x2) != 0 || y.Cmp(y2) != 0 {
 			t.Fatalf("ScalarBaseMult does not match reference result with scalar: %x, please report this error to https://gitee.com/zhaochuninhefei/gmgo/issues", scalar1)
@@ -67,7 +69,7 @@ func ScalarBaseMult(curve *elliptic.CurveParams, k []byte) (*big.Int, *big.Int) 
 		return specific.ScalarBaseMult(k)
 	}
 
-	return curve.ScalarMult(curve.Gx, curve.Gy, k)
+	return gmelliptic.FromStandardCurve(curve).ScalarMult(curve.Gx, curve.Gy, k)
 }
 
 func matchesSpecificCurve(params *elliptic.CurveParams) (elliptic.Curve, bool) {

@@ -8,7 +8,6 @@
 // https://link.springer.com/article/10.1007%2Fs13389-014-0090-x
 // https://eprint.iacr.org/2013/816.pdf
 //go:build amd64 || arm64
-// +build amd64 arm64
 
 package sm2
 
@@ -19,12 +18,15 @@ sm2/p256_asm.go sm2p256在amd64或arm64架构下的实现
 import (
 	"crypto/elliptic"
 	"math/big"
+
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 )
 
 type (
 	// sm2的P256椭圆曲线类型，内嵌 *elliptic.CurveParams
 	p256Curve struct {
 		*elliptic.CurveParams
+		GMCurveParams *gmelliptic.CurveParams
 	}
 	// sm2p256曲线上的座标类型
 	p256Point struct {
@@ -40,6 +42,7 @@ var (
 // 初始化sm2的 p256 曲线单例
 func initP256() {
 	p256.CurveParams = &elliptic.CurveParams{Name: "SM2-P-256"}
+	p256.GMCurveParams = &gmelliptic.CurveParams{Name: "SM2-P-256"}
 	// SM2椭圆曲线公钥密码算法推荐曲线参数
 	// 2**256 - 2**224 - 2**96 + 2**64 - 1
 	p256.P, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF", 16)
@@ -48,6 +51,14 @@ func initP256() {
 	p256.Gx, _ = new(big.Int).SetString("32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7", 16)
 	p256.Gy, _ = new(big.Int).SetString("BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0", 16)
 	p256.BitSize = 256
+
+	// 同步到GM椭圆曲线参数
+	p256.GMCurveParams.P = p256.P
+	p256.GMCurveParams.N = p256.N
+	p256.GMCurveParams.B = p256.B
+	p256.GMCurveParams.Gx = p256.Gx
+	p256.GMCurveParams.Gy = p256.Gy
+	p256.GMCurveParams.BitSize = p256.BitSize
 }
 
 // Params 获取sm2p256曲线参数
@@ -59,6 +70,7 @@ func (curve p256Curve) Params() *elliptic.CurveParams {
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Functions implemented in p256_asm_*64.s
 // Montgomery multiplication modulo P256
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256Mul(res, in1, in2 []uint64)
@@ -66,6 +78,7 @@ func p256Mul(res, in1, in2 []uint64)
 // p256曲线的蒙哥马利幂方运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery square modulo P256, repeated n times (n >= 1)
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256Sqr(res, in []uint64, n int)
@@ -73,6 +86,7 @@ func p256Sqr(res, in []uint64, n int)
 // p256曲线的蒙哥马利乘1运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery multiplication by 1
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256FromMont(res, in []uint64)
@@ -80,6 +94,7 @@ func p256FromMont(res, in []uint64)
 // p256曲线的按条件求补(取反)指令。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // iff cond == 1  val <- -val
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256NegCond(val []uint64, cond int)
@@ -87,6 +102,7 @@ func p256NegCond(val []uint64, cond int)
 // p256曲线的按条件传送指令。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // if cond == 0 res <- b; else res <- a
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256MovCond(res, a, b []uint64, cond int)
@@ -94,17 +110,20 @@ func p256MovCond(res, a, b []uint64, cond int)
 // p256曲线的字节序交换运算(大端序转小端序)。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Endianness swap
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256BigToLittle(res []uint64, in []byte)
 
 // p256曲线的字节序交换运算(小端序转大端序)。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256LittleToBig(res []byte, in []uint64)
 
 // Constant time table access
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256Select(point, table []uint64, idx int)
@@ -116,6 +135,7 @@ func p256SelectBase(point *[12]uint64, table string, idx int)
 // p256曲线的蒙哥马利Ord(G)模乘运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery multiplication modulo Ord(G)
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256OrdMul(res, in1, in2 []uint64)
@@ -123,6 +143,7 @@ func p256OrdMul(res, in1, in2 []uint64)
 // p256曲线的蒙哥马利 Ord(G)幂方运算。
 // 具体实现在对应平台的 p256_asm_*64.s , *匹配amd64或arm64。
 // Montgomery square modulo Ord(G), repeated n times
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256OrdSqr(res, in []uint64, n int)
@@ -131,6 +152,7 @@ func p256OrdSqr(res, in []uint64, n int)
 // If sign == 1 -> in2 = -in2
 // If sel == 0 -> res = in1
 // if zero == 0 -> res = in2
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256PointAddAffineAsm(res, in1, in2 []uint64, sign, sel, zero int)
@@ -138,11 +160,13 @@ func p256PointAddAffineAsm(res, in1, in2 []uint64, sign, sel, zero int)
 // Point add. Returns one if the two input points were equal and zero
 // otherwise. (Note that, due to the way that the equations work out, some
 // representations of ∞ are considered equal to everything by this function.)
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256PointAddAsm(res, in1, in2 []uint64) int
 
 // Point double
+//
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func p256PointDoubleAsm(res, in []uint64)
@@ -156,7 +180,6 @@ var p256one = []uint64{0x0000000000000001, 0x00000000ffffffff, 0x000000000000000
 // 1111111111111111111111111111111111111111111111111111111111111111
 // 0111001000000011110111110110101100100001110001100000010100101011
 // 0101001110111011111101000000100100111001110101010100000100100001
-//
 func (curve p256Curve) Inverse(k *big.Int) *big.Int {
 	if k.Sign() < 0 {
 		// This should never happen.

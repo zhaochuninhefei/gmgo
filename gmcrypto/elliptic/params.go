@@ -4,7 +4,10 @@
 
 package elliptic
 
-import "math/big"
+import (
+	"crypto/elliptic"
+	"math/big"
+)
 
 // CurveParams contains the parameters of an elliptic curve and also provides
 // a generic, non-constant time implementation of [Curve].
@@ -331,4 +334,38 @@ func matchesSpecificCurve(params *CurveParams) (Curve, bool) {
 		}
 	}
 	return nil, false
+}
+
+// ToStandardCurveParams 将本地包的 CurveParams 转换为标准库的 CurveParams
+func ToStandardCurveParams(gmParams *CurveParams) *elliptic.CurveParams {
+	if gmParams == nil {
+		return nil
+	}
+
+	return &elliptic.CurveParams{
+		P:       gmParams.P,
+		N:       gmParams.N,
+		B:       gmParams.B,
+		Gx:      gmParams.Gx,
+		Gy:      gmParams.Gy,
+		BitSize: gmParams.BitSize,
+		Name:    gmParams.Name,
+	}
+}
+
+// FromStandardCurveParams 将标准库的 CurveParams 转换为本地包的 CurveParams
+func FromStandardCurveParams(stdParams *elliptic.CurveParams) *CurveParams {
+	if stdParams == nil {
+		return nil
+	}
+
+	return &CurveParams{
+		P:       stdParams.P,
+		N:       stdParams.N,
+		B:       stdParams.B,
+		Gx:      stdParams.Gx,
+		Gy:      stdParams.Gy,
+		BitSize: stdParams.BitSize,
+		Name:    stdParams.Name,
+	}
 }
