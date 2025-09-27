@@ -188,7 +188,7 @@ func generateP256MultTests() {
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
-		x1, y1 := p256Generic.ScalarBaseMult(k1.Bytes())
+		x1, y1 := gmelliptic.FromStandardCurve(p256Generic).ScalarBaseMult(k1.Bytes())
 		k2, err := randFieldElement(p256Generic, rand.Reader)
 		if err != nil {
 			fmt.Printf("%v\n", err)
