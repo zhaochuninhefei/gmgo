@@ -232,6 +232,7 @@ func TestP256CombinedMult(t *testing.T) {
 		CombinedMult(bigX, bigY *big.Int, baseScalar, scalar []byte) (x, y *big.Int)
 	}
 
+	//goland:noinspection DuplicatedCode
 	p256, ok := P256Sm2().(combinedMult)
 	if !ok {
 		p256 = &synthCombinedMult{P256Sm2()}
