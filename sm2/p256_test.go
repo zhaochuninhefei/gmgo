@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 )
 
 type baseMultTest struct {
@@ -166,7 +168,7 @@ func TestP256BaseMult(t *testing.T) {
 
 	for i, k := range scalars {
 		x, y := p256.ScalarBaseMult(k.Bytes())
-		x2, y2 := p256Generic.ScalarBaseMult(k.Bytes())
+		x2, y2 := gmelliptic.FromStandardCurve(p256Generic).ScalarBaseMult(k.Bytes())
 		if x.Cmp(x2) != 0 || y.Cmp(y2) != 0 {
 			t.Errorf("#%d: got (%x, %x), want (%x, %x)", i, x, y, x2, y2)
 		}
