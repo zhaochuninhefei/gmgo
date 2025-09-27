@@ -193,7 +193,7 @@ func generateP256MultTests() {
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
-		x2, y2 := p256Generic.ScalarMult(x1, y1, k2.Bytes())
+		x2, y2 := gmelliptic.FromStandardCurve(p256Generic).ScalarMult(x1, y1, k2.Bytes())
 		fmt.Printf("%s\n", hex.EncodeToString(k2.Bytes()))
 		fmt.Printf("%s\n", hex.EncodeToString(x1.Bytes()))
 		fmt.Printf("%s\n", hex.EncodeToString(y1.Bytes()))
