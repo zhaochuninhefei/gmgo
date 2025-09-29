@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+
+	gmelliptic "gitee.com/zhaochuninhefei/gmgo/gmcrypto/elliptic"
 )
 
 type baseMultTest struct {
@@ -166,7 +168,7 @@ func TestP256BaseMult(t *testing.T) {
 
 	for i, k := range scalars {
 		x, y := p256.ScalarBaseMult(k.Bytes())
-		x2, y2 := p256Generic.ScalarBaseMult(k.Bytes())
+		x2, y2 := gmelliptic.FromStandardCurve(p256Generic).ScalarBaseMult(k.Bytes())
 		if x.Cmp(x2) != 0 || y.Cmp(y2) != 0 {
 			t.Errorf("#%d: got (%x, %x), want (%x, %x)", i, x, y, x2, y2)
 		}
@@ -186,12 +188,12 @@ func generateP256MultTests() {
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
-		x1, y1 := p256Generic.ScalarBaseMult(k1.Bytes())
+		x1, y1 := gmelliptic.FromStandardCurve(p256Generic).ScalarBaseMult(k1.Bytes())
 		k2, err := randFieldElement(p256Generic, rand.Reader)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
-		x2, y2 := p256Generic.ScalarMult(x1, y1, k2.Bytes())
+		x2, y2 := gmelliptic.FromStandardCurve(p256Generic).ScalarMult(x1, y1, k2.Bytes())
 		fmt.Printf("%s\n", hex.EncodeToString(k2.Bytes()))
 		fmt.Printf("%s\n", hex.EncodeToString(x1.Bytes()))
 		fmt.Printf("%s\n", hex.EncodeToString(y1.Bytes()))
@@ -232,6 +234,7 @@ func TestP256CombinedMult(t *testing.T) {
 		CombinedMult(bigX, bigY *big.Int, baseScalar, scalar []byte) (x, y *big.Int)
 	}
 
+	//goland:noinspection DuplicatedCode
 	p256, ok := P256Sm2().(combinedMult)
 	if !ok {
 		p256 = &synthCombinedMult{P256Sm2()}

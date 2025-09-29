@@ -14,6 +14,7 @@ sm2soft 是sm2的纯软实现，基于tjfoc国密算法库`tjfoc/gmsm`做了少�
 package sm2soft
 
 // reference to ecdsa
+//goland:noinspection GoVulnerablePackageImport
 import (
 	"bytes"
 	"crypto"

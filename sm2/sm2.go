@@ -65,6 +65,7 @@ NewPlainDecrypterOpts
 //   [GM/T]: SM2 GB/T 32918.2-2016, GB/T 32918.4-2016
 //
 
+//goland:noinspection GoVulnerablePackageImport
 import (
 	"crypto"
 	"crypto/aes"
