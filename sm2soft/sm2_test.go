@@ -27,10 +27,10 @@ import (
 func TestSm2(t *testing.T) {
 	// 生成sm2密钥对
 	priv, err := GenerateKey(rand.Reader)
-	fmt.Println("私钥: ", priv.D)
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println("私钥: ", priv.D)
 	// 验证生成的公钥是否在sm2的椭圆曲线上
 	fmt.Printf("公钥是否在sm2的椭圆曲线上: %v\n", priv.Curve.IsOnCurve(priv.X, priv.Y))
 	// 公钥
