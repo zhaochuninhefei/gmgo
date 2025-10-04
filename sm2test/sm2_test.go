@@ -3,9 +3,10 @@ package sm2test
 import (
 	"crypto/rand"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"os"
 	"testing"
+
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/sm2soft"
