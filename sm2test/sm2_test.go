@@ -6,10 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"gitee.com/zhaochuninhefei/gmgo/x509"
-
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/sm2soft"
+	"gitee.com/zhaochuninhefei/gmgo/x509"
 )
 
 func TestSm2Sign(t *testing.T) {
