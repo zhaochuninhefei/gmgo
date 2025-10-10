@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -1762,5 +1763,67 @@ func TestPKCS1OnlyCert(t *testing.T) {
 	// be selected, and the handshake should succeed.
 	if _, _, err := testHandshake(t, clientConfig, serverConfig); err != nil {
 		t.Error(err)
+	}
+}
+
+//func TestLoadX509KeyPair(t *testing.T) {
+//	// 添加对 LoadX509KeyPair 的测试
+//	cert, err := LoadX509KeyPair("./tls_test/issues-ICF2OT/cert_icf2ot.cer", "./tls_test/issues-ICF2OT/key_icf2ot.pem")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	// 打印证书信息
+//	fmt.Printf("证书信息: %v", cert.Leaf)
+//}
+
+func TestCheck_cert_icf2ot(t *testing.T) {
+	// 使用本地x509包解析证书文件以获取详细信息
+	certPEMBlock, err := os.ReadFile("./tls_test/issues-ICF2OT/cert_icf2ot.cer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var certDERBlock *pem.Block
+	certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+	x509Cert, err := x509.ParseCertificate(certDERBlock.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 打印详细证书信息
+	fmt.Println("========== 证书详细信息 ==========")
+	fmt.Printf("证书版本: %d\n", x509Cert.Version)
+	fmt.Printf("序列号: %s\n", x509Cert.SerialNumber.String())
+	fmt.Printf("颁发者: %s\n", x509Cert.Issuer.String())
+	fmt.Printf("主体: %s\n", x509Cert.Subject.String())
+	fmt.Printf("有效期: %s 至 %s\n", x509Cert.NotBefore.Format("2006-01-02 15:04:05"), x509Cert.NotAfter.Format("2006-01-02 15:04:05"))
+
+	// 打印公钥信息
+	fmt.Printf("签名算法: %s\n", x509Cert.SignatureAlgorithm.String())
+	fmt.Printf("公钥算法: %s\n", x509Cert.PublicKeyAlgorithm.String())
+
+	// 获取公钥算法的OID
+	publicKeyOID := getPublicKeyAlgorithmOID(x509Cert.PublicKeyAlgorithm)
+	fmt.Printf("公钥算法OID: %s\n", publicKeyOID)
+
+	fmt.Println("=====================================")
+}
+
+// getPublicKeyAlgorithmOID 根据公钥算法返回对应的OID
+func getPublicKeyAlgorithmOID(algo x509.PublicKeyAlgorithm) string {
+	switch algo {
+	case x509.RSA:
+		return "1.2.840.113549.1.1.1" // rsaEncryption
+	case x509.DSA:
+		return "1.2.840.10040.4.1" // id-dsa
+	case x509.ECDSA:
+		return "1.2.840.10045.2.1" // id-ecPublicKey
+	case x509.Ed25519:
+		return "1.3.101.112" // id-Ed25519
+	case x509.SM2:
+		return "1.2.156.10197.1.301" // sm2 (中国国家标准)
+	case x509.ECDSAEXT:
+		return "1.3.6.1.4.1.60387.1.2" // 自定义ecdsa_ext算法标识
+	default:
+		return "未知OID"
 	}
 }

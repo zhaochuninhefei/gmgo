@@ -30,11 +30,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
-	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 	"net"
 	"os"
 	"strings"
+
+	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 
 	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
@@ -454,9 +455,11 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 }
 
 // NewServerConfigByClientHello 根据客户端发出的ClientHello的协议与密码套件决定Server的证书链
-//  当客户端支持tls1.3或gmssl，且客户端支持的密码套件包含 TLS_SM4_GCM_SM3 时，服务端证书采用gmSigCert。
-//  - gmSigCert 国密证书
-//  - genericCert 一般证书
+//
+//	当客户端支持tls1.3或gmssl，且客户端支持的密码套件包含 TLS_SM4_GCM_SM3 时，服务端证书采用gmSigCert。
+//	- gmSigCert 国密证书
+//	- genericCert 一般证书
+//
 //goland:noinspection GoUnusedExportedFunction
 func NewServerConfigByClientHello(gmSigCert, genericCert *Certificate) (*Config, error) {
 	// 根据ClientHelloInfo中支持的协议，返回服务端证书
