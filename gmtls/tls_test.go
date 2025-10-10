@@ -1767,6 +1767,7 @@ func TestPKCS1OnlyCert(t *testing.T) {
 }
 
 func TestLoadX509KeyPair(t *testing.T) {
+
 	// 添加对 LoadX509KeyPair 的测试
 	cert, err := LoadX509KeyPair("./tls_test/issues-ICF2OT/cert_icf2ot.cer", "./tls_test/issues-ICF2OT/key_icf2ot.pem")
 	if err != nil {
