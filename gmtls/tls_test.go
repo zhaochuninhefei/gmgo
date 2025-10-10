@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -1777,14 +1778,19 @@ func TestLoadX509KeyPair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 打印证书信息
+	zclog.Debugf("证书信息: %v", cert.Leaf)
+}
 
+func TestCheck_cert_icf2ot(t *testing.T) {
 	// 使用本地x509包解析证书文件以获取详细信息
-	certData, err := os.ReadFile("./tls_test/issues-ICF2OT/cert_icf2ot.cer")
+	certPEMBlock, err := os.ReadFile("./tls_test/issues-ICF2OT/cert_icf2ot.cer")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	x509Cert, err := x509.ParseCertificate(certData)
+	var certDERBlock *pem.Block
+	certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+	x509Cert, err := x509.ParseCertificate(certDERBlock.Bytes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1798,8 +1804,8 @@ func TestLoadX509KeyPair(t *testing.T) {
 	fmt.Printf("有效期: %s 至 %s\n", x509Cert.NotBefore.Format("2006-01-02 15:04:05"), x509Cert.NotAfter.Format("2006-01-02 15:04:05"))
 
 	// 打印公钥信息
-	fmt.Printf("公钥算法: %s\n", x509Cert.PublicKeyAlgorithm.String())
 	fmt.Printf("签名算法: %s\n", x509Cert.SignatureAlgorithm.String())
+	fmt.Printf("公钥算法: %s\n", x509Cert.PublicKeyAlgorithm.String())
 
 	// 获取公钥算法的OID
 	publicKeyOID := getPublicKeyAlgorithmOID(x509Cert.PublicKeyAlgorithm)
@@ -1844,9 +1850,6 @@ func TestLoadX509KeyPair(t *testing.T) {
 	// 这里可以添加指纹计算逻辑
 
 	fmt.Println("=====================================")
-
-	// 打印证书信息
-	zclog.Debugf("证书信息: %v", cert.Leaf)
 }
 
 // getPublicKeyAlgorithmOID 根据公钥算法返回对应的OID
