@@ -374,55 +374,56 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		}
 	}
 	// 检查私钥与证书中的公钥是否匹配
-	// 优先检查SM2类型，避免与ECDSA混淆
-	if sm2Pub, ok := x509Cert.PublicKey.(*sm2.PublicKey); ok {
+	switch pub := x509Cert.PublicKey.(type) {
+	// 补充SM2分支
+	case *sm2.PublicKey:
 		priv, ok := cert.PrivateKey.(*sm2.PrivateKey)
 		if !ok {
 			return fail(errors.New("gmtls: private key type does not match public key type"))
 		}
-		if sm2Pub.X.Cmp(priv.X) != 0 || sm2Pub.Y.Cmp(priv.Y) != 0 {
+		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
 			return fail(errors.New("gmtls: private key does not match public key"))
 		}
-	} else if ecdsaPub, ok := x509Cert.PublicKey.(*ecdsa.PublicKey); ok {
+	case *rsa.PublicKey:
+		priv, ok := cert.PrivateKey.(*rsa.PrivateKey)
+		if !ok {
+			return fail(errors.New("gmtls: private key type does not match public key type"))
+		}
+		if pub.N.Cmp(priv.N) != 0 {
+			return fail(errors.New("gmtls: private key does not match public key"))
+		}
+	case *ecdsa.PublicKey:
 		priv, ok := cert.PrivateKey.(*ecdsa.PrivateKey)
 		if !ok {
 			privExt, okExt := cert.PrivateKey.(*ecdsa_ext.PrivateKey)
 			if !okExt {
 				return fail(errors.New("gmtls: private key type does not match public key type"))
 			}
-			if ecdsaPub.X.Cmp(privExt.X) != 0 || ecdsaPub.Y.Cmp(privExt.Y) != 0 {
+			if pub.X.Cmp(privExt.X) != 0 || pub.Y.Cmp(privExt.Y) != 0 {
 				return fail(errors.New("gmtls: private key does not match public key"))
 			}
 		} else {
-			if ecdsaPub.X.Cmp(priv.X) != 0 || ecdsaPub.Y.Cmp(priv.Y) != 0 {
+			if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
 				return fail(errors.New("gmtls: private key does not match public key"))
 			}
 		}
-	} else if ecdsaExtPub, ok := x509Cert.PublicKey.(*ecdsa_ext.PublicKey); ok {
+	case *ecdsa_ext.PublicKey:
 		priv, ok := cert.PrivateKey.(*ecdsa_ext.PrivateKey)
 		if !ok {
 			return fail(errors.New("gmtls: private key type does not match public key type"))
 		}
-		if ecdsaExtPub.X.Cmp(priv.X) != 0 || ecdsaExtPub.Y.Cmp(priv.Y) != 0 {
+		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
 			return fail(errors.New("gmtls: private key does not match public key"))
 		}
-	} else if rsaPub, ok := x509Cert.PublicKey.(*rsa.PublicKey); ok {
-		priv, ok := cert.PrivateKey.(*rsa.PrivateKey)
-		if !ok {
-			return fail(errors.New("gmtls: private key type does not match public key type"))
-		}
-		if rsaPub.N.Cmp(priv.N) != 0 {
-			return fail(errors.New("gmtls: private key does not match public key"))
-		}
-	} else if ed25519Pub, ok := x509Cert.PublicKey.(ed25519.PublicKey); ok {
+	case ed25519.PublicKey:
 		priv, ok := cert.PrivateKey.(ed25519.PrivateKey)
 		if !ok {
 			return fail(errors.New("gmtls: private key type does not match public key type"))
 		}
-		if !bytes.Equal(priv.Public().(ed25519.PublicKey), ed25519Pub) {
+		if !bytes.Equal(priv.Public().(ed25519.PublicKey), pub) {
 			return fail(errors.New("gmtls: private key does not match public key"))
 		}
-	} else {
+	default:
 		return fail(errors.New("gmtls: unknown public key algorithm"))
 	}
 
