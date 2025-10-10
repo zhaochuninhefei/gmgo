@@ -17,8 +17,6 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/rsa"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -33,9 +31,7 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/zhaochuninhefei/gmgo/ecdsa_ext"
 	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
-	"gitee.com/zhaochuninhefei/gmgo/sm2"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
 	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
@@ -1810,44 +1806,6 @@ func TestCheck_cert_icf2ot(t *testing.T) {
 	// 获取公钥算法的OID
 	publicKeyOID := getPublicKeyAlgorithmOID(x509Cert.PublicKeyAlgorithm)
 	fmt.Printf("公钥算法OID: %s\n", publicKeyOID)
-
-	// 打印公钥类型和详细信息
-	switch pub := x509Cert.PublicKey.(type) {
-	case *crypto.Signer:
-		fmt.Printf("公钥类型: *crypto.Signer\n")
-	case interface{ Public() crypto.PublicKey }:
-		fmt.Printf("公钥类型: 实现 Public() 方法的类型\n")
-	default:
-		fmt.Printf("公钥类型: %T\n", pub)
-	}
-
-	// 打印公钥的具体类型
-	switch pub := x509Cert.PublicKey.(type) {
-	case *rsa.PublicKey:
-		fmt.Printf("RSA公钥 - 模数长度: %d bits\n", pub.N.BitLen())
-	case *ecdsa.PublicKey:
-		fmt.Printf("ECDSA公钥 - 曲线: %s\n", pub.Curve.Params().Name)
-		fmt.Printf("  X坐标: %s\n", pub.X.String())
-		fmt.Printf("  Y坐标: %s\n", pub.Y.String())
-	case *sm2.PublicKey:
-		fmt.Printf("SM2公钥 - 曲线: %s\n", pub.Curve.Params().Name)
-		fmt.Printf("  X坐标: %s\n", pub.X.String())
-		fmt.Printf("  Y坐标: %s\n", pub.Y.String())
-	case *ecdsa_ext.PublicKey:
-		fmt.Printf("ECDSA_EXT公钥 - 曲线: %s\n", pub.Curve.Params().Name)
-		fmt.Printf("  X坐标: %s\n", pub.X.String())
-		fmt.Printf("  Y坐标: %s\n", pub.Y.String())
-	}
-
-	// 打印扩展信息
-	fmt.Println("\n========== 证书扩展信息 ==========")
-	for _, ext := range x509Cert.Extensions {
-		fmt.Printf("扩展OID: %s, 关键: %t\n", ext.Id.String(), ext.Critical)
-	}
-
-	// 打印证书指纹
-	fmt.Println("\n========== 证书指纹 ==========")
-	// 这里可以添加指纹计算逻辑
 
 	fmt.Println("=====================================")
 }
