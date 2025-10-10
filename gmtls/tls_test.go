@@ -32,6 +32,7 @@ import (
 
 	"gitee.com/zhaochuninhefei/gmgo/internal/testenv"
 	"gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/zcgolog/zclog"
 )
 
 var rsaCertPEM = `-----BEGIN CERTIFICATE-----
@@ -1763,4 +1764,14 @@ func TestPKCS1OnlyCert(t *testing.T) {
 	if _, _, err := testHandshake(t, clientConfig, serverConfig); err != nil {
 		t.Error(err)
 	}
+}
+
+func TestLoadX509KeyPair(t *testing.T) {
+	// 添加对 LoadX509KeyPair 的测试
+	cert, err := LoadX509KeyPair("./tls_test/issues-ICF2OT/cert_icf2ot.cer", "./tls_test/issues-ICF2OT/key_icf2ot.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 打印证书信息
+	zclog.Debugf("证书信息: %v", cert.Leaf)
 }
