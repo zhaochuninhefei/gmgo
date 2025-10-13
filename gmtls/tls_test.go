@@ -112,14 +112,14 @@ var keyPairTests = []struct {
 
 func TestX509KeyPair(t *testing.T) {
 	t.Parallel()
-	var pem []byte
+	var pemBytes []byte
 	for _, test := range keyPairTests {
-		pem = []byte(test.cert + test.key)
-		if _, err := X509KeyPair(pem, pem); err != nil {
+		pemBytes = []byte(test.cert + test.key)
+		if _, err := X509KeyPair(pemBytes, pemBytes); err != nil {
 			t.Errorf("Failed to load %s cert followed by %s key: %s", test.algo, test.algo, err)
 		}
-		pem = []byte(test.key + test.cert)
-		if _, err := X509KeyPair(pem, pem); err != nil {
+		pemBytes = []byte(test.key + test.cert)
+		if _, err := X509KeyPair(pemBytes, pemBytes); err != nil {
 			t.Errorf("Failed to load %s key followed by %s cert: %s", test.algo, test.algo, err)
 		}
 	}
