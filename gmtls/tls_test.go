@@ -285,6 +285,7 @@ func TestDeadlineOnWrite(t *testing.T) {
 	}
 
 	// Clear deadline and make sure it still times out
+	//goland:noinspection GoMaybeNil
 	if err = srv.SetDeadline(time.Time{}); err != nil {
 		t.Fatalf("SetDeadline(time.Time{}) err: %v", err)
 	}
