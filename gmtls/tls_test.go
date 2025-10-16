@@ -1501,7 +1501,7 @@ func TestClientHelloInfo_SupportsCertificate(t *testing.T) {
 			t.Errorf("%d: unexpected error: %v", i, err)
 		case tt.wantErr != "" && err == nil:
 			t.Errorf("%d: unexpected success", i)
-		case tt.wantErr != "" && !strings.Contains(err.Error(), tt.wantErr):
+		case tt.wantErr != "" && err != nil && !strings.Contains(err.Error(), tt.wantErr):
 			t.Errorf("%d: got error %q, expected %q", i, err, tt.wantErr)
 		}
 	}
