@@ -112,14 +112,14 @@ var keyPairTests = []struct {
 
 func TestX509KeyPair(t *testing.T) {
 	t.Parallel()
-	var pem []byte
+	var pemBytes []byte
 	for _, test := range keyPairTests {
-		pem = []byte(test.cert + test.key)
-		if _, err := X509KeyPair(pem, pem); err != nil {
+		pemBytes = []byte(test.cert + test.key)
+		if _, err := X509KeyPair(pemBytes, pemBytes); err != nil {
 			t.Errorf("Failed to load %s cert followed by %s key: %s", test.algo, test.algo, err)
 		}
-		pem = []byte(test.key + test.cert)
-		if _, err := X509KeyPair(pem, pem); err != nil {
+		pemBytes = []byte(test.key + test.cert)
+		if _, err := X509KeyPair(pemBytes, pemBytes); err != nil {
 			t.Errorf("Failed to load %s key followed by %s cert: %s", test.algo, test.algo, err)
 		}
 	}
@@ -276,6 +276,7 @@ func TestDeadlineOnWrite(t *testing.T) {
 	}
 
 	// Set a deadline which should cause Write to timeout
+	//goland:noinspection GoMaybeNil
 	if err = srv.SetDeadline(time.Now()); err != nil {
 		t.Fatalf("SetDeadline(time.Now()) err: %v", err)
 	}
@@ -284,6 +285,7 @@ func TestDeadlineOnWrite(t *testing.T) {
 	}
 
 	// Clear deadline and make sure it still times out
+	//goland:noinspection GoMaybeNil
 	if err = srv.SetDeadline(time.Time{}); err != nil {
 		t.Fatalf("SetDeadline(time.Time{}) err: %v", err)
 	}
@@ -346,7 +348,7 @@ func TestDialer(t *testing.T) {
 		ServerName: "foo",
 	}}
 	_, err := d.DialContext(ctx, "tcp", ln.Addr().String())
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("err = %v; want context.Canceled", err)
 	}
 }
@@ -649,12 +651,12 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	}()
 
 	_, err = tconn.Write([]byte("foo"))
-	if err != errConnClosed {
+	if !errors.Is(errConnClosed, err) {
 		t.Errorf("Write error = %v; want errConnClosed", err)
 	}
 
 	<-closeReturned
-	if err := tconn.Close(); err != net.ErrClosed {
+	if err := tconn.Close(); !errors.Is(err, net.ErrClosed) {
 		t.Errorf("Close error = %v; want net.ErrClosed", err)
 	}
 }
@@ -737,7 +739,7 @@ func TestConnCloseWrite(t *testing.T) {
 			return fmt.Errorf("client CloseWrite: %v", err)
 		}
 
-		if _, err := conn.Write([]byte{0}); err != errShutdown {
+		if _, err := conn.Write([]byte{0}); !errors.Is(err, errShutdown) {
 			return fmt.Errorf("CloseWrite error = %v; want errShutdown", err)
 		}
 
@@ -791,7 +793,7 @@ func TestConnCloseWrite(t *testing.T) {
 		}(netConn)
 		conn := Client(netConn, testConfig.Clone())
 
-		if err := conn.CloseWrite(); err != errEarlyCloseWrite {
+		if err := conn.CloseWrite(); !errors.Is(err, errEarlyCloseWrite) {
 			t.Errorf("CloseWrite error = %v; want errEarlyCloseWrite", err)
 		}
 	}
@@ -1499,7 +1501,7 @@ func TestClientHelloInfo_SupportsCertificate(t *testing.T) {
 			t.Errorf("%d: unexpected error: %v", i, err)
 		case tt.wantErr != "" && err == nil:
 			t.Errorf("%d: unexpected success", i)
-		case tt.wantErr != "" && !strings.Contains(err.Error(), tt.wantErr):
+		case tt.wantErr != "" && err != nil && !strings.Contains(err.Error(), tt.wantErr):
 			t.Errorf("%d: got error %q, expected %q", i, err, tt.wantErr)
 		}
 	}
