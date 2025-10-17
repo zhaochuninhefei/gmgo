@@ -793,7 +793,7 @@ func TestConnCloseWrite(t *testing.T) {
 		}(netConn)
 		conn := Client(netConn, testConfig.Clone())
 
-		if err := conn.CloseWrite(); err != errEarlyCloseWrite {
+		if err := conn.CloseWrite(); !errors.Is(err, errEarlyCloseWrite) {
 			t.Errorf("CloseWrite error = %v; want errEarlyCloseWrite", err)
 		}
 	}
