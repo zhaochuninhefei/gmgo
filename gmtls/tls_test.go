@@ -651,7 +651,7 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	}()
 
 	_, err = tconn.Write([]byte("foo"))
-	if err != errConnClosed {
+	if !errors.Is(errConnClosed, err) {
 		t.Errorf("Write error = %v; want errConnClosed", err)
 	}
 
