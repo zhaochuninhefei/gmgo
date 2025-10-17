@@ -348,7 +348,7 @@ func TestDialer(t *testing.T) {
 		ServerName: "foo",
 	}}
 	_, err := d.DialContext(ctx, "tcp", ln.Addr().String())
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("err = %v; want context.Canceled", err)
 	}
 }
