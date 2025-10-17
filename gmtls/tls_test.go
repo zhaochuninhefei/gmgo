@@ -739,7 +739,7 @@ func TestConnCloseWrite(t *testing.T) {
 			return fmt.Errorf("client CloseWrite: %v", err)
 		}
 
-		if _, err := conn.Write([]byte{0}); err != errShutdown {
+		if _, err := conn.Write([]byte{0}); !errors.Is(err, errShutdown) {
 			return fmt.Errorf("CloseWrite error = %v; want errShutdown", err)
 		}
 
