@@ -4,6 +4,7 @@
 
 package httptest
 
+//goland:noinspection GoVulnerablePackageImport
 import (
 	"bytes"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"strings"
 
 	http "gitee.com/zhaochuninhefei/gmgo/gmhttp"
-
 	"golang.org/x/net/http/httpguts"
 )
 
@@ -60,6 +60,7 @@ func NewRecorder() *ResponseRecorder {
 
 // DefaultRemoteAddr is the default remote address to return in RemoteAddr if
 // an explicit DefaultRemoteAddr isn't set on ResponseRecorder.
+//
 //goland:noinspection GoUnusedConst
 const DefaultRemoteAddr = "1.2.3.4"
 
@@ -145,6 +146,7 @@ func checkWriteHeaderCode(code int) {
 }
 
 // WriteHeader implements http.ResponseWriter.
+//
 //goland:noinspection GoDeprecation
 func (rw *ResponseRecorder) WriteHeader(code int) {
 	if rw.wroteHeader {
@@ -184,6 +186,7 @@ func (rw *ResponseRecorder) Flush() {
 // guaranteed to not return any error other than io.EOF.
 //
 // Result must only be called after the handler has finished running.
+//
 //goland:noinspection GoDeprecation
 func (rw *ResponseRecorder) Result() *http.Response {
 	if rw.result != nil {
