@@ -6,8 +6,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 )
 
 // ZeroByteSlice 0组成的32byte切片
@@ -70,7 +70,7 @@ func GetRandomBytes(len int) ([]byte, error) {
 
 // GetRandBigInt 随机生成序列号
 //
-//  @return *big.Int
+//	@return *big.Int
 func GetRandBigInt() *big.Int {
 	sn, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
@@ -80,12 +80,14 @@ func GetRandBigInt() *big.Int {
 }
 
 // ReadPemFromFile 从文件读取pem字节数组
-//  @param filePath 文件路径
-//  @return pemBytes pem字节数组
-//  @return err
+//
+//	@param filePath 文件路径
+//	@return pemBytes pem字节数组
+//	@return err
+//
 //goland:noinspection GoUnusedExportedFunction
 func ReadPemFromFile(filePath string) (pemBytes []byte, err error) {
-	fileBytes, err := ioutil.ReadFile(filePath)
+	fileBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file [%s], error: %s", filePath, err)
 	}
