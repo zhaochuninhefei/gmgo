@@ -335,6 +335,7 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		signatures = append(signatures, ECDSAEXTWithP384AndSHA384)
 	case x509.ECDSAEXTWithSHA512:
 		signatures = append(signatures, ECDSAEXTWithP521AndSHA512)
+	default:
 	}
 	if len(signatures) > 0 {
 		cert.SupportedSignatureAlgorithms = signatures

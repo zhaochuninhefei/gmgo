@@ -354,7 +354,8 @@ func TestDialer(t *testing.T) {
 }
 
 func isTimeoutError(err error) bool {
-	if ne, ok := err.(net.Error); ok {
+	var ne net.Error
+	if errors.As(err, &ne) {
 		return ne.Timeout()
 	}
 	return false
