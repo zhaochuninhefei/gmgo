@@ -1932,7 +1932,7 @@ func TestTransportBodyReadError(t *testing.T) {
 	}
 	req = req.WithT(t)
 	_, err = tr.RoundTrip(req)
-	if err != someErr {
+	if !errors.Is(someErr, err) {
 		t.Errorf("Got error: %v; want Request.Body read error: %v", err, someErr)
 	}
 
