@@ -132,6 +132,7 @@ func TestGetRequestFormat(t *testing.T) {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestPostRequestFormat(t *testing.T) {
 	defer afterTest(t)
 	tr := &recordingTransport{}
@@ -159,6 +160,7 @@ func TestPostRequestFormat(t *testing.T) {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestPostFormRequestFormat(t *testing.T) {
 	defer afterTest(t)
 	tr := &recordingTransport{}
@@ -287,7 +289,8 @@ func TestClientRedirects(t *testing.T) {
 
 	checkErr = errors.New("no redirects allowed")
 	res, err = c.Get(ts.URL)
-	if urlError, ok := err.(*url.Error); !ok || urlError.Err != checkErr {
+	var urlError *url.Error
+	if !errors.As(err, &urlError) || !errors.Is(checkErr, urlError.Err) {
 		t.Errorf("with redirects forbidden, expected a *url.Error with our 'no redirects allowed' error inside; got %#v (%q)", err, err)
 	}
 	if res == nil {
@@ -1294,6 +1297,7 @@ func TestClientTimeout_Headers_h1(t *testing.T) { testClientTimeout_Headers(t, h
 func TestClientTimeout_Headers_h2(t *testing.T) { testClientTimeout_Headers(t, h2Mode) }
 
 // Client.Timeout firing before getting to the body
+//
 //goland:noinspection GoSnakeCaseUsage
 func testClientTimeout_Headers(t *testing.T, h2 bool) {
 	setParallel(t)
@@ -1928,7 +1932,7 @@ func TestTransportBodyReadError(t *testing.T) {
 	}
 	req = req.WithT(t)
 	_, err = tr.RoundTrip(req)
-	if err != someErr {
+	if !errors.Is(someErr, err) {
 		t.Errorf("Got error: %v; want Request.Body read error: %v", err, someErr)
 	}
 
