@@ -288,7 +288,7 @@ func TestClientRedirects(t *testing.T) {
 	checkErr = errors.New("no redirects allowed")
 	res, err = c.Get(ts.URL)
 	var urlError *url.Error
-	if !errors.As(err, &urlError) || urlError.Err != checkErr {
+	if !errors.As(err, &urlError) || !errors.Is(checkErr, urlError.Err) {
 		t.Errorf("with redirects forbidden, expected a *url.Error with our 'no redirects allowed' error inside; got %#v (%q)", err, err)
 	}
 	if res == nil {
