@@ -132,6 +132,7 @@ func TestGetRequestFormat(t *testing.T) {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestPostRequestFormat(t *testing.T) {
 	defer afterTest(t)
 	tr := &recordingTransport{}
