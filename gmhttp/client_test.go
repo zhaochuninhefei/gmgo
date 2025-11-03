@@ -1280,7 +1280,8 @@ func testClientTimeout(t *testing.T, h2 bool) {
 		if err == nil {
 			t.Fatal("expected error from ReadAll")
 		}
-		ne, ok := err.(net.Error)
+		var ne net.Error
+		ok := errors.As(err, &ne)
 		if !ok {
 			t.Errorf("error value from ReadAll was %T; expected some net.Error", err)
 		} else if !ne.Timeout() {
