@@ -324,7 +324,8 @@ func TestClientRedirectContext(t *testing.T) {
 	}
 	req, _ := NewRequestWithContext(ctx, "GET", ts.URL, nil)
 	_, err := c.Do(req)
-	ue, ok := err.(*url.Error)
+	var ue *url.Error
+	ok := errors.As(err, &ue)
 	if !ok {
 		t.Fatalf("got error %T; want *url.Error", err)
 	}
