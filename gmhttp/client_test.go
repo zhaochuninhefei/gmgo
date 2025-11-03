@@ -1328,7 +1328,8 @@ func testClientTimeout_Headers(t *testing.T, h2 bool) {
 	if !errors.As(err, &error) {
 		t.Fatalf("Got error of type %T; want *url.Error", err)
 	}
-	ne, ok := err.(net.Error)
+	var ne net.Error
+	ok := errors.As(err, &ne)
 	if !ok {
 		t.Fatalf("Got error of type %T; want some net.Error", err)
 	}
