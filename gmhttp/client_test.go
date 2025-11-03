@@ -1324,7 +1324,8 @@ func testClientTimeout_Headers(t *testing.T, h2 bool) {
 		_ = res.Body.Close()
 		t.Fatal("got response from Get; expected error")
 	}
-	if _, ok := err.(*url.Error); !ok {
+	var error *url.Error
+	if !errors.As(err, &error) {
 		t.Fatalf("Got error of type %T; want *url.Error", err)
 	}
 	ne, ok := err.(net.Error)
