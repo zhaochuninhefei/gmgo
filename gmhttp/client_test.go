@@ -1322,22 +1322,22 @@ func testClientTimeout_Headers(t *testing.T, h2 bool) {
 	res, err := cst.c.Get(cst.ts.URL)
 	if err == nil {
 		_ = res.Body.Close()
-		t.Fatal("got response from Get; expected error")
+		t.Fatal("got response from Get; expected e")
 	}
-	var error *url.Error
-	if !errors.As(err, &error) {
-		t.Fatalf("Got error of type %T; want *url.Error", err)
+	var e *url.Error
+	if !errors.As(err, &e) {
+		t.Fatalf("Got e of type %T; want *url.Error", err)
 	}
 	var ne net.Error
 	ok := errors.As(err, &ne)
 	if !ok {
-		t.Fatalf("Got error of type %T; want some net.Error", err)
+		t.Fatalf("Got e of type %T; want some net.Error", err)
 	}
 	if !ne.Timeout() {
 		t.Error("net.Error.Timeout = false; want true")
 	}
 	if got := ne.Error(); !strings.Contains(got, "Client.Timeout exceeded") {
-		t.Errorf("error string = %q; missing timeout substring", got)
+		t.Errorf("e string = %q; missing timeout substring", got)
 	}
 }
 
