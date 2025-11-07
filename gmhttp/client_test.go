@@ -324,11 +324,12 @@ func TestClientRedirectContext(t *testing.T) {
 	}
 	req, _ := NewRequestWithContext(ctx, "GET", ts.URL, nil)
 	_, err := c.Do(req)
-	ue, ok := err.(*url.Error)
+	var ue *url.Error
+	ok := errors.As(err, &ue)
 	if !ok {
 		t.Fatalf("got error %T; want *url.Error", err)
 	}
-	if ue.Err != context.Canceled {
+	if !errors.Is(ue.Err, context.Canceled) {
 		t.Errorf("url.Error.Err = %v; want %v", ue.Err, context.Canceled)
 	}
 }
@@ -1279,7 +1280,8 @@ func testClientTimeout(t *testing.T, h2 bool) {
 		if err == nil {
 			t.Fatal("expected error from ReadAll")
 		}
-		ne, ok := err.(net.Error)
+		var ne net.Error
+		ok := errors.As(err, &ne)
 		if !ok {
 			t.Errorf("error value from ReadAll was %T; expected some net.Error", err)
 		} else if !ne.Timeout() {
@@ -1320,20 +1322,22 @@ func testClientTimeout_Headers(t *testing.T, h2 bool) {
 	res, err := cst.c.Get(cst.ts.URL)
 	if err == nil {
 		_ = res.Body.Close()
-		t.Fatal("got response from Get; expected error")
+		t.Fatal("got response from Get; expected e")
 	}
-	if _, ok := err.(*url.Error); !ok {
-		t.Fatalf("Got error of type %T; want *url.Error", err)
+	var e *url.Error
+	if !errors.As(err, &e) {
+		t.Fatalf("Got e of type %T; want *url.Error", err)
 	}
-	ne, ok := err.(net.Error)
+	var ne net.Error
+	ok := errors.As(err, &ne)
 	if !ok {
-		t.Fatalf("Got error of type %T; want some net.Error", err)
+		t.Fatalf("Got e of type %T; want some net.Error", err)
 	}
 	if !ne.Timeout() {
 		t.Error("net.Error.Timeout = false; want true")
 	}
 	if got := ne.Error(); !strings.Contains(got, "Client.Timeout exceeded") {
-		t.Errorf("error string = %q; missing timeout substring", got)
+		t.Errorf("e string = %q; missing timeout substring", got)
 	}
 }
 
