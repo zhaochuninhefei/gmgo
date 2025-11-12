@@ -2033,7 +2033,8 @@ func testClientDoCanceledVsTimeout(t *testing.T, h2 bool) {
 				t.Fatal("Unexpectedly got a nil error")
 			}
 
-			ue := err.(*url.Error)
+			var ue *url.Error
+			errors.As(err, &ue)
 
 			var wantIsTimeout bool
 			var wantErr = context.Canceled
