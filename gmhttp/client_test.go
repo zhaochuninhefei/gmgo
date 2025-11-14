@@ -1366,7 +1366,7 @@ func TestClientTimeoutCancel(t *testing.T) {
 	}
 	cancel()
 	_, err = io.Copy(io.Discard, res.Body)
-	if err != ExportErrRequestCanceled {
+	if !errors.Is(err, ExportErrRequestCanceled) {
 		t.Fatalf("error = %v; want errRequestCanceled", err)
 	}
 }
@@ -2033,7 +2033,8 @@ func testClientDoCanceledVsTimeout(t *testing.T, h2 bool) {
 				t.Fatal("Unexpectedly got a nil error")
 			}
 
-			ue := err.(*url.Error)
+			var ue *url.Error
+			errors.As(err, &ue)
 
 			var wantIsTimeout bool
 			var wantErr = context.Canceled
